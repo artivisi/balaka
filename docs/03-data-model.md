@@ -2,18 +2,17 @@
 
 ## Entity Relationship Overview
 
-```
-tenants
-  ↓ (1:many)
-chart_of_accounts ← journal_entries → transactions
-                         ↑
-                    (generated from)
-                         ↓
-              journal_templates (system + custom)
-                         ↑
-                    (defines structure)
-                         ↓
-             journal_template_lines
+```mermaid
+graph TD
+    tenants["tenants"] -->|1:many| coa["chart_of_accounts"]
+    tenants -->|1:many| transactions["transactions"]
+    tenants -->|1:many| jt["journal_templates<br/>(system + custom)"]
+
+    transactions -->|has many| je["journal_entries"]
+    coa -->|referenced by| je
+
+    transactions -->|generated from| jt
+    jt -->|defines structure| jtl["journal_template_lines"]
 ```
 
 ## Core Entities
@@ -65,15 +64,24 @@ INDEX(tenant_id, parent_id)
 - `expense` - Beban
 
 **Example Hierarchy:**
-```
-1-0000  Aset (Header)
-  1-1000  Aset Lancar (Header)
-    1-1100  Kas (Detail)
-    1-1200  Bank BCA (Detail)
-    1-1300  Piutang Usaha (Detail)
-    1-1400  PPN Masukan (Detail)
-  1-2000  Aset Tetap (Header)
-    1-2100  Peralatan Kantor (Detail)
+```mermaid
+graph TD
+    A["1-0000 Aset<br/>(Header)"]
+    B["1-1000 Aset Lancar<br/>(Header)"]
+    C["1-1100 Kas<br/>(Detail)"]
+    D["1-1200 Bank BCA<br/>(Detail)"]
+    E["1-1300 Piutang Usaha<br/>(Detail)"]
+    F["1-1400 PPN Masukan<br/>(Detail)"]
+    G["1-2000 Aset Tetap<br/>(Header)"]
+    H["1-2100 Peralatan Kantor<br/>(Detail)"]
+
+    A --> B
+    A --> G
+    B --> C
+    B --> D
+    B --> E
+    B --> F
+    G --> H
 ```
 
 ### 3. Journal Templates
@@ -284,7 +292,7 @@ users
 - email                 VARCHAR(255) UNIQUE NOT NULL
 - password_hash         VARCHAR(255) NOT NULL
 - full_name             VARCHAR(255) NOT NULL
-- role                  VARCHAR(50) NOT NULL   -- 'owner', 'operator', 'power_operator', 'viewer'
+- role                  VARCHAR(50) NOT NULL   -- 'owner', 'operator', 'power_operator', 'viewer', 'auditor'
 - is_active             BOOLEAN DEFAULT true
 - created_at            TIMESTAMP
 - updated_at            TIMESTAMP
@@ -298,14 +306,18 @@ user_tenant_access
 - id                    UUID PRIMARY KEY
 - user_id               UUID NOT NULL REFERENCES users(id)
 - tenant_id             UUID NOT NULL REFERENCES tenants(id)
-- role                  VARCHAR(50) NOT NULL   -- 'owner', 'operator', 'power_operator', 'viewer'
+- role                  VARCHAR(50) NOT NULL   -- 'owner', 'operator', 'power_operator', 'viewer', 'auditor'
 - is_active             BOOLEAN DEFAULT true
+- access_start_date     DATE                   -- For time-bound access (auditor)
+- access_end_date       DATE                   -- For time-bound access (auditor)
 - granted_by            UUID REFERENCES users(id)
 - granted_at            TIMESTAMP
+- revoked_at            TIMESTAMP
 
 UNIQUE(user_id, tenant_id)
 INDEX(user_id)
 INDEX(tenant_id)
+INDEX(access_end_date) WHERE role = 'auditor'
 ```
 
 **Purpose:** Multi-client access for bookkeepers
@@ -330,6 +342,72 @@ INDEX(tenant_id, created_at DESC)
 INDEX(entity_type, entity_id)
 INDEX(user_id, created_at DESC)
 ```
+
+### 12. Documents (Supporting Evidence)
+
+```sql
+documents
+- id                    UUID PRIMARY KEY
+- tenant_id             UUID NOT NULL REFERENCES tenants(id)
+- transaction_id        UUID REFERENCES transactions(id) ON DELETE SET NULL
+- document_type         VARCHAR(50) NOT NULL   -- 'receipt', 'invoice', 'contract', 'other'
+- file_name             VARCHAR(255) NOT NULL
+- file_size             BIGINT NOT NULL        -- In bytes
+- file_type             VARCHAR(100) NOT NULL  -- MIME type
+- storage_path          TEXT NOT NULL          -- Cloud storage path/key
+- storage_url           TEXT                   -- Signed URL (temporary)
+- thumbnail_path        TEXT                   -- Thumbnail for images
+- uploaded_by           UUID REFERENCES users(id)
+- uploaded_at           TIMESTAMP NOT NULL
+- description           TEXT
+- is_archived           BOOLEAN DEFAULT false
+- archived_at           TIMESTAMP
+- metadata              JSONB                  -- OCR text, dimensions, etc.
+
+INDEX(tenant_id, uploaded_at DESC)
+INDEX(transaction_id)
+INDEX(tenant_id, document_type)
+INDEX(tenant_id, is_archived)
+```
+
+**Purpose:** Store supporting documents for transactions (receipts, invoices, contracts)
+
+**Storage organization:**
+```mermaid
+graph TD
+    A["bucket/"]
+    B["{tenant_id}/"]
+    C["{year}/"]
+    D["{month}/"]
+    E["{document_id}.{ext}"]
+    F["{document_id}_thumb.jpg"]
+
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    D --> F
+```
+
+### 13. Document Access Log
+
+```sql
+document_access_logs
+- id                    UUID PRIMARY KEY
+- document_id           UUID NOT NULL REFERENCES documents(id) ON DELETE CASCADE
+- user_id               UUID NOT NULL REFERENCES users(id)
+- tenant_id             UUID NOT NULL REFERENCES tenants(id)
+- access_type           VARCHAR(50) NOT NULL   -- 'view', 'download', 'share'
+- ip_address            VARCHAR(45)
+- user_agent            TEXT
+- accessed_at           TIMESTAMP NOT NULL
+
+INDEX(document_id, accessed_at DESC)
+INDEX(user_id, accessed_at DESC)
+INDEX(tenant_id, accessed_at DESC)
+```
+
+**Purpose:** Audit trail for document access (who viewed/downloaded what, when)
 
 ## Data Validation Rules
 

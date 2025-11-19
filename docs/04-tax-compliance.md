@@ -272,18 +272,20 @@ When user enters service payment:
 ### Tax Compliance Workflow
 
 **Monthly Routine:**
-```
-Day 1-28: Transaction entry
-  ↓
-Day 28-30: Month-end close
-  ↓ (App generates reminders)
-Day 1-10 (next month): Pay PPh taxes
-  ↓
-Day 1-20 (next month): Submit SPT Masa
-  ↓
-Day 1-30 (next month): Pay PPN
-  ↓
-App marks tasks as complete, tracks next month
+```mermaid
+flowchart TD
+    A["Day 1-28:<br/>Transaction entry"]
+    B["Day 28-30:<br/>Month-end close"]
+    C["Day 1-10 (next month):<br/>Pay PPh taxes"]
+    D["Day 1-20 (next month):<br/>Submit SPT Masa"]
+    E["Day 1-30 (next month):<br/>Pay PPN"]
+    F["App marks tasks as complete,<br/>tracks next month"]
+
+    A --> B
+    B -->|App generates reminders| C
+    C --> D
+    D --> E
+    E --> F
 ```
 
 **Application Support:**

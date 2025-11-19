@@ -60,21 +60,13 @@ Credit: Bank BCA             Rp 1,000,000
 
 ## Three-Layer Architecture
 
-```
-┌─────────────────────────────────────────────┐
-│         User Layer                          │
-│   (Transaction Forms - Simplified UI)       │
-└─────────────────────────────────────────────┘
-                    ↓
-┌─────────────────────────────────────────────┐
-│       Business Logic Layer                  │
-│     (Journal Templates - Mapping Rules)     │
-└─────────────────────────────────────────────┘
-                    ↓
-┌─────────────────────────────────────────────┐
-│          Data Layer                         │
-│  (Chart of Accounts + Journal Entries)      │
-└─────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    A["User Layer<br/>(Transaction Forms - Simplified UI)"]
+    B["Business Logic Layer<br/>(Journal Templates - Mapping Rules)"]
+    C["Data Layer<br/>(Chart of Accounts + Journal Entries)"]
+
+    A --> B --> C
 ```
 
 ### Layer 1: User Layer (Transaction Forms)
@@ -295,34 +287,32 @@ Tenant tables:
    - Export reports
    - No data entry
 
+5. **Auditor** (external auditor)
+   - Read-only access to all financial data
+   - View all transactions and supporting documents
+   - Access to complete audit trail
+   - Export capabilities for audit work papers
+   - Time-bound access (temporary, can be revoked)
+   - No ability to modify any data
+   - View document access logs
+
 ## Data Flow
 
 ### Transaction Entry → Journal Posting
 
-```
-1. User selects template
-   ↓
-2. System loads template definition
-   ↓
-3. Form renders with required fields
-   ↓
-4. User fills form
-   ↓
-5. System validates input
-   ↓
-6. System generates preview (journal entry lines)
-   ↓
-7. System validates balance (debit = credit)
-   ↓
-8. User confirms
-   ↓
-9. Transaction saved (status: draft)
-   ↓
-10. Journal entries created (linked to transaction)
-   ↓
-11. Transaction status → posted
-   ↓
-12. General ledger balances updated
+```mermaid
+flowchart TD
+    A[1. User selects template] --> B[2. System loads template definition]
+    B --> C[3. Form renders with required fields]
+    C --> D[4. User fills form]
+    D --> E[5. System validates input]
+    E --> F[6. System generates preview<br/>journal entry lines]
+    F --> G[7. System validates balance<br/>debit = credit]
+    G --> H[8. User confirms]
+    H --> I[9. Transaction saved<br/>status: draft]
+    I --> J[10. Journal entries created<br/>linked to transaction]
+    J --> K[11. Transaction status → posted]
+    K --> L[12. General ledger balances updated]
 ```
 
 ### Template Resolution Logic

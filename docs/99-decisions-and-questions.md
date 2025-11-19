@@ -71,6 +71,56 @@
 - Potential for errors in transaction entry
 - Less competitive vs solutions with bank feeds
 
+### 6. Target Market Segments ✓
+**Decision:** Focus on service businesses and simple online sellers
+
+**Segments:**
+1. IT/Software consulting and training (own business)
+2. Wedding photographers/videographers (freelance + small studios)
+3. Home-based online sellers (marketplace + social media)
+
+**Rationale:**
+- Clear market focus based on accessible users
+- Service-heavy businesses align with transaction-centric approach
+- Online sellers need simple inventory (no manufacturing complexity)
+- All segments benefit from project/job tracking
+
+**Trade-offs:**
+- Not suitable for manufacturing/production businesses
+- Limited appeal to traditional retail (warung, toko)
+- No complex inventory costing
+
+### 7. Project/Job Costing Required ✓
+**Decision:** Include project/job costing from Phase 1
+
+**Rationale:**
+- Critical for photographers (per-event profitability)
+- Important for consultants/developers (per-project tracking)
+- Online sellers can use for product line analysis
+- Competitive differentiator
+
+**Implementation:** Simple project tagging with profitability reports (Option B/C hybrid)
+
+**Trade-offs:**
+- More database complexity
+- Additional UI for project management
+- More complex reporting
+
+### 8. Simple Inventory for Online Sellers ✓
+**Decision:** Include basic inventory tracking in Phase 1
+
+**Rationale:**
+- Online sellers need stock quantity tracking
+- Simple buy/sell model (no production)
+- COGS calculation needed for profit analysis
+- Not complex manufacturing
+
+**Implementation:** Basic inventory with FIFO or Average costing, no production/assembly
+
+**Trade-offs:**
+- Not suitable for manufacturers
+- Limited to simple buy/sell model
+
 ## Open Questions
 
 ### Template System Design
@@ -174,37 +224,25 @@ C. Rule engine for complex scenarios
 
 ### Business Logic Questions
 
-#### Q6: Business Type Priority?
+#### Q6: Business Type Priority? ✓ ANSWERED
 **Question:** Which business types should we create default chart of accounts templates for in Phase 1?
 
-**Options:**
-- Warung (small shop/kiosk)
-- Toko (retail store)
-- Jasa Konsultan (consulting services)
-- Jasa Teknologi (tech services)
-- Restoran/Cafe (F&B)
-- Online Seller
-- Freelancer
-- General/Lainnya
+**Decision:**
+1. IT Services / Consulting
+2. Photography / Videography Services
+3. Online Seller / Marketplace
+4. General Services (Freelancer)
 
-**Recommendation needed:** Prioritize top 3-5 based on market research
+See Decision #6 above.
 
 ---
 
-#### Q7: Inventory Tracking?
+#### Q7: Inventory Tracking? ✓ ANSWERED
 **Question:** Should Phase 1 include inventory management features?
 
-**Context:**
-- Important for retail/F&B (warung, toko, restoran)
-- Can skip for pure services (consulting, freelancer)
-- Adds significant complexity (stock cards, COGS calculation, valuation methods)
+**Decision:** Option C - Basic inventory with FIFO/Average costing for online sellers
 
-**Options:**
-A. Not in Phase 1 - record inventory as simple expense/asset
-B. Basic inventory - quantity tracking only, no valuation
-C. Full inventory - FIFO/Average costing, stock cards
-
-**Recommendation needed:** Option A for MVP unless retail is primary target
+See Decision #8 above.
 
 ---
 
@@ -225,20 +263,17 @@ C. Full payroll - calculate PPh 21, generate pay slips
 
 ---
 
-#### Q9: Project/Job Costing?
+#### Q9: Project/Job Costing? ✓ ANSWERED
 **Question:** Should transactions be taggable by project/job for cost tracking?
 
-**Use cases:**
-- Freelancers billing by project
-- Contractors tracking job costs
+**Decision:** YES - Option B/C hybrid (simple tagging + profitability reports)
+
+**Use cases covered:**
+- Photographers billing by event/wedding
+- Consultants/developers tracking project costs
 - Multi-project expense allocation
 
-**Implementation:**
-A. No project tracking
-B. Simple project tagging on transactions
-C. Full project accounting (budgets, progress billing, profitability)
-
-**Recommendation needed:** Option B if targeting freelancers/contractors, Option A otherwise
+See Decision #7 above.
 
 ---
 
@@ -391,10 +426,193 @@ C. Budget workflows (approval, alerts, variance analysis)
 4. Integration ecosystem
 
 ### Regulatory Research
-1. **Data retention** requirements for accounting records
-2. **Tax audit** requirements (what reports needed)
+1. **Data retention** requirements for accounting records:
+   - Minimum retention period (10 years?)
+   - What documents must be retained:
+     - Transaction receipts/invoices
+     - Bank statements
+     - Tax documents (SPT, bukti potong, faktur pajak)
+     - Contracts and agreements
+     - Payroll records
+   - Format requirements (original, scan, digital-native all acceptable?)
+   - Storage location requirements (Indonesia data residency?)
+   - Destruction policies after retention period
+
+2. **Tax audit** requirements (what reports needed):
+   - Required reports for tax audit
+   - Supporting document requirements
+   - Access requirements for auditors
+   - Audit trail requirements
+   - Digital vs physical document acceptance
+
 3. **Electronic signature** requirements for tax documents
 4. **Upcoming tax regulation** changes (2025+)
+
+### Payment Integration Research
+1. **Administrative complexity** for target market segments:
+   - What paperwork/documentation required for payment gateway integration?
+   - Registration process complexity for:
+     - Freelance photographers/videographers
+     - Home-based online sellers
+     - Small IT consultants
+   - Business entity requirements (PT, CV, individual/NPWP?)
+   - Verification process timeline
+   - Ongoing compliance/reporting requirements
+
+2. **Cost structure** for payment integrations:
+   - **Initial fees:**
+     - Registration/setup fees
+     - Integration development costs
+     - Certification/testing fees
+   - **Transaction fees:**
+     - Percentage per transaction
+     - Fixed fee per transaction
+     - Different rates by payment method (CC, e-wallet, VA, QRIS)
+   - **Other recurring fees:**
+     - Monthly/annual maintenance fees
+     - Settlement fees
+     - Chargeback fees
+     - Minimum transaction volume requirements
+
+3. **Payment gateway options** for Indonesian market:
+   - Midtrans
+   - Xendit
+   - iPaymu
+   - Faspay
+   - Nicepay
+   - Comparison of features, costs, ease of integration
+
+4. **E-wallet direct integration:**
+   - GoPay, OVO, DANA, ShopeePay direct APIs
+   - vs aggregator (payment gateway) approach
+   - Cost comparison
+
+5. **Marketplace payment handling:**
+   - How Tokopedia, Shopee, Bukalapak handle settlements
+   - Reporting/reconciliation capabilities
+   - Integration APIs availability
+
+### Digital Signature & E-Meterai Research
+
+1. **E-Meterai (Electronic Stamp Duty) requirements:**
+   - Which documents require e-meterai for target businesses?
+     - Invoices above certain amount threshold
+     - Contracts/agreements
+     - Receipt of payments
+     - Other business documents
+   - Current threshold amounts (Rp 5 juta+?)
+   - Legal validity and requirements
+   - Integration methods:
+     - API providers (Peruri, third-party)
+     - Manual application process
+     - Bulk application capabilities
+
+2. **E-Meterai cost structure:**
+   - Per-stamp cost (currently Rp 10,000?)
+   - API integration fees
+   - Volume discounts
+   - Reseller/distributor options
+
+3. **Digital signature (Tanda Tangan Elektronik) requirements:**
+   - **PSrE (Penyelenggara Sertifikat Elektronik) providers:**
+     - PrivyID
+     - VIDA
+     - Digisign
+     - Tilaka
+     - Peruri Sign
+   - Legal requirements for tax documents:
+     - e-Faktur signing
+     - e-Bupot signing
+     - SPT signing
+   - Contract/agreement signing for service businesses
+
+4. **Digital signature cost structure:**
+   - Certificate fees (personal vs corporate)
+   - Annual renewal costs
+   - Per-signature fees (if any)
+   - API integration costs
+   - Volume-based pricing
+
+5. **Integration complexity:**
+   - **E-Meterai:**
+     - API documentation availability
+     - Integration development effort
+     - Verification/validation process
+   - **Digital signature:**
+     - Certificate management
+     - Integration with document generation
+     - User experience (signing workflow)
+     - Mobile support
+
+6. **Use cases for target market:**
+   - **Photographers/videographers:**
+     - Contract signing with clients
+     - Invoice e-meterai (above threshold)
+   - **Online sellers:**
+     - Product supply agreements
+     - High-value invoices
+   - **IT consultants:**
+     - Service agreements/contracts
+     - Project invoices
+     - NDA, SLA signing
+
+7. **Compliance timeline:**
+   - When is e-meterai mandatory vs optional?
+   - Penalties for non-compliance
+   - Transition period considerations
+   - Future regulatory changes
+
+### Document Storage & Management Research
+
+1. **Cloud storage providers** for Indonesian market:
+   - AWS S3 (Singapore/Jakarta region)
+   - Google Cloud Storage (Jakarta region)
+   - Alibaba Cloud OSS
+   - Local providers (BiznetGio, etc.)
+   - Cost comparison:
+     - Storage cost per GB/month
+     - Bandwidth/transfer costs
+     - Request costs (PUT/GET)
+     - Data retrieval costs
+   - Data residency compliance
+   - SLA and reliability
+
+2. **Storage optimization strategies:**
+   - Image compression (quality vs size trade-off)
+   - PDF optimization
+   - Thumbnail generation
+   - CDN for document delivery
+   - Tiered storage (hot vs cold storage)
+   - Archive strategies for old documents
+
+3. **Document security:**
+   - Encryption at rest
+   - Encryption in transit
+   - Access control (signed URLs, time-limited access)
+   - Virus/malware scanning for uploads
+   - Backup and redundancy
+   - Disaster recovery
+
+4. **File size and format limits:**
+   - Maximum file size per upload
+   - Maximum total storage per tenant
+   - Supported file formats
+   - File format validation
+   - OCR capabilities for scanned documents
+
+5. **Audit and compliance:**
+   - Document access logging
+   - Retention policy enforcement
+   - Secure deletion/destruction
+   - Export capabilities for audit
+   - Chain of custody tracking
+
+6. **User experience considerations:**
+   - Upload speed and reliability
+   - Progress indicators
+   - Bulk upload capabilities
+   - Mobile photo capture
+   - In-app document viewer requirements
 
 ---
 
