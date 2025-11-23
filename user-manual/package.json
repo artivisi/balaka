@@ -1,0 +1,17 @@
+{
+  "name": "user-manual-generator",
+  "version": "1.0.0",
+  "private": true,
+  "description": "User manual generator with Playwright screenshots for Aplikasi Akunting",
+  "scripts": {
+    "capture": "node scripts/capture-screenshots.js",
+    "generate": "node scripts/generate-manual.js",
+    "build": "npm run capture && npm run generate",
+    "serve": "npx serve dist"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0",
+    "ejs": "^3.1.9",
+    "marked": "^11.0.0"
+  }
+}

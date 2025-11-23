@@ -38,4 +38,10 @@ node/
 src/main/frontend/node_modules/
 src/main/frontend/node/
 
+### User Manual ###
+user-manual/node_modules/
+user-manual/dist/
+user-manual/screenshots/*.png
+user-manual/screenshots/metadata.json
+
 db-accounting

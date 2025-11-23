@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+
+# Generated files
+dist/
+screenshots/*.png
+screenshots/metadata.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
