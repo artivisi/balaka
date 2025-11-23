@@ -1,0 +1,13 @@
+testCase,transactionDate,templateId,amount,description,referenceNumber,expectedError,errorField
+Empty transaction date,,e0000000-0000-0000-0000-000000000001,1000000,Test Transaction,REF-001,Transaction date is required,transactionDate
+Empty template ID,2025-11-23,,1000000,Test Transaction,REF-001,Template is required,templateId
+Zero amount,2025-11-23,e0000000-0000-0000-0000-000000000001,0,Test Transaction,REF-001,Amount must be greater than 0,amount
+Negative amount,2025-11-23,e0000000-0000-0000-0000-000000000001,-1000000,Test Transaction,REF-001,Amount must be greater than 0,amount
+Empty description,2025-11-23,e0000000-0000-0000-0000-000000000001,1000000,,REF-001,Description is required,description
+Description too long,2025-11-23,e0000000-0000-0000-0000-000000000001,1000000,Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua Ut enim ad minim veniam quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur Excepteur sint occaecat cupidatat non proident sunt in culpa qui officia deserunt mollit anim id est laborum sed ut perspiciatis unde omnis iste natus error sit,REF-001,Description must not exceed 500 characters,description
+Reference too long,2025-11-23,e0000000-0000-0000-0000-000000000001,1000000,Test Transaction,REF-12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890,Reference number must not exceed 100 characters,referenceNumber
+Invalid template ID,2025-11-23,00000000-0000-0000-0000-000000000000,1000000,Test Transaction,REF-001,Template not found,templateId
+Future date one year,2026-11-23,e0000000-0000-0000-0000-000000000001,1000000,Test Transaction,REF-001,Transaction date cannot be more than 1 year in future,transactionDate
+Very old date,2000-01-01,e0000000-0000-0000-0000-000000000001,1000000,Test Transaction,REF-001,Transaction date is too old,transactionDate
+Amount exceeds limit,2025-11-23,e0000000-0000-0000-0000-000000000001,99999999999999999999,Test Transaction,REF-001,Amount exceeds maximum allowed value,amount
+Whitespace only description,2025-11-23,e0000000-0000-0000-0000-000000000001,1000000,   ,REF-001,Description is required,description

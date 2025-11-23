@@ -1,0 +1,12 @@
+testCase,templateName,category,cashFlowCategory,templateType,description,expectedError,errorField
+Empty template name,,INCOME,OPERATING,SIMPLE,Test Description,Template name is required,templateName
+Empty category,Test Template,,OPERATING,SIMPLE,Test Description,Category is required,category
+Empty cash flow category,Test Template,INCOME,,SIMPLE,Test Description,Cash flow category is required,cashFlowCategory
+Invalid category,Test Template,INVALID,OPERATING,SIMPLE,Test Description,must be one of,category
+Invalid cash flow category,Test Template,INCOME,INVALID,SIMPLE,Test Description,must be one of,cashFlowCategory
+Invalid template type,Test Template,INCOME,OPERATING,INVALID,Test Description,must be one of,templateType
+Template name too long,Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua Ut enim ad minim veniam quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat Duis aute irure dolor in reprehenderit in voluptate,INCOME,OPERATING,SIMPLE,Test Description,Template name must not exceed 255 characters,templateName
+Whitespace only name,   ,INCOME,OPERATING,SIMPLE,Test Description,Template name is required,templateName
+No journal lines,Test Template,INCOME,OPERATING,SIMPLE,Test Description,Template must have at least 2 lines,lines
+Only debit lines,Test Template,INCOME,OPERATING,SIMPLE,Test Description,Template must have at least one debit and one credit line,lines
+Only credit lines,Test Template,INCOME,OPERATING,SIMPLE,Test Description,Template must have at least one debit and one credit line,lines

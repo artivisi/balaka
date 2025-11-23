@@ -1,0 +1,13 @@
+testCase,accountCode,accountName,accountType,normalBalance,expectedError,errorField
+Empty account code,,Test Account,ASSET,DEBIT,Account code is required,accountCode
+Empty account name,1.1.99,,ASSET,DEBIT,Account name is required,accountName
+Account code too long,1234567890123456789012345,Test Account,ASSET,DEBIT,Account code must not exceed 20 characters,accountCode
+Account name too long,1.1.99,Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua Ut enim ad minim veniam quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat Duis aute irure dolor in reprehenderit in voluptate,ASSET,DEBIT,Account name must not exceed 255 characters,accountName
+Invalid account type,1.1.99,Test Account,INVALID,DEBIT,must be one of,accountType
+Invalid normal balance,1.1.99,Test Account,ASSET,INVALID,must be one of,normalBalance
+Null account type,1.1.99,Test Account,,DEBIT,Account type is required,accountType
+Null normal balance,1.1.99,Test Account,ASSET,,Normal balance is required,normalBalance
+Duplicate account code,1.1.01,Duplicate Test,ASSET,DEBIT,already exists,accountCode
+Special characters in code,1.1.@#$,Test Account,ASSET,DEBIT,Invalid format,accountCode
+Whitespace only code,   ,Test Account,ASSET,DEBIT,Account code is required,accountCode
+Whitespace only name,1.1.99,   ,ASSET,DEBIT,Account name is required,accountName
