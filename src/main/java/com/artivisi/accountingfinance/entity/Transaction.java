@@ -16,6 +16,7 @@ import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -42,6 +43,7 @@ public class Transaction extends BaseEntity {
     @Column(name = "transaction_date", nullable = false)
     private LocalDate transactionDate;
 
+    @JsonIgnore
     @NotNull(message = "Journal template is required")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_journal_template", nullable = false)
@@ -90,9 +92,11 @@ public class Transaction extends BaseEntity {
     @Column(name = "posted_by", length = 100)
     private String postedBy;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "transaction", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<TransactionAccountMapping> accountMappings = new ArrayList<>();
 
+    @JsonIgnore
     @OneToMany(mappedBy = "transaction", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<JournalEntry> journalEntries = new ArrayList<>();
 

@@ -172,6 +172,54 @@ Comprehensive documentation is available in the `/docs` directory:
 
 See [Technology Stack Documentation](docs/05-technology-stack.md) for detailed justification and DevSecOps pipeline.
 
+## Prerequisites
+
+- **Java 25**
+  - Linux/macOS: [SDKMAN](https://sdkman.io/) - `sdk install java 25-open`
+  - Windows: [Oracle JDK](https://www.oracle.com/java/technologies/downloads/) or [Adoptium](https://adoptium.net/)
+- **Docker** - [Get Docker](https://docs.docker.com/get-docker/)
+
+Maven wrapper (`./mvnw`) is included in the project.
+
+## Running Tests
+
+### Unit & Integration Tests
+
+```bash
+# Run all tests
+./mvnw test
+
+# Run specific test class
+./mvnw test -Dtest=ChartOfAccountServiceTest
+```
+
+### Functional Tests (Playwright)
+
+Functional tests use Playwright for browser automation. They require Docker for Testcontainers (PostgreSQL).
+
+```bash
+# Run all functional tests (headless)
+./mvnw test -Dtest=**/functional/*Test
+
+# Run specific functional test
+./mvnw test -Dtest=ChartOfAccountSeedDataTest
+```
+
+**Playwright Configuration Options:**
+
+| Property | Default | Description |
+|----------|---------|-------------|
+| `playwright.headless` | `true` | Run browser in headless mode |
+| `playwright.slowmo` | `0` | Delay between actions in milliseconds |
+
+```bash
+# Run with visible browser
+./mvnw test -Dtest=ChartOfAccountSeedDataTest -Dplaywright.headless=false
+
+# Run with visible browser and slow motion (useful for debugging)
+./mvnw test -Dtest=ChartOfAccountSeedDataTest -Dplaywright.headless=false -Dplaywright.slowmo=100
+```
+
 ## Project Status
 
 🚧 **Planning Phase** - Currently in design and documentation stage.

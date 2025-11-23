@@ -51,12 +51,12 @@ CREATE INDEX idx_audit_logs_entity ON audit_logs(entity_type, entity_id);
 CREATE INDEX idx_audit_logs_user ON audit_logs(id_user);
 CREATE INDEX idx_audit_logs_created_at ON audit_logs(created_at);
 
--- Insert default admin user (password: admin123)
+-- Insert default admin user (password: admin)
 INSERT INTO users (id, username, password, full_name, email, active, created_at, updated_at)
 VALUES (
     'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
     'admin',
-    '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iAt8fKOq',
+    '$2a$10$mMan.18CFTqJA/FVpkJr3OgCD0uTuhF9Enjf99QHm9tWPJH.nCj5S',
     'Administrator',
     'admin@artivisi.com',
     TRUE,

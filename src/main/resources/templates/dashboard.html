@@ -7,13 +7,13 @@
     <title>Dashboard</title>
 </head>
 <body>
-    <h1 layout:fragment="page-title">Dashboard</h1>
+    <h1 layout:fragment="page-title" id="page-title">Dashboard</h1>
 
-    <div layout:fragment="content" class="h-full flex flex-col">
+    <div layout:fragment="content" id="dashboard-content" class="h-full flex flex-col">
         <!-- Summary Cards -->
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
             <!-- Total Pendapatan -->
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div id="card-pendapatan" class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-xs font-medium text-gray-500">Pendapatan</p>
@@ -34,7 +34,7 @@
             </div>
 
             <!-- Total Pengeluaran -->
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div id="card-pengeluaran" class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-xs font-medium text-gray-500">Pengeluaran</p>
@@ -55,7 +55,7 @@
             </div>
 
             <!-- Laba Bersih -->
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div id="card-laba-bersih" class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-xs font-medium text-gray-500">Laba Bersih</p>
@@ -98,7 +98,7 @@
             <div class="lg:col-span-2 bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col min-h-0 order-last lg:order-first">
                 <div class="p-4 border-b border-gray-200 flex-shrink-0">
                     <div class="flex items-center justify-between">
-                        <h2 class="text-sm font-semibold text-gray-900">Transaksi Terbaru</h2>
+                        <h2 id="section-transaksi-terbaru" class="text-sm font-semibold text-gray-900">Transaksi Terbaru</h2>
                         <a href="#" class="text-xs text-primary-600 hover:text-primary-700">Lihat Semua</a>
                     </div>
                 </div>
@@ -213,7 +213,7 @@
             <!-- Right Sidebar -->
             <div class="flex flex-col gap-4 min-h-0">
                 <!-- Quick Actions -->
-                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 flex-shrink-0">
+                <div id="section-aksi-cepat" class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 flex-shrink-0">
                     <h2 class="text-sm font-semibold text-gray-900 mb-3">Aksi Cepat</h2>
                     <div class="flex gap-2">
                         <a href="#" class="flex-1 flex flex-col items-center p-2 rounded-lg bg-primary-50 hover:bg-primary-100 transition-colors">
@@ -244,7 +244,7 @@
                 </div>
 
                 <!-- Account Balance Summary -->
-                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 flex-1 min-h-0 flex flex-col">
+                <div id="section-saldo-kas" class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 flex-1 min-h-0 flex flex-col">
                     <h2 class="text-sm font-semibold text-gray-900 mb-3">Saldo Kas & Bank</h2>
                     <div class="flex-1 space-y-2 overflow-y-auto">
                         <div class="flex items-center justify-between">

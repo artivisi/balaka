@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+    <!-- Account Row Fragment (recursive for tree structure) -->
+    <th:block th:fragment="accountRow(account, level)">
+        <div x-data="{ expanded: false }"
+             th:id="'account-container-' + ${#strings.replace(account.accountCode, '.', '-')}"
+             th:classappend="${!account.active} ? 'opacity-50' : ''">
+            <!-- Account Row -->
+            <div th:id="'account-row-' + ${#strings.replace(account.accountCode, '.', '-')}"
+                 class="grid grid-cols-12 gap-4 px-4 py-3 hover:bg-gray-50 transition-colors items-center"
+                 th:style="'padding-left: ' + (1 + ${level} * 1.5) + 'rem'"
+                 th:classappend="${account.isHeader} ? 'bg-gray-50 font-medium' : ''">
+
+                <!-- Code -->
+                <div th:id="'account-code-' + ${#strings.replace(account.accountCode, '.', '-')}"
+                     class="col-span-1 text-sm"
+                     th:classappend="${account.isHeader} ? 'font-bold' : 'text-gray-600'">
+                    <span th:text="${account.accountCode}">1.1.01</span>
+                </div>
+
+                <!-- Name with expand toggle -->
+                <div class="col-span-5 flex items-center">
+                    <!-- Expand/Collapse toggle for accounts with children -->
+                    <button th:if="${!#lists.isEmpty(account.children)}"
+                            th:id="'btn-expand-' + ${#strings.replace(account.accountCode, '.', '-')}"
+                            @click="expanded = !expanded"
+                            type="button"
+                            class="mr-2 p-0.5 text-gray-400 hover:text-gray-600 rounded">
+                        <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-90': expanded }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </button>
+                    <span th:if="${#lists.isEmpty(account.children)}" class="w-5 mr-2"></span>
+
+                    <span th:id="'account-name-' + ${#strings.replace(account.accountCode, '.', '-')}"
+                          th:text="${account.accountName}"
+                          th:classappend="${account.isHeader} ? 'font-semibold' : 'text-gray-800'">Kas</span>
+
+                    <!-- Inactive badge -->
+                    <span th:if="${!account.active}"
+                          class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-500">
+                        Non-aktif
+                    </span>
+
+                    <!-- Header badge -->
+                    <span th:if="${account.isHeader}"
+                          class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700">
+                        Header
+                    </span>
+                </div>
+
+                <!-- Type -->
+                <div th:id="'account-type-' + ${#strings.replace(account.accountCode, '.', '-')}" class="col-span-2">
+                    <span th:switch="${account.accountType.name()}">
+                        <span th:case="'ASSET'" class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">Aset</span>
+                        <span th:case="'LIABILITY'" class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">Liabilitas</span>
+                        <span th:case="'EQUITY'" class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">Ekuitas</span>
+                        <span th:case="'REVENUE'" class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">Pendapatan</span>
+                        <span th:case="'EXPENSE'" class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">Beban</span>
+                    </span>
+                </div>
+
+                <!-- Normal Balance -->
+                <div class="col-span-2 text-sm text-gray-600">
+                    <span th:text="${account.normalBalance.displayName}">Debit</span>
+                </div>
+
+                <!-- Actions -->
+                <div class="col-span-2 flex justify-center space-x-1">
+                    <!-- Edit -->
+                    <a th:id="'btn-edit-' + ${#strings.replace(account.accountCode, '.', '-')}"
+                       th:href="@{/accounts/{id}/edit(id=${account.id})}"
+                       class="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded transition-colors"
+                       title="Edit">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                        </svg>
+                    </a>
+
+                    <!-- Activate/Deactivate -->
+                    <form th:if="${account.active}" th:action="@{/accounts/{id}/deactivate(id=${account.id})}" method="post" class="inline">
+                        <button th:id="'btn-deactivate-' + ${#strings.replace(account.accountCode, '.', '-')}"
+                                type="submit"
+                                class="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded transition-colors"
+                                title="Nonaktifkan"
+                                onclick="return confirm('Nonaktifkan akun ini?')">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
+                            </svg>
+                        </button>
+                    </form>
+                    <form th:if="${!account.active}" th:action="@{/accounts/{id}/activate(id=${account.id})}" method="post" class="inline">
+                        <button th:id="'btn-activate-' + ${#strings.replace(account.accountCode, '.', '-')}"
+                                type="submit"
+                                class="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
+                                title="Aktifkan">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                        </button>
+                    </form>
+
+                    <!-- Delete (only if no children) -->
+                    <form th:if="${#lists.isEmpty(account.children)}"
+                          th:action="@{/accounts/{id}/delete(id=${account.id})}"
+                          method="post"
+                          class="inline">
+                        <button th:id="'btn-delete-' + ${#strings.replace(account.accountCode, '.', '-')}"
+                                type="submit"
+                                class="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                                title="Hapus"
+                                onclick="return confirm('Hapus akun ini?')">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                            </svg>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Children (recursive) -->
+            <div x-show="expanded" x-collapse th:if="${!#lists.isEmpty(account.children)}">
+                <th:block th:each="child : ${account.children}">
+                    <div th:replace="~{accounts/fragments :: accountRow(account=${child}, level=${level + 1})}"></div>
+                </th:block>
+            </div>
+        </div>
+    </th:block>
+</body>
+</html>

@@ -25,8 +25,8 @@
                 </div>
 
                 <!-- Navigation -->
-                <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-                    <a th:href="@{/dashboard}"
+                <nav id="sidebar-nav" class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+                    <a id="nav-dashboard" th:href="@{/dashboard}"
                        th:classappend="${#strings.equals(currentPage, 'dashboard')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
                        class="flex items-center px-4 py-3 rounded-lg transition-colors">
                         <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -34,7 +34,7 @@
                         </svg>
                         Dashboard
                     </a>
-                    <a th:href="@{/transactions}"
+                    <a id="nav-transaksi" th:href="@{/transactions}"
                        th:classappend="${#strings.equals(currentPage, 'transactions')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
                        class="flex items-center px-4 py-3 rounded-lg transition-colors">
                         <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -42,7 +42,7 @@
                         </svg>
                         Transaksi
                     </a>
-                    <a th:href="@{/journals}"
+                    <a id="nav-jurnal" th:href="@{/journals}"
                        th:classappend="${#strings.equals(currentPage, 'journals')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
                        class="flex items-center px-4 py-3 rounded-lg transition-colors">
                         <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -50,7 +50,7 @@
                         </svg>
                         Buku Besar
                     </a>
-                    <a th:href="@{/reports}"
+                    <a id="nav-laporan" th:href="@{/reports}"
                        th:classappend="${#strings.equals(currentPage, 'reports')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
                        class="flex items-center px-4 py-3 rounded-lg transition-colors">
                         <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -58,7 +58,7 @@
                         </svg>
                         Laporan
                     </a>
-                    <a th:href="@{/accounts}"
+                    <a id="nav-akun" th:href="@{/accounts}"
                        th:classappend="${#strings.equals(currentPage, 'accounts')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
                        class="flex items-center px-4 py-3 rounded-lg transition-colors">
                         <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -66,7 +66,7 @@
                         </svg>
                         Akun
                     </a>
-                    <a th:href="@{/templates}"
+                    <a id="nav-template" th:href="@{/templates}"
                        th:classappend="${#strings.equals(currentPage, 'templates')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
                        class="flex items-center px-4 py-3 rounded-lg transition-colors">
                         <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -108,8 +108,8 @@
                 </div>
 
                 <!-- Navigation (same as desktop) -->
-                <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-                    <a th:href="@{/dashboard}"
+                <nav id="mobile-sidebar-nav" class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+                    <a id="mobile-nav-dashboard" th:href="@{/dashboard}"
                        th:classappend="${#strings.equals(currentPage, 'dashboard')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
                        class="flex items-center px-4 py-3 rounded-lg transition-colors">
                         <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -117,7 +117,7 @@
                         </svg>
                         Dashboard
                     </a>
-                    <a th:href="@{/transactions}"
+                    <a id="mobile-nav-transaksi" th:href="@{/transactions}"
                        th:classappend="${#strings.equals(currentPage, 'transactions')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
                        class="flex items-center px-4 py-3 rounded-lg transition-colors">
                         <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -125,7 +125,7 @@
                         </svg>
                         Transaksi
                     </a>
-                    <a th:href="@{/journals}"
+                    <a id="mobile-nav-jurnal" th:href="@{/journals}"
                        th:classappend="${#strings.equals(currentPage, 'journals')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
                        class="flex items-center px-4 py-3 rounded-lg transition-colors">
                         <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -133,7 +133,7 @@
                         </svg>
                         Buku Besar
                     </a>
-                    <a th:href="@{/reports}"
+                    <a id="mobile-nav-laporan" th:href="@{/reports}"
                        th:classappend="${#strings.equals(currentPage, 'reports')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
                        class="flex items-center px-4 py-3 rounded-lg transition-colors">
                         <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -141,7 +141,7 @@
                         </svg>
                         Laporan
                     </a>
-                    <a th:href="@{/accounts}"
+                    <a id="mobile-nav-akun" th:href="@{/accounts}"
                        th:classappend="${#strings.equals(currentPage, 'accounts')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
                        class="flex items-center px-4 py-3 rounded-lg transition-colors">
                         <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -149,7 +149,7 @@
                         </svg>
                         Akun
                     </a>
-                    <a th:href="@{/templates}"
+                    <a id="mobile-nav-template" th:href="@{/templates}"
                        th:classappend="${#strings.equals(currentPage, 'templates')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
                        class="flex items-center px-4 py-3 rounded-lg transition-colors">
                         <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

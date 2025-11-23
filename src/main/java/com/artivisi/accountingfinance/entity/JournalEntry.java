@@ -10,6 +10,7 @@ import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -33,10 +34,12 @@ public class JournalEntry extends BaseEntity {
     @Column(name = "journal_date", nullable = false)
     private LocalDate journalDate;
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_transaction")
     private Transaction transaction;
 
+    @JsonIgnore
     @NotNull(message = "Account is required")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_account", nullable = false)
@@ -64,6 +67,7 @@ public class JournalEntry extends BaseEntity {
     @Column(name = "is_reversal", nullable = false)
     private Boolean isReversal = false;
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_reversed_entry")
     private JournalEntry reversedEntry;

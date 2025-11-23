@@ -13,6 +13,7 @@ import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -35,16 +36,19 @@ public class TransactionAccountMapping {
     @Column(name = "id", updatable = false, nullable = false)
     private UUID id;
 
+    @JsonIgnore
     @NotNull(message = "Transaction is required")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_transaction", nullable = false)
     private Transaction transaction;
 
+    @JsonIgnore
     @NotNull(message = "Template line is required")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_template_line", nullable = false)
     private JournalTemplateLine templateLine;
 
+    @JsonIgnore
     @NotNull(message = "Account is required")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_account", nullable = false)

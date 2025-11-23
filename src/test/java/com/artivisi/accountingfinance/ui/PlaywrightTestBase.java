@@ -8,11 +8,15 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.context.annotation.Import;
+
+import com.artivisi.accountingfinance.TestcontainersConfiguration;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@Import(TestcontainersConfiguration.class)
 public abstract class PlaywrightTestBase {
 
     protected static Playwright playwright;
@@ -26,12 +30,20 @@ public abstract class PlaywrightTestBase {
     protected static final Path SCREENSHOTS_DIR = Paths.get("target/screenshots");
     protected static final Path MANUAL_SCREENSHOTS_DIR = Paths.get("docs/screenshots");
 
+    // Configure via system properties:
+    // -Dplaywright.headless=false  (default: true)
+    // -Dplaywright.slowmo=100      (default: 0)
+    private static final boolean HEADLESS = Boolean.parseBoolean(
+            System.getProperty("playwright.headless", "true"));
+    private static final int SLOW_MO = Integer.parseInt(
+            System.getProperty("playwright.slowmo", "0"));
+
     @BeforeAll
     static void launchBrowser() {
         playwright = Playwright.create();
         browser = playwright.chromium().launch(new BrowserType.LaunchOptions()
-                .setHeadless(true)
-                .setSlowMo(50));
+                .setHeadless(HEADLESS)
+                .setSlowMo(SLOW_MO));
     }
 
     @AfterAll
@@ -50,6 +62,7 @@ public abstract class PlaywrightTestBase {
                 .setViewportSize(1920, 1080)
                 .setLocale("id-ID"));
         page = context.newPage();
+        page.setDefaultTimeout(5000);
     }
 
     @AfterEach
@@ -69,6 +82,7 @@ public abstract class PlaywrightTestBase {
 
     protected void login(String username, String password) {
         navigateTo("/login");
+        waitForPageLoad();
         page.fill("input[name='username']", username);
         page.fill("input[name='password']", password);
         page.click("button[type='submit']");

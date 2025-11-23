@@ -15,6 +15,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -29,34 +30,36 @@ import java.util.List;
 @NoArgsConstructor
 public class ChartOfAccount extends BaseEntity {
 
-    @NotBlank(message = "Account code is required")
-    @Size(max = 20, message = "Account code must not exceed 20 characters")
+    @NotBlank(message = "Kode akun harus diisi")
+    @Size(max = 20, message = "Kode akun maksimal 20 karakter")
     @Column(name = "account_code", nullable = false, unique = true, length = 20)
     private String accountCode;
 
-    @NotBlank(message = "Account name is required")
-    @Size(max = 255, message = "Account name must not exceed 255 characters")
+    @NotBlank(message = "Nama akun harus diisi")
+    @Size(max = 255, message = "Nama akun maksimal 255 karakter")
     @Column(name = "account_name", nullable = false, length = 255)
     private String accountName;
 
-    @NotNull(message = "Account type is required")
+    @NotNull(message = "Tipe akun harus dipilih")
     @Enumerated(EnumType.STRING)
     @Column(name = "account_type", nullable = false, length = 20)
     private AccountType accountType;
 
-    @NotNull(message = "Normal balance is required")
+    @NotNull(message = "Saldo normal harus dipilih")
     @Enumerated(EnumType.STRING)
     @Column(name = "normal_balance", nullable = false, length = 10)
     private NormalBalance normalBalance;
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_parent")
     private ChartOfAccount parent;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "parent", fetch = FetchType.LAZY)
     private List<ChartOfAccount> children = new ArrayList<>();
 
-    @Min(value = 1, message = "Level must be at least 1")
+    @Min(value = 1, message = "Level minimal 1")
     @Column(name = "level", nullable = false)
     private Integer level = 1;
 

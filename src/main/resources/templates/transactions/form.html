@@ -7,9 +7,9 @@
     <title th:text="${isEdit} ? 'Edit Transaksi' : 'Transaksi Baru'">Transaksi</title>
 </head>
 <body>
-    <h1 layout:fragment="page-title" th:text="${isEdit} ? 'Edit Transaksi' : 'Transaksi Baru'">Transaksi</h1>
+    <h1 id="page-title" layout:fragment="page-title" th:text="${isEdit} ? 'Edit Transaksi' : 'Transaksi Baru'">Transaksi</h1>
 
-    <div layout:fragment="content" class="h-full flex flex-col overflow-y-auto">
+    <div id="transaction-form-content" layout:fragment="content" class="h-full flex flex-col overflow-y-auto">
         <div class="max-w-4xl">
             <!-- Breadcrumb -->
             <nav class="flex items-center space-x-2 text-sm text-gray-500 mb-6">
@@ -242,7 +242,7 @@
                         </a>
                         <div class="flex items-center space-x-3">
                             <!-- Save as Draft -->
-                            <button type="button"
+                            <button id="btn-simpan-draft" type="button"
                                     class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
                                 <span class="flex items-center">
                                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -253,7 +253,7 @@
                             </button>
 
                             <!-- Save and Post -->
-                            <button type="submit"
+                            <button id="btn-simpan-posting" type="submit"
                                     class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors">
                                 <span class="flex items-center">
                                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
