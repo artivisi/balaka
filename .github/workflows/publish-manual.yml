@@ -97,6 +97,8 @@ jobs:
           path: target/user-manual
 
   deploy:
+    # Only deploy from main/master branch
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
