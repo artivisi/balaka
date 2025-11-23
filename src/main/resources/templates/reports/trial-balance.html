@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/main}"
+      lang="id">
+<head>
+    <title>Neraca Saldo</title>
+</head>
+<body>
+    <h1 layout:fragment="page-title">Neraca Saldo</h1>
+
+    <div layout:fragment="content" class="h-full flex flex-col overflow-y-auto">
+        <div class="max-w-6xl">
+            <!-- Breadcrumb -->
+            <nav class="flex items-center space-x-2 text-sm text-gray-500 mb-6">
+                <a th:href="@{/reports}" class="hover:text-primary-600 transition-colors">Laporan</a>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+                <span class="text-gray-900">Neraca Saldo</span>
+            </nav>
+
+            <!-- Filter Section -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+                <form action="#" method="get" class="flex flex-wrap items-end gap-4">
+                    <div class="flex-1 min-w-[200px]">
+                        <label for="asOfDate" class="block text-sm font-medium text-gray-700 mb-1">Per Tanggal</label>
+                        <input type="date" id="asOfDate" name="asOfDate" value="2025-11-30"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+                    </div>
+                    <div class="flex-1 min-w-[200px]">
+                        <label for="period" class="block text-sm font-medium text-gray-700 mb-1">Periode</label>
+                        <select id="period" name="period"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+                            <option value="2025-11">November 2025</option>
+                            <option value="2025-10">Oktober 2025</option>
+                            <option value="2025-09">September 2025</option>
+                            <option value="2025-Q4">Q4 2025</option>
+                            <option value="2025">Tahun 2025</option>
+                        </select>
+                    </div>
+                    <div>
+                        <button type="submit"
+                                class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors">
+                            Tampilkan
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Report Header -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-lg font-bold text-gray-900">NERACA SALDO</h2>
+                            <p class="text-sm text-gray-600">Trial Balance</p>
+                            <p class="text-sm text-gray-500 mt-1">Per 30 November 2025</p>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <button type="button" class="px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                                <span class="flex items-center">
+                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                                    </svg>
+                                    Cetak
+                                </span>
+                            </button>
+                            <button type="button" class="px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                                <span class="flex items-center">
+                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    </svg>
+                                    Ekspor
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Trial Balance Table -->
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="bg-gray-100 text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                <th class="px-4 py-3 text-left">Kode</th>
+                                <th class="px-4 py-3 text-left">Nama Akun</th>
+                                <th class="px-4 py-3 text-right">Debit</th>
+                                <th class="px-4 py-3 text-right">Kredit</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            <!-- ASET Section -->
+                            <tr class="bg-blue-50">
+                                <td colspan="4" class="px-4 py-2 text-sm font-bold text-blue-800">ASET</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-4 py-3 text-sm font-mono text-gray-600">1.1.01</td>
+                                <td class="px-4 py-3 text-sm text-gray-800">Kas</td>
+                                <td class="px-4 py-3 text-sm text-right font-mono">5.000.000</td>
+                                <td class="px-4 py-3 text-sm text-right font-mono text-gray-400">-</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-4 py-3 text-sm font-mono text-gray-600">1.1.02</td>
+                                <td class="px-4 py-3 text-sm text-gray-800">Bank BCA</td>
+                                <td class="px-4 py-3 text-sm text-right font-mono">125.400.000</td>
+                                <td class="px-4 py-3 text-sm text-right font-mono text-gray-400">-</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-4 py-3 text-sm font-mono text-gray-600">1.1.03</td>
+                                <td class="px-4 py-3 text-sm text-gray-800">Bank BNI</td>
+                                <td class="px-4 py-3 text-sm text-right font-mono">45.200.000</td>
+                                <td class="px-4 py-3 text-sm text-right font-mono text-gray-400">-</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-4 py-3 text-sm font-mono text-gray-600">1.2.01</td>
+                                <td class="px-4 py-3 text-sm text-gray-800">Piutang Usaha</td>
+                                <td class="px-4 py-3 text-sm text-right font-mono">35.000.000</td>
+                                <td class="px-4 py-3 text-sm text-right font-mono text-gray-400">-</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-4 py-3 text-sm font-mono text-gray-600">1.3.01</td>
+                                <td class="px-4 py-3 text-sm text-gray-800">Peralatan Komputer</td>
+                                <td class="px-4 py-3 text-sm text-right font-mono">25.000.000</td>
+                                <td class="px-4 py-3 text-sm text-right font-mono text-gray-400">-</td>
+                            </tr>
+
+                            <!-- LIABILITAS Section -->
+                            <tr class="bg-red-50">
+                                <td colspan="4" class="px-4 py-2 text-sm font-bold text-red-800">LIABILITAS</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-4 py-3 text-sm font-mono text-gray-600">2.1.01</td>
+                                <td class="px-4 py-3 text-sm text-gray-800">Hutang Usaha</td>
+                                <td class="px-4 py-3 text-sm text-right font-mono text-gray-400">-</td>
+                                <td class="px-4 py-3 text-sm text-right font-mono">15.000.000</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-4 py-3 text-sm font-mono text-gray-600">2.1.02</td>
+                                <td class="px-4 py-3 text-sm text-gray-800">Hutang PPN</td>
+                                <td class="px-4 py-3 text-sm text-right font-mono text-gray-400">-</td>
+                                <td class="px-4 py-3 text-sm text-right font-mono">5.500.000</td>
+                            </tr>
+
+                            <!-- EKUITAS Section -->
+                            <tr class="bg-purple-50">
+                                <td colspan="4" class="px-4 py-2 text-sm font-bold text-purple-800">EKUITAS</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-4 py-3 text-sm font-mono text-gray-600">3.1.01</td>
+                                <td class="px-4 py-3 text-sm text-gray-800">Modal Disetor</td>
+                                <td class="px-4 py-3 text-sm text-right font-mono text-gray-400">-</td>
+                                <td class="px-4 py-3 text-sm text-right font-mono">100.000.000</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-4 py-3 text-sm font-mono text-gray-600">3.2.01</td>
+                                <td class="px-4 py-3 text-sm text-gray-800">Laba Ditahan</td>
+                                <td class="px-4 py-3 text-sm text-right font-mono text-gray-400">-</td>
+                                <td class="px-4 py-3 text-sm text-right font-mono">25.100.000</td>
+                            </tr>
+
+                            <!-- PENDAPATAN Section -->
+                            <tr class="bg-green-50">
+                                <td colspan="4" class="px-4 py-2 text-sm font-bold text-green-800">PENDAPATAN</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-4 py-3 text-sm font-mono text-gray-600">4.1.01</td>
+                                <td class="px-4 py-3 text-sm text-gray-800">Pendapatan Jasa Konsultasi</td>
+                                <td class="px-4 py-3 text-sm text-right font-mono text-gray-400">-</td>
+                                <td class="px-4 py-3 text-sm text-right font-mono">85.000.000</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-4 py-3 text-sm font-mono text-gray-600">4.1.02</td>
+                                <td class="px-4 py-3 text-sm text-gray-800">Pendapatan Jasa Pengembangan</td>
+                                <td class="px-4 py-3 text-sm text-right font-mono text-gray-400">-</td>
+                                <td class="px-4 py-3 text-sm text-right font-mono">45.000.000</td>
+                            </tr>
+
+                            <!-- BEBAN Section -->
+                            <tr class="bg-amber-50">
+                                <td colspan="4" class="px-4 py-2 text-sm font-bold text-amber-800">BEBAN</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-4 py-3 text-sm font-mono text-gray-600">5.1.01</td>
+                                <td class="px-4 py-3 text-sm text-gray-800">Beban Gaji</td>
+                                <td class="px-4 py-3 text-sm text-right font-mono">25.000.000</td>
+                                <td class="px-4 py-3 text-sm text-right font-mono text-gray-400">-</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-4 py-3 text-sm font-mono text-gray-600">5.1.02</td>
+                                <td class="px-4 py-3 text-sm text-gray-800">Beban Server &amp; Cloud</td>
+                                <td class="px-4 py-3 text-sm text-right font-mono">8.000.000</td>
+                                <td class="px-4 py-3 text-sm text-right font-mono text-gray-400">-</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-4 py-3 text-sm font-mono text-gray-600">5.1.03</td>
+                                <td class="px-4 py-3 text-sm text-gray-800">Beban Listrik &amp; Internet</td>
+                                <td class="px-4 py-3 text-sm text-right font-mono">2.500.000</td>
+                                <td class="px-4 py-3 text-sm text-right font-mono text-gray-400">-</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-4 py-3 text-sm font-mono text-gray-600">5.1.04</td>
+                                <td class="px-4 py-3 text-sm text-gray-800">Beban Transportasi</td>
+                                <td class="px-4 py-3 text-sm text-right font-mono">4.500.000</td>
+                                <td class="px-4 py-3 text-sm text-right font-mono text-gray-400">-</td>
+                            </tr>
+                        </tbody>
+                        <tfoot>
+                            <tr class="bg-gray-800 text-white font-semibold">
+                                <td colspan="2" class="px-4 py-3 text-sm">TOTAL</td>
+                                <td class="px-4 py-3 text-sm text-right font-mono">275.600.000</td>
+                                <td class="px-4 py-3 text-sm text-right font-mono">275.600.000</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                <!-- Balance Check -->
+                <div class="px-6 py-3 bg-accent-50 border-t border-accent-200">
+                    <div class="flex items-center text-sm text-accent-700">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        <span class="font-medium">Balance</span>
+                        <span class="ml-2 text-accent-600">Total Debit = Total Kredit</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
