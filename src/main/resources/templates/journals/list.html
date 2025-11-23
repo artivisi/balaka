@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/main}"
+      lang="id">
+<head>
+    <title>Buku Besar</title>
+</head>
+<body>
+    <h1 layout:fragment="page-title">Buku Besar</h1>
+
+    <div layout:fragment="content" class="h-full flex flex-col">
+        <!-- Header Actions -->
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-4 flex-shrink-0">
+            <!-- Filters Row -->
+            <div class="flex flex-wrap items-center gap-2">
+                <!-- Account Filter -->
+                <select class="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 min-w-48">
+                    <option value="">Semua Akun</option>
+                    <optgroup label="Aset">
+                        <option value="1.1.01">1.1.01 - Kas</option>
+                        <option value="1.1.02" selected>1.1.02 - Bank BCA</option>
+                        <option value="1.1.03">1.1.03 - Bank BNI</option>
+                        <option value="1.1.04">1.1.04 - Piutang Usaha</option>
+                    </optgroup>
+                    <optgroup label="Liabilitas">
+                        <option value="2.1.01">2.1.01 - Hutang Usaha</option>
+                        <option value="2.1.02">2.1.02 - Hutang Pajak</option>
+                    </optgroup>
+                    <optgroup label="Ekuitas">
+                        <option value="3.1.01">3.1.01 - Modal Disetor</option>
+                        <option value="3.2.01">3.2.01 - Laba Ditahan</option>
+                    </optgroup>
+                    <optgroup label="Pendapatan">
+                        <option value="4.1.01">4.1.01 - Pendapatan Jasa Konsultasi</option>
+                        <option value="4.1.02">4.1.02 - Pendapatan Jasa Development</option>
+                        <option value="4.1.03">4.1.03 - Pendapatan Jasa Training</option>
+                    </optgroup>
+                    <optgroup label="Beban">
+                        <option value="5.1.01">5.1.01 - Beban Gaji</option>
+                        <option value="5.1.02">5.1.02 - Beban Server &amp; Cloud</option>
+                        <option value="5.1.03">5.1.03 - Beban Software &amp; Lisensi</option>
+                    </optgroup>
+                </select>
+
+                <!-- Date Range -->
+                <div class="flex items-center gap-1">
+                    <input type="date" value="2025-11-01"
+                           class="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                    <span class="text-gray-400">-</span>
+                    <input type="date" value="2025-11-23"
+                           class="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                </div>
+
+                <!-- Search -->
+                <div class="relative">
+                    <input type="text" placeholder="Cari keterangan..."
+                           class="pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 w-48">
+                    <svg class="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Export Buttons -->
+            <div class="flex items-center space-x-2">
+                <button class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    PDF
+                </button>
+                <button class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    Excel
+                </button>
+            </div>
+        </div>
+
+        <!-- Account Info Card (when filtered by account) -->
+        <div class="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200 flex-shrink-0">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <span class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-blue-100">
+                            <span class="text-sm font-bold text-blue-600">BCA</span>
+                        </span>
+                    </div>
+                    <div class="ml-3">
+                        <h3 class="text-sm font-semibold text-blue-800">1.1.02 - Bank BCA</h3>
+                        <p class="text-xs text-blue-600">Aset Lancar | Saldo Normal: Debit</p>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <p class="text-xs text-blue-600">Saldo Saat Ini</p>
+                    <p class="text-xl font-bold text-blue-800">Rp 125.400.000</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4 flex-shrink-0">
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Saldo Awal</p>
+                <p class="text-xl font-bold text-gray-900 mt-1">Rp 100.000.000</p>
+                <p class="text-xs text-gray-400 mt-1">1 Nov 2025</p>
+            </div>
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Total Debit</p>
+                <p class="text-xl font-bold text-green-600 mt-1">Rp 45.500.000</p>
+                <p class="text-xs text-gray-400 mt-1">15 entri</p>
+            </div>
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Total Kredit</p>
+                <p class="text-xl font-bold text-red-600 mt-1">Rp 20.100.000</p>
+                <p class="text-xs text-gray-400 mt-1">8 entri</p>
+            </div>
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Saldo Akhir</p>
+                <p class="text-xl font-bold text-primary-600 mt-1">Rp 125.400.000</p>
+                <p class="text-xs text-gray-400 mt-1">23 Nov 2025</p>
+            </div>
+        </div>
+
+        <!-- Journal Entries Table -->
+        <div class="flex-1 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden flex flex-col min-h-0">
+            <!-- Table Header -->
+            <div class="grid grid-cols-12 gap-4 px-4 py-3 bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-600 uppercase tracking-wider flex-shrink-0">
+                <div class="col-span-1">Tanggal</div>
+                <div class="col-span-2">No. Jurnal</div>
+                <div class="col-span-4">Keterangan</div>
+                <div class="col-span-2 text-right">Debit</div>
+                <div class="col-span-2 text-right">Kredit</div>
+                <div class="col-span-1 text-right">Saldo</div>
+            </div>
+
+            <!-- Scrollable Content -->
+            <div class="flex-1 overflow-y-auto divide-y divide-gray-100">
+                <!-- Opening Balance -->
+                <div class="grid grid-cols-12 gap-4 px-4 py-3 bg-gray-50 items-center">
+                    <div class="col-span-1 text-sm text-gray-600">01 Nov</div>
+                    <div class="col-span-2 text-sm text-gray-500 italic">-</div>
+                    <div class="col-span-4 text-sm text-gray-700 font-medium">Saldo Awal</div>
+                    <div class="col-span-2 text-right text-sm font-mono text-gray-400">-</div>
+                    <div class="col-span-2 text-right text-sm font-mono text-gray-400">-</div>
+                    <div class="col-span-1 text-right text-sm font-mono font-semibold text-gray-900">100.000.000</div>
+                </div>
+
+                <!-- Journal Entry 1 - Debit (Income received) -->
+                <a th:href="@{/journals/je-001}" class="grid grid-cols-12 gap-4 px-4 py-3 hover:bg-gray-50 transition-colors items-center cursor-pointer">
+                    <div class="col-span-1 text-sm text-gray-600">05 Nov</div>
+                    <div class="col-span-2">
+                        <p class="text-sm font-medium text-primary-600 hover:text-primary-800">JE-2025-0038</p>
+                        <p class="text-xs text-gray-500">TRX-2025-0015</p>
+                    </div>
+                    <div class="col-span-4">
+                        <p class="text-sm text-gray-900">Pendapatan Jasa Konsultasi PT. ABC</p>
+                        <p class="text-xs text-gray-500">Ref: INV-2025-0015</p>
+                    </div>
+                    <div class="col-span-2 text-right text-sm font-mono text-green-600">5.000.000</div>
+                    <div class="col-span-2 text-right text-sm font-mono text-gray-400">-</div>
+                    <div class="col-span-1 text-right text-sm font-mono font-medium text-gray-900">105.000.000</div>
+                </a>
+
+                <!-- Journal Entry 2 - Kredit (Expense paid) -->
+                <a th:href="@{/journals/je-002}" class="grid grid-cols-12 gap-4 px-4 py-3 hover:bg-gray-50 transition-colors items-center cursor-pointer">
+                    <div class="col-span-1 text-sm text-gray-600">08 Nov</div>
+                    <div class="col-span-2">
+                        <p class="text-sm font-medium text-primary-600 hover:text-primary-800">JE-2025-0039</p>
+                        <p class="text-xs text-gray-500">TRX-2025-0016</p>
+                    </div>
+                    <div class="col-span-4">
+                        <p class="text-sm text-gray-900">Pembayaran Beban Server AWS</p>
+                        <p class="text-xs text-gray-500">Ref: AWS-NOV-2025</p>
+                    </div>
+                    <div class="col-span-2 text-right text-sm font-mono text-gray-400">-</div>
+                    <div class="col-span-2 text-right text-sm font-mono text-red-600">2.500.000</div>
+                    <div class="col-span-1 text-right text-sm font-mono font-medium text-gray-900">102.500.000</div>
+                </a>
+
+                <!-- Journal Entry 3 - Debit -->
+                <a th:href="@{/journals/je-003}" class="grid grid-cols-12 gap-4 px-4 py-3 hover:bg-gray-50 transition-colors items-center cursor-pointer">
+                    <div class="col-span-1 text-sm text-gray-600">10 Nov</div>
+                    <div class="col-span-2">
+                        <p class="text-sm font-medium text-primary-600 hover:text-primary-800">JE-2025-0040</p>
+                        <p class="text-xs text-gray-500">TRX-2025-0017</p>
+                    </div>
+                    <div class="col-span-4">
+                        <p class="text-sm text-gray-900">Transfer dari Bank BNI</p>
+                        <p class="text-xs text-gray-500">Ref: TRF-INT-001</p>
+                    </div>
+                    <div class="col-span-2 text-right text-sm font-mono text-green-600">10.000.000</div>
+                    <div class="col-span-2 text-right text-sm font-mono text-gray-400">-</div>
+                    <div class="col-span-1 text-right text-sm font-mono font-medium text-gray-900">112.500.000</div>
+                </a>
+
+                <!-- Journal Entry 4 - Kredit -->
+                <a th:href="@{/journals/je-004}" class="grid grid-cols-12 gap-4 px-4 py-3 hover:bg-gray-50 transition-colors items-center cursor-pointer">
+                    <div class="col-span-1 text-sm text-gray-600">12 Nov</div>
+                    <div class="col-span-2">
+                        <p class="text-sm font-medium text-primary-600 hover:text-primary-800">JE-2025-0041</p>
+                        <p class="text-xs text-gray-500">TRX-2025-0018</p>
+                    </div>
+                    <div class="col-span-4">
+                        <p class="text-sm text-gray-900">Pembayaran Beban Software GitHub</p>
+                        <p class="text-xs text-gray-500">Ref: GH-ENT-2025</p>
+                    </div>
+                    <div class="col-span-2 text-right text-sm font-mono text-gray-400">-</div>
+                    <div class="col-span-2 text-right text-sm font-mono text-red-600">3.200.000</div>
+                    <div class="col-span-1 text-right text-sm font-mono font-medium text-gray-900">109.300.000</div>
+                </a>
+
+                <!-- Journal Entry 5 - Debit (Big income) -->
+                <a th:href="@{/journals/je-005}" class="grid grid-cols-12 gap-4 px-4 py-3 hover:bg-gray-50 transition-colors items-center cursor-pointer">
+                    <div class="col-span-1 text-sm text-gray-600">15 Nov</div>
+                    <div class="col-span-2">
+                        <p class="text-sm font-medium text-primary-600 hover:text-primary-800">JE-2025-0042</p>
+                        <p class="text-xs text-gray-500">TRX-2025-0019</p>
+                    </div>
+                    <div class="col-span-4">
+                        <p class="text-sm text-gray-900">Pendapatan Jasa Development Web</p>
+                        <p class="text-xs text-gray-500">Ref: INV-2025-0019</p>
+                    </div>
+                    <div class="col-span-2 text-right text-sm font-mono text-green-600">25.500.000</div>
+                    <div class="col-span-2 text-right text-sm font-mono text-gray-400">-</div>
+                    <div class="col-span-1 text-right text-sm font-mono font-medium text-gray-900">134.800.000</div>
+                </a>
+
+                <!-- Journal Entry 6 - Kredit (Salary) -->
+                <a th:href="@{/journals/je-006}" class="grid grid-cols-12 gap-4 px-4 py-3 hover:bg-gray-50 transition-colors items-center cursor-pointer">
+                    <div class="col-span-1 text-sm text-gray-600">15 Nov</div>
+                    <div class="col-span-2">
+                        <p class="text-sm font-medium text-primary-600 hover:text-primary-800">JE-2025-0043</p>
+                        <p class="text-xs text-gray-500">TRX-2025-0020</p>
+                    </div>
+                    <div class="col-span-4">
+                        <p class="text-sm text-gray-900">Pembayaran Gaji Karyawan November</p>
+                        <p class="text-xs text-gray-500">Ref: PAY-NOV-2025</p>
+                    </div>
+                    <div class="col-span-2 text-right text-sm font-mono text-gray-400">-</div>
+                    <div class="col-span-2 text-right text-sm font-mono text-red-600">12.000.000</div>
+                    <div class="col-span-1 text-right text-sm font-mono font-medium text-gray-900">122.800.000</div>
+                </a>
+
+                <!-- Journal Entry 7 - Kredit (Internet) -->
+                <a th:href="@{/journals/je-007}" class="grid grid-cols-12 gap-4 px-4 py-3 hover:bg-gray-50 transition-colors items-center cursor-pointer">
+                    <div class="col-span-1 text-sm text-gray-600">18 Nov</div>
+                    <div class="col-span-2">
+                        <p class="text-sm font-medium text-primary-600 hover:text-primary-800">JE-2025-0044</p>
+                        <p class="text-xs text-gray-500">TRX-2025-0021</p>
+                    </div>
+                    <div class="col-span-4">
+                        <p class="text-sm text-gray-900">Pembayaran Internet &amp; Telekomunikasi</p>
+                        <p class="text-xs text-gray-500">Ref: INET-NOV-2025</p>
+                    </div>
+                    <div class="col-span-2 text-right text-sm font-mono text-gray-400">-</div>
+                    <div class="col-span-2 text-right text-sm font-mono text-red-600">1.500.000</div>
+                    <div class="col-span-1 text-right text-sm font-mono font-medium text-gray-900">121.300.000</div>
+                </a>
+
+                <!-- Journal Entry 8 - Kredit (Admin) -->
+                <a th:href="@{/journals/je-008}" class="grid grid-cols-12 gap-4 px-4 py-3 hover:bg-gray-50 transition-colors items-center cursor-pointer">
+                    <div class="col-span-1 text-sm text-gray-600">20 Nov</div>
+                    <div class="col-span-2">
+                        <p class="text-sm font-medium text-primary-600 hover:text-primary-800">JE-2025-0045</p>
+                        <p class="text-xs text-gray-500">TRX-2025-0022</p>
+                    </div>
+                    <div class="col-span-4">
+                        <p class="text-sm text-gray-900">Beban Administrasi &amp; Umum</p>
+                        <p class="text-xs text-gray-500">Ref: ADM-NOV-2025</p>
+                    </div>
+                    <div class="col-span-2 text-right text-sm font-mono text-gray-400">-</div>
+                    <div class="col-span-2 text-right text-sm font-mono text-red-600">900.000</div>
+                    <div class="col-span-1 text-right text-sm font-mono font-medium text-gray-900">120.400.000</div>
+                </a>
+
+                <!-- Journal Entry 9 - Debit (Recent Income) -->
+                <a th:href="@{/journals/je-009}" class="grid grid-cols-12 gap-4 px-4 py-3 hover:bg-gray-50 transition-colors items-center cursor-pointer">
+                    <div class="col-span-1 text-sm text-gray-600">22 Nov</div>
+                    <div class="col-span-2">
+                        <p class="text-sm font-medium text-primary-600 hover:text-primary-800">JE-2025-0046</p>
+                        <p class="text-xs text-gray-500">TRX-2025-0023</p>
+                    </div>
+                    <div class="col-span-4">
+                        <p class="text-sm text-gray-900">Pendapatan Jasa Konsultasi PT. Maju</p>
+                        <p class="text-xs text-gray-500">Ref: INV-2025-0023</p>
+                    </div>
+                    <div class="col-span-2 text-right text-sm font-mono text-green-600">5.000.000</div>
+                    <div class="col-span-2 text-right text-sm font-mono text-gray-400">-</div>
+                    <div class="col-span-1 text-right text-sm font-mono font-medium text-gray-900">125.400.000</div>
+                </a>
+
+                <!-- Voided Entry (strikethrough) -->
+                <a th:href="@{/journals/je-010}" class="grid grid-cols-12 gap-4 px-4 py-3 hover:bg-gray-50 transition-colors items-center cursor-pointer opacity-50">
+                    <div class="col-span-1 text-sm text-gray-600">10 Nov</div>
+                    <div class="col-span-2">
+                        <p class="text-sm font-medium text-gray-400 line-through">JE-2025-0040-V</p>
+                        <p class="text-xs text-red-500">VOID</p>
+                    </div>
+                    <div class="col-span-4">
+                        <p class="text-sm text-gray-400 line-through">Jasa Konsultasi (Dibatalkan)</p>
+                        <p class="text-xs text-red-500">Void: Salah input klien</p>
+                    </div>
+                    <div class="col-span-2 text-right text-sm font-mono text-gray-300 line-through">5.000.000</div>
+                    <div class="col-span-2 text-right text-sm font-mono text-gray-300">-</div>
+                    <div class="col-span-1 text-right text-sm font-mono text-gray-400">-</div>
+                </a>
+            </div>
+
+            <!-- Running Total Footer -->
+            <div class="border-t-2 border-gray-300 flex-shrink-0">
+                <div class="grid grid-cols-12 gap-4 px-4 py-3 bg-gray-100">
+                    <div class="col-span-1"></div>
+                    <div class="col-span-2"></div>
+                    <div class="col-span-4 text-sm font-semibold text-gray-700">Total Periode</div>
+                    <div class="col-span-2 text-right text-sm font-mono font-bold text-green-700">45.500.000</div>
+                    <div class="col-span-2 text-right text-sm font-mono font-bold text-red-700">20.100.000</div>
+                    <div class="col-span-1"></div>
+                </div>
+                <div class="grid grid-cols-12 gap-4 px-4 py-3 bg-primary-50">
+                    <div class="col-span-1"></div>
+                    <div class="col-span-2"></div>
+                    <div class="col-span-4 text-sm font-semibold text-primary-800">Saldo Akhir</div>
+                    <div class="col-span-4"></div>
+                    <div class="col-span-1 text-right text-sm font-mono font-bold text-primary-800">125.400.000</div>
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            <div class="flex items-center justify-between px-4 py-3 border-t border-gray-200 bg-gray-50 flex-shrink-0">
+                <div class="text-sm text-gray-500">
+                    Menampilkan <span class="font-medium">1-10</span> dari <span class="font-medium">23</span> entri
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button class="px-3 py-1.5 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50" disabled>
+                        Sebelumnya
+                    </button>
+                    <button class="px-3 py-1.5 text-sm font-medium text-white bg-primary-600 border border-primary-600 rounded-lg">
+                        1
+                    </button>
+                    <button class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+                        2
+                    </button>
+                    <button class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+                        3
+                    </button>
+                    <button class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+                        Selanjutnya
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

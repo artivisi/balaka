@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/main}"
+      lang="id">
+<head>
+    <title>Detail Jurnal</title>
+</head>
+<body>
+    <h1 layout:fragment="page-title">Detail Jurnal</h1>
+
+    <div layout:fragment="content" class="h-full flex flex-col overflow-y-auto">
+        <div class="max-w-4xl">
+            <!-- Breadcrumb -->
+            <nav class="flex items-center space-x-2 text-sm text-gray-500 mb-6">
+                <a th:href="@{/journals}" class="hover:text-primary-600 transition-colors">Buku Besar</a>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+                <span class="text-gray-900">JE-2025-0046</span>
+            </nav>
+
+            <!-- Status Banner -->
+            <div class="mb-6 p-4 bg-accent-50 rounded-lg border border-accent-200">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <span class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-accent-100">
+                                <svg class="w-5 h-5 text-accent-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            </span>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-semibold text-accent-800">Jurnal Terposting</h3>
+                            <p class="text-xs text-accent-600 mt-0.5">Jurnal ini tidak dapat diubah. Gunakan void pada transaksi untuk membatalkan.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                            </svg>
+                            Cetak
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Journal Header Card -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+                <div class="p-6">
+                    <div class="flex items-start justify-between mb-6">
+                        <div>
+                            <h2 class="text-xl font-bold text-gray-900">JE-2025-0046</h2>
+                            <p class="text-sm text-gray-500 mt-1">Jurnal Entry dari transaksi pendapatan</p>
+                        </div>
+                        <div class="text-right">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-accent-100 text-accent-800">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                </svg>
+                                Posted
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+                        <div>
+                            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</p>
+                            <p class="text-sm text-gray-900 mt-1">22 November 2025</p>
+                        </div>
+                        <div>
+                            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Transaksi Asal</p>
+                            <a th:href="@{/transactions/txn-001}" class="text-sm text-primary-600 hover:text-primary-800 mt-1 inline-block">
+                                TRX-2025-0023
+                            </a>
+                        </div>
+                        <div>
+                            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Template</p>
+                            <p class="text-sm text-gray-900 mt-1">Pendapatan Jasa Konsultasi</p>
+                        </div>
+                        <div>
+                            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Diposting Oleh</p>
+                            <p class="text-sm text-gray-900 mt-1">admin</p>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 pt-6 border-t border-gray-200">
+                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Keterangan</p>
+                        <p class="text-sm text-gray-700">Pendapatan Jasa Konsultasi PT. Maju Bersama - Invoice INV-2025-0023</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Journal Lines Card -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+                <div class="p-6 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">Detail Jurnal</h2>
+                </div>
+
+                <div class="overflow-hidden">
+                    <!-- Journal Header -->
+                    <div class="grid grid-cols-12 gap-4 px-6 py-3 bg-gray-50 text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                        <div class="col-span-1">Kode</div>
+                        <div class="col-span-5">Nama Akun</div>
+                        <div class="col-span-3 text-right">Debit</div>
+                        <div class="col-span-3 text-right">Kredit</div>
+                    </div>
+
+                    <!-- Journal Lines -->
+                    <div class="divide-y divide-gray-100">
+                        <!-- Debit Line -->
+                        <div class="grid grid-cols-12 gap-4 px-6 py-4 items-center hover:bg-gray-50 transition-colors">
+                            <div class="col-span-1">
+                                <a th:href="@{/journals/ledger/1.1.02}" class="text-sm text-primary-600 hover:text-primary-800 font-mono">1.1.02</a>
+                            </div>
+                            <div class="col-span-5">
+                                <a th:href="@{/journals/ledger/1.1.02}" class="text-sm text-gray-900 hover:text-primary-600">Bank BCA</a>
+                                <p class="text-xs text-gray-500">Aset Lancar</p>
+                            </div>
+                            <div class="col-span-3 text-right">
+                                <span class="text-sm font-mono text-gray-900">Rp 15.000.000</span>
+                            </div>
+                            <div class="col-span-3 text-right">
+                                <span class="text-sm font-mono text-gray-400">-</span>
+                            </div>
+                        </div>
+
+                        <!-- Credit Line -->
+                        <div class="grid grid-cols-12 gap-4 px-6 py-4 items-center hover:bg-gray-50 transition-colors">
+                            <div class="col-span-1">
+                                <a th:href="@{/journals/ledger/4.1.01}" class="text-sm text-primary-600 hover:text-primary-800 font-mono">4.1.01</a>
+                            </div>
+                            <div class="col-span-5">
+                                <a th:href="@{/journals/ledger/4.1.01}" class="text-sm text-gray-900 hover:text-primary-600">Pendapatan Jasa Konsultasi</a>
+                                <p class="text-xs text-gray-500">Pendapatan</p>
+                            </div>
+                            <div class="col-span-3 text-right">
+                                <span class="text-sm font-mono text-gray-400">-</span>
+                            </div>
+                            <div class="col-span-3 text-right">
+                                <span class="text-sm font-mono text-gray-900">Rp 15.000.000</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Journal Totals -->
+                    <div class="grid grid-cols-12 gap-4 px-6 py-4 bg-gray-50 border-t-2 border-gray-200">
+                        <div class="col-span-6 text-sm font-semibold text-gray-700">Total</div>
+                        <div class="col-span-3 text-right text-sm font-mono font-bold text-gray-900">Rp 15.000.000</div>
+                        <div class="col-span-3 text-right text-sm font-mono font-bold text-gray-900">Rp 15.000.000</div>
+                    </div>
+
+                    <!-- Balance Validation -->
+                    <div class="px-6 py-3 bg-accent-50 border-t border-accent-200">
+                        <div class="flex items-center text-sm text-accent-700">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Jurnal Balance: Total Debit = Total Kredit
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Account Impact Card -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+                <div class="p-6 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">Dampak Terhadap Saldo Akun</h2>
+                </div>
+
+                <div class="p-6">
+                    <div class="space-y-4">
+                        <!-- Account 1 -->
+                        <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mr-3">
+                                    <span class="text-xs font-bold text-blue-600">BCA</span>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-900">1.1.02 - Bank BCA</p>
+                                    <p class="text-xs text-gray-500">Saldo Normal: Debit</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-sm text-gray-500">Sebelum: Rp 110.400.000</p>
+                                <div class="flex items-center justify-end mt-1">
+                                    <svg class="w-4 h-4 text-green-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"/>
+                                    </svg>
+                                    <span class="text-sm font-medium text-green-600">+ Rp 15.000.000</span>
+                                </div>
+                                <p class="text-sm font-semibold text-gray-900 mt-1">Sesudah: Rp 125.400.000</p>
+                            </div>
+                        </div>
+
+                        <!-- Account 2 -->
+                        <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mr-3">
+                                    <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-900">4.1.01 - Pendapatan Jasa Konsultasi</p>
+                                    <p class="text-xs text-gray-500">Saldo Normal: Kredit</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-sm text-gray-500">Sebelum: Rp 5.000.000</p>
+                                <div class="flex items-center justify-end mt-1">
+                                    <svg class="w-4 h-4 text-green-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"/>
+                                    </svg>
+                                    <span class="text-sm font-medium text-green-600">+ Rp 15.000.000</span>
+                                </div>
+                                <p class="text-sm font-semibold text-gray-900 mt-1">Sesudah: Rp 20.000.000</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Audit Info -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-8">
+                <div class="p-6 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">Informasi Audit</h2>
+                </div>
+
+                <div class="p-6">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+                        <div>
+                            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Dibuat</p>
+                            <p class="text-sm text-gray-900 mt-1">22 Nov 2025, 14:30</p>
+                            <p class="text-xs text-gray-500">admin</p>
+                        </div>
+                        <div>
+                            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Diposting</p>
+                            <p class="text-sm text-gray-900 mt-1">22 Nov 2025, 14:30</p>
+                            <p class="text-xs text-gray-500">admin</p>
+                        </div>
+                        <div>
+                            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Periode Fiskal</p>
+                            <p class="text-sm text-gray-900 mt-1">November 2025</p>
+                            <p class="text-xs text-accent-600">Open</p>
+                        </div>
+                        <div>
+                            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Hash</p>
+                            <p class="text-xs text-gray-500 mt-1 font-mono truncate">a1b2c3d4...f5e6</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <div class="flex items-center justify-between mb-8">
+                <a th:href="@{/journals}" class="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 transition-colors">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                    </svg>
+                    Kembali ke Buku Besar
+                </a>
+                <a th:href="@{/transactions/txn-001}" class="inline-flex items-center text-sm text-primary-600 hover:text-primary-800 transition-colors">
+                    Lihat Transaksi Asal
+                    <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+                    </svg>
+                </a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
