@@ -9,14 +9,15 @@ Indonesian accounting application for small businesses. Spring Boot 4.0 + Thymel
 - **Phase 0:** ✅ Complete (project setup, auth, CI/CD)
 - **Phase 1:** 🔄 In Progress (Core Accounting MVP)
   - 1.1 COA: ✅ Complete
-  - 1.2 Journal Templates: ⏳ Not Started
-  - See `docs/06-implementation-plan.md` for detailed tasks
+  - 1.2 Journal Entries: ⏳ Not Started - See `TODO-JOURNAL-ENTRIES.md`
+  - See `docs/06-implementation-plan.md` for full plan
 
 ## Key Files
 
 | Purpose | Location |
 |---------|----------|
 | Implementation Plan | `docs/06-implementation-plan.md` |
+| Journal Entries TODO | `TODO-JOURNAL-ENTRIES.md` |
 | Entities | `src/main/java/.../entity/` |
 | Services | `src/main/java/.../service/` |
 | Controllers | `src/main/java/.../controller/` |
@@ -60,7 +61,7 @@ User → Controller (MVC) → Service → Repository → PostgreSQL
 
 ## Current Focus
 
-Next: Journal Templates (1.2) per `docs/06-implementation-plan.md`:
-1. Template entity with versioning
-2. Template lines entity
-3. System templates for IT Services
+Next: Journal Entries (1.2) per `TODO-JOURNAL-ENTRIES.md`:
+1. Entity & migration for journal entries and lines
+2. Service layer with balance validation
+3. CRUD UI with post/void workflow
