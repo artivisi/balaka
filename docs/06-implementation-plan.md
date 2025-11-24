@@ -58,6 +58,25 @@ audit_logs
 
 **Scope:** IT Services industry only (primary use case for initial deployment)
 
+### Implementation Order Rationale
+
+The features are ordered to maximize code reuse and enable incremental validation:
+
+```
+1.1 COA ✅ → 1.2 Journal Entries → 1.3 Reports → 1.4 Templates → 1.5 Transactions
+                    │                    │              │               │
+                    │                    │              │               │
+                    └── Core service ────┴── Validates ─┴── Generates ──┘
+                        reused by all       the engine     journal entries
+```
+
+- **Journal Entries first:** Core double-entry engine. Users who understand accounting can use immediately.
+- **Reports second:** Validates journal entries work correctly. Trial Balance = ultimate double-entry test.
+- **Templates third:** Recipes that generate journal entries. Reuses JournalEntryService.
+- **Transactions fourth:** User-friendly abstraction. Reuses TemplateExecutionEngine → JournalEntryService.
+
+---
+
 ### 1.1 Chart of Accounts
 - [x] Account entity and repository
 - [x] Account types (asset, liability, equity, revenue, expense)
@@ -67,109 +86,227 @@ audit_logs
 - [ ] Account CRUD UI
 - [ ] Account activation/deactivation
 
-**Note:** Other industry templates (Photography, Online Seller, General Freelancer) deferred to Phase 1+
+**Note:** Other industry templates (Photography, Online Seller, General Freelancer) deferred to Phase 6+
 
 ```sql
 -- V002: Chart of accounts
 chart_of_accounts
 ```
 
-### 1.2 Journal Templates (Basic)
-- [ ] Template entity with versioning
-- [ ] Template lines entity
-- [ ] Category field (income, expense, payment, receipt, transfer)
-- [ ] Cash flow category field
-- [ ] System templates for IT Services (preloaded)
-- [ ] Template list UI with category filter
-- [ ] Template detail view
+---
 
-```sql
--- V003: Journal templates
-journal_templates
-journal_template_lines
-```
+### 1.2 Journal Entries (Manual)
 
-**Note:** Tags, favorites, usage tracking deferred to Phase 1.5
+**Purpose:** Core double-entry bookkeeping engine. Accountants can record entries directly.
 
-### 1.3 Transactions
-- [ ] Transaction entity with type and numbering
-- [ ] Transaction sequences per type
+**Dependencies:** COA (1.1)
+
+**Reused by:** Reports (1.3), Templates (1.4), Transactions (1.5)
+
+- [ ] Journal entry entity (header: date, description, reference, status)
+- [ ] Journal entry lines entity (account, debit, credit, memo)
+- [ ] Balance validation (debit = credit) before posting
 - [ ] Status workflow (draft → posted → void)
-- [ ] Transaction form (template-based)
+- [ ] Immutable after posting (no edits, only void)
+- [ ] Void with reason
+- [ ] Journal entry CRUD UI
+- [ ] Journal entry list with filters (date range, status)
+
+```sql
+-- V003: Journal entries
+journal_entries (id, entry_date, description, reference_number, status, posted_at, voided_at, void_reason, ...)
+journal_entry_lines (id, journal_entry_id, account_id, debit, credit, description, ...)
+```
+
+**Key Service Methods (reused later):**
+```java
+JournalEntryService {
+    create(JournalEntryRequest) → JournalEntry
+    post(UUID id) → JournalEntry
+    void(UUID id, String reason) → JournalEntry
+    validateBalance(List<Line>) → void  // throws if debit ≠ credit
+}
+```
+
+---
+
+### 1.3 Basic Reports
+
+**Purpose:** Validate journal entries, provide financial output. Trial Balance is the ultimate test of double-entry correctness.
+
+**Dependencies:** Journal Entries (1.2)
+
+**Reused by:** Account balance display, validation checks
+
+- [ ] Trial Balance report
+- [ ] General Ledger report (all entries per account)
+- [ ] Balance Sheet (Laporan Posisi Keuangan)
+- [ ] Income Statement (Laporan Laba Rugi)
+- [ ] Date range filtering
+- [ ] PDF export
+- [ ] Excel export
+
+**Key Service Methods (reused later):**
+```java
+AccountBalanceCalculator {
+    calculateTrialBalance(LocalDate asOf) → List<AccountBalance>
+    calculateAccountBalance(UUID accountId, DateRange) → Balance
+    getAccountTransactions(UUID accountId, DateRange) → List<JournalEntryLine>
+}
+```
+
+**Note:** Balances calculated on-the-fly from journal_entry_lines. Materialized balances (1.7) deferred until performance requires it.
+
+---
+
+### 1.4 Journal Templates (Basic)
+
+**Purpose:** Predefined recipes for common transactions. Generates journal entries automatically.
+
+**Dependencies:** COA (1.1), JournalEntryService (1.2)
+
+**Reused by:** Transactions (1.5)
+
+- [ ] Template entity with versioning
+- [ ] Template lines entity (account mappings, debit/credit rules)
+- [ ] Category field (income, expense, payment, receipt, transfer)
+- [ ] Cash flow category field (operating, investing, financing)
+- [ ] System templates for IT Services (preloaded via migration)
+- [ ] Template CRUD UI
+- [ ] Template list with category filter
+- [ ] Template detail view
+- [ ] Template execution (generates journal entry)
+
+```sql
+-- V004: Journal templates
+journal_templates (id, name, code, category, cash_flow_category, version, is_system, ...)
+journal_template_lines (id, template_id, account_id, debit_formula, credit_formula, description, ...)
+```
+
+**Key Service Methods (reused later):**
+```java
+TemplateExecutionEngine {
+    execute(JournalTemplate, TemplateContext) → JournalEntry  // calls journalEntryService.create()
+    validate(JournalTemplate) → List<ValidationError>
+}
+```
+
+**Note:** Tags, favorites, usage tracking deferred to 1.8
+
+---
+
+### 1.5 Transactions
+
+**Purpose:** User-friendly abstraction over templates. Non-accountants select a template, fill in amounts.
+
+**Dependencies:** Templates (1.4), JournalEntryService (1.2)
+
+- [ ] Transaction entity with type and numbering
+- [ ] Transaction sequences per type (auto-increment per category)
+- [ ] Status workflow (draft → posted → void)
+- [ ] Transaction form UI (driven by template structure)
 - [ ] Account mapping from template
-- [ ] Transaction list with filters
+- [ ] Transaction list with filters (date, type, status)
 - [ ] Transaction detail view
-- [ ] Void transaction (with reason)
+- [ ] Post transaction (executes template → creates journal entry)
+- [ ] Void transaction (voids linked journal entry)
 
 ```sql
--- V004: Transactions
-transactions
-transaction_sequences
-transaction_account_mappings
+-- V005: Transactions
+transactions (id, template_id, journal_entry_id, transaction_number, status, ...)
+transaction_sequences (id, category, current_value, prefix, ...)
+transaction_values (id, transaction_id, field_name, value, ...)
 ```
 
-### 1.4 Journal Entries
-- [ ] Journal entry entity
-- [ ] Auto-generate from transaction + template
-- [ ] Balance validation (debit = credit)
-- [ ] Immutable after posting
-- [ ] Journal entry list (general ledger view)
-
-```sql
--- V005: Journal entries
-journal_entries
+**Flow:**
+```
+User fills transaction form
+    → TransactionService.post()
+        → TemplateExecutionEngine.execute()
+            → JournalEntryService.create()
+                → JournalEntryService.post()
 ```
 
-### 1.5 Basic Formula Support
+---
+
+### 1.6 Formula Support (Optional for MVP)
+
+**Purpose:** Enable percentage calculations in templates (e.g., 11% PPN).
+
+**Dependencies:** Templates (1.4)
+
+**Note:** Basic templates with fixed amounts work without formulas. Implement when tax templates needed (Phase 2).
+
 - [ ] SpEL integration with SimpleEvaluationContext
 - [ ] FormulaContext class for transaction data
 - [ ] Percentage calculations (100%, 11%, etc.)
 - [ ] Simple arithmetic expressions
 - [ ] Formula validation on template save
 
-### 1.6 Basic Reports
-- [ ] Trial Balance
-- [ ] General Ledger
-- [ ] Balance Sheet (Laporan Posisi Keuangan)
-- [ ] Income Statement (Laporan Laba Rugi)
-- [ ] PDF export
-- [ ] Excel export
+---
 
-### 1.7 Account Balances (Materialized)
+### 1.7 Account Balances (Materialized) - Performance Optimization
+
+**Purpose:** Cache account balances for faster report generation.
+
+**Dependencies:** Journal Entries (1.2), Reports (1.3)
+
+**Note:** Defer until performance requires it. On-the-fly calculation sufficient for MVP.
+
 - [ ] Account balances entity
-- [ ] Balance calculation on transaction post
-- [ ] Period-based aggregation
-- [ ] Balance recalculation utility
+- [ ] Balance update on journal entry post/void
+- [ ] Period-based aggregation (monthly snapshots)
+- [ ] Balance recalculation utility (rebuild from journal entries)
 
 ```sql
--- V006: Account balances
-account_balances
+-- V006: Account balances (when needed)
+account_balances (id, account_id, period_start, period_end, opening_balance, debit_total, credit_total, closing_balance, ...)
 ```
 
+---
+
 ### 1.8 Template Enhancements
+
+**Purpose:** Improve template discoverability and user experience.
+
+**Dependencies:** Templates (1.4)
+
 - [ ] Template tags
 - [ ] User favorites
-- [ ] Usage tracking
+- [ ] Usage tracking (last used, frequency)
 - [ ] Search functionality
 - [ ] Recently used list
 
 ```sql
 -- V007: Template preferences
-journal_template_tags
-user_template_preferences
+journal_template_tags (id, template_id, tag, ...)
+user_template_preferences (id, user_id, template_id, is_favorite, last_used_at, use_count, ...)
 ```
 
-**Deliverable:** Working accounting system - can record transactions, generate reports
+---
+
+**Deliverable:** Working accounting system - can record journal entries manually or via templates, generate reports
 
 **Note:** Document attachment deferred to Phase 2. Store receipts in external folder during MVP.
 
 ### MVP Checklist for Go Live
-- [ ] Can create transactions using templates
+- [ ] Can create manual journal entries (for accountants)
+- [ ] Can create transactions using templates (for business users)
+- [ ] Trial Balance balances (validates double-entry correctness)
 - [ ] Can generate Balance Sheet and Income Statement
 - [ ] Can export reports to PDF/Excel
 - [ ] Basic user management
 - [ ] Database backup via pg_dump (no documents yet)
 - [ ] Production deployment tested
+
+### Code Reuse Summary
+
+| Component | Created In | Reused By |
+|-----------|------------|-----------|
+| JournalEntryService | 1.2 | 1.3, 1.4, 1.5 |
+| AccountBalanceCalculator | 1.3 | 1.4 (validation), 1.5 (display) |
+| TemplateExecutionEngine | 1.4 | 1.5 |
+| ChartOfAccountRepository | 1.1 | All subsequent features |
 
 ---
 
