@@ -129,6 +129,151 @@
 - Not suitable for manufacturers
 - Limited to simple buy/sell model
 
+### 32. Project Tracking vs Cost Centers ✓
+**Decision:** Simple project tracking for Phase 1, defer generic tags to Phase 2. No traditional cost centers.
+
+**Date:** 2025-11-24
+
+**Rationale:**
+- Target market (IT Services, Photographers) works project-based, not department-based
+- Traditional cost/revenue centers are for larger organizations with departments
+- Projects are the natural unit of profitability analysis for service businesses
+- Generic tags provide flexibility for additional dimensions (client, channel) in Phase 2
+
+**Analysis by Segment:**
+| Segment | Projects Useful? | Cost Centers Useful? |
+|---------|-----------------|---------------------|
+| IT Services | ✅ High (per-project profitability) | ❌ No departments |
+| Photographers | ✅ High (per-event profitability) | ❌ No departments |
+| Online Sellers | ⚠️ Low (product-based, not project-based) | ❌ No departments |
+
+**Implementation:**
+- **Phase 1:** Project entity with profitability report
+- **Phase 2:** Transaction tags for additional dimensions (client, channel, category)
+
+**Trade-offs:**
+- Online sellers don't benefit from project tracking (use tags for channels instead)
+- No overhead allocation to projects (too complex for MVP)
+- Worth it: High value for primary target segments
+
+---
+
+### 34. Project Milestones & Payment Terms ✓
+**Decision:** Include milestones, payment terms, and basic invoices in Phase 1 project tracking.
+
+**Date:** 2025-11-24
+
+**Rationale:**
+- Milestones enable accurate progress tracking for cost overrun detection
+- Payment terms define when revenue should be recognized
+- Invoice linkage provides end-to-end project financial tracking
+- Critical for service businesses to mitigate project losses early
+
+**Features:**
+| Feature | Purpose |
+|---------|---------|
+| Milestones | Track % complete per deliverable |
+| Payment Terms | Define payment schedule (DP, per milestone, final) |
+| Invoices | Generate invoices from payment terms |
+| Revenue Recognition | Auto-trigger on milestone completion |
+| Cost Overrun Detection | Compare % spent vs % complete |
+
+**Integration:**
+- Milestone completion → triggers amortization entry
+- Payment term → links to invoice
+- Invoice → creates receivable journal entry
+- All feed into Project Profitability Report
+
+**Cost Overrun Formula:**
+```
+Progress % = Σ (milestone.completion_percent × milestone.actual_progress)
+Spent % = actual_costs / budget × 100
+
+If Spent % > Progress % + threshold:
+    → Trigger cost overrun alert
+```
+
+**Trade-offs:**
+- More complex project management features
+- Users must set up milestones (not automatic)
+- Worth it: Prevents project losses, key differentiator
+
+---
+
+### 33. Business Analysis & Smart Alerts ✓
+**Decision:** Dashboard KPIs and client/project profitability in Phase 1. Trend analysis and smart alerts in Phase 2.
+
+**Date:** 2025-11-24
+
+**Rationale:**
+- Most accounting apps focus only on compliance (tax reports, bookkeeping)
+- Our differentiator: actionable business insights
+- Help users understand not just "what happened" but "what to do next"
+- Project cost overrun alerts critical for mitigating losses in service businesses
+
+**Phase 1 (MVP):**
+| Feature | Purpose |
+|---------|---------|
+| Dashboard KPIs | Quick view of revenue, expenses, profit, cash |
+| Project Profitability | Track margin per project |
+| Client Profitability | Track margin per client (aggregate of projects) |
+
+**Phase 2:**
+| Feature | Purpose |
+|---------|---------|
+| Trend Charts | Visualize 12-month trends |
+| Smart Alerts | Proactive warnings before problems occur |
+| Project Cost Overrun Alert | Mitigate project losses early |
+
+**Alert Priority:**
+1. **Project Cost Overrun** - Critical for service businesses
+2. **Overdue Receivables** - Cash flow impact
+3. **Expense Spike** - Cost control
+4. **Cash Low Warning** - Survival
+5. **Client Concentration** - Risk management
+
+**Trade-offs:**
+- More development effort beyond basic bookkeeping
+- Alerts need careful tuning to avoid noise
+- Worth it: Key differentiator and high user value
+
+---
+
+### 31. Amortization Schedules ✓
+**Decision:** Automated period-end adjustments for prepaid expenses, unearned revenue, and intangible assets
+
+**Date:** 2025-11-24
+
+**Rationale:**
+- Period-end adjustments are routine, predictable, and repetitive
+- Reduces manual work for recurring adjustments
+- Prevents users from forgetting period-end entries
+- Ensures accurate financial statements
+
+**Scope:**
+| Type | Indonesian | Auto? |
+|------|------------|-------|
+| Prepaid Expense | Beban Dibayar Dimuka | ✅ Automated |
+| Unearned Revenue | Pendapatan Diterima Dimuka | ✅ Automated |
+| Intangible Asset | Aset Tak Berwujud | ✅ Automated |
+| Accrued Revenue | Pendapatan Akrual | ✅ Automated |
+| Fixed Asset Depreciation | Penyusutan Aset Tetap | ❌ Phase 5 (needs fiscal regulation) |
+| Complex/One-off Adjustments | Penyesuaian Lainnya | ❌ Manual (templates/journal entry) |
+
+**Implementation Notes:**
+- User creates schedule manually (no auto-detection from transactions)
+- Toggle for auto-post vs draft (user chooses during creation)
+- Monthly batch job generates journal entries
+- Last period absorbs rounding difference
+- Schedule tracks progress (completed_periods, remaining_amount)
+
+**Trade-offs:**
+- Additional module to implement
+- Users must set up schedules manually
+- Worth it: Significantly reduces period-end workload
+
+---
+
 ### 30. Cloud Hosting ✓
 **Decision:** Local Indonesian providers or cheap global (DigitalOcean), avoid big cloud unless requested
 

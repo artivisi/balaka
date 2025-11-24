@@ -68,12 +68,21 @@ The features are ordered to maximize code reuse and enable incremental validatio
                     │                      │              │               │
                     └── Core service ──────┴── Validates ─┴── Generates ──┘
                         reused by all         the engine     journal entries
+
+                    │                                                      │
+                    ├─────────────────────────────────────→ 1.9 Amortization Schedules
+                    │                                          (auto-generates adjustments)
+                    │
+                    └─────────────────────────────────────→ 1.10 Project Tracking
+                                                               (profitability analysis)
 ```
 
 - **Journal Entries first:** Core double-entry engine. Users who understand accounting can use immediately.
 - **Reports second:** Validates journal entries work correctly. Trial Balance = ultimate double-entry test.
 - **Templates third:** Recipes that generate journal entries. Reuses JournalEntryService.
 - **Transactions fourth:** User-friendly abstraction. Reuses TemplateExecutionEngine → JournalEntryService.
+- **Amortization Schedules:** Automates period-end adjustments. Reuses JournalEntryService directly.
+- **Project Tracking:** Tags transactions by project. Reuses AccountBalanceCalculator for profitability.
 
 ---
 
@@ -141,6 +150,7 @@ JournalEntryService {
 
 **Reused by:** Account balance display, validation checks
 
+#### Financial Statements
 - [ ] Trial Balance report
 - [ ] General Ledger report (all entries per account)
 - [ ] Balance Sheet (Laporan Posisi Keuangan)
@@ -148,6 +158,30 @@ JournalEntryService {
 - [ ] Date range filtering
 - [ ] PDF export
 - [ ] Excel export
+
+#### Dashboard KPIs
+- [ ] Revenue (current month, vs previous month %)
+- [ ] Expenses (current month, vs previous month %)
+- [ ] Net Profit (current month, vs previous month %)
+- [ ] Profit Margin % (current month, vs previous month pts)
+- [ ] Cash Balance (sum of cash/bank accounts)
+- [ ] Receivables Total (Piutang Usaha balance)
+- [ ] Payables Total (Hutang Usaha balance)
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  November 2025                                               │
+├─────────────────────────────────────────────────────────────┤
+│  Revenue        Rp 85,000,000    ▲ 12% vs Oct               │
+│  Expenses       Rp 35,000,000    ▼ 5% vs Oct                │
+│  Net Profit     Rp 50,000,000    ▲ 25% vs Oct               │
+│  Profit Margin  58.8%            ▲ 6pts vs Oct              │
+│                                                              │
+│  Cash           Rp 120,000,000                              │
+│  Receivables    Rp 25,000,000                               │
+│  Payables       Rp 10,000,000                               │
+└─────────────────────────────────────────────────────────────┘
+```
 
 **Key Service Methods (reused later):**
 ```java
@@ -288,7 +322,249 @@ user_template_preferences (id, user_id, template_id, is_favorite, last_used_at, 
 
 ---
 
-**Deliverable:** Working accounting system - can record journal entries manually or via templates, generate reports
+### 1.9 Amortization Schedules
+
+**Purpose:** Automate recurring period-end adjustments for prepaid expenses, unearned revenue, and intangible assets.
+
+**Dependencies:** COA (1.1), JournalEntryService (1.2)
+
+**Note:** Fixed asset depreciation handled separately in Phase 5 (requires fiscal regulation consultation).
+
+#### Schedule Types
+| Type | Indonesian | Example |
+|------|------------|---------|
+| `prepaid_expense` | Beban Dibayar Dimuka | Insurance, rent, software licenses |
+| `unearned_revenue` | Pendapatan Diterima Dimuka | Advance payments, retainer fees |
+| `intangible_asset` | Aset Tak Berwujud | Website, software development |
+| `accrued_revenue` | Pendapatan Akrual | Monthly retainer billed quarterly |
+
+#### Features
+- [ ] Amortization schedule entity
+- [ ] Amortization entries entity (tracks each period)
+- [ ] Schedule CRUD UI
+- [ ] Schedule list with filters (type, status)
+- [ ] Manual schedule creation (user-initiated, no auto-detection)
+- [ ] Auto-post toggle per schedule (user chooses during creation)
+- [ ] Monthly batch job (generates journal entries)
+- [ ] Period-end dashboard integration
+- [ ] Remaining balance display
+- [ ] Schedule completion handling
+- [ ] Rounding handling (last period absorbs difference)
+
+```sql
+-- V007: Amortization schedules
+amortization_schedules (id, schedule_type, code, name, description,
+    source_transaction_id, source_account_id, target_account_id,
+    total_amount, period_amount, start_date, end_date, frequency, total_periods,
+    completed_periods, amortized_amount, remaining_amount,
+    auto_post, post_day, status, created_by, created_at, updated_at)
+
+amortization_entries (id, schedule_id, period_number, period_start, period_end,
+    amount, journal_entry_id, status, generated_at, posted_at)
+```
+
+#### Journal Patterns
+| Type | Debit | Credit |
+|------|-------|--------|
+| Prepaid Expense | Beban (target) | Dibayar Dimuka (source) |
+| Unearned Revenue | Diterima Dimuka (source) | Pendapatan (target) |
+| Intangible Asset | Beban Amortisasi (target) | Akum. Amortisasi (source) |
+| Accrued Revenue | Piutang Pendapatan (source) | Pendapatan (target) |
+
+#### Workflow
+1. User creates schedule: name, type, accounts, amount, start/end date, frequency, auto-post toggle
+2. System calculates: period_amount = total_amount ÷ total_periods
+3. Monthly batch job creates journal entries (draft or posted based on auto_post setting)
+4. User reviews and posts drafts (if auto_post = false)
+5. System marks schedule completed when all periods done
+
+#### COA Additions (in V002 seed data)
+```
+Assets:
+1.1.05  Asuransi Dibayar Dimuka
+1.1.06  Sewa Dibayar Dimuka
+1.1.07  Langganan Dibayar Dimuka
+1.1.08  Piutang Pendapatan
+1.3     Aset Tak Berwujud (header)
+1.3.01  Website & Software
+1.3.02  Akum. Amortisasi Aset Tak Berwujud
+
+Liabilities:
+2.1.04  Pendapatan Diterima Dimuka
+
+Expenses:
+5.1.08  Beban Asuransi
+5.1.09  Beban Amortisasi
+```
+
+---
+
+### 1.10 Project Tracking
+
+**Purpose:** Track profitability per project/job for service businesses.
+
+**Dependencies:** COA (1.1), JournalEntryService (1.2), Transactions (1.5)
+
+**Note:** Decision #7 - Critical for IT Services and Photographers. Simple tagging approach, not full project management.
+
+#### Project Features
+- [ ] Project entity (code, name, client_id, status, budget)
+- [ ] Project CRUD UI
+- [ ] Project list with filters (status, client)
+- [ ] Link transactions to project (optional project_id on journal entries)
+- [ ] Project selection in transaction form
+- [ ] Project Profitability Report
+- [ ] Project Income Statement (revenue - costs per project)
+
+#### Client Features
+- [ ] Client entity (code, name, contact info, notes)
+- [ ] Client CRUD UI
+- [ ] Client list with search
+- [ ] Link projects to client
+- [ ] Client Profitability Report (aggregate of all client projects)
+- [ ] Client Revenue Ranking (top clients by revenue)
+
+#### Project Milestones
+- [ ] Milestone entity (name, target date, completion %, status)
+- [ ] Milestone CRUD UI (inline in project form)
+- [ ] Milestone status tracking (pending, in_progress, completed)
+- [ ] Milestone progress calculation (weighted by completion %)
+- [ ] Milestone overdue detection
+
+#### Payment Terms & Invoices
+- [ ] Payment term entity (name, %, trigger, linked milestone)
+- [ ] Payment term CRUD UI (inline in project form)
+- [ ] Invoice entity (basic: number, date, amount, status)
+- [ ] Invoice generation from payment term
+- [ ] Invoice status tracking (draft, sent, paid, overdue)
+- [ ] Link invoice to payment term
+- [ ] Auto-trigger revenue recognition on milestone completion
+
+```sql
+-- V008: Clients, Projects, Milestones, Payment Terms, Invoices
+clients (id, code, name, contact_person, email, phone, address, notes,
+    created_at, updated_at)
+
+projects (id, code, name, client_id, description, status,
+    contract_value, budget_amount, start_date, end_date,
+    created_at, updated_at)
+
+project_milestones (id, project_id, sequence, name, description,
+    completion_percent, target_date, actual_date, status,
+    created_at, updated_at)
+    -- status: 'pending', 'in_progress', 'completed'
+
+project_payment_terms (id, project_id, sequence, name,
+    percentage, amount, due_trigger, milestone_id, due_date,
+    invoice_id, amortization_schedule_id,
+    created_at, updated_at)
+    -- due_trigger: 'on_signing', 'on_milestone', 'on_completion', 'fixed_date'
+
+invoices (id, invoice_number, client_id, project_id, payment_term_id,
+    invoice_date, due_date, amount, status,
+    sent_at, paid_at, journal_entry_id,
+    created_at, updated_at)
+    -- status: 'draft', 'sent', 'paid', 'overdue', 'cancelled'
+
+-- Add to journal_entries
+ALTER TABLE journal_entries ADD COLUMN project_id UUID REFERENCES projects(id);
+```
+
+#### Project Status
+| Status | Description |
+|--------|-------------|
+| `active` | Currently in progress |
+| `completed` | Finished, still visible in reports |
+| `archived` | Hidden from dropdowns, visible in historical reports |
+
+#### Profitability Report
+```
+Project: Website Redesign - PT ABC
+Period: Jan - Mar 2025
+
+Revenue:
+  Pendapatan Jasa Development    Rp 50,000,000
+  ─────────────────────────────────────────────
+  Total Revenue                  Rp 50,000,000
+
+Direct Costs:
+  Beban Server & Cloud           Rp    500,000
+  Beban Software & Lisensi       Rp    300,000
+  ─────────────────────────────────────────────
+  Total Direct Costs             Rp    800,000
+
+Gross Profit                     Rp 49,200,000  (98.4%)
+```
+
+#### Client Profitability Report
+```
+Client: PT ABC
+Period: 2025
+
+Projects:
+  Website Redesign     Rp 50,000,000 revenue   Rp 49,200,000 profit (98.4%)
+  Mobile App Dev       Rp 80,000,000 revenue   Rp 65,000,000 profit (81.3%)
+  Maintenance Q1-Q4    Rp 24,000,000 revenue   Rp 22,000,000 profit (91.7%)
+  ───────────────────────────────────────────────────────────────────────────
+  Total               Rp 154,000,000 revenue  Rp 136,200,000 profit (88.4%)
+
+Ranking: #1 of 12 clients (28% of total revenue)
+```
+
+#### Cost Overrun Detection (with Milestones)
+```
+Project: Mobile App - PT XYZ
+Contract: Rp 80,000,000    Budget: Rp 50,000,000
+
+Milestone Progress:
+  ✓ Design (20%)        - Completed
+  ◐ Development (50%)   - 80% done → contributes 40%
+  ○ Testing (20%)       - Pending
+  ○ Deployment (10%)    - Pending
+  ─────────────────────────────────────────────────
+  Total Progress: 60%
+
+Cost Analysis:
+  Budget:        Rp 50,000,000
+  Spent:         Rp 42,000,000 (84%)
+  Progress:      60%
+
+  ⚠️ OVERRUN RISK: 60% complete but 84% budget spent
+  Projected Final Cost: Rp 70,000,000 (140% of budget)
+  Projected Loss:       Rp 20,000,000
+```
+
+#### Payment Terms & Revenue Recognition
+```
+Project: Website Redesign - PT ABC
+Contract: Rp 50,000,000
+
+Payment Terms:                                    Revenue Recognition:
+┌────────────────────────────────────────────────────────────────────────┐
+│ Term          %    Amount         Trigger        Invoice    Revenue   │
+├────────────────────────────────────────────────────────────────────────┤
+│ Down Payment  30%  Rp 15,000,000  On signing     ✓ Paid     Deferred  │
+│ Design Done   30%  Rp 15,000,000  Milestone 1    ✓ Sent     ✓ Recognized│
+│ Dev Complete  30%  Rp 15,000,000  Milestone 3    ○ Pending  Deferred  │
+│ Go Live       10%  Rp  5,000,000  Completion     ○ Pending  Deferred  │
+└────────────────────────────────────────────────────────────────────────┘
+
+Unearned Revenue (Liability):  Rp 35,000,000  (DP + Dev + GoLive)
+Recognized Revenue:            Rp 15,000,000  (Design milestone)
+```
+
+#### Integration: Milestone → Revenue Recognition
+When milestone is marked complete:
+1. System finds linked payment term
+2. Auto-creates/updates amortization entry for that term
+3. Journal: Dr. Pendapatan Diterima Dimuka / Cr. Pendapatan Jasa
+4. Updates project profitability in real-time
+
+**Note:** Overhead allocation (rent, utilities) not included - too complex for MVP. Users can manually add project-tagged expenses for full costing.
+
+---
+
+**Deliverable:** Working accounting system - can record journal entries manually or via templates, generate reports, automate period-end adjustments, track project/client profitability with milestones and payment terms
 
 **Note:** Document attachment deferred to Phase 2. Store receipts in external folder during MVP.
 
@@ -298,6 +574,16 @@ user_template_preferences (id, user_id, template_id, is_favorite, last_used_at, 
 - [ ] Trial Balance balances (validates double-entry correctness)
 - [ ] Can generate Balance Sheet and Income Statement
 - [ ] Can export reports to PDF/Excel
+- [ ] Dashboard shows KPIs (revenue, expenses, profit, cash, receivables, payables)
+- [ ] Can set up amortization schedules for prepaid/unearned items
+- [ ] Period-end adjustments auto-generated from schedules
+- [ ] Can create and manage clients
+- [ ] Can create projects with milestones and payment terms
+- [ ] Can generate invoices from payment terms
+- [ ] Milestone completion triggers revenue recognition
+- [ ] Cost overrun detection (% spent vs % complete)
+- [ ] Can generate Project Profitability Report
+- [ ] Can generate Client Profitability Report
 - [ ] Basic user management
 - [ ] Database backup via pg_dump (no documents yet)
 - [ ] Production deployment tested
@@ -306,10 +592,12 @@ user_template_preferences (id, user_id, template_id, is_favorite, last_used_at, 
 
 | Component | Created In | Reused By |
 |-----------|------------|-----------|
-| JournalEntryService | 1.2 | 1.3, 1.4, 1.5 |
-| AccountBalanceCalculator | 1.3 | 1.4 (validation), 1.5 (display) |
+| JournalEntryService | 1.2 | 1.3, 1.4, 1.5, 1.9, 1.10 |
+| AccountBalanceCalculator | 1.3 | 1.4 (validation), 1.5 (display), 1.9 (remaining balance), 1.10 (profitability) |
 | TemplateExecutionEngine | 1.4 | 1.5 |
 | ChartOfAccountRepository | 1.1 | All subsequent features |
+| AmortizationScheduleService | 1.9 | Period-end dashboard |
+| ProjectService | 1.10 | Transaction form, Profitability reports |
 
 ---
 
@@ -381,7 +669,120 @@ fiscal_periods
 - [ ] Backup scheduling (manual trigger for MVP)
 - [ ] Backup manifest (metadata, timestamp, file list)
 
-**Deliverable:** Tax-compliant accounting with export formats for DJP, document storage, and proper backup/restore
+### 2.9 Transaction Tags
+
+**Purpose:** Flexible multi-dimensional tagging for transactions beyond projects.
+
+**Dependencies:** Transactions (1.5), Projects (1.10)
+
+**Note:** Extends project tracking with user-defined dimensions (client, channel, category).
+
+#### Features
+- [ ] Tag type entity (user-defined: "Client", "Channel", "Category")
+- [ ] Tag entity (values per type)
+- [ ] Tag type CRUD UI
+- [ ] Tag CRUD UI
+- [ ] Multi-tag per transaction (journal entry)
+- [ ] Tag filters in transaction list
+- [ ] Tag-based reports (summary by tag)
+
+```sql
+-- V010: Transaction tags
+tag_types (id, name, description, is_system, created_at)
+tags (id, tag_type_id, name, color, created_at)
+journal_entry_tags (journal_entry_id, tag_id, PRIMARY KEY (journal_entry_id, tag_id))
+```
+
+#### Use Cases by Segment
+| Segment | Tag Types |
+|---------|-----------|
+| IT Services | Client, Project Type (dev, consulting, training) |
+| Photographers | Client, Event Type (wedding, corporate, product) |
+| Online Sellers | Channel (Shopee, Tokopedia, Instagram), Category |
+
+**Note:** Projects (1.10) handle the primary project tracking. Tags provide additional dimensions for analysis.
+
+### 2.10 Trend Analysis
+
+**Purpose:** Visualize business performance over time.
+
+**Dependencies:** Reports (1.3), Dashboard KPIs
+
+#### Features
+- [ ] Revenue trend chart (12 months)
+- [ ] Expense trend by category (12 months)
+- [ ] Profit margin trend (12 months)
+- [ ] Cash flow trend (12 months)
+- [ ] Comparison: current period vs previous period
+- [ ] Comparison: current period vs same period last year
+
+```
+Revenue Trend (Last 12 Months)
+─────────────────────────────────────────────────
+100M ┤                                    ╭──────
+ 80M ┤                        ╭───────────╯
+ 60M ┤            ╭───────────╯
+ 40M ┤     ╭──────╯
+ 20M ┼─────╯
+     └─────────────────────────────────────────────
+     Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec
+```
+
+### 2.11 Smart Alerts
+
+**Purpose:** Proactive notifications to help users take action before problems occur.
+
+**Dependencies:** Projects (1.10), Reports (1.3), Receivables data
+
+#### Alert Types
+
+| Alert | Trigger | Action |
+|-------|---------|--------|
+| **Project Cost Overrun** | Costs > budget × threshold% | Review expenses, adjust scope |
+| **Project Margin Drop** | Margin < target% | Investigate cost increases |
+| **Overdue Receivables** | Invoice past due date | Follow up with client |
+| **Payment Collection Slowdown** | Avg collection days increasing | Review AR process |
+| **Expense Spike** | Category expense > 150% of average | Investigate unusual spending |
+| **Cash Low Warning** | Cash < X months of expenses | Plan for cash needs |
+| **Client Concentration Risk** | Single client > 40% revenue | Diversify client base |
+
+#### Project Cost Overrun Alert (Priority)
+
+Critical for mitigating project losses:
+
+```
+⚠️ ALERT: Project Cost Overrun Risk
+
+Project: Mobile App - PT XYZ
+Budget:  Rp 50,000,000
+Spent:   Rp 42,000,000 (84%)
+Status:  60% complete (estimated)
+
+Projected Final Cost: Rp 70,000,000 (140% of budget)
+Projected Loss:       Rp 20,000,000
+
+Recommendation:
+- Review remaining scope
+- Negotiate change order
+- Identify cost reduction opportunities
+```
+
+#### Alert Configuration
+- [ ] Alert threshold settings per alert type
+- [ ] Enable/disable individual alerts
+- [ ] Alert delivery: Dashboard notification, Email (optional)
+- [ ] Alert history and acknowledgment
+
+```sql
+-- V011: Smart alerts
+alert_configurations (id, alert_type, enabled, threshold_value,
+    notify_dashboard, notify_email, created_at, updated_at)
+
+alert_history (id, alert_type, entity_type, entity_id,
+    alert_data, acknowledged, acknowledged_by, acknowledged_at, created_at)
+```
+
+**Deliverable:** Tax-compliant accounting with export formats for DJP, document storage, proper backup/restore, flexible transaction tagging, trend analysis, and smart alerts
 
 ---
 
