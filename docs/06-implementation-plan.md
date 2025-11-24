@@ -424,13 +424,47 @@ Expenses:
 - [ ] Client Profitability Report (aggregate of all client projects)
 - [ ] Client Revenue Ranking (top clients by revenue)
 
+#### Project Milestones
+- [ ] Milestone entity (name, target date, completion %, status)
+- [ ] Milestone CRUD UI (inline in project form)
+- [ ] Milestone status tracking (pending, in_progress, completed)
+- [ ] Milestone progress calculation (weighted by completion %)
+- [ ] Milestone overdue detection
+
+#### Payment Terms & Invoices
+- [ ] Payment term entity (name, %, trigger, linked milestone)
+- [ ] Payment term CRUD UI (inline in project form)
+- [ ] Invoice entity (basic: number, date, amount, status)
+- [ ] Invoice generation from payment term
+- [ ] Invoice status tracking (draft, sent, paid, overdue)
+- [ ] Link invoice to payment term
+- [ ] Auto-trigger revenue recognition on milestone completion
+
 ```sql
--- V008: Clients and Projects
+-- V008: Clients, Projects, Milestones, Payment Terms, Invoices
 clients (id, code, name, contact_person, email, phone, address, notes,
     created_at, updated_at)
 
-projects (id, code, name, client_id, description, status, budget_amount,
-    start_date, end_date, created_at, updated_at)
+projects (id, code, name, client_id, description, status,
+    contract_value, budget_amount, start_date, end_date,
+    created_at, updated_at)
+
+project_milestones (id, project_id, sequence, name, description,
+    completion_percent, target_date, actual_date, status,
+    created_at, updated_at)
+    -- status: 'pending', 'in_progress', 'completed'
+
+project_payment_terms (id, project_id, sequence, name,
+    percentage, amount, due_trigger, milestone_id, due_date,
+    invoice_id, amortization_schedule_id,
+    created_at, updated_at)
+    -- due_trigger: 'on_signing', 'on_milestone', 'on_completion', 'fixed_date'
+
+invoices (id, invoice_number, client_id, project_id, payment_term_id,
+    invoice_date, due_date, amount, status,
+    sent_at, paid_at, journal_entry_id,
+    created_at, updated_at)
+    -- status: 'draft', 'sent', 'paid', 'overdue', 'cancelled'
 
 -- Add to journal_entries
 ALTER TABLE journal_entries ADD COLUMN project_id UUID REFERENCES projects(id);
@@ -477,11 +511,60 @@ Projects:
 Ranking: #1 of 12 clients (28% of total revenue)
 ```
 
+#### Cost Overrun Detection (with Milestones)
+```
+Project: Mobile App - PT XYZ
+Contract: Rp 80,000,000    Budget: Rp 50,000,000
+
+Milestone Progress:
+  ✓ Design (20%)        - Completed
+  ◐ Development (50%)   - 80% done → contributes 40%
+  ○ Testing (20%)       - Pending
+  ○ Deployment (10%)    - Pending
+  ─────────────────────────────────────────────────
+  Total Progress: 60%
+
+Cost Analysis:
+  Budget:        Rp 50,000,000
+  Spent:         Rp 42,000,000 (84%)
+  Progress:      60%
+
+  ⚠️ OVERRUN RISK: 60% complete but 84% budget spent
+  Projected Final Cost: Rp 70,000,000 (140% of budget)
+  Projected Loss:       Rp 20,000,000
+```
+
+#### Payment Terms & Revenue Recognition
+```
+Project: Website Redesign - PT ABC
+Contract: Rp 50,000,000
+
+Payment Terms:                                    Revenue Recognition:
+┌────────────────────────────────────────────────────────────────────────┐
+│ Term          %    Amount         Trigger        Invoice    Revenue   │
+├────────────────────────────────────────────────────────────────────────┤
+│ Down Payment  30%  Rp 15,000,000  On signing     ✓ Paid     Deferred  │
+│ Design Done   30%  Rp 15,000,000  Milestone 1    ✓ Sent     ✓ Recognized│
+│ Dev Complete  30%  Rp 15,000,000  Milestone 3    ○ Pending  Deferred  │
+│ Go Live       10%  Rp  5,000,000  Completion     ○ Pending  Deferred  │
+└────────────────────────────────────────────────────────────────────────┘
+
+Unearned Revenue (Liability):  Rp 35,000,000  (DP + Dev + GoLive)
+Recognized Revenue:            Rp 15,000,000  (Design milestone)
+```
+
+#### Integration: Milestone → Revenue Recognition
+When milestone is marked complete:
+1. System finds linked payment term
+2. Auto-creates/updates amortization entry for that term
+3. Journal: Dr. Pendapatan Diterima Dimuka / Cr. Pendapatan Jasa
+4. Updates project profitability in real-time
+
 **Note:** Overhead allocation (rent, utilities) not included - too complex for MVP. Users can manually add project-tagged expenses for full costing.
 
 ---
 
-**Deliverable:** Working accounting system - can record journal entries manually or via templates, generate reports, automate period-end adjustments, track project and client profitability
+**Deliverable:** Working accounting system - can record journal entries manually or via templates, generate reports, automate period-end adjustments, track project/client profitability with milestones and payment terms
 
 **Note:** Document attachment deferred to Phase 2. Store receipts in external folder during MVP.
 
@@ -495,7 +578,10 @@ Ranking: #1 of 12 clients (28% of total revenue)
 - [ ] Can set up amortization schedules for prepaid/unearned items
 - [ ] Period-end adjustments auto-generated from schedules
 - [ ] Can create and manage clients
-- [ ] Can create and track projects (linked to clients)
+- [ ] Can create projects with milestones and payment terms
+- [ ] Can generate invoices from payment terms
+- [ ] Milestone completion triggers revenue recognition
+- [ ] Cost overrun detection (% spent vs % complete)
 - [ ] Can generate Project Profitability Report
 - [ ] Can generate Client Profitability Report
 - [ ] Basic user management

@@ -158,6 +158,48 @@
 
 ---
 
+### 34. Project Milestones & Payment Terms ✓
+**Decision:** Include milestones, payment terms, and basic invoices in Phase 1 project tracking.
+
+**Date:** 2025-11-24
+
+**Rationale:**
+- Milestones enable accurate progress tracking for cost overrun detection
+- Payment terms define when revenue should be recognized
+- Invoice linkage provides end-to-end project financial tracking
+- Critical for service businesses to mitigate project losses early
+
+**Features:**
+| Feature | Purpose |
+|---------|---------|
+| Milestones | Track % complete per deliverable |
+| Payment Terms | Define payment schedule (DP, per milestone, final) |
+| Invoices | Generate invoices from payment terms |
+| Revenue Recognition | Auto-trigger on milestone completion |
+| Cost Overrun Detection | Compare % spent vs % complete |
+
+**Integration:**
+- Milestone completion → triggers amortization entry
+- Payment term → links to invoice
+- Invoice → creates receivable journal entry
+- All feed into Project Profitability Report
+
+**Cost Overrun Formula:**
+```
+Progress % = Σ (milestone.completion_percent × milestone.actual_progress)
+Spent % = actual_costs / budget × 100
+
+If Spent % > Progress % + threshold:
+    → Trigger cost overrun alert
+```
+
+**Trade-offs:**
+- More complex project management features
+- Users must set up milestones (not automatic)
+- Worth it: Prevents project losses, key differentiator
+
+---
+
 ### 33. Business Analysis & Smart Alerts ✓
 **Decision:** Dashboard KPIs and client/project profitability in Phase 1. Trend analysis and smart alerts in Phase 2.
 
