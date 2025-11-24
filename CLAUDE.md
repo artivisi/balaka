@@ -18,7 +18,7 @@ Indonesian accounting application for small businesses. Spring Boot 4.0 + Thymel
 | Purpose | Location |
 |---------|----------|
 | Implementation Plan | `docs/06-implementation-plan.md` |
-| Journal Entries TODO | `TODO-JOURNAL-ENTRIES.md` |
+| Basic Reports TODO | `TODO-BASIC-REPORTS.md` |
 | Entities | `src/main/java/.../entity/` |
 | Services | `src/main/java/.../service/` |
 | Controllers | `src/main/java/.../controller/` |
