@@ -150,6 +150,7 @@ JournalEntryService {
 
 **Reused by:** Account balance display, validation checks
 
+#### Financial Statements
 - [ ] Trial Balance report
 - [ ] General Ledger report (all entries per account)
 - [ ] Balance Sheet (Laporan Posisi Keuangan)
@@ -157,6 +158,30 @@ JournalEntryService {
 - [ ] Date range filtering
 - [ ] PDF export
 - [ ] Excel export
+
+#### Dashboard KPIs
+- [ ] Revenue (current month, vs previous month %)
+- [ ] Expenses (current month, vs previous month %)
+- [ ] Net Profit (current month, vs previous month %)
+- [ ] Profit Margin % (current month, vs previous month pts)
+- [ ] Cash Balance (sum of cash/bank accounts)
+- [ ] Receivables Total (Piutang Usaha balance)
+- [ ] Payables Total (Hutang Usaha balance)
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  November 2025                                               │
+├─────────────────────────────────────────────────────────────┤
+│  Revenue        Rp 85,000,000    ▲ 12% vs Oct               │
+│  Expenses       Rp 35,000,000    ▼ 5% vs Oct                │
+│  Net Profit     Rp 50,000,000    ▲ 25% vs Oct               │
+│  Profit Margin  58.8%            ▲ 6pts vs Oct              │
+│                                                              │
+│  Cash           Rp 120,000,000                              │
+│  Receivables    Rp 25,000,000                               │
+│  Payables       Rp 10,000,000                               │
+└─────────────────────────────────────────────────────────────┘
+```
 
 **Key Service Methods (reused later):**
 ```java
@@ -382,8 +407,8 @@ Expenses:
 
 **Note:** Decision #7 - Critical for IT Services and Photographers. Simple tagging approach, not full project management.
 
-#### Features
-- [ ] Project entity (code, name, client, status, budget)
+#### Project Features
+- [ ] Project entity (code, name, client_id, status, budget)
 - [ ] Project CRUD UI
 - [ ] Project list with filters (status, client)
 - [ ] Link transactions to project (optional project_id on journal entries)
@@ -391,9 +416,20 @@ Expenses:
 - [ ] Project Profitability Report
 - [ ] Project Income Statement (revenue - costs per project)
 
+#### Client Features
+- [ ] Client entity (code, name, contact info, notes)
+- [ ] Client CRUD UI
+- [ ] Client list with search
+- [ ] Link projects to client
+- [ ] Client Profitability Report (aggregate of all client projects)
+- [ ] Client Revenue Ranking (top clients by revenue)
+
 ```sql
--- V008: Projects
-projects (id, code, name, client_name, description, status, budget_amount,
+-- V008: Clients and Projects
+clients (id, code, name, contact_person, email, phone, address, notes,
+    created_at, updated_at)
+
+projects (id, code, name, client_id, description, status, budget_amount,
     start_date, end_date, created_at, updated_at)
 
 -- Add to journal_entries
@@ -426,11 +462,26 @@ Direct Costs:
 Gross Profit                     Rp 49,200,000  (98.4%)
 ```
 
+#### Client Profitability Report
+```
+Client: PT ABC
+Period: 2025
+
+Projects:
+  Website Redesign     Rp 50,000,000 revenue   Rp 49,200,000 profit (98.4%)
+  Mobile App Dev       Rp 80,000,000 revenue   Rp 65,000,000 profit (81.3%)
+  Maintenance Q1-Q4    Rp 24,000,000 revenue   Rp 22,000,000 profit (91.7%)
+  ───────────────────────────────────────────────────────────────────────────
+  Total               Rp 154,000,000 revenue  Rp 136,200,000 profit (88.4%)
+
+Ranking: #1 of 12 clients (28% of total revenue)
+```
+
 **Note:** Overhead allocation (rent, utilities) not included - too complex for MVP. Users can manually add project-tagged expenses for full costing.
 
 ---
 
-**Deliverable:** Working accounting system - can record journal entries manually or via templates, generate reports, automate period-end adjustments, track project profitability
+**Deliverable:** Working accounting system - can record journal entries manually or via templates, generate reports, automate period-end adjustments, track project and client profitability
 
 **Note:** Document attachment deferred to Phase 2. Store receipts in external folder during MVP.
 
@@ -440,10 +491,13 @@ Gross Profit                     Rp 49,200,000  (98.4%)
 - [ ] Trial Balance balances (validates double-entry correctness)
 - [ ] Can generate Balance Sheet and Income Statement
 - [ ] Can export reports to PDF/Excel
+- [ ] Dashboard shows KPIs (revenue, expenses, profit, cash, receivables, payables)
 - [ ] Can set up amortization schedules for prepaid/unearned items
 - [ ] Period-end adjustments auto-generated from schedules
-- [ ] Can create and track projects
+- [ ] Can create and manage clients
+- [ ] Can create and track projects (linked to clients)
 - [ ] Can generate Project Profitability Report
+- [ ] Can generate Client Profitability Report
 - [ ] Basic user management
 - [ ] Database backup via pg_dump (no documents yet)
 - [ ] Production deployment tested
@@ -562,7 +616,87 @@ journal_entry_tags (journal_entry_id, tag_id, PRIMARY KEY (journal_entry_id, tag
 
 **Note:** Projects (1.10) handle the primary project tracking. Tags provide additional dimensions for analysis.
 
-**Deliverable:** Tax-compliant accounting with export formats for DJP, document storage, proper backup/restore, and flexible transaction tagging
+### 2.10 Trend Analysis
+
+**Purpose:** Visualize business performance over time.
+
+**Dependencies:** Reports (1.3), Dashboard KPIs
+
+#### Features
+- [ ] Revenue trend chart (12 months)
+- [ ] Expense trend by category (12 months)
+- [ ] Profit margin trend (12 months)
+- [ ] Cash flow trend (12 months)
+- [ ] Comparison: current period vs previous period
+- [ ] Comparison: current period vs same period last year
+
+```
+Revenue Trend (Last 12 Months)
+─────────────────────────────────────────────────
+100M ┤                                    ╭──────
+ 80M ┤                        ╭───────────╯
+ 60M ┤            ╭───────────╯
+ 40M ┤     ╭──────╯
+ 20M ┼─────╯
+     └─────────────────────────────────────────────
+     Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec
+```
+
+### 2.11 Smart Alerts
+
+**Purpose:** Proactive notifications to help users take action before problems occur.
+
+**Dependencies:** Projects (1.10), Reports (1.3), Receivables data
+
+#### Alert Types
+
+| Alert | Trigger | Action |
+|-------|---------|--------|
+| **Project Cost Overrun** | Costs > budget × threshold% | Review expenses, adjust scope |
+| **Project Margin Drop** | Margin < target% | Investigate cost increases |
+| **Overdue Receivables** | Invoice past due date | Follow up with client |
+| **Payment Collection Slowdown** | Avg collection days increasing | Review AR process |
+| **Expense Spike** | Category expense > 150% of average | Investigate unusual spending |
+| **Cash Low Warning** | Cash < X months of expenses | Plan for cash needs |
+| **Client Concentration Risk** | Single client > 40% revenue | Diversify client base |
+
+#### Project Cost Overrun Alert (Priority)
+
+Critical for mitigating project losses:
+
+```
+⚠️ ALERT: Project Cost Overrun Risk
+
+Project: Mobile App - PT XYZ
+Budget:  Rp 50,000,000
+Spent:   Rp 42,000,000 (84%)
+Status:  60% complete (estimated)
+
+Projected Final Cost: Rp 70,000,000 (140% of budget)
+Projected Loss:       Rp 20,000,000
+
+Recommendation:
+- Review remaining scope
+- Negotiate change order
+- Identify cost reduction opportunities
+```
+
+#### Alert Configuration
+- [ ] Alert threshold settings per alert type
+- [ ] Enable/disable individual alerts
+- [ ] Alert delivery: Dashboard notification, Email (optional)
+- [ ] Alert history and acknowledgment
+
+```sql
+-- V011: Smart alerts
+alert_configurations (id, alert_type, enabled, threshold_value,
+    notify_dashboard, notify_email, created_at, updated_at)
+
+alert_history (id, alert_type, entity_type, entity_id,
+    alert_data, acknowledged, acknowledged_by, acknowledged_at, created_at)
+```
+
+**Deliverable:** Tax-compliant accounting with export formats for DJP, document storage, proper backup/restore, flexible transaction tagging, trend analysis, and smart alerts
 
 ---
 

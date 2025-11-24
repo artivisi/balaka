@@ -158,6 +158,45 @@
 
 ---
 
+### 33. Business Analysis & Smart Alerts ✓
+**Decision:** Dashboard KPIs and client/project profitability in Phase 1. Trend analysis and smart alerts in Phase 2.
+
+**Date:** 2025-11-24
+
+**Rationale:**
+- Most accounting apps focus only on compliance (tax reports, bookkeeping)
+- Our differentiator: actionable business insights
+- Help users understand not just "what happened" but "what to do next"
+- Project cost overrun alerts critical for mitigating losses in service businesses
+
+**Phase 1 (MVP):**
+| Feature | Purpose |
+|---------|---------|
+| Dashboard KPIs | Quick view of revenue, expenses, profit, cash |
+| Project Profitability | Track margin per project |
+| Client Profitability | Track margin per client (aggregate of projects) |
+
+**Phase 2:**
+| Feature | Purpose |
+|---------|---------|
+| Trend Charts | Visualize 12-month trends |
+| Smart Alerts | Proactive warnings before problems occur |
+| Project Cost Overrun Alert | Mitigate project losses early |
+
+**Alert Priority:**
+1. **Project Cost Overrun** - Critical for service businesses
+2. **Overdue Receivables** - Cash flow impact
+3. **Expense Spike** - Cost control
+4. **Cash Low Warning** - Survival
+5. **Client Concentration** - Risk management
+
+**Trade-offs:**
+- More development effort beyond basic bookkeeping
+- Alerts need careful tuning to avoid noise
+- Worth it: Key differentiator and high user value
+
+---
+
 ### 31. Amortization Schedules ✓
 **Decision:** Automated period-end adjustments for prepaid expenses, unearned revenue, and intangible assets
 
