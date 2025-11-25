@@ -49,6 +49,11 @@ public class Transaction extends BaseEntity {
     @JoinColumn(name = "id_journal_template", nullable = false)
     private JournalTemplate journalTemplate;
 
+    @JsonIgnore
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_project")
+    private Project project;
+
     @NotNull(message = "Amount is required")
     @DecimalMin(value = "0.01", message = "Amount must be greater than 0")
     @Column(name = "amount", nullable = false, precision = 19, scale = 2)

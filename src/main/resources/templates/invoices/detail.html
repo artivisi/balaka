@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/main}"
+      lang="id">
+<head>
+    <title>Detail Invoice</title>
+</head>
+<body>
+    <h1 id="page-title" layout:fragment="page-title">Detail Invoice</h1>
+
+    <div layout:fragment="content" class="space-y-6" data-testid="invoice-detail">
+        <!-- Header -->
+        <div class="flex items-start justify-between">
+            <div>
+                <h2 class="text-xl font-semibold text-gray-900 font-mono" th:text="${invoice.invoiceNumber}">INV-001</h2>
+                <p class="text-sm text-gray-500 mt-1">
+                    <a th:href="@{/clients/{id}(id=${invoice.client.id})}" class="text-primary-600 hover:underline" th:text="${invoice.client.name}">Client Name</a>
+                </p>
+                <p class="text-sm text-gray-500" th:if="${invoice.project}">
+                    Proyek: <a th:href="@{/projects/{id}(id=${invoice.project.id})}" class="text-primary-600 hover:underline" th:text="${invoice.project.name}">Project Name</a>
+                </p>
+            </div>
+            <div class="flex items-center gap-2">
+                <span th:if="${invoice.status.name() == 'DRAFT'}" class="px-3 py-1 text-sm font-medium rounded-full bg-gray-100 text-gray-600">Draf</span>
+                <span th:if="${invoice.status.name() == 'SENT'}" class="px-3 py-1 text-sm font-medium rounded-full bg-blue-100 text-blue-800">Terkirim</span>
+                <span th:if="${invoice.status.name() == 'PAID'}" class="px-3 py-1 text-sm font-medium rounded-full bg-green-100 text-green-800">Lunas</span>
+                <span th:if="${invoice.status.name() == 'OVERDUE'}" class="px-3 py-1 text-sm font-medium rounded-full bg-red-100 text-red-800">Jatuh Tempo</span>
+                <span th:if="${invoice.status.name() == 'CANCELLED'}" class="px-3 py-1 text-sm font-medium rounded-full bg-gray-100 text-gray-500">Dibatalkan</span>
+            </div>
+        </div>
+
+        <!-- Info Card -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Informasi Invoice</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div>
+                    <p class="text-gray-500">Tanggal Invoice</p>
+                    <p class="font-medium" th:text="${#temporals.format(invoice.invoiceDate, 'dd MMMM yyyy')}">01 January 2025</p>
+                </div>
+                <div>
+                    <p class="text-gray-500">Jatuh Tempo</p>
+                    <p class="font-medium" th:classappend="${invoice.overdue} ? 'text-red-600' : ''" th:text="${#temporals.format(invoice.dueDate, 'dd MMMM yyyy')}">15 January 2025</p>
+                </div>
+                <div>
+                    <p class="text-gray-500">Jumlah</p>
+                    <p class="font-medium text-lg" th:text="'Rp ' + ${#numbers.formatDecimal(invoice.amount, 0, 'COMMA', 0, 'POINT')}">Rp 0</p>
+                </div>
+                <div th:if="${invoice.sentAt}">
+                    <p class="text-gray-500">Dikirim</p>
+                    <p class="font-medium" th:text="${#temporals.format(invoice.sentAt, 'dd MMM yyyy HH:mm')}">01 Jan 2025 10:00</p>
+                </div>
+                <div th:if="${invoice.paidAt}">
+                    <p class="text-gray-500">Dibayar</p>
+                    <p class="font-medium text-green-600" th:text="${#temporals.format(invoice.paidAt, 'dd MMM yyyy HH:mm')}">15 Jan 2025 14:00</p>
+                </div>
+                <div>
+                    <p class="text-gray-500">Dibuat</p>
+                    <p class="font-medium" th:text="${#temporals.format(invoice.createdAt, 'dd MMM yyyy HH:mm')}">01 Jan 2025 10:00</p>
+                </div>
+                <div class="md:col-span-3" th:if="${invoice.notes}">
+                    <p class="text-gray-500">Catatan</p>
+                    <p class="font-medium" th:text="${invoice.notes}">Notes</p>
+                </div>
+                <div th:if="${invoice.paymentTerm}">
+                    <p class="text-gray-500">Termin Pembayaran</p>
+                    <p class="font-medium" th:text="${invoice.paymentTerm.name}">DP 30%</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex items-center justify-between">
+            <a th:href="@{/invoices}" class="px-4 py-2 text-gray-600 hover:text-gray-900">
+                &larr; Kembali ke Daftar
+            </a>
+            <div class="flex items-center gap-2">
+                <!-- Edit (only draft) -->
+                <a th:if="${invoice.status.name() == 'DRAFT'}"
+                   th:href="@{/invoices/{id}/edit(id=${invoice.id})}"
+                   class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                    Edit
+                </a>
+
+                <!-- Send (only draft) -->
+                <form th:if="${invoice.status.name() == 'DRAFT'}"
+                      th:action="@{/invoices/{id}/send(id=${invoice.id})}"
+                      method="post" class="inline"
+                      onsubmit="return confirm('Kirim invoice ini ke klien?')">
+                    <button type="submit" class="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">
+                        Kirim
+                    </button>
+                </form>
+
+                <!-- Mark as Paid (sent or overdue) -->
+                <form th:if="${invoice.status.name() == 'SENT' || invoice.status.name() == 'OVERDUE'}"
+                      th:action="@{/invoices/{id}/mark-paid(id=${invoice.id})}"
+                      method="post" class="inline"
+                      onsubmit="return confirm('Tandai invoice ini sudah dibayar?')">
+                    <button type="submit" class="px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors">
+                        Tandai Lunas
+                    </button>
+                </form>
+
+                <!-- Cancel (not paid) -->
+                <form th:if="${invoice.status.name() != 'PAID' && invoice.status.name() != 'CANCELLED'}"
+                      th:action="@{/invoices/{id}/cancel(id=${invoice.id})}"
+                      method="post" class="inline"
+                      onsubmit="return confirm('Batalkan invoice ini?')">
+                    <button type="submit" class="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">
+                        Batalkan
+                    </button>
+                </form>
+
+                <!-- Delete (draft or cancelled) -->
+                <form th:if="${invoice.status.name() == 'DRAFT' || invoice.status.name() == 'CANCELLED'}"
+                      th:action="@{/invoices/{id}/delete(id=${invoice.id})}"
+                      method="post" class="inline"
+                      onsubmit="return confirm('Hapus invoice ini?')">
+                    <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+                        Hapus
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

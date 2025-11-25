@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/main}"
+      lang="id">
+<head>
+    <title th:text="${invoice.id != null} ? 'Edit Invoice' : 'Invoice Baru'">Invoice</title>
+</head>
+<body>
+    <h1 id="page-title" layout:fragment="page-title" th:text="${invoice.id != null} ? 'Edit Invoice' : 'Invoice Baru'">Invoice</h1>
+
+    <div layout:fragment="content" class="max-w-2xl">
+        <!-- Breadcrumb -->
+        <nav class="flex items-center space-x-2 text-sm text-gray-500 mb-6">
+            <a th:href="@{/invoices}" class="hover:text-primary-600 transition-colors">Invoice</a>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+            </svg>
+            <span class="text-gray-900" th:text="${invoice.id != null} ? 'Edit Invoice' : 'Invoice Baru'">Invoice</span>
+        </nav>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <form th:action="${invoice.id != null} ? @{/invoices/{id}(id=${invoice.id})} : @{/invoices/new}"
+                  th:object="${invoice}"
+                  method="post" class="space-y-6">
+
+                <!-- Validation Errors -->
+                <div th:if="${#fields.hasErrors('*')}" class="p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <p class="text-sm text-red-600 font-medium">Terdapat kesalahan:</p>
+                    <ul class="mt-2 text-sm text-red-600 list-disc list-inside">
+                        <li th:each="err : ${#fields.errors('*')}" th:text="${err}">Error</li>
+                    </ul>
+                </div>
+
+                <!-- Invoice Number -->
+                <div>
+                    <label for="invoiceNumber" class="block text-sm font-medium text-gray-700 mb-1">Nomor Invoice</label>
+                    <input type="text" id="invoiceNumber" th:field="*{invoiceNumber}"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 font-mono"
+                           th:classappend="${#fields.hasErrors('invoiceNumber')} ? 'border-red-500' : ''"
+                           placeholder="Auto-generated jika kosong">
+                    <p class="mt-1 text-xs text-gray-500">Kosongkan untuk nomor otomatis (format: INV-YYYYMM-XXXX)</p>
+                    <p th:if="${#fields.hasErrors('invoiceNumber')}" th:errors="*{invoiceNumber}" class="mt-1 text-sm text-red-500"></p>
+                </div>
+
+                <!-- Client -->
+                <div>
+                    <label for="client" class="block text-sm font-medium text-gray-700 mb-1">Klien *</label>
+                    <select id="client" th:field="*{client.id}"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                            th:classappend="${#fields.hasErrors('client')} ? 'border-red-500' : ''"
+                            required>
+                        <option value="">-- Pilih Klien --</option>
+                        <option th:each="c : ${clients}" th:value="${c.id}" th:text="${c.name}">Client</option>
+                    </select>
+                    <p th:if="${#fields.hasErrors('client')}" th:errors="*{client}" class="mt-1 text-sm text-red-500"></p>
+                </div>
+
+                <!-- Project (Optional) -->
+                <div>
+                    <label for="project" class="block text-sm font-medium text-gray-700 mb-1">Proyek</label>
+                    <select id="project" th:field="*{project.id}"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
+                        <option value="">-- Tanpa Proyek --</option>
+                        <option th:each="p : ${projects}" th:value="${p.id}" th:text="${p.code + ' - ' + p.name}">Project</option>
+                    </select>
+                </div>
+
+                <!-- Dates -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="invoiceDate" class="block text-sm font-medium text-gray-700 mb-1">Tanggal Invoice *</label>
+                        <input type="date" id="invoiceDate" th:field="*{invoiceDate}"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                               th:classappend="${#fields.hasErrors('invoiceDate')} ? 'border-red-500' : ''"
+                               required>
+                        <p th:if="${#fields.hasErrors('invoiceDate')}" th:errors="*{invoiceDate}" class="mt-1 text-sm text-red-500"></p>
+                    </div>
+                    <div>
+                        <label for="dueDate" class="block text-sm font-medium text-gray-700 mb-1">Jatuh Tempo *</label>
+                        <input type="date" id="dueDate" th:field="*{dueDate}"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                               th:classappend="${#fields.hasErrors('dueDate')} ? 'border-red-500' : ''"
+                               required>
+                        <p th:if="${#fields.hasErrors('dueDate')}" th:errors="*{dueDate}" class="mt-1 text-sm text-red-500"></p>
+                    </div>
+                </div>
+
+                <!-- Amount -->
+                <div>
+                    <label for="amount" class="block text-sm font-medium text-gray-700 mb-1">Jumlah (Rp) *</label>
+                    <input type="number" id="amount" th:field="*{amount}"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                           th:classappend="${#fields.hasErrors('amount')} ? 'border-red-500' : ''"
+                           placeholder="0" min="0" step="1000" required>
+                    <p th:if="${#fields.hasErrors('amount')}" th:errors="*{amount}" class="mt-1 text-sm text-red-500"></p>
+                </div>
+
+                <!-- Notes -->
+                <div>
+                    <label for="notes" class="block text-sm font-medium text-gray-700 mb-1">Catatan</label>
+                    <textarea id="notes" th:field="*{notes}" rows="3"
+                              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                              placeholder="Catatan tambahan"></textarea>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex items-center justify-end gap-3 pt-4 border-t">
+                    <a th:href="@{/invoices}"
+                       class="px-4 py-2 text-gray-600 hover:text-gray-900">Batal</a>
+                    <button id="btn-simpan" type="submit"
+                            class="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+                        Simpan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

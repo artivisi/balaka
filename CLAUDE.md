@@ -17,7 +17,11 @@ Indonesian accounting application for small businesses. Spring Boot 4.0 + Thymel
   - 1.7 Template Enhancements: ✅ Complete
   - 1.7.5 HTMX Optimization: ✅ Complete
   - 1.8 Amortization Schedules: ✅ Complete
-  - 1.9 Project Tracking: ⏳ Next - See `docs/06-implementation-plan.md`
+  - 1.9 Project Tracking: 🔄 In Progress - See `TODO-PROJECT-TRACKING.md`
+    - Client/Project/Milestone Management: ✅ Complete
+    - Payment Terms & Invoices: ✅ Complete
+    - Transaction-Project Linking: ✅ Complete
+    - Profitability Reports: ⏳ Pending
   - 1.10 Dashboard KPIs: ⏳ Pending
   - See `docs/06-implementation-plan.md` for full plan
 
@@ -58,7 +62,7 @@ Indonesian accounting application for small businesses. Spring Boot 4.0 + Thymel
 ## Database
 
 - PostgreSQL via Testcontainers (tests)
-- Flyway migrations: V001-V007
+- Flyway migrations: V001-V008
 - Seed data: IT Services COA, admin user (admin/admin)
 
 ## Architecture
@@ -71,13 +75,12 @@ User → Controller (MVC) → Service → Repository → PostgreSQL
 
 ## Current Focus
 
-Next: Project Tracking (1.9) - See `TODO-PROJECT-TRACKING.md`:
-1. Database schema (clients, projects, milestones, payment_terms, invoices)
-2. Client management (entity, service, controller, UI)
-3. Project management with milestones
-4. Payment terms and invoice generation
-5. Transaction-project linking
-6. Profitability reports (project, client, cost overrun)
-7. Functional tests
+Project Tracking (1.9) - See `TODO-PROJECT-TRACKING.md`:
+- ✅ Database schema (clients, projects, milestones, payment_terms, invoices)
+- ✅ Client management (entity, service, controller, UI)
+- ✅ Project management with milestones
+- ✅ Payment terms and invoice generation
+- ✅ Transaction-project linking
+- ⏳ Profitability reports (project, client, cost overrun)
 
-Then: Dashboard KPIs (1.10)
+Next: Dashboard KPIs (1.10)

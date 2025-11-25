@@ -5,6 +5,7 @@ import com.artivisi.accountingfinance.entity.ChartOfAccount;
 import com.artivisi.accountingfinance.entity.JournalEntry;
 import com.artivisi.accountingfinance.entity.JournalTemplate;
 import com.artivisi.accountingfinance.entity.JournalTemplateLine;
+import com.artivisi.accountingfinance.entity.Project;
 import com.artivisi.accountingfinance.entity.Transaction;
 import com.artivisi.accountingfinance.entity.TransactionAccountMapping;
 import com.artivisi.accountingfinance.entity.TransactionSequence;
@@ -14,6 +15,7 @@ import com.artivisi.accountingfinance.enums.TransactionStatus;
 import com.artivisi.accountingfinance.enums.VoidReason;
 import com.artivisi.accountingfinance.repository.ChartOfAccountRepository;
 import com.artivisi.accountingfinance.repository.JournalEntryRepository;
+import com.artivisi.accountingfinance.repository.ProjectRepository;
 import com.artivisi.accountingfinance.repository.TransactionRepository;
 import com.artivisi.accountingfinance.repository.TransactionSequenceRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -44,6 +46,7 @@ public class TransactionService {
     private final TransactionSequenceRepository transactionSequenceRepository;
     private final JournalEntryRepository journalEntryRepository;
     private final ChartOfAccountRepository chartOfAccountRepository;
+    private final ProjectRepository projectRepository;
     private final JournalTemplateService journalTemplateService;
     private final FormulaEvaluator formulaEvaluator;
 
@@ -86,6 +89,15 @@ public class TransactionService {
 
         JournalTemplate template = journalTemplateService.findByIdWithLines(transaction.getJournalTemplate().getId());
         transaction.setJournalTemplate(template);
+
+        // Load and set project if specified
+        if (transaction.getProject() != null && transaction.getProject().getId() != null) {
+            Project project = projectRepository.findById(transaction.getProject().getId())
+                    .orElseThrow(() -> new EntityNotFoundException("Project not found"));
+            transaction.setProject(project);
+        } else {
+            transaction.setProject(null);
+        }
 
         if (accountMappings != null && !accountMappings.isEmpty()) {
             for (JournalTemplateLine line : template.getLines()) {
@@ -149,6 +161,11 @@ public class TransactionService {
             entry.setAccount(account);
             entry.setDescription(transaction.getDescription());
             entry.setReferenceNumber(transaction.getReferenceNumber());
+
+            // Assign project from transaction to journal entry
+            if (transaction.getProject() != null) {
+                entry.setProject(transaction.getProject());
+            }
 
             if (line.getPosition() == JournalPosition.DEBIT) {
                 entry.setDebitAmount(amount);

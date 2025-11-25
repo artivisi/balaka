@@ -176,6 +176,23 @@
                                        required>
                             </div>
 
+                            <!-- Project (optional) -->
+                            <div th:if="${projects != null and !projects.isEmpty()}">
+                                <label for="project" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Proyek
+                                </label>
+                                <select id="project" name="projectId"
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+                                    <option value="">-- Tanpa Proyek --</option>
+                                    <th:block th:each="prj : ${projects}">
+                                        <option th:value="${prj.id}"
+                                                th:text="${prj.code + ' - ' + prj.name}"
+                                                th:selected="${isEdit and transaction?.project?.id == prj.id}">Project</option>
+                                    </th:block>
+                                </select>
+                                <p class="text-xs text-gray-500 mt-1">Pilih proyek untuk tracking pendapatan/biaya</p>
+                            </div>
+
                             <!-- Reference Number -->
                             <div>
                                 <label for="referenceNumber" class="block text-sm font-medium text-gray-700 mb-1">
@@ -372,6 +389,8 @@
                 const isEdit = /*[[${isEdit}]]*/ false;
 
                 function getFormData() {
+                    const projectSelect = document.getElementById('project');
+                    const projectId = projectSelect?.value || null;
                     return {
                         templateId: templateId,
                         transactionDate: document.getElementById('transactionDate').value,
@@ -379,6 +398,7 @@
                         description: document.getElementById('description').value,
                         referenceNumber: document.getElementById('referenceNumber')?.value || '',
                         notes: document.getElementById('notes')?.value || '',
+                        projectId: projectId || null,
                         accountMappings: {}
                     };
                 }

@@ -62,25 +62,167 @@
         </div>
 
         <!-- Milestones -->
-        <div class="bg-white rounded-lg shadow">
+        <div class="bg-white rounded-lg shadow" data-testid="milestone-section">
             <div class="px-6 py-4 border-b flex items-center justify-between">
                 <h3 class="text-lg font-medium text-gray-900">Milestone</h3>
+                <a th:if="${project.status.name() == 'ACTIVE'}"
+                   th:href="@{/projects/{id}/milestones/new(id=${project.id})}"
+                   id="btn-new-milestone"
+                   class="px-3 py-1.5 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+                    + Tambah
+                </a>
             </div>
             <div class="p-6">
                 <p th:if="${project.milestones.empty}" class="text-gray-500 text-center py-4">Belum ada milestone</p>
                 <div th:unless="${project.milestones.empty}" class="space-y-3">
                     <div th:each="milestone : ${project.milestones}"
-                         class="flex items-center justify-between p-3 border rounded-lg">
+                         th:data-milestone-id="${milestone.id}"
+                         class="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
                         <div class="flex items-center gap-3">
-                            <span class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 text-sm font-medium" th:text="${milestone.sequence}">1</span>
+                            <span class="w-8 h-8 flex items-center justify-center rounded-full text-sm font-medium"
+                                  th:classappend="${milestone.status.name() == 'COMPLETED'} ? 'bg-green-100 text-green-600' : (${milestone.status.name() == 'IN_PROGRESS'} ? 'bg-yellow-100 text-yellow-600' : 'bg-gray-100 text-gray-600')"
+                                  th:text="${milestone.sequence}">1</span>
                             <div>
                                 <p class="font-medium" th:text="${milestone.name}">Milestone Name</p>
-                                <p class="text-sm text-gray-500" th:text="${milestone.weightPercent + '% dari total'}">25% dari total</p>
+                                <div class="flex items-center gap-2 text-sm text-gray-500">
+                                    <span th:text="${milestone.weightPercent + '%'}">25%</span>
+                                    <span th:if="${milestone.targetDate}">
+                                        &bull; Target: <span th:text="${#temporals.format(milestone.targetDate, 'dd MMM yyyy')}">01 Jan 2025</span>
+                                    </span>
+                                    <span th:if="${milestone.actualDate}">
+                                        &bull; Selesai: <span th:text="${#temporals.format(milestone.actualDate, 'dd MMM yyyy')}">01 Jan 2025</span>
+                                    </span>
+                                </div>
                             </div>
                         </div>
-                        <span th:if="${milestone.status.name() == 'COMPLETED'}" class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">Selesai</span>
-                        <span th:if="${milestone.status.name() == 'IN_PROGRESS'}" class="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">Proses</span>
-                        <span th:if="${milestone.status.name() == 'PENDING'}" class="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600">Pending</span>
+                        <div class="flex items-center gap-2">
+                            <span th:if="${milestone.status.name() == 'COMPLETED'}" class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">Selesai</span>
+                            <span th:if="${milestone.status.name() == 'IN_PROGRESS'}" class="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">Proses</span>
+                            <span th:if="${milestone.status.name() == 'PENDING'}" class="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600">Pending</span>
+
+                            <!-- Actions for active project -->
+                            <div th:if="${project.status.name() == 'ACTIVE'}" class="flex items-center gap-1 ml-2">
+                                <!-- Start button for pending -->
+                                <form th:if="${milestone.status.name() == 'PENDING'}"
+                                      th:action="@{/projects/{projectId}/milestones/{id}/start(projectId=${project.id}, id=${milestone.id})}"
+                                      method="post" class="inline">
+                                    <button type="submit" class="p-1.5 text-yellow-600 hover:bg-yellow-50 rounded" title="Mulai">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                    </button>
+                                </form>
+                                <!-- Complete button for in progress -->
+                                <form th:if="${milestone.status.name() == 'IN_PROGRESS'}"
+                                      th:action="@{/projects/{projectId}/milestones/{id}/complete(projectId=${project.id}, id=${milestone.id})}"
+                                      method="post" class="inline">
+                                    <button type="submit" class="p-1.5 text-green-600 hover:bg-green-50 rounded" title="Selesai">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                    </button>
+                                </form>
+                                <!-- Reset button for completed -->
+                                <form th:if="${milestone.status.name() == 'COMPLETED'}"
+                                      th:action="@{/projects/{projectId}/milestones/{id}/reset(projectId=${project.id}, id=${milestone.id})}"
+                                      method="post" class="inline">
+                                    <button type="submit" class="p-1.5 text-gray-600 hover:bg-gray-100 rounded" title="Reset">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                        </svg>
+                                    </button>
+                                </form>
+                                <!-- Edit button -->
+                                <a th:href="@{/projects/{projectId}/milestones/{id}/edit(projectId=${project.id}, id=${milestone.id})}"
+                                   class="p-1.5 text-gray-600 hover:bg-gray-100 rounded" title="Edit">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                    </svg>
+                                </a>
+                                <!-- Delete button -->
+                                <form th:action="@{/projects/{projectId}/milestones/{id}/delete(projectId=${project.id}, id=${milestone.id})}"
+                                      method="post" class="inline"
+                                      onsubmit="return confirm('Hapus milestone ini?')">
+                                    <button type="submit" class="p-1.5 text-red-600 hover:bg-red-50 rounded" title="Hapus">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                        </svg>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payment Terms -->
+        <div class="bg-white rounded-lg shadow" data-testid="payment-terms-section">
+            <div class="px-6 py-4 border-b flex items-center justify-between">
+                <h3 class="text-lg font-medium text-gray-900">Termin Pembayaran</h3>
+                <a th:if="${project.status.name() == 'ACTIVE' && project.client != null}"
+                   th:href="@{/projects/{id}/payment-terms/new(id=${project.id})}"
+                   id="btn-new-payment-term"
+                   class="px-3 py-1.5 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+                    + Tambah
+                </a>
+            </div>
+            <div class="p-6">
+                <p th:if="${project.client == null}" class="text-gray-500 text-center py-4">Pilih klien terlebih dahulu untuk membuat termin pembayaran</p>
+                <p th:if="${project.client != null && project.paymentTerms.empty}" class="text-gray-500 text-center py-4">Belum ada termin pembayaran</p>
+                <div th:if="${project.client != null && !project.paymentTerms.empty}" class="space-y-3">
+                    <div th:each="term : ${project.paymentTerms}"
+                         th:data-payment-term-id="${term.id}"
+                         class="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
+                        <div class="flex items-center gap-3">
+                            <span class="w-8 h-8 flex items-center justify-center rounded-full text-sm font-medium bg-blue-100 text-blue-600"
+                                  th:text="${term.sequence}">1</span>
+                            <div>
+                                <p class="font-medium" th:text="${term.name}">DP 30%</p>
+                                <div class="flex items-center gap-2 text-sm text-gray-500">
+                                    <span th:if="${term.percentage != null}" th:text="${term.percentage + '% dari kontrak'}">30%</span>
+                                    <span th:if="${term.amount != null && term.percentage == null}" th:text="'Rp ' + ${#numbers.formatDecimal(term.amount, 0, 'COMMA', 0, 'POINT')}">Rp 0</span>
+                                    <span>&bull;</span>
+                                    <span th:text="${term.dueTrigger.indonesianName}">Saat Penandatanganan</span>
+                                    <span th:if="${term.milestone != null}">
+                                        &bull; <span th:text="${'Milestone: ' + term.milestone.name}">Milestone 1</span>
+                                    </span>
+                                    <span th:if="${term.dueDate != null}">
+                                        &bull; <span th:text="${#temporals.format(term.dueDate, 'dd MMM yyyy')}">01 Jan 2025</span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2" th:if="${project.status.name() == 'ACTIVE'}">
+                            <!-- Generate Invoice -->
+                            <form th:action="@{/projects/{projectId}/payment-terms/{id}/generate-invoice(projectId=${project.id}, id=${term.id})}"
+                                  method="post" class="inline"
+                                  onsubmit="return confirm('Buat invoice dari termin ini?')">
+                                <button type="submit" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title="Buat Invoice">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    </svg>
+                                </button>
+                            </form>
+                            <!-- Edit -->
+                            <a th:href="@{/projects/{projectId}/payment-terms/{id}/edit(projectId=${project.id}, id=${term.id})}"
+                               class="p-1.5 text-gray-600 hover:bg-gray-100 rounded" title="Edit">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                </svg>
+                            </a>
+                            <!-- Delete -->
+                            <form th:action="@{/projects/{projectId}/payment-terms/{id}/delete(projectId=${project.id}, id=${term.id})}"
+                                  method="post" class="inline"
+                                  onsubmit="return confirm('Hapus termin pembayaran ini?')">
+                                <button type="submit" class="p-1.5 text-red-600 hover:bg-red-50 rounded" title="Hapus">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                    </svg>
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>

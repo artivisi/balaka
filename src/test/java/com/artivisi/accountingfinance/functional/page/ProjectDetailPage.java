@@ -70,4 +70,67 @@ public class ProjectDetailPage {
     public boolean hasReactivateButton() {
         return page.locator(REACTIVATE_BUTTON).count() > 0;
     }
+
+    // Milestone methods
+    private static final String MILESTONE_SECTION = "[data-testid='milestone-section']";
+    private static final String NEW_MILESTONE_BUTTON = "#btn-new-milestone";
+    private static final String MILESTONE_ITEM = "[data-milestone-id]";
+
+    public void clickNewMilestoneButton() {
+        page.click(NEW_MILESTONE_BUTTON);
+        page.waitForLoadState();
+    }
+
+    public boolean hasMilestoneSection() {
+        return page.locator(MILESTONE_SECTION).count() > 0;
+    }
+
+    public boolean hasNewMilestoneButton() {
+        return page.locator(NEW_MILESTONE_BUTTON).count() > 0;
+    }
+
+    public int getMilestoneCount() {
+        return page.locator(MILESTONE_ITEM).count();
+    }
+
+    public boolean hasMilestoneWithName(String name) {
+        page.waitForLoadState();
+        return page.getByText(name).count() > 0;
+    }
+
+    public void clickMilestoneStartButton(String milestoneName) {
+        page.waitForLoadState();
+        page.locator(MILESTONE_ITEM + ":has-text('" + milestoneName + "')").locator("button[title='Mulai']").click();
+        page.waitForLoadState();
+    }
+
+    public void clickMilestoneCompleteButton(String milestoneName) {
+        page.waitForLoadState();
+        page.locator(MILESTONE_ITEM + ":has-text('" + milestoneName + "')").locator("button[title='Selesai']").click();
+        page.waitForLoadState();
+    }
+
+    public void clickMilestoneResetButton(String milestoneName) {
+        page.waitForLoadState();
+        page.locator(MILESTONE_ITEM + ":has-text('" + milestoneName + "')").locator("button[title='Reset']").click();
+        page.waitForLoadState();
+    }
+
+    public void clickMilestoneEditButton(String milestoneName) {
+        page.waitForLoadState();
+        page.locator(MILESTONE_ITEM + ":has-text('" + milestoneName + "')").locator("a[title='Edit']").click();
+        page.waitForLoadState();
+    }
+
+    public void clickMilestoneDeleteButton(String milestoneName) {
+        page.waitForLoadState();
+        page.onceDialog(dialog -> dialog.accept());
+        page.locator(MILESTONE_ITEM + ":has-text('" + milestoneName + "')").locator("button[title='Hapus']").click();
+        page.waitForLoadState();
+    }
+
+    public String getMilestoneStatus(String milestoneName) {
+        page.waitForLoadState();
+        return page.locator(MILESTONE_ITEM + ":has-text('" + milestoneName + "')").locator("span.rounded-full").last().textContent().trim();
+    }
 }

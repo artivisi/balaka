@@ -3,11 +3,13 @@ package com.artivisi.accountingfinance.controller;
 import com.artivisi.accountingfinance.dto.TransactionDto;
 import com.artivisi.accountingfinance.dto.VoidTransactionDto;
 import com.artivisi.accountingfinance.entity.JournalTemplate;
+import com.artivisi.accountingfinance.entity.Project;
 import com.artivisi.accountingfinance.entity.Transaction;
 import com.artivisi.accountingfinance.enums.TemplateCategory;
 import com.artivisi.accountingfinance.enums.TransactionStatus;
 import com.artivisi.accountingfinance.service.ChartOfAccountService;
 import com.artivisi.accountingfinance.service.JournalTemplateService;
+import com.artivisi.accountingfinance.service.ProjectService;
 import com.artivisi.accountingfinance.service.TransactionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -42,6 +44,7 @@ public class TransactionController {
     private final TransactionService transactionService;
     private final JournalTemplateService journalTemplateService;
     private final ChartOfAccountService chartOfAccountService;
+    private final ProjectService projectService;
 
     @GetMapping
     public String list(
@@ -101,6 +104,7 @@ public class TransactionController {
         model.addAttribute("isEdit", false);
         model.addAttribute("templates", journalTemplateService.findAll());
         model.addAttribute("accounts", chartOfAccountService.findTransactableAccounts());
+        model.addAttribute("projects", projectService.findActiveProjects());
 
         if (templateId != null) {
             model.addAttribute("selectedTemplate", journalTemplateService.findByIdWithLines(templateId));
@@ -140,6 +144,7 @@ public class TransactionController {
         model.addAttribute("transaction", transaction);
         model.addAttribute("templates", journalTemplateService.findAll());
         model.addAttribute("accounts", chartOfAccountService.findTransactableAccounts());
+        model.addAttribute("projects", projectService.findActiveProjects());
         return "transactions/form";
     }
 
@@ -246,6 +251,12 @@ public class TransactionController {
         JournalTemplate template = new JournalTemplate();
         template.setId(dto.templateId());
         transaction.setJournalTemplate(template);
+
+        if (dto.projectId() != null) {
+            Project project = new Project();
+            project.setId(dto.projectId());
+            transaction.setProject(project);
+        }
 
         return transaction;
     }

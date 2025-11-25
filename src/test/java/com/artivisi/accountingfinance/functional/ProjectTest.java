@@ -1,5 +1,6 @@
 package com.artivisi.accountingfinance.functional;
 
+import com.artivisi.accountingfinance.functional.page.MilestoneFormPage;
 import com.artivisi.accountingfinance.functional.page.ProjectDetailPage;
 import com.artivisi.accountingfinance.functional.page.ProjectFormPage;
 import com.artivisi.accountingfinance.functional.page.ProjectListPage;
@@ -19,6 +20,7 @@ class ProjectTest extends PlaywrightTestBase {
     private ProjectListPage listPage;
     private ProjectFormPage formPage;
     private ProjectDetailPage detailPage;
+    private MilestoneFormPage milestoneFormPage;
 
     @BeforeEach
     void setUp() {
@@ -26,6 +28,7 @@ class ProjectTest extends PlaywrightTestBase {
         listPage = new ProjectListPage(page, baseUrl());
         formPage = new ProjectFormPage(page, baseUrl());
         detailPage = new ProjectDetailPage(page, baseUrl());
+        milestoneFormPage = new MilestoneFormPage(page, baseUrl());
 
         loginPage.navigate().loginAsAdmin();
     }
@@ -188,6 +191,137 @@ class ProjectTest extends PlaywrightTestBase {
             // Should show active status
             detailPage.assertStatusText("Aktif");
             assertThat(detailPage.hasCompleteButton()).isTrue();
+        }
+    }
+
+    @Nested
+    @DisplayName("1.9.9 Milestone Management")
+    class MilestoneTests {
+
+        @Test
+        @DisplayName("Should display milestone section on project detail")
+        void shouldDisplayMilestoneSection() {
+            // Create a project first
+            formPage.navigateToNew();
+
+            String uniqueCode = "PRJ-MS-" + System.currentTimeMillis();
+            String uniqueName = "Milestone Test " + System.currentTimeMillis();
+
+            formPage.fillCode(uniqueCode);
+            formPage.fillName(uniqueName);
+            formPage.clickSubmit();
+
+            // Should have milestone section
+            assertThat(detailPage.hasMilestoneSection()).isTrue();
+            assertThat(detailPage.hasNewMilestoneButton()).isTrue();
+        }
+
+        @Test
+        @DisplayName("Should create new milestone")
+        void shouldCreateNewMilestone() {
+            // Create a project first
+            formPage.navigateToNew();
+
+            String uniqueCode = "PRJ-MSCR-" + System.currentTimeMillis();
+            String uniqueName = "Milestone Create Test " + System.currentTimeMillis();
+
+            formPage.fillCode(uniqueCode);
+            formPage.fillName(uniqueName);
+            formPage.clickSubmit();
+
+            // Click new milestone button
+            detailPage.clickNewMilestoneButton();
+
+            // Fill milestone form
+            milestoneFormPage.assertPageTitleText("Milestone Baru");
+            String milestoneName = "Design Phase";
+            milestoneFormPage.fillName(milestoneName);
+            milestoneFormPage.fillWeight("25");
+            milestoneFormPage.clickSubmit();
+
+            // Should show milestone in project detail
+            assertThat(detailPage.hasMilestoneWithName(milestoneName)).isTrue();
+        }
+
+        @Test
+        @DisplayName("Should change milestone status from pending to in_progress")
+        void shouldStartMilestone() {
+            // Create a project with milestone
+            formPage.navigateToNew();
+
+            String uniqueCode = "PRJ-MSST-" + System.currentTimeMillis();
+            String uniqueName = "Milestone Start Test " + System.currentTimeMillis();
+
+            formPage.fillCode(uniqueCode);
+            formPage.fillName(uniqueName);
+            formPage.clickSubmit();
+
+            // Create milestone
+            detailPage.clickNewMilestoneButton();
+            String milestoneName = "Implementation Phase";
+            milestoneFormPage.fillName(milestoneName);
+            milestoneFormPage.clickSubmit();
+
+            // Start milestone
+            detailPage.clickMilestoneStartButton(milestoneName);
+
+            // Should show in progress status
+            assertThat(detailPage.getMilestoneStatus(milestoneName)).isEqualTo("Proses");
+        }
+
+        @Test
+        @DisplayName("Should complete in-progress milestone")
+        void shouldCompleteMilestone() {
+            // Create a project with milestone
+            formPage.navigateToNew();
+
+            String uniqueCode = "PRJ-MSCP-" + System.currentTimeMillis();
+            String uniqueName = "Milestone Complete Test " + System.currentTimeMillis();
+
+            formPage.fillCode(uniqueCode);
+            formPage.fillName(uniqueName);
+            formPage.clickSubmit();
+
+            // Create milestone
+            detailPage.clickNewMilestoneButton();
+            String milestoneName = "Testing Phase";
+            milestoneFormPage.fillName(milestoneName);
+            milestoneFormPage.clickSubmit();
+
+            // Start then complete
+            detailPage.clickMilestoneStartButton(milestoneName);
+            detailPage.clickMilestoneCompleteButton(milestoneName);
+
+            // Should show completed status
+            assertThat(detailPage.getMilestoneStatus(milestoneName)).isEqualTo("Selesai");
+        }
+
+        @Test
+        @DisplayName("Should delete milestone")
+        void shouldDeleteMilestone() {
+            // Create a project with milestone
+            formPage.navigateToNew();
+
+            String uniqueCode = "PRJ-MSDL-" + System.currentTimeMillis();
+            String uniqueName = "Milestone Delete Test " + System.currentTimeMillis();
+
+            formPage.fillCode(uniqueCode);
+            formPage.fillName(uniqueName);
+            formPage.clickSubmit();
+
+            // Create milestone
+            detailPage.clickNewMilestoneButton();
+            String milestoneName = "Deployment Phase";
+            milestoneFormPage.fillName(milestoneName);
+            milestoneFormPage.clickSubmit();
+
+            int countBefore = detailPage.getMilestoneCount();
+
+            // Delete milestone
+            detailPage.clickMilestoneDeleteButton(milestoneName);
+
+            // Should be removed
+            assertThat(detailPage.getMilestoneCount()).isEqualTo(countBefore - 1);
         }
     }
 }

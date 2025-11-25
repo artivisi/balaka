@@ -38,12 +38,10 @@ public class Invoice {
     @Column(name = "id", updatable = false, nullable = false)
     private UUID id;
 
-    @NotBlank(message = "Nomor invoice wajib diisi")
     @Size(max = 50, message = "Nomor invoice maksimal 50 karakter")
     @Column(name = "invoice_number", nullable = false, unique = true, length = 50)
     private String invoiceNumber;
 
-    @NotNull(message = "Klien wajib diisi")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_client", nullable = false)
     private Client client;

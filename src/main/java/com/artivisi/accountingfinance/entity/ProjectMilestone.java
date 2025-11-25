@@ -40,12 +40,10 @@ public class ProjectMilestone {
     @Column(name = "id", updatable = false, nullable = false)
     private UUID id;
 
-    @NotNull(message = "Proyek wajib diisi")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_project", nullable = false)
     private Project project;
 
-    @NotNull(message = "Urutan wajib diisi")
     @Min(value = 1, message = "Urutan minimal 1")
     @Column(name = "sequence", nullable = false)
     private Integer sequence;

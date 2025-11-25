@@ -86,6 +86,9 @@ CREATE TABLE invoices (
 -- Add project_id to journal_entries for linking transactions to projects
 ALTER TABLE journal_entries ADD COLUMN id_project UUID REFERENCES projects(id);
 
+-- Add project_id to transactions for project association at transaction level
+ALTER TABLE transactions ADD COLUMN id_project UUID REFERENCES projects(id);
+
 -- Indexes
 CREATE INDEX idx_clients_active ON clients(active);
 CREATE INDEX idx_clients_name ON clients(name);
@@ -105,3 +108,4 @@ CREATE INDEX idx_invoices_status ON invoices(status);
 CREATE INDEX idx_invoices_due_date ON invoices(due_date);
 
 CREATE INDEX idx_journal_entries_project ON journal_entries(id_project);
+CREATE INDEX idx_transactions_project ON transactions(id_project);

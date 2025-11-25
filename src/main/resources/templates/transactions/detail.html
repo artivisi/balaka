@@ -168,6 +168,23 @@
                         </div>
                     </div>
 
+                    <!-- Project if associated -->
+                    <div th:if="${transaction.project != null}" class="mt-6 pt-6 border-t border-gray-200">
+                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Proyek Terkait</p>
+                        <div class="flex items-center">
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-md bg-indigo-50 text-indigo-700 text-sm font-medium">
+                                <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                                </svg>
+                                <span th:text="${transaction.project.code + ' - ' + transaction.project.name}">PRJ-001 - Project Name</span>
+                            </span>
+                            <a th:href="@{/projects/{id}(id=${transaction.project.id})}"
+                               class="ml-2 text-xs text-indigo-600 hover:text-indigo-800">
+                                Lihat Detail
+                            </a>
+                        </div>
+                    </div>
+
                     <!-- Notes if any -->
                     <div th:if="${transaction.notes != null and !transaction.notes.isEmpty()}" class="mt-6 pt-6 border-t border-gray-200">
                         <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Catatan</p>

@@ -421,7 +421,7 @@ Expenses:
 
 ---
 
-### 1.9 Project Tracking
+### 1.9 Project Tracking 🔄
 
 **Purpose:** Track profitability per project/job for service businesses.
 
@@ -430,36 +430,36 @@ Expenses:
 **Note:** Decision #7 - Critical for IT Services and Photographers. Simple tagging approach, not full project management.
 
 #### Project Features
-- [ ] Project entity (code, name, client_id, status, budget)
-- [ ] Project CRUD UI
-- [ ] Project list with filters (status, client)
-- [ ] Link transactions to project (optional project_id on journal entries)
-- [ ] Project selection in transaction form
+- [x] Project entity (code, name, client_id, status, budget)
+- [x] Project CRUD UI
+- [x] Project list with filters (status, client)
+- [x] Link transactions to project (project_id on journal entries and transactions)
+- [x] Project selection in transaction form
 - [ ] Project Profitability Report
 - [ ] Project Income Statement (revenue - costs per project)
 
 #### Client Features
-- [ ] Client entity (code, name, contact info, notes)
-- [ ] Client CRUD UI
-- [ ] Client list with search
-- [ ] Link projects to client
+- [x] Client entity (code, name, contact info, notes)
+- [x] Client CRUD UI
+- [x] Client list with search
+- [x] Link projects to client
 - [ ] Client Profitability Report (aggregate of all client projects)
 - [ ] Client Revenue Ranking (top clients by revenue)
 
 #### Project Milestones
-- [ ] Milestone entity (name, target date, completion %, status)
-- [ ] Milestone CRUD UI (inline in project form)
-- [ ] Milestone status tracking (pending, in_progress, completed)
-- [ ] Milestone progress calculation (weighted by completion %)
+- [x] Milestone entity (name, target date, completion %, status)
+- [x] Milestone CRUD UI (inline in project detail)
+- [x] Milestone status tracking (pending, in_progress, completed)
+- [x] Milestone progress calculation (weighted by completion %)
 - [ ] Milestone overdue detection
 
 #### Payment Terms & Invoices
-- [ ] Payment term entity (name, %, trigger, linked milestone)
-- [ ] Payment term CRUD UI (inline in project form)
-- [ ] Invoice entity (basic: number, date, amount, status)
-- [ ] Invoice generation from payment term
-- [ ] Invoice status tracking (draft, sent, paid, overdue)
-- [ ] Link invoice to payment term
+- [x] Payment term entity (name, %, trigger, linked milestone)
+- [x] Payment term CRUD UI (inline in project detail)
+- [x] Invoice entity (basic: number, date, amount, status)
+- [x] Invoice generation from payment term
+- [x] Invoice status tracking (draft, sent, paid, overdue)
+- [x] Link invoice to payment term
 - [ ] Auto-trigger revenue recognition on milestone completion
 
 #### UI with HTMX
