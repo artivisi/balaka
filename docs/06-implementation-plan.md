@@ -317,23 +317,19 @@ User fills transaction form
 
 ---
 
-### 1.7 Template Enhancements
+### 1.7 Template Enhancements ✅
 
 **Purpose:** Improve template discoverability and user experience.
 
 **Dependencies:** Templates (1.4)
 
-- [ ] Template tags
-- [ ] User favorites
-- [ ] Usage tracking (last used, frequency)
-- [ ] Search functionality
-- [ ] Recently used list
+- [x] Template tags
+- [x] User favorites (per-user, not global)
+- [x] Usage tracking (last used, frequency)
+- [x] Search functionality
+- [x] Recently used list
 
-```sql
--- V007: Template preferences
-journal_template_tags (id, template_id, tag, ...)
-user_template_preferences (id, user_id, template_id, is_favorite, last_used_at, use_count, ...)
-```
+**Implementation:** Tables added to V003 migration (journal_template_tags, user_template_preferences). HTMX endpoints return Thymeleaf fragments for dynamic updates.
 
 ---
 

@@ -14,8 +14,8 @@ Indonesian accounting application for small businesses. Spring Boot 4.0 + Thymel
   - 1.4 Journal Templates: ✅ Complete
   - 1.5 Transactions: ✅ Complete
   - 1.6 Formula Support: ✅ Complete
-  - 1.7 Template Enhancements: ⏳ Next - See `TODO-TEMPLATE-ENHANCEMENTS.md`
-  - 1.8 Amortization Schedules: ⏳ Pending
+  - 1.7 Template Enhancements: ✅ Complete
+  - 1.8 Amortization Schedules: ⏳ Next
   - 1.9 Project Tracking: ⏳ Pending
   - See `docs/06-implementation-plan.md` for full plan
 
@@ -24,7 +24,6 @@ Indonesian accounting application for small businesses. Spring Boot 4.0 + Thymel
 | Purpose | Location |
 |---------|----------|
 | Implementation Plan | `docs/06-implementation-plan.md` |
-| Template Enhancements TODO | `TODO-TEMPLATE-ENHANCEMENTS.md` |
 | Entities | `src/main/java/.../entity/` |
 | Services | `src/main/java/.../service/` |
 | Controllers | `src/main/java/.../controller/` |
@@ -69,9 +68,9 @@ User → Controller (MVC) → Service → Repository → PostgreSQL
 
 ## Current Focus
 
-Next: Template Enhancements (1.7) per implementation plan:
-1. Add template tags for categorization
-2. Implement per-user favorites (not global)
-3. Add search functionality
-4. Add recently used templates list
-5. Update UI with search, tags, and favorites
+Next: Amortization Schedules (1.8) per implementation plan:
+1. Amortization schedule entity
+2. Amortization entries entity (tracks each period)
+3. Schedule CRUD UI
+4. Monthly batch job (generates journal entries)
+5. Period-end dashboard integration
