@@ -40,14 +40,14 @@
                     <td class="px-4 py-3 whitespace-nowrap text-center">
                         <div th:if="${entry.pending and schedule.active}" class="flex items-center justify-center gap-2">
                             <button type="button"
-                                    hx-post th:hx-post="@{/amortization/{scheduleId}/entries/{entryId}/post(scheduleId=${schedule.id}, entryId=${entry.id})}"
+                                    th:attr="hx-post=@{/amortization/{scheduleId}/entries/{entryId}/post(scheduleId=${schedule.id}, entryId=${entry.id})}"
                                     hx-target="#entry-table"
                                     hx-swap="outerHTML"
                                     class="px-2 py-1 text-xs bg-primary-100 text-primary-700 rounded hover:bg-primary-200 transition-colors">
                                 Posting
                             </button>
                             <button type="button"
-                                    hx-post th:hx-post="@{/amortization/{scheduleId}/entries/{entryId}/skip(scheduleId=${schedule.id}, entryId=${entry.id})}"
+                                    th:attr="hx-post=@{/amortization/{scheduleId}/entries/{entryId}/skip(scheduleId=${schedule.id}, entryId=${entry.id})}"
                                     hx-target="#entry-table"
                                     hx-swap="outerHTML"
                                     class="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition-colors">

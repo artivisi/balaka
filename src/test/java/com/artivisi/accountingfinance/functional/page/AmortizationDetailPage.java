@@ -50,12 +50,16 @@ public class AmortizationDetailPage {
 
     public void postFirstPendingEntry() {
         page.locator(ENTRY_ROW + ":has-text('Menunggu')").first().locator(POST_ENTRY_BUTTON).click();
+        // Wait for network to settle
         page.waitForLoadState();
+        page.waitForTimeout(1000);
     }
 
     public void skipFirstPendingEntry() {
         page.locator(ENTRY_ROW + ":has-text('Menunggu')").first().locator(SKIP_ENTRY_BUTTON).click();
+        // Wait for network to settle
         page.waitForLoadState();
+        page.waitForTimeout(1000);
     }
 
     public int getPendingEntryCount() {
@@ -71,8 +75,11 @@ public class AmortizationDetailPage {
     }
 
     public void clickCancelButton() {
+        // Set up dialog handler BEFORE clicking
+        page.onceDialog(dialog -> dialog.accept());
         page.click(CANCEL_BUTTON);
         page.waitForLoadState();
+        page.waitForTimeout(1000);
     }
 
     public void assertStatusText(String expected) {
