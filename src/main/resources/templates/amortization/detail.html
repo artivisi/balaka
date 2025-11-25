@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/main}"
+      lang="id">
+<head>
+    <title>Detail Jadwal Amortisasi</title>
+</head>
+<body>
+    <h1 id="page-title" layout:fragment="page-title">Detail Jadwal Amortisasi</h1>
+
+    <div layout:fragment="content" class="space-y-6" data-testid="amortization-detail">
+        <!-- Header -->
+        <div class="flex items-start justify-between">
+            <div>
+                <h2 class="text-xl font-semibold text-gray-900" th:text="${schedule.name}">Asuransi Kantor 2025</h2>
+                <p class="text-sm text-gray-500 font-mono" th:text="${schedule.code}">AMT-001</p>
+            </div>
+            <div class="flex items-center gap-2">
+                <span th:class="'px-3 py-1 text-sm font-medium rounded-full ' + (${schedule.status.name() == 'ACTIVE'} ? 'bg-green-100 text-green-800' : (${schedule.status.name() == 'COMPLETED'} ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-800'))"
+                      th:text="${schedule.status.indonesianName}">Aktif</span>
+            </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div class="bg-white rounded-lg shadow p-4">
+                <p class="text-sm text-gray-500">Total Jumlah</p>
+                <p class="text-lg font-semibold text-gray-900" th:text="'Rp ' + ${#numbers.formatDecimal(schedule.totalAmount, 0, 'COMMA', 0, 'POINT')}">Rp 12,000,000</p>
+            </div>
+            <div class="bg-white rounded-lg shadow p-4">
+                <p class="text-sm text-gray-500">Teramortisasi</p>
+                <p class="text-lg font-semibold text-primary-600" th:text="'Rp ' + ${#numbers.formatDecimal(schedule.amortizedAmount, 0, 'COMMA', 0, 'POINT')}">Rp 6,000,000</p>
+            </div>
+            <div class="bg-white rounded-lg shadow p-4">
+                <p class="text-sm text-gray-500">Sisa</p>
+                <p class="text-lg font-semibold text-amber-600" th:text="'Rp ' + ${#numbers.formatDecimal(schedule.remainingAmount, 0, 'COMMA', 0, 'POINT')}">Rp 6,000,000</p>
+            </div>
+            <div class="bg-white rounded-lg shadow p-4">
+                <p class="text-sm text-gray-500">Progress</p>
+                <div class="flex items-center gap-2 mt-1">
+                    <div class="flex-1 bg-gray-200 rounded-full h-2">
+                        <div class="bg-primary-600 h-2 rounded-full" th:style="'width: ' + ${schedule.progressPercentage} + '%'"></div>
+                    </div>
+                    <span class="text-sm font-medium text-gray-700" th:text="${schedule.completedPeriods} + '/' + ${schedule.totalPeriods}">6/12</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Schedule Info -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Informasi Jadwal</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+                <div>
+                    <p class="text-gray-500">Tipe</p>
+                    <p class="font-medium" th:text="${schedule.scheduleType.indonesianName}">Beban Dibayar Dimuka</p>
+                </div>
+                <div>
+                    <p class="text-gray-500">Frekuensi</p>
+                    <p class="font-medium" th:text="${schedule.frequency.indonesianName}">Bulanan</p>
+                </div>
+                <div>
+                    <p class="text-gray-500">Jumlah Per Periode</p>
+                    <p class="font-medium" th:text="'Rp ' + ${#numbers.formatDecimal(schedule.periodAmount, 0, 'COMMA', 0, 'POINT')}">Rp 1,000,000</p>
+                </div>
+                <div>
+                    <p class="text-gray-500">Akun Sumber</p>
+                    <p class="font-medium" th:text="${schedule.sourceAccount.accountCode} + ' - ' + ${schedule.sourceAccount.accountName}">1.1.05 - Asuransi Dibayar Dimuka</p>
+                </div>
+                <div>
+                    <p class="text-gray-500">Akun Tujuan</p>
+                    <p class="font-medium" th:text="${schedule.targetAccount.accountCode} + ' - ' + ${schedule.targetAccount.accountName}">5.1.08 - Beban Asuransi</p>
+                </div>
+                <div>
+                    <p class="text-gray-500">Auto-Post</p>
+                    <p class="font-medium" th:text="${schedule.autoPost} ? 'Ya (tanggal ' + ${schedule.postDay} + ')' : 'Tidak'">Ya (tanggal 1)</p>
+                </div>
+                <div>
+                    <p class="text-gray-500">Periode</p>
+                    <p class="font-medium" th:text="${#temporals.format(schedule.startDate, 'dd MMM yyyy')} + ' - ' + ${#temporals.format(schedule.endDate, 'dd MMM yyyy')}">01 Jan 2025 - 31 Dec 2025</p>
+                </div>
+                <div th:if="${schedule.description}">
+                    <p class="text-gray-500">Deskripsi</p>
+                    <p class="font-medium" th:text="${schedule.description}">Catatan</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <a th:href="@{/amortization}" class="px-4 py-2 text-gray-600 hover:text-gray-900">
+                    &larr; Kembali ke Daftar
+                </a>
+            </div>
+            <div class="flex items-center gap-2">
+                <a th:if="${schedule.active}"
+                   th:href="@{/amortization/{id}/edit(id=${schedule.id})}"
+                   class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                    Edit
+                </a>
+                <form th:if="${schedule.active and #lists.size(entries.?[status.name() == 'PENDING']) > 0}"
+                      th:action="@{/amortization/{id}/entries/post-all(id=${schedule.id})}"
+                      method="post" class="inline">
+                    <button type="submit" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+                        Posting Semua Pending
+                    </button>
+                </form>
+                <form th:if="${schedule.active}"
+                      th:action="@{/amortization/{id}/cancel(id=${schedule.id})}"
+                      method="post" class="inline"
+                      onsubmit="return confirm('Batalkan jadwal ini?')">
+                    <button type="submit" class="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">
+                        Batalkan
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Entries Table -->
+        <div class="bg-white rounded-lg shadow">
+            <div class="px-6 py-4 border-b">
+                <h3 class="text-lg font-medium text-gray-900">Daftar Entry</h3>
+            </div>
+            <th:block th:insert="~{amortization/fragments/entry-table :: table}"/>
+        </div>
+    </div>
+</body>
+</html>

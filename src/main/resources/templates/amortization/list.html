@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/main}"
+      lang="id">
+<head>
+    <title>Jadwal Amortisasi</title>
+</head>
+<body>
+    <h1 id="page-title" layout:fragment="page-title">Jadwal Amortisasi</h1>
+
+    <div layout:fragment="content" class="h-full flex flex-col" data-testid="amortization-list">
+        <!-- Search Bar -->
+        <div class="mb-4 flex-shrink-0">
+            <form th:action="@{/amortization}" method="get" class="flex gap-2"
+                  hx-get="/amortization"
+                  hx-target="#schedule-table"
+                  hx-swap="outerHTML"
+                  hx-push-url="true">
+                <div class="relative flex-1 max-w-md">
+                    <input type="text" name="search" th:value="${searchQuery}"
+                           placeholder="Cari jadwal..."
+                           data-testid="search-input"
+                           class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                    <svg class="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                </div>
+                <button type="submit" data-testid="search-button" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+                    Cari
+                </button>
+                <a th:if="${searchQuery != null or selectedStatus != null or selectedType != null}"
+                   th:href="@{/amortization}"
+                   hx-get="/amortization"
+                   hx-target="#schedule-table"
+                   hx-swap="outerHTML"
+                   hx-push-url="true"
+                   class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors cursor-pointer">
+                    Reset
+                </a>
+            </form>
+        </div>
+
+        <!-- Header Actions -->
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-4 flex-shrink-0">
+            <!-- Filters -->
+            <div class="flex flex-wrap items-center gap-2">
+                <!-- Status Filter -->
+                <a th:href="@{/amortization}"
+                   th:classappend="${selectedStatus == null and selectedType == null} ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+                   hx-get="/amortization"
+                   hx-target="#schedule-table"
+                   hx-swap="outerHTML"
+                   hx-push-url="true"
+                   class="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors cursor-pointer">
+                    Semua
+                </a>
+                <a th:each="stat : ${statuses}"
+                   th:href="@{/amortization(status=${stat.name()})}"
+                   th:classappend="${selectedStatus == stat.name()} ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+                   th:text="${stat.indonesianName}"
+                   hx-get th:hx-get="@{/amortization(status=${stat.name()})}"
+                   hx-target="#schedule-table"
+                   hx-swap="outerHTML"
+                   hx-push-url="true"
+                   class="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors cursor-pointer">
+                    Status
+                </a>
+
+                <span class="text-gray-300">|</span>
+
+                <!-- Type Filter -->
+                <a th:each="t : ${types}"
+                   th:href="@{/amortization(type=${t.name()})}"
+                   th:classappend="${selectedType == t.name()} ? 'bg-secondary-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+                   th:text="${t.indonesianName}"
+                   hx-get th:hx-get="@{/amortization(type=${t.name()})}"
+                   hx-target="#schedule-table"
+                   hx-swap="outerHTML"
+                   hx-push-url="true"
+                   class="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors cursor-pointer">
+                    Type
+                </a>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex items-center gap-2">
+                <span th:if="${pendingCount > 0}" class="text-sm text-amber-600 font-medium">
+                    [[${pendingCount}]] entry pending
+                </span>
+                <form th:action="@{/amortization/batch/process}" method="post" class="inline">
+                    <button type="submit" class="px-4 py-2 bg-amber-500 text-white text-sm font-medium rounded-lg hover:bg-amber-600 transition-colors">
+                        Proses Batch
+                    </button>
+                </form>
+                <a th:href="@{/amortization/new}" data-testid="btn-new-schedule" class="inline-flex items-center px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    Jadwal Baru
+                </a>
+            </div>
+        </div>
+
+        <!-- Schedule Table -->
+        <th:block th:insert="~{amortization/fragments/schedule-table :: table}"/>
+    </div>
+</body>
+</html>

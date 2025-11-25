@@ -16,8 +16,8 @@ Indonesian accounting application for small businesses. Spring Boot 4.0 + Thymel
   - 1.6 Formula Support: ✅ Complete
   - 1.7 Template Enhancements: ✅ Complete
   - 1.7.5 HTMX Optimization: ✅ Complete
-  - 1.8 Amortization Schedules: ⏳ Next - See `TODO-AMORTIZATION-SCHEDULES.md`
-  - 1.9 Project Tracking: ⏳ Pending
+  - 1.8 Amortization Schedules: ✅ Complete
+  - 1.9 Project Tracking: ⏳ Next - See `docs/06-implementation-plan.md`
   - 1.10 Dashboard KPIs: ⏳ Pending
   - See `docs/06-implementation-plan.md` for full plan
 
@@ -26,7 +26,7 @@ Indonesian accounting application for small businesses. Spring Boot 4.0 + Thymel
 | Purpose | Location |
 |---------|----------|
 | Implementation Plan | `docs/06-implementation-plan.md` |
-| Amortization TODO | `TODO-AMORTIZATION-SCHEDULES.md` |
+| Project Tracking TODO | `TODO-PROJECT-TRACKING.md` |
 | Entities | `src/main/java/.../entity/` |
 | Services | `src/main/java/.../service/` |
 | Controllers | `src/main/java/.../controller/` |
@@ -58,7 +58,7 @@ Indonesian accounting application for small businesses. Spring Boot 4.0 + Thymel
 ## Database
 
 - PostgreSQL via Testcontainers (tests)
-- Flyway migrations: V001-V004
+- Flyway migrations: V001-V007
 - Seed data: IT Services COA, admin user (admin/admin)
 
 ## Architecture
@@ -71,13 +71,13 @@ User → Controller (MVC) → Service → Repository → PostgreSQL
 
 ## Current Focus
 
-Next: Amortization Schedules (1.8) - See `TODO-AMORTIZATION-SCHEDULES.md`:
-1. COA additions (prepaid, unearned, intangible accounts)
-2. Database schema (amortization_schedules, amortization_entries)
-3. Entity classes and repositories
-4. Service layer (schedule creation, entry generation, batch processing)
-5. Controller and UI (list, form, detail with HTMX)
-6. Scheduled batch job for auto-posting
+Next: Project Tracking (1.9) - See `TODO-PROJECT-TRACKING.md`:
+1. Database schema (clients, projects, milestones, payment_terms, invoices)
+2. Client management (entity, service, controller, UI)
+3. Project management with milestones
+4. Payment terms and invoice generation
+5. Transaction-project linking
+6. Profitability reports (project, client, cost overrun)
 7. Functional tests
 
-Then: Project Tracking (1.9) for client/project profitability
+Then: Dashboard KPIs (1.10)

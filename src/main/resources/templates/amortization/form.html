@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/main}"
+      lang="id">
+<head>
+    <title th:text="${isEdit} ? 'Edit Jadwal Amortisasi' : 'Jadwal Amortisasi Baru'">Jadwal Amortisasi</title>
+</head>
+<body>
+    <h1 id="page-title" layout:fragment="page-title" th:text="${isEdit} ? 'Edit Jadwal Amortisasi' : 'Jadwal Amortisasi Baru'">Jadwal Amortisasi</h1>
+
+    <div layout:fragment="content" class="max-w-3xl" data-testid="amortization-form">
+        <form th:action="${isEdit} ? @{/amortization/{id}(id=${schedule.id})} : @{/amortization}"
+              method="post" class="bg-white rounded-lg shadow p-6 space-y-6">
+
+            <!-- Basic Info -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div th:if="${!isEdit}">
+                    <label for="code" class="block text-sm font-medium text-gray-700 mb-1">Kode <span class="text-red-500">*</span></label>
+                    <input type="text" id="code" name="code" required
+                           th:value="${schedule?.code}"
+                           placeholder="AMT-001"
+                           data-testid="input-code"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                </div>
+                <div th:if="${isEdit}">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Kode</label>
+                    <p class="px-3 py-2 bg-gray-50 rounded-lg font-mono" th:text="${schedule.code}">AMT-001</p>
+                </div>
+
+                <div>
+                    <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Nama <span class="text-red-500">*</span></label>
+                    <input type="text" id="name" name="name" required
+                           th:value="${schedule?.name}"
+                           placeholder="Asuransi Kantor 2025"
+                           data-testid="input-name"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                </div>
+            </div>
+
+            <div>
+                <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Deskripsi</label>
+                <textarea id="description" name="description" rows="2"
+                          th:text="${schedule?.description}"
+                          placeholder="Catatan tambahan..."
+                          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"></textarea>
+            </div>
+
+            <!-- Type Selection -->
+            <div th:if="${!isEdit}">
+                <label for="scheduleType" class="block text-sm font-medium text-gray-700 mb-1">Tipe Jadwal <span class="text-red-500">*</span></label>
+                <select id="scheduleType" name="scheduleType" required
+                        data-testid="select-type"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                    <option value="">-- Pilih Tipe --</option>
+                    <option th:each="t : ${types}"
+                            th:value="${t.name()}"
+                            th:text="${t.indonesianName}"
+                            th:selected="${schedule?.scheduleType == t}">Tipe</option>
+                </select>
+                <p class="mt-1 text-xs text-gray-500">
+                    Tipe menentukan akun mana yang didebit/dikredit saat amortisasi
+                </p>
+            </div>
+            <div th:if="${isEdit}">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Tipe Jadwal</label>
+                <p class="px-3 py-2 bg-gray-50 rounded-lg" th:text="${schedule.scheduleType.indonesianName}">Beban Dibayar Dimuka</p>
+            </div>
+
+            <!-- Accounts -->
+            <div th:if="${!isEdit}" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="sourceAccountId" class="block text-sm font-medium text-gray-700 mb-1">Akun Sumber <span class="text-red-500">*</span></label>
+                    <select id="sourceAccountId" name="sourceAccountId" required
+                            data-testid="select-source-account"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                        <option value="">-- Pilih Akun --</option>
+                        <option th:each="acc : ${accounts}"
+                                th:value="${acc.id}"
+                                th:text="${acc.accountCode} + ' - ' + ${acc.accountName}"
+                                th:selected="${schedule?.sourceAccount?.id == acc.id}">Akun</option>
+                    </select>
+                    <p class="mt-1 text-xs text-gray-500">Akun aset/liabilitas yang diamortisasi</p>
+                </div>
+                <div>
+                    <label for="targetAccountId" class="block text-sm font-medium text-gray-700 mb-1">Akun Tujuan <span class="text-red-500">*</span></label>
+                    <select id="targetAccountId" name="targetAccountId" required
+                            data-testid="select-target-account"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                        <option value="">-- Pilih Akun --</option>
+                        <option th:each="acc : ${accounts}"
+                                th:value="${acc.id}"
+                                th:text="${acc.accountCode} + ' - ' + ${acc.accountName}"
+                                th:selected="${schedule?.targetAccount?.id == acc.id}">Akun</option>
+                    </select>
+                    <p class="mt-1 text-xs text-gray-500">Akun beban/pendapatan tujuan</p>
+                </div>
+            </div>
+            <div th:if="${isEdit}" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Akun Sumber</label>
+                    <p class="px-3 py-2 bg-gray-50 rounded-lg" th:text="${schedule.sourceAccount.accountCode} + ' - ' + ${schedule.sourceAccount.accountName}">Akun</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Akun Tujuan</label>
+                    <p class="px-3 py-2 bg-gray-50 rounded-lg" th:text="${schedule.targetAccount.accountCode} + ' - ' + ${schedule.targetAccount.accountName}">Akun</p>
+                </div>
+            </div>
+
+            <!-- Amount and Dates -->
+            <div th:if="${!isEdit}" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label for="totalAmount" class="block text-sm font-medium text-gray-700 mb-1">Total Jumlah <span class="text-red-500">*</span></label>
+                    <input type="number" id="totalAmount" name="totalAmount" required
+                           min="0.01" step="0.01"
+                           th:value="${schedule?.totalAmount}"
+                           placeholder="12000000"
+                           data-testid="input-amount"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                </div>
+                <div>
+                    <label for="startDate" class="block text-sm font-medium text-gray-700 mb-1">Tanggal Mulai <span class="text-red-500">*</span></label>
+                    <input type="date" id="startDate" name="startDate" required
+                           th:value="${schedule?.startDate}"
+                           data-testid="input-start-date"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                </div>
+                <div>
+                    <label for="endDate" class="block text-sm font-medium text-gray-700 mb-1">Tanggal Selesai <span class="text-red-500">*</span></label>
+                    <input type="date" id="endDate" name="endDate" required
+                           th:value="${schedule?.endDate}"
+                           data-testid="input-end-date"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                </div>
+            </div>
+            <div th:if="${isEdit}" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Total Jumlah</label>
+                    <p class="px-3 py-2 bg-gray-50 rounded-lg font-medium" th:text="${#numbers.formatDecimal(schedule.totalAmount, 0, 'COMMA', 0, 'POINT')}">12,000,000</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal Mulai</label>
+                    <p class="px-3 py-2 bg-gray-50 rounded-lg" th:text="${#temporals.format(schedule.startDate, 'dd MMM yyyy')}">01 Jan 2025</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal Selesai</label>
+                    <p class="px-3 py-2 bg-gray-50 rounded-lg" th:text="${#temporals.format(schedule.endDate, 'dd MMM yyyy')}">31 Dec 2025</p>
+                </div>
+            </div>
+
+            <!-- Frequency -->
+            <div th:if="${!isEdit}">
+                <label for="frequency" class="block text-sm font-medium text-gray-700 mb-1">Frekuensi <span class="text-red-500">*</span></label>
+                <select id="frequency" name="frequency" required
+                        data-testid="select-frequency"
+                        class="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                    <option th:each="f : ${frequencies}"
+                            th:value="${f.name()}"
+                            th:text="${f.indonesianName}"
+                            th:selected="${schedule?.frequency == f}">Frekuensi</option>
+                </select>
+            </div>
+            <div th:if="${isEdit}">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Frekuensi</label>
+                <p class="px-3 py-2 bg-gray-50 rounded-lg" th:text="${schedule.frequency.indonesianName}">Bulanan</p>
+            </div>
+
+            <!-- Auto Post Settings -->
+            <div class="border-t pt-4">
+                <h3 class="text-sm font-medium text-gray-700 mb-3">Pengaturan Auto-Post</h3>
+                <div class="flex items-center gap-4">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" id="autoPost" name="autoPost"
+                               th:checked="${schedule?.autoPost}"
+                               data-testid="checkbox-autopost"
+                               class="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500">
+                        <span class="text-sm text-gray-700">Otomatis posting jurnal</span>
+                    </label>
+                    <div class="flex items-center gap-2">
+                        <label for="postDay" class="text-sm text-gray-600">Tanggal posting:</label>
+                        <input type="number" id="postDay" name="postDay"
+                               min="1" max="28"
+                               th:value="${schedule?.postDay ?: 1}"
+                               class="w-16 px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+                    </div>
+                </div>
+                <p class="mt-2 text-xs text-gray-500">
+                    Jika diaktifkan, jurnal akan otomatis dibuat dan diposting pada tanggal yang ditentukan setiap periode
+                </p>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex items-center justify-between pt-4 border-t">
+                <a th:href="${isEdit} ? @{/amortization/{id}(id=${schedule.id})} : @{/amortization}"
+                   class="px-4 py-2 text-gray-700 hover:text-gray-900">
+                    Batal
+                </a>
+                <button type="submit"
+                        data-testid="btn-submit"
+                        class="px-6 py-2 bg-primary-600 text-white font-medium rounded-lg hover:bg-primary-700 transition-colors">
+                    <span th:text="${isEdit} ? 'Simpan Perubahan' : 'Buat Jadwal'">Simpan</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</body>
+</html>

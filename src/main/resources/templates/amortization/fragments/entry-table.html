@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="id">
+<body>
+    <div th:fragment="table" id="entry-table">
+        <table class="min-w-full divide-y divide-gray-200" data-testid="entry-table">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Periode</th>
+                    <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
+                    <th scope="col" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Jumlah</th>
+                    <th scope="col" class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th scope="col" class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Jurnal</th>
+                    <th scope="col" class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                <tr th:each="entry : ${entries}" th:data-id="${entry.id}" class="hover:bg-gray-50">
+                    <td class="px-4 py-3 whitespace-nowrap">
+                        <span class="text-sm font-medium text-gray-900" th:text="'#' + ${entry.periodNumber}">Periode #1</span>
+                        <span class="text-xs text-gray-500 ml-1" th:text="${entry.periodLabel}">JANUARY 2025</span>
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap">
+                        <span class="text-sm text-gray-600" th:text="${#temporals.format(entry.periodStart, 'dd MMM')} + ' - ' + ${#temporals.format(entry.periodEnd, 'dd MMM yyyy')}">01 Jan - 31 Jan 2025</span>
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap text-right">
+                        <span class="text-sm font-medium text-gray-900" th:text="'Rp ' + ${#numbers.formatDecimal(entry.amount, 0, 'COMMA', 0, 'POINT')}">Rp 1,000,000</span>
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap text-center">
+                        <span th:class="'px-2 py-1 text-xs font-medium rounded-full ' + (${entry.status.name() == 'POSTED'} ? 'bg-green-100 text-green-800' : (${entry.status.name() == 'SKIPPED'} ? 'bg-gray-100 text-gray-600' : 'bg-yellow-100 text-yellow-800'))"
+                              th:text="${entry.status.indonesianName}">Pending</span>
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap text-center">
+                        <a th:if="${entry.journalEntryId != null}"
+                           th:href="@{/journals/{id}(id=${entry.journalEntryId})}"
+                           class="text-primary-600 hover:text-primary-900 text-sm">
+                            Lihat
+                        </a>
+                        <span th:if="${entry.journalEntryId == null}" class="text-gray-400 text-sm">-</span>
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap text-center">
+                        <div th:if="${entry.pending and schedule.active}" class="flex items-center justify-center gap-2">
+                            <button type="button"
+                                    hx-post th:hx-post="@{/amortization/{scheduleId}/entries/{entryId}/post(scheduleId=${schedule.id}, entryId=${entry.id})}"
+                                    hx-target="#entry-table"
+                                    hx-swap="outerHTML"
+                                    class="px-2 py-1 text-xs bg-primary-100 text-primary-700 rounded hover:bg-primary-200 transition-colors">
+                                Posting
+                            </button>
+                            <button type="button"
+                                    hx-post th:hx-post="@{/amortization/{scheduleId}/entries/{entryId}/skip(scheduleId=${schedule.id}, entryId=${entry.id})}"
+                                    hx-target="#entry-table"
+                                    hx-swap="outerHTML"
+                                    class="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition-colors">
+                                Lewati
+                            </button>
+                        </div>
+                        <span th:if="${!entry.pending or !schedule.active}" class="text-gray-400 text-sm">-</span>
+                    </td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(entries)}">
+                    <td colspan="6" class="px-4 py-8 text-center text-gray-500">
+                        Tidak ada entry
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

@@ -339,7 +339,7 @@ User fills transaction form
 
 ---
 
-### 1.8 Amortization Schedules
+### 1.8 Amortization Schedules ✅
 
 **Purpose:** Automate recurring period-end adjustments for prepaid expenses, unearned revenue, and intangible assets.
 
@@ -356,17 +356,17 @@ User fills transaction form
 | `accrued_revenue` | Pendapatan Akrual | Monthly retainer billed quarterly |
 
 #### Features
-- [ ] Amortization schedule entity
-- [ ] Amortization entries entity (tracks each period)
-- [ ] Schedule CRUD UI
-- [ ] Schedule list with filters (type, status)
-- [ ] Manual schedule creation (user-initiated, no auto-detection)
-- [ ] Auto-post toggle per schedule (user chooses during creation)
-- [ ] Monthly batch job (generates journal entries)
-- [ ] Period-end dashboard integration
-- [ ] Remaining balance display
-- [ ] Schedule completion handling
-- [ ] Rounding handling (last period absorbs difference)
+- [x] Amortization schedule entity
+- [x] Amortization entries entity (tracks each period)
+- [x] Schedule CRUD UI
+- [x] Schedule list with filters (type, status)
+- [x] Manual schedule creation (user-initiated, no auto-detection)
+- [x] Auto-post toggle per schedule (user chooses during creation)
+- [x] Monthly batch job (generates journal entries)
+- [ ] Period-end dashboard integration (deferred to 1.10)
+- [x] Remaining balance display
+- [x] Schedule completion handling
+- [x] Rounding handling (last period absorbs difference)
 
 ```sql
 -- V007: Amortization schedules
@@ -637,6 +637,8 @@ When milestone is marked complete:
 - [ ] Create dashboard-kpis.html fragment
 - [ ] Update dashboard.html to load KPIs via HTMX
 - [ ] Add date range selector for historical comparison
+- [ ] Pending amortization entries count widget
+- [ ] Link to pending amortization entries list
 
 ---
 
