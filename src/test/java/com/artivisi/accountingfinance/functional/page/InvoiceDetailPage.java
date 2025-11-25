@@ -11,7 +11,7 @@ public class InvoiceDetailPage {
     private static final String PAGE_TITLE = "#page-title";
     private static final String INVOICE_DETAIL = "[data-testid='invoice-detail']";
     private static final String SEND_BUTTON = "button:has-text('Kirim')";
-    private static final String MARK_PAID_BUTTON = "button:has-text('Tandai Lunas')";
+    private static final String MARK_PAID_LINK = "a:has-text('Tandai Lunas')";
     private static final String CANCEL_BUTTON = "button:has-text('Batalkan')";
     private static final String DELETE_BUTTON = "button:has-text('Hapus')";
     private static final String EDIT_LINK = "a:has-text('Edit')";
@@ -46,9 +46,9 @@ public class InvoiceDetailPage {
         page.waitForLoadState();
     }
 
-    public void clickMarkPaidButton() {
-        page.onceDialog(dialog -> dialog.accept());
-        page.click(MARK_PAID_BUTTON);
+    public void clickMarkPaidLink() {
+        // This now redirects to transaction form, no dialog confirmation
+        page.click(MARK_PAID_LINK);
         page.waitForLoadState();
     }
 
@@ -68,8 +68,8 @@ public class InvoiceDetailPage {
         return page.locator(SEND_BUTTON).count() > 0;
     }
 
-    public boolean hasMarkPaidButton() {
-        return page.locator(MARK_PAID_BUTTON).count() > 0;
+    public boolean hasMarkPaidLink() {
+        return page.locator(MARK_PAID_LINK).count() > 0;
     }
 
     public boolean hasCancelButton() {

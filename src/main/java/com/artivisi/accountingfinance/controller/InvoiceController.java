@@ -179,6 +179,20 @@ public class InvoiceController {
         return "redirect:/invoices/" + id;
     }
 
+    @GetMapping("/{id}/pay")
+    public String payForm(@PathVariable UUID id, RedirectAttributes redirectAttributes) {
+        Invoice invoice = invoiceService.findById(id);
+
+        if (invoice.getStatus() != InvoiceStatus.SENT && invoice.getStatus() != InvoiceStatus.OVERDUE) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Hanya invoice terkirim atau jatuh tempo yang dapat dibayar");
+            return "redirect:/invoices/" + id;
+        }
+
+        // Redirect to transaction form with invoice id and receipt template
+        // Template: Terima Pelunasan Piutang (e0000000-0000-0000-0000-000000000010)
+        return "redirect:/transactions/new?invoiceId=" + id + "&templateId=e0000000-0000-0000-0000-000000000010";
+    }
+
     @PostMapping("/{id}/mark-paid")
     public String markPaid(@PathVariable UUID id, RedirectAttributes redirectAttributes) {
         try {

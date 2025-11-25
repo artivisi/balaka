@@ -2,12 +2,14 @@ package com.artivisi.accountingfinance.controller;
 
 import com.artivisi.accountingfinance.dto.TransactionDto;
 import com.artivisi.accountingfinance.dto.VoidTransactionDto;
+import com.artivisi.accountingfinance.entity.Invoice;
 import com.artivisi.accountingfinance.entity.JournalTemplate;
 import com.artivisi.accountingfinance.entity.Project;
 import com.artivisi.accountingfinance.entity.Transaction;
 import com.artivisi.accountingfinance.enums.TemplateCategory;
 import com.artivisi.accountingfinance.enums.TransactionStatus;
 import com.artivisi.accountingfinance.service.ChartOfAccountService;
+import com.artivisi.accountingfinance.service.InvoiceService;
 import com.artivisi.accountingfinance.service.JournalTemplateService;
 import com.artivisi.accountingfinance.service.ProjectService;
 import com.artivisi.accountingfinance.service.TransactionService;
@@ -45,11 +47,13 @@ public class TransactionController {
     private final JournalTemplateService journalTemplateService;
     private final ChartOfAccountService chartOfAccountService;
     private final ProjectService projectService;
+    private final InvoiceService invoiceService;
 
     @GetMapping
     public String list(
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String category,
+            @RequestParam(required = false) UUID projectId,
             @RequestParam(required = false) String search,
             @RequestParam(required = false) LocalDate startDate,
             @RequestParam(required = false) LocalDate endDate,
@@ -60,11 +64,13 @@ public class TransactionController {
         model.addAttribute("currentPage", "transactions");
         model.addAttribute("selectedStatus", status);
         model.addAttribute("selectedCategory", category);
+        model.addAttribute("selectedProjectId", projectId);
         model.addAttribute("searchQuery", search);
         model.addAttribute("startDate", startDate);
         model.addAttribute("endDate", endDate);
         model.addAttribute("statuses", TransactionStatus.values());
         model.addAttribute("categories", TemplateCategory.values());
+        model.addAttribute("projects", projectService.findActiveProjects());
         List<JournalTemplate> templates = journalTemplateService.findAll();
         model.addAttribute("templates", templates);
         // Group templates by category for dropdown
@@ -84,7 +90,7 @@ public class TransactionController {
         if (search != null && !search.isEmpty()) {
             transactionPage = transactionService.search(search, pageable);
         } else {
-            transactionPage = transactionService.findByFilters(statusEnum, categoryEnum, startDate, endDate, pageable);
+            transactionPage = transactionService.findByFilters(statusEnum, categoryEnum, projectId, startDate, endDate, pageable);
         }
 
         model.addAttribute("transactions", transactionPage.getContent());
@@ -99,7 +105,10 @@ public class TransactionController {
     }
 
     @GetMapping("/new")
-    public String create(@RequestParam(required = false) UUID templateId, Model model) {
+    public String create(
+            @RequestParam(required = false) UUID templateId,
+            @RequestParam(required = false) UUID invoiceId,
+            Model model) {
         model.addAttribute("currentPage", "transactions");
         model.addAttribute("isEdit", false);
         model.addAttribute("templates", journalTemplateService.findAll());
@@ -108,6 +117,18 @@ public class TransactionController {
 
         if (templateId != null) {
             model.addAttribute("selectedTemplate", journalTemplateService.findByIdWithLines(templateId));
+        }
+
+        // Pre-fill from invoice if provided (for invoice payment flow)
+        if (invoiceId != null) {
+            Invoice invoice = invoiceService.findById(invoiceId);
+            model.addAttribute("invoice", invoice);
+            model.addAttribute("prefillAmount", invoice.getAmount());
+            model.addAttribute("prefillDescription", "Pembayaran invoice " + invoice.getInvoiceNumber());
+            model.addAttribute("prefillReference", invoice.getInvoiceNumber());
+            if (invoice.getProject() != null) {
+                model.addAttribute("prefillProjectId", invoice.getProject().getId());
+            }
         }
 
         return "transactions/form";
@@ -206,7 +227,14 @@ public class TransactionController {
     @ResponseBody
     public ResponseEntity<Transaction> apiCreate(@Valid @RequestBody TransactionDto dto) {
         Transaction transaction = mapDtoToEntity(dto);
-        return ResponseEntity.ok(transactionService.create(transaction, dto.accountMappings()));
+        Transaction saved = transactionService.create(transaction, dto.accountMappings());
+
+        // If this is an invoice payment, link transaction to invoice and mark as paid
+        if (dto.invoiceId() != null) {
+            invoiceService.linkTransactionAndMarkPaid(dto.invoiceId(), saved);
+        }
+
+        return ResponseEntity.ok(saved);
     }
 
     @PutMapping("/api/{id}")

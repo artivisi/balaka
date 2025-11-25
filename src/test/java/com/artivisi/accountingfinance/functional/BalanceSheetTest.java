@@ -216,10 +216,13 @@ class BalanceSheetTest extends PlaywrightTestBase {
         void shouldShowCurrentYearEarnings() {
             balanceSheetPage.navigateWithDate("2024-06-30");
 
-            // Current year earnings should be visible (33M from 2024 revenue - expense)
+            // Current year earnings (includes V905 profitability test data)
+            // V901: 33M (revenue 52M - expense 19M)
+            // V905: +37M (revenue 55M - expense 18M)
+            // Total: 70M
             balanceSheetPage.assertCurrentYearEarningsVisible();
             String earnings = balanceSheetPage.getCurrentYearEarningsText();
-            assertThat(earnings).isEqualTo("33.000.000");
+            assertThat(earnings).isEqualTo("70.000.000");
         }
 
         @Test
@@ -227,9 +230,12 @@ class BalanceSheetTest extends PlaywrightTestBase {
         void shouldShowExpectedTotalAssets() {
             balanceSheetPage.navigateWithDate("2024-06-30");
 
-            // Total Assets = Cash 134M + BCA 40M + Peralatan 30M - Akum Peny 1M = 203M
+            // Total Assets (includes V905 profitability test data)
+            // V901: Cash 134M + BCA 40M + Peralatan 30M - Akum Peny 1M = 203M
+            // V905: Cash -16M + BCA +53M = +37M
+            // Total: 240M (Cash 118M + BCA 93M + Peralatan 30M - Akum Peny 1M)
             String totalAssets = balanceSheetPage.getTotalAssetsText();
-            assertThat(totalAssets).isEqualTo("203.000.000");
+            assertThat(totalAssets).isEqualTo("240.000.000");
         }
 
         @Test
@@ -237,7 +243,7 @@ class BalanceSheetTest extends PlaywrightTestBase {
         void shouldShowExpectedTotalLiabilities() {
             balanceSheetPage.navigateWithDate("2024-06-30");
 
-            // Total Liabilities = Hutang Usaha 10M
+            // Total Liabilities = Hutang Usaha 10M (unchanged by V905)
             String totalLiabilities = balanceSheetPage.getTotalLiabilitiesText();
             assertThat(totalLiabilities).isEqualTo("10.000.000");
         }
@@ -247,9 +253,12 @@ class BalanceSheetTest extends PlaywrightTestBase {
         void shouldShowExpectedTotalEquity() {
             balanceSheetPage.navigateWithDate("2024-06-30");
 
-            // Total Equity = Modal 150M + Prior Year Retained 10M + Current Year NI 33M = 193M
+            // Total Equity (includes V905 profitability test data)
+            // V901: Modal 150M + Prior Year Retained 10M + Current Year NI 33M = 193M
+            // V905: Current Year NI +37M
+            // Total: 230M (Modal 150M + Prior 10M + Current 70M)
             String totalEquity = balanceSheetPage.getTotalEquityText();
-            assertThat(totalEquity).isEqualTo("193.000.000");
+            assertThat(totalEquity).isEqualTo("230.000.000");
         }
     }
 
@@ -271,9 +280,9 @@ class BalanceSheetTest extends PlaywrightTestBase {
             // VOID entry JRN-2024-0008 should not affect totals
             balanceSheetPage.navigateWithDate("2024-06-30");
 
-            // Total Assets should still be 203M (VOID excluded)
+            // Total Assets should be 240M (VOID excluded, includes V905 data)
             String totalAssets = balanceSheetPage.getTotalAssetsText();
-            assertThat(totalAssets).isEqualTo("203.000.000");
+            assertThat(totalAssets).isEqualTo("240.000.000");
         }
 
         @Test
@@ -282,9 +291,9 @@ class BalanceSheetTest extends PlaywrightTestBase {
             // DRAFT entry JRN-2024-0012 should not affect totals
             balanceSheetPage.navigateWithDate("2024-06-30");
 
-            // Total Assets should still be 203M (DRAFT excluded)
+            // Total Assets should be 240M (DRAFT excluded, includes V905 data)
             String totalAssets = balanceSheetPage.getTotalAssetsText();
-            assertThat(totalAssets).isEqualTo("203.000.000");
+            assertThat(totalAssets).isEqualTo("240.000.000");
         }
 
         @Test
@@ -293,9 +302,9 @@ class BalanceSheetTest extends PlaywrightTestBase {
             // JRN-2024-0013 and JRN-2024-0014 are July 2024, should be excluded from June report
             balanceSheetPage.navigateWithDate("2024-06-30");
 
-            // Total Assets should be 203M (future entries excluded)
+            // Total Assets should be 240M (future entries excluded, includes V905 data)
             String totalAssets = balanceSheetPage.getTotalAssetsText();
-            assertThat(totalAssets).isEqualTo("203.000.000");
+            assertThat(totalAssets).isEqualTo("240.000.000");
         }
     }
 }

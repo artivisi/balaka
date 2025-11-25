@@ -125,7 +125,7 @@ class TrialBalanceTest extends PlaywrightTestBase {
         void shouldShowTotalsThatBalance() {
             trialBalancePage.navigateWithDate("2024-06-30");
 
-            // Trial Balance totals = 223,000,000 (sum of account balances, not transaction totals)
+            // Trial Balance totals = 278,000,000 (sum of account balances, includes V905 profitability test data)
             trialBalancePage.assertBalanceStatusText("Balance");
             trialBalancePage.assertBalanceMessageContains("Total Debit = Total Kredit");
         }
@@ -135,9 +135,12 @@ class TrialBalanceTest extends PlaywrightTestBase {
         void shouldShowExpectedTotalDebit() {
             trialBalancePage.navigateWithDate("2024-06-30");
 
-            // Trial Balance Total Debit = 223,000,000 (Cash 134M + BCA 40M + Peralatan 30M + Gaji 16M + Server 2M + Penyusutan 1M)
+            // Trial Balance Total Debit = 278,000,000
+            // V901: Cash 134M + BCA 40M + Peralatan 30M + Gaji 16M + Server 2M + Penyusutan 1M = 223M
+            // V905: Cash -16M + BCA +53M + Gaji +16M + Server +2M = +55M
+            // Total: 223M + 55M = 278M (Cash 118M + BCA 93M + Peralatan 30M + Gaji 32M + Server 4M + Penyusutan 1M)
             String totalDebit = trialBalancePage.getTotalDebitText();
-            assertThat(totalDebit).isEqualTo("223.000.000");
+            assertThat(totalDebit).isEqualTo("278.000.000");
         }
 
         @Test
@@ -145,9 +148,12 @@ class TrialBalanceTest extends PlaywrightTestBase {
         void shouldShowExpectedTotalCredit() {
             trialBalancePage.navigateWithDate("2024-06-30");
 
-            // Trial Balance Total Credit = 223,000,000 (Akum Peny 1M + Hutang 10M + Modal 150M + Konsultasi 37M + Development 25M)
+            // Trial Balance Total Credit = 278,000,000
+            // V901: Akum Peny 1M + Hutang 10M + Modal 150M + Konsultasi 37M + Development 25M = 223M
+            // V905: Konsultasi +28M (10M + 18M) + Development +27M (15M + 12M) = +55M
+            // Total: 223M + 55M = 278M (Akum Peny 1M + Hutang 10M + Modal 150M + Konsultasi 65M + Development 52M)
             String totalCredit = trialBalancePage.getTotalCreditText();
-            assertThat(totalCredit).isEqualTo("223.000.000");
+            assertThat(totalCredit).isEqualTo("278.000.000");
         }
 
         @Test
@@ -204,12 +210,12 @@ class TrialBalanceTest extends PlaywrightTestBase {
             // VOID entry JRN-2024-0008 dated 2024-04-15 should not affect totals
             trialBalancePage.navigateWithDate("2024-06-30");
 
-            // Totals should still balance at 223,000,000 (VOID excluded)
+            // Totals should still balance at 278,000,000 (VOID excluded, includes V905 data)
             String totalDebit = trialBalancePage.getTotalDebitText();
             String totalCredit = trialBalancePage.getTotalCreditText();
 
             assertThat(totalDebit).isEqualTo(totalCredit);
-            assertThat(totalDebit).isEqualTo("223.000.000");
+            assertThat(totalDebit).isEqualTo("278.000.000");
         }
 
         @Test
@@ -218,9 +224,9 @@ class TrialBalanceTest extends PlaywrightTestBase {
             // DRAFT entry JRN-2024-0012 dated 2024-06-30 should not affect totals
             trialBalancePage.navigateWithDate("2024-06-30");
 
-            // Totals should be 223,000,000 (DRAFT excluded)
+            // Totals should be 278,000,000 (DRAFT excluded, includes V905 data)
             String totalDebit = trialBalancePage.getTotalDebitText();
-            assertThat(totalDebit).isEqualTo("223.000.000");
+            assertThat(totalDebit).isEqualTo("278.000.000");
         }
 
         @Test
@@ -229,9 +235,9 @@ class TrialBalanceTest extends PlaywrightTestBase {
             // Soft-deleted entry JRN-2024-0015 should not affect totals
             trialBalancePage.navigateWithDate("2024-06-30");
 
-            // Totals should be 223,000,000 (soft-deleted excluded)
+            // Totals should be 278,000,000 (soft-deleted excluded, includes V905 data)
             String totalDebit = trialBalancePage.getTotalDebitText();
-            assertThat(totalDebit).isEqualTo("223.000.000");
+            assertThat(totalDebit).isEqualTo("278.000.000");
         }
 
         @Test
@@ -240,9 +246,9 @@ class TrialBalanceTest extends PlaywrightTestBase {
             // JRN-2024-0013 and JRN-2024-0014 are July 2024, should be excluded from June report
             trialBalancePage.navigateWithDate("2024-06-30");
 
-            // Totals should be 223,000,000 (future entries excluded)
+            // Totals should be 278,000,000 (future entries excluded, includes V905 data)
             String totalDebit = trialBalancePage.getTotalDebitText();
-            assertThat(totalDebit).isEqualTo("223.000.000");
+            assertThat(totalDebit).isEqualTo("278.000.000");
         }
     }
 }

@@ -79,6 +79,10 @@ public class Invoice {
     @Column(name = "id_journal_entry")
     private UUID journalEntryId;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_transaction")
+    private Transaction transaction;
+
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;
 

@@ -76,10 +76,34 @@
 
             <!-- Main Form Card (only show when template is selected or editing) -->
             <div th:if="${selectedTemplate != null or isEdit}" class="bg-white rounded-lg shadow-sm border border-gray-200">
+                <!-- Invoice Payment Info Banner (when paying invoice) -->
+                <div th:if="${invoice != null}" class="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0">
+                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-semibold text-blue-800">Pembayaran Invoice</h3>
+                            <p class="text-xs text-blue-600 mt-1">
+                                <span th:text="${invoice.invoiceNumber}">INV-001</span> -
+                                <span th:text="${invoice.client.name}">Client</span>
+                                <span th:if="${invoice.project}">
+                                    | Proyek: <span th:text="${invoice.project.name}">Project</span>
+                                </span>
+                            </p>
+                            <p class="text-xs text-blue-600">
+                                Jumlah: <strong th:text="'Rp ' + ${#numbers.formatDecimal(invoice.amount, 0, 'COMMA', 0, 'POINT')}">Rp 0</strong>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
                 <form id="form-transaksi" th:action="@{/transactions}" method="post"
                       x-data="{
-                          amount: /*[[${isEdit and transaction != null ? transaction.amount : 0}]]*/ 0,
-                          description: /*[[${isEdit and transaction != null ? transaction.description : ''}]]*/ '',
+                          amount: /*[[${prefillAmount != null ? prefillAmount : (isEdit and transaction != null ? transaction.amount : 0)}]]*/ 0,
+                          description: /*[[${prefillDescription != null ? prefillDescription : (isEdit and transaction != null ? transaction.description : '')}]]*/ '',
                           formatCurrency(value) {
                               return new Intl.NumberFormat('id-ID').format(value);
                           },
@@ -90,6 +114,7 @@
                     <!-- Hidden fields -->
                     <input type="hidden" name="templateId" th:value="${selectedTemplate?.id ?: transaction?.journalTemplate?.id}">
                     <input type="hidden" name="id" th:if="${isEdit}" th:value="${transaction?.id}">
+                    <input type="hidden" id="invoiceId" name="invoiceId" th:value="${invoice?.id}">
 
                     <!-- Transaction Header Section -->
                     <div class="p-6 border-b border-gray-200">
@@ -170,7 +195,7 @@
                                 </label>
                                 <input type="text" id="description" name="description"
                                        x-model="description"
-                                       th:value="${isEdit ? transaction.description : ''}"
+                                       th:value="${prefillDescription != null ? prefillDescription : (isEdit ? transaction.description : '')}"
                                        placeholder="Contoh: Jasa Konsultasi PT. ABC - Invoice INV-2025-001"
                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
                                        required>
@@ -187,7 +212,7 @@
                                     <th:block th:each="prj : ${projects}">
                                         <option th:value="${prj.id}"
                                                 th:text="${prj.code + ' - ' + prj.name}"
-                                                th:selected="${isEdit and transaction?.project?.id == prj.id}">Project</option>
+                                                th:selected="${(prefillProjectId != null and prefillProjectId == prj.id) or (isEdit and transaction?.project?.id == prj.id)}">Project</option>
                                     </th:block>
                                 </select>
                                 <p class="text-xs text-gray-500 mt-1">Pilih proyek untuk tracking pendapatan/biaya</p>
@@ -199,7 +224,7 @@
                                     No. Referensi
                                 </label>
                                 <input type="text" id="referenceNumber" name="referenceNumber"
-                                       th:value="${isEdit ? transaction.referenceNumber : ''}"
+                                       th:value="${prefillReference != null ? prefillReference : (isEdit ? transaction.referenceNumber : '')}"
                                        placeholder="Contoh: INV-2025-001, PO-001"
                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
                             </div>
@@ -386,12 +411,13 @@
 
                 const templateId = /*[[${selectedTemplate?.id ?: (transaction?.journalTemplate?.id ?: '')}]]*/ '';
                 const transactionId = /*[[${isEdit and transaction != null ? transaction.id : ''}]]*/ '';
+                const invoiceId = /*[[${invoice?.id ?: ''}]]*/ '';
                 const isEdit = /*[[${isEdit}]]*/ false;
 
                 function getFormData() {
                     const projectSelect = document.getElementById('project');
                     const projectId = projectSelect?.value || null;
-                    return {
+                    const data = {
                         templateId: templateId,
                         transactionDate: document.getElementById('transactionDate').value,
                         amount: parseInt(document.querySelector('input[name="amount"]').value) || 0,
@@ -401,6 +427,11 @@
                         projectId: projectId || null,
                         accountMappings: {}
                     };
+                    // Include invoiceId if paying an invoice
+                    if (invoiceId) {
+                        data.invoiceId = invoiceId;
+                    }
+                    return data;
                 }
 
                 // Save Draft

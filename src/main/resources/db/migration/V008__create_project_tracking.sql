@@ -59,6 +59,8 @@ CREATE TABLE project_payment_terms (
     due_trigger VARCHAR(20) NOT NULL,
     id_milestone UUID REFERENCES project_milestones(id),
     due_date DATE,
+    id_template UUID REFERENCES journal_templates(id),
+    auto_post BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
     UNIQUE(id_project, sequence)
@@ -78,6 +80,7 @@ CREATE TABLE invoices (
     sent_at TIMESTAMP,
     paid_at TIMESTAMP,
     id_journal_entry UUID,
+    id_transaction UUID REFERENCES transactions(id),
     notes TEXT,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
@@ -101,6 +104,7 @@ CREATE INDEX idx_milestones_status ON project_milestones(status);
 
 CREATE INDEX idx_payment_terms_project ON project_payment_terms(id_project);
 CREATE INDEX idx_payment_terms_milestone ON project_payment_terms(id_milestone);
+CREATE INDEX idx_payment_terms_template ON project_payment_terms(id_template);
 
 CREATE INDEX idx_invoices_client ON invoices(id_client);
 CREATE INDEX idx_invoices_project ON invoices(id_project);

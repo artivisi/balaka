@@ -144,6 +144,14 @@ INSERT INTO journal_template_lines (id, id_journal_template, id_account, positio
 ('e1000000-0000-0000-0000-000000000023', 'e0000000-0000-0000-0000-000000000012', '10000000-0000-0000-0000-000000000102', 'DEBIT', 'amount', 1),
 ('e1000000-0000-0000-0000-000000000024', 'e0000000-0000-0000-0000-000000000012', '30000000-0000-0000-0000-000000000101', 'CREDIT', 'amount', 2);
 
+-- Template: Pengakuan Pendapatan Proyek (Revenue Recognition from Advance Payment)
+INSERT INTO journal_templates (id, template_name, category, cash_flow_category, template_type, description, is_system, active) VALUES
+('e0000000-0000-0000-0000-000000000013', 'Pengakuan Pendapatan Proyek', 'INCOME', 'OPERATING', 'SIMPLE', 'Template untuk mengakui pendapatan dari pembayaran dimuka saat milestone selesai', TRUE, TRUE);
+
+INSERT INTO journal_template_lines (id, id_journal_template, id_account, position, formula, line_order) VALUES
+('e1000000-0000-0000-0000-000000000025', 'e0000000-0000-0000-0000-000000000013', '20000000-0000-0000-0000-000000000104', 'DEBIT', 'amount', 1),
+('e1000000-0000-0000-0000-000000000026', 'e0000000-0000-0000-0000-000000000013', '40000000-0000-0000-0000-000000000102', 'CREDIT', 'amount', 2);
+
 -- Template Tags (for categorization)
 CREATE TABLE journal_template_tags (
     id UUID PRIMARY KEY,

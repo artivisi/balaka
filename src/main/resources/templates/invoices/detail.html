@@ -54,6 +54,12 @@
                     <p class="text-gray-500">Dibayar</p>
                     <p class="font-medium text-green-600" th:text="${#temporals.format(invoice.paidAt, 'dd MMM yyyy HH:mm')}">15 Jan 2025 14:00</p>
                 </div>
+                <div th:if="${invoice.transaction}">
+                    <p class="text-gray-500">Transaksi Pembayaran</p>
+                    <p class="font-medium">
+                        <a th:href="@{/transactions/{id}(id=${invoice.transaction.id})}" class="text-primary-600 hover:underline" th:text="${invoice.transaction.transactionNumber}">TRX-001</a>
+                    </p>
+                </div>
                 <div>
                     <p class="text-gray-500">Dibuat</p>
                     <p class="font-medium" th:text="${#temporals.format(invoice.createdAt, 'dd MMM yyyy HH:mm')}">01 Jan 2025 10:00</p>
@@ -92,15 +98,12 @@
                     </button>
                 </form>
 
-                <!-- Mark as Paid (sent or overdue) -->
-                <form th:if="${invoice.status.name() == 'SENT' || invoice.status.name() == 'OVERDUE'}"
-                      th:action="@{/invoices/{id}/mark-paid(id=${invoice.id})}"
-                      method="post" class="inline"
-                      onsubmit="return confirm('Tandai invoice ini sudah dibayar?')">
-                    <button type="submit" class="px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors">
-                        Tandai Lunas
-                    </button>
-                </form>
+                <!-- Mark as Paid (sent or overdue) - redirects to transaction form -->
+                <a th:if="${invoice.status.name() == 'SENT' || invoice.status.name() == 'OVERDUE'}"
+                   th:href="@{/invoices/{id}/pay(id=${invoice.id})}"
+                   class="px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors">
+                    Tandai Lunas
+                </a>
 
                 <!-- Cancel (not paid) -->
                 <form th:if="${invoice.status.name() != 'PAID' && invoice.status.name() != 'CANCELLED'}"

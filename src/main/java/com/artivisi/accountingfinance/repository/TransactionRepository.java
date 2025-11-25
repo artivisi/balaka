@@ -27,12 +27,14 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
     @Query("SELECT t FROM Transaction t WHERE " +
            "(:status IS NULL OR t.status = :status) AND " +
            "(:category IS NULL OR t.journalTemplate.category = :category) AND " +
+           "(:projectId IS NULL OR t.project.id = :projectId) AND " +
            "(:startDate IS NULL OR t.transactionDate >= :startDate) AND " +
            "(:endDate IS NULL OR t.transactionDate <= :endDate) " +
            "ORDER BY t.transactionDate DESC, t.transactionNumber DESC")
     Page<Transaction> findByFilters(
             @Param("status") TransactionStatus status,
             @Param("category") TemplateCategory category,
+            @Param("projectId") UUID projectId,
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate,
             Pageable pageable);

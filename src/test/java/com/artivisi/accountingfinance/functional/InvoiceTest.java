@@ -159,12 +159,12 @@ class InvoiceTest extends PlaywrightTestBase {
 
             // Should show sent status
             detailPage.assertStatusText("Terkirim");
-            assertThat(detailPage.hasMarkPaidButton()).isTrue();
+            assertThat(detailPage.hasMarkPaidLink()).isTrue();
         }
 
         @Test
-        @DisplayName("Should mark sent invoice as paid")
-        void shouldMarkInvoiceAsPaid() {
+        @DisplayName("Should redirect to transaction form when clicking Tandai Lunas")
+        void shouldRedirectToTransactionFormWhenMarkingPaid() {
             createTestClient();
             createTestInvoice();
 
@@ -172,12 +172,17 @@ class InvoiceTest extends PlaywrightTestBase {
             detailPage.clickSendButton();
             detailPage.assertStatusText("Terkirim");
 
-            // Mark as paid
-            detailPage.clickMarkPaidButton();
+            // Click "Tandai Lunas" - should redirect to transaction form
+            detailPage.clickMarkPaidLink();
 
-            // Should show paid status
-            detailPage.assertStatusText("Lunas");
-            assertThat(detailPage.hasMarkPaidButton()).isFalse();
+            // Should be on transaction form with template selected
+            page.waitForLoadState();
+            assertThat(page.url()).contains("/transactions/new");
+            assertThat(page.url()).contains("invoiceId=");
+            assertThat(page.url()).contains("templateId=");
+
+            // Should see invoice payment info banner
+            assertThat(page.locator("text=Pembayaran Invoice").isVisible()).isTrue();
         }
 
         @Test

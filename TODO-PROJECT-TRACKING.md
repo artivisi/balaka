@@ -181,17 +181,39 @@ Track profitability per project/job for service businesses. Simple tagging appro
 - [x] `invoices/form.html` - create/edit form
 - [x] `invoices/detail.html` - invoice detail with status actions
 
-#### 5.5 Revenue Recognition Integration
-- [ ] On milestone complete → find linked payment term → create amortization entry
-- [ ] Journal: Dr. Pendapatan Diterima Dimuka / Cr. Pendapatan Jasa
+#### 5.5 Revenue Recognition Integration ✅
+- [x] Add `templateId` (FK to journal_templates) to ProjectPaymentTerm
+- [x] Add `autoPost` (boolean, default false) to ProjectPaymentTerm
+- [x] Create system template "Pengakuan Pendapatan Proyek" (Dr. Pendapatan Diterima Dimuka / Cr. Pendapatan Jasa)
+- [x] On milestone complete → find linked payment terms → create Transaction via template
+- [x] If autoPost=true → auto-post transaction; else → DRAFT for review
 
-#### 5.6 Invoice Functional Tests
+**Design Decision:** Use Transaction → Template → Journal flow (not Amortization) because:
+- Amortization is time-based periodic allocation
+- Milestone recognition is event-based (completion trigger)
+- Transaction flow provides audit trail and user visibility
+
+#### 5.6 Invoice Payment Integration ✅
+- [x] Change "Tandai Lunas" to redirect to `/transactions/new?invoiceId={id}`
+- [x] Pre-fill transaction: amount, description, project from invoice
+- [x] User enters: bank account, reference number, transactionDate (actual cash date)
+- [x] On transaction post → mark invoice as PAID
+- [x] Add `transactionId` to Invoice entity for linking
+- [x] On cancel/back → invoice stays unpaid
+
+**Design Decision:** Invoice payment creates cash receipt transaction because:
+- Ensures every PAID invoice has journal entry
+- User specifies bank account and reference number
+- Proper audit trail with bank statement reference
+- Date handling: transactionDate = actual cash date, createdAt = key-in date
+
+#### 5.7 Invoice Functional Tests
 - [x] Create invoice
 - [x] Send invoice
-- [x] Mark invoice paid
+- [x] Redirect to transaction form when clicking Tandai Lunas
 - [x] Cancel invoice
-- [ ] Generate invoice from payment term (UI)
-- [ ] Verify journal entry created on paid
+- [ ] Generate invoice from payment term (click button, verify invoice created)
+- [ ] Full invoice payment flow with transaction completion
 
 ---
 
@@ -211,10 +233,16 @@ Track profitability per project/job for service businesses. Simple tagging appro
 - [x] Display project on transaction detail page
 - [x] Link to project detail from transaction
 
-#### 6.4 Functional Tests
+#### 6.4 Filter by Project ✅
+- [x] Add project dropdown to transaction list filter
+- [x] Update TransactionRepository query to filter by projectId
+- [x] Update controller to accept projectId parameter
+- [x] HTMX partial update for filtered results
+
+#### 6.5 Functional Tests
 - [x] Create transaction with project
 - [x] Verify project shown on transaction detail
-- [ ] Filter transactions by project
+- [ ] Filter transactions by project (manual test)
 
 ---
 
@@ -266,10 +294,12 @@ Track profitability per project/job for service businesses. Simple tagging appro
 1. ✅ User can create and manage clients
 2. ✅ User can create projects with milestones and payment terms
 3. ✅ User can link transactions to projects
-4. ⏳ Milestone completion triggers revenue recognition
+4. ✅ Milestone completion triggers revenue recognition (via Transaction → Template → Journal)
 5. ✅ Invoice generation from payment terms works
-6. ✅ Project profitability report shows revenue - costs
-7. ✅ Client profitability report aggregates all client projects
-8. ✅ Cost overrun detection calculates % spent vs % complete with risk levels
-9. ✅ HTMX partial updates work for all list pages
-10. ✅ All functionality verified by Playwright tests (26 profitability tests passing)
+6. ✅ Invoice payment redirects to transaction form for cash receipt entry
+7. ✅ Project profitability report shows revenue - costs
+8. ✅ Client profitability report aggregates all client projects
+9. ✅ Cost overrun detection calculates % spent vs % complete with risk levels
+10. ✅ HTMX partial updates work for all list pages
+11. ✅ Filter transactions by project works
+12. ✅ All functionality verified by Playwright tests

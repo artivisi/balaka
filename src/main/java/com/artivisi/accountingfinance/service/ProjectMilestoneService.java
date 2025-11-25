@@ -2,25 +2,34 @@ package com.artivisi.accountingfinance.service;
 
 import com.artivisi.accountingfinance.entity.Project;
 import com.artivisi.accountingfinance.entity.ProjectMilestone;
+import com.artivisi.accountingfinance.entity.ProjectPaymentTerm;
+import com.artivisi.accountingfinance.entity.Transaction;
 import com.artivisi.accountingfinance.enums.MilestoneStatus;
 import com.artivisi.accountingfinance.repository.ProjectMilestoneRepository;
+import com.artivisi.accountingfinance.repository.ProjectPaymentTermRepository;
 import com.artivisi.accountingfinance.repository.ProjectRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
+@Slf4j
 public class ProjectMilestoneService {
 
     private final ProjectMilestoneRepository milestoneRepository;
     private final ProjectRepository projectRepository;
+    private final ProjectPaymentTermRepository paymentTermRepository;
+    private final TransactionService transactionService;
 
     public ProjectMilestone findById(UUID id) {
         return milestoneRepository.findById(id)
@@ -104,7 +113,52 @@ public class ProjectMilestoneService {
 
     @Transactional
     public void completeMilestone(UUID id) {
-        updateStatus(id, MilestoneStatus.COMPLETED);
+        ProjectMilestone milestone = findById(id);
+        milestone.setStatus(MilestoneStatus.COMPLETED);
+        milestone.setActualDate(LocalDate.now());
+        milestoneRepository.save(milestone);
+
+        // Create revenue recognition transactions for linked payment terms
+        createRevenueRecognitionTransactions(milestone);
+    }
+
+    private void createRevenueRecognitionTransactions(ProjectMilestone milestone) {
+        List<ProjectPaymentTerm> paymentTerms = paymentTermRepository.findByMilestoneId(milestone.getId());
+
+        for (ProjectPaymentTerm term : paymentTerms) {
+            if (term.getTemplate() == null) {
+                log.debug("Payment term {} has no template, skipping revenue recognition", term.getName());
+                continue;
+            }
+
+            Project project = term.getProject();
+            var amount = term.getCalculatedAmount(project.getContractValue());
+
+            if (amount == null || amount.signum() <= 0) {
+                log.debug("Payment term {} has no amount, skipping revenue recognition", term.getName());
+                continue;
+            }
+
+            // Create transaction
+            Transaction transaction = new Transaction();
+            transaction.setJournalTemplate(term.getTemplate());
+            transaction.setTransactionDate(LocalDate.now());
+            transaction.setAmount(amount);
+            transaction.setDescription("Pengakuan pendapatan: " + milestone.getName() + " - " + term.getName());
+            transaction.setProject(project);
+            transaction.setReferenceNumber(project.getCode() + "-" + milestone.getSequence());
+
+            Transaction savedTransaction = transactionService.create(transaction, new HashMap<>());
+            log.info("Created revenue recognition transaction {} for payment term {}",
+                    savedTransaction.getTransactionNumber(), term.getName());
+
+            // Auto-post if configured
+            if (Boolean.TRUE.equals(term.getAutoPost())) {
+                String username = SecurityContextHolder.getContext().getAuthentication().getName();
+                transactionService.post(savedTransaction.getId(), username);
+                log.info("Auto-posted transaction {}", savedTransaction.getTransactionNumber());
+            }
+        }
     }
 
     @Transactional

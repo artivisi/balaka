@@ -4,6 +4,7 @@ import com.artivisi.accountingfinance.entity.Client;
 import com.artivisi.accountingfinance.entity.Invoice;
 import com.artivisi.accountingfinance.entity.Project;
 import com.artivisi.accountingfinance.entity.ProjectPaymentTerm;
+import com.artivisi.accountingfinance.entity.Transaction;
 import com.artivisi.accountingfinance.enums.InvoiceStatus;
 import com.artivisi.accountingfinance.repository.ClientRepository;
 import com.artivisi.accountingfinance.repository.InvoiceRepository;
@@ -206,6 +207,20 @@ public class InvoiceService {
             throw new IllegalStateException("Only sent or overdue invoices can be marked as paid");
         }
 
+        invoice.setStatus(InvoiceStatus.PAID);
+        invoice.setPaidAt(LocalDateTime.now());
+        return invoiceRepository.save(invoice);
+    }
+
+    @Transactional
+    public Invoice linkTransactionAndMarkPaid(UUID invoiceId, Transaction transaction) {
+        Invoice invoice = findById(invoiceId);
+
+        if (invoice.getStatus() != InvoiceStatus.SENT && invoice.getStatus() != InvoiceStatus.OVERDUE) {
+            throw new IllegalStateException("Only sent or overdue invoices can be marked as paid");
+        }
+
+        invoice.setTransaction(transaction);
         invoice.setStatus(InvoiceStatus.PAID);
         invoice.setPaidAt(LocalDateTime.now());
         return invoiceRepository.save(invoice);
