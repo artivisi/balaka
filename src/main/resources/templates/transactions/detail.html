@@ -7,9 +7,9 @@
     <title>Detail Transaksi</title>
 </head>
 <body>
-    <h1 layout:fragment="page-title">Detail Transaksi</h1>
+    <h1 id="page-title" layout:fragment="page-title">Detail Transaksi</h1>
 
-    <div layout:fragment="content" class="h-full flex flex-col overflow-y-auto">
+    <div id="transaction-detail-content" layout:fragment="content" class="h-full flex flex-col overflow-y-auto">
         <div class="max-w-4xl">
             <!-- Breadcrumb -->
             <nav class="flex items-center space-x-2 text-sm text-gray-500 mb-6">
@@ -17,38 +17,105 @@
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                 </svg>
-                <span class="text-gray-900">TRX-2025-0023</span>
+                <span id="transaction-number" class="text-gray-900" th:text="${transaction.transactionNumber}">TRX-2025-0001</span>
             </nav>
 
             <!-- Status Banner -->
-            <div class="mb-6 p-4 bg-accent-50 rounded-lg border border-accent-200">
+            <div class="mb-6 p-4 rounded-lg border"
+                 th:classappend="${transaction.status.name() == 'DRAFT'} ? 'bg-amber-50 border-amber-200' : (${transaction.status.name() == 'POSTED'} ? 'bg-accent-50 border-accent-200' : 'bg-red-50 border-red-200')">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center">
                         <div class="flex-shrink-0">
-                            <span class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-accent-100">
-                                <svg class="w-5 h-5 text-accent-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <span th:classappend="${transaction.status.name() == 'DRAFT'} ? 'bg-amber-100' : (${transaction.status.name() == 'POSTED'} ? 'bg-accent-100' : 'bg-red-100')"
+                                  class="inline-flex items-center justify-center w-10 h-10 rounded-full">
+                                <!-- Draft Icon -->
+                                <svg th:if="${transaction.status.name() == 'DRAFT'}" class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                </svg>
+                                <!-- Posted Icon -->
+                                <svg th:if="${transaction.status.name() == 'POSTED'}" class="w-5 h-5 text-accent-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                </svg>
+                                <!-- Void Icon -->
+                                <svg th:if="${transaction.status.name() == 'VOID'}" class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
                                 </svg>
                             </span>
                         </div>
                         <div class="ml-3">
-                            <h3 class="text-sm font-semibold text-accent-800">Transaksi Berhasil Diposting</h3>
-                            <p class="text-xs text-accent-600 mt-0.5">Diposting pada 22 November 2025, 14:30 WIB oleh admin</p>
+                            <!-- Draft Status -->
+                            <th:block th:if="${transaction.status.name() == 'DRAFT'}">
+                                <h3 data-testid="status-draft" class="text-sm font-semibold text-amber-800">Transaksi dalam Draft</h3>
+                                <p class="text-xs text-amber-600 mt-0.5">
+                                    Dibuat pada <span th:text="${#temporals.format(transaction.createdAt, 'd MMMM yyyy, HH:mm')} + ' WIB'">22 November 2025, 14:20 WIB</span>
+                                </p>
+                            </th:block>
+                            <!-- Posted Status -->
+                            <th:block th:if="${transaction.status.name() == 'POSTED'}">
+                                <h3 data-testid="status-posted" class="text-sm font-semibold text-accent-800">Transaksi Berhasil Diposting</h3>
+                                <p class="text-xs text-accent-600 mt-0.5">
+                                    Diposting pada <span th:text="${#temporals.format(transaction.postedAt, 'd MMMM yyyy, HH:mm')} + ' WIB oleh ' + ${transaction.postedBy}">22 November 2025, 14:30 WIB oleh admin</span>
+                                </p>
+                            </th:block>
+                            <!-- Void Status -->
+                            <th:block th:if="${transaction.status.name() == 'VOID'}">
+                                <h3 data-testid="status-void" class="text-sm font-semibold text-red-800">Transaksi Di-void</h3>
+                                <p class="text-xs text-red-600 mt-0.5">
+                                    Di-void pada <span th:text="${#temporals.format(transaction.voidedAt, 'd MMMM yyyy, HH:mm')} + ' WIB oleh ' + ${transaction.voidedBy}">22 November 2025, 14:30 WIB oleh admin</span>
+                                </p>
+                                <p th:if="${transaction.voidReason != null}" class="text-xs text-red-600 mt-0.5">
+                                    Alasan: <span th:text="${transaction.voidReason.indonesianName}">Input Error</span>
+                                    <span th:if="${transaction.voidNotes != null}">- <span th:text="${transaction.voidNotes}">Notes</span></span>
+                                </p>
+                            </th:block>
                         </div>
                     </div>
                     <div class="flex items-center space-x-2">
+                        <!-- Print Button -->
                         <button class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
                             <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
                             </svg>
                             Cetak
                         </button>
-                        <button class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors">
+                        <!-- Edit Button (Draft only) -->
+                        <a th:if="${transaction.status.name() == 'DRAFT'}"
+                           th:href="@{/transactions/{id}/edit(id=${transaction.id})}"
+                           class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-primary-700 bg-primary-50 border border-primary-200 rounded-lg hover:bg-primary-100 transition-colors">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                            </svg>
+                            Edit
+                        </a>
+                        <!-- Post Button (Draft only) -->
+                        <button th:if="${transaction.status.name() == 'DRAFT'}"
+                                id="btn-post"
+                                th:data-id="${transaction.id}"
+                                class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-accent-700 bg-accent-50 border border-accent-200 rounded-lg hover:bg-accent-100 transition-colors">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            Posting
+                        </button>
+                        <!-- Delete Button (Draft only) -->
+                        <button th:if="${transaction.status.name() == 'DRAFT'}"
+                                id="btn-delete"
+                                th:data-id="${transaction.id}"
+                                class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                            </svg>
+                            Hapus
+                        </button>
+                        <!-- Void Button (Posted only) -->
+                        <a th:if="${transaction.status.name() == 'POSTED'}"
+                           th:href="@{/transactions/{id}/void(id=${transaction.id})}"
+                           class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors">
                             <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
                             </svg>
                             Void Transaksi
-                        </button>
+                        </a>
                     </div>
                 </div>
             </div>
@@ -58,14 +125,24 @@
                 <div class="p-6">
                     <div class="flex items-start justify-between mb-6">
                         <div>
-                            <h2 class="text-xl font-bold text-gray-900">TRX-2025-0023</h2>
-                            <p class="text-sm text-gray-500 mt-1">Jasa Konsultasi PT. Maju Bersama</p>
+                            <h2 th:classappend="${transaction.status.name() == 'VOID'} ? 'line-through'"
+                                class="text-xl font-bold text-gray-900" th:text="${transaction.transactionNumber}">TRX-2025-0001</h2>
+                            <p th:classappend="${transaction.status.name() == 'VOID'} ? 'line-through'"
+                               class="text-sm text-gray-500 mt-1" th:text="${transaction.description}">Description</p>
                         </div>
                         <div class="text-right">
-                            <p class="text-2xl font-bold text-green-600">+ Rp 15.000.000</p>
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 mt-2">
-                                <span class="w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5"></span>
-                                Pendapatan
+                            <p th:classappend="${transaction.status.name() == 'VOID'} ? 'text-gray-400 line-through' : (${transaction.journalTemplate?.category?.name() == 'INCOME' or transaction.journalTemplate?.category?.name() == 'RECEIPT'} ? 'text-green-600' : (${transaction.journalTemplate?.category?.name() == 'EXPENSE' or transaction.journalTemplate?.category?.name() == 'PAYMENT'} ? 'text-red-600' : 'text-gray-900'))"
+                               class="text-2xl font-bold">
+                                <span th:if="${transaction.journalTemplate?.category?.name() == 'INCOME' or transaction.journalTemplate?.category?.name() == 'RECEIPT'}">+ </span>
+                                <span th:if="${transaction.journalTemplate?.category?.name() == 'EXPENSE' or transaction.journalTemplate?.category?.name() == 'PAYMENT'}">- </span>
+                                <span th:text="'Rp ' + ${#numbers.formatDecimal(transaction.amount, 0, 'POINT', 0, 'COMMA')}">Rp 0</span>
+                            </p>
+                            <span id="transaction-status"
+                                  th:classappend="${transaction.journalTemplate?.category?.name() == 'INCOME'} ? 'bg-green-100 text-green-800' : (${transaction.journalTemplate?.category?.name() == 'EXPENSE'} ? 'bg-red-100 text-red-800' : (${transaction.journalTemplate?.category?.name() == 'TRANSFER'} ? 'bg-purple-100 text-purple-800' : (${transaction.journalTemplate?.category?.name() == 'PAYMENT'} ? 'bg-blue-100 text-blue-800' : 'bg-cyan-100 text-cyan-800')))"
+                                  class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium mt-2">
+                                <span th:classappend="${transaction.journalTemplate?.category?.name() == 'INCOME'} ? 'bg-green-500' : (${transaction.journalTemplate?.category?.name() == 'EXPENSE'} ? 'bg-red-500' : (${transaction.journalTemplate?.category?.name() == 'TRANSFER'} ? 'bg-purple-500' : (${transaction.journalTemplate?.category?.name() == 'PAYMENT'} ? 'bg-blue-500' : 'bg-cyan-500')))"
+                                      class="w-1.5 h-1.5 rounded-full mr-1.5"></span>
+                                <span th:text="${transaction.journalTemplate?.category?.name() == 'INCOME'} ? 'Pendapatan' : (${transaction.journalTemplate?.category?.name() == 'EXPENSE'} ? 'Pengeluaran' : (${transaction.journalTemplate?.category?.name() == 'PAYMENT'} ? 'Pembayaran' : (${transaction.journalTemplate?.category?.name() == 'RECEIPT'} ? 'Penerimaan' : 'Transfer')))">Category</span>
                             </span>
                         </div>
                     </div>
@@ -73,36 +150,39 @@
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
                         <div>
                             <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</p>
-                            <p class="text-sm text-gray-900 mt-1">22 November 2025</p>
+                            <p class="text-sm text-gray-900 mt-1" th:text="${#temporals.format(transaction.transactionDate, 'd MMMM yyyy')}">22 November 2025</p>
                         </div>
                         <div>
                             <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Template</p>
-                            <p class="text-sm text-gray-900 mt-1">Pendapatan Jasa Konsultasi</p>
+                            <p class="text-sm text-gray-900 mt-1" th:text="${transaction.journalTemplate?.templateName}">Template Name</p>
                         </div>
                         <div>
                             <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">No. Referensi</p>
-                            <p class="text-sm text-gray-900 mt-1">INV-2025-0023</p>
+                            <p class="text-sm text-gray-900 mt-1" th:text="${transaction.referenceNumber ?: '-'}">-</p>
                         </div>
                         <div>
-                            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Akun Sumber</p>
-                            <p class="text-sm text-gray-900 mt-1">1.1.02 - Bank BCA</p>
+                            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Status</p>
+                            <span th:classappend="${transaction.status.name() == 'DRAFT'} ? 'bg-amber-100 text-amber-800' : (${transaction.status.name() == 'POSTED'} ? 'bg-accent-100 text-accent-800' : 'bg-red-100 text-red-800')"
+                                  class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium mt-1"
+                                  th:text="${transaction.status.name()}">Status</span>
                         </div>
                     </div>
 
                     <!-- Notes if any -->
-                    <div class="mt-6 pt-6 border-t border-gray-200">
+                    <div th:if="${transaction.notes != null and !transaction.notes.isEmpty()}" class="mt-6 pt-6 border-t border-gray-200">
                         <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Catatan</p>
-                        <p class="text-sm text-gray-700">Pembayaran jasa konsultasi IT untuk proyek transformasi digital. Termin pertama dari total 3 termin pembayaran.</p>
+                        <p class="text-sm text-gray-700" th:text="${transaction.notes}">Notes</p>
                     </div>
                 </div>
             </div>
 
             <!-- Journal Entry Card -->
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+            <div id="journal-entries" class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
                 <div class="p-6 border-b border-gray-200">
                     <div class="flex items-center justify-between">
                         <h2 class="text-lg font-semibold text-gray-900">Jurnal Entry</h2>
-                        <span class="text-xs text-gray-500">JE-2025-0045</span>
+                        <span th:if="${!transaction.journalEntries.isEmpty()}"
+                              class="text-xs text-gray-500" th:text="${transaction.journalEntries[0]?.journalNumber}">JE-2025-0001</span>
                     </div>
                 </div>
 
@@ -117,32 +197,35 @@
 
                     <!-- Journal Lines -->
                     <div class="divide-y divide-gray-100">
-                        <div class="grid grid-cols-12 gap-4 px-6 py-4 items-center">
-                            <div class="col-span-1 text-sm text-gray-600 font-mono">1.1.02</div>
+                        <div th:each="entry : ${transaction.journalEntries}"
+                             th:classappend="${transaction.status.name() == 'VOID'} ? 'opacity-50'"
+                             class="grid grid-cols-12 gap-4 px-6 py-4 items-center">
+                            <div class="col-span-1 text-sm text-gray-600 font-mono" th:text="${entry.account?.accountCode}">1.1.01</div>
                             <div class="col-span-5">
-                                <p class="text-sm text-gray-900">Bank BCA</p>
-                                <p class="text-xs text-gray-500">Aset Lancar</p>
+                                <p th:classappend="${transaction.status.name() == 'VOID'} ? 'line-through'"
+                                   class="text-sm text-gray-900" th:text="${entry.account?.accountName}">Account Name</p>
+                                <p class="text-xs text-gray-500" th:text="${entry.account?.accountType?.indonesianName}">Account Type</p>
                             </div>
-                            <div class="col-span-3 text-right text-sm font-mono text-gray-900">Rp 15.000.000</div>
-                            <div class="col-span-3 text-right text-sm font-mono text-gray-400">-</div>
-                        </div>
-
-                        <div class="grid grid-cols-12 gap-4 px-6 py-4 items-center">
-                            <div class="col-span-1 text-sm text-gray-600 font-mono">4.1.01</div>
-                            <div class="col-span-5">
-                                <p class="text-sm text-gray-900">Pendapatan Jasa Konsultasi</p>
-                                <p class="text-xs text-gray-500">Pendapatan</p>
+                            <div class="col-span-3 text-right text-sm font-mono"
+                                 th:classappend="${entry.debitAmount != null and entry.debitAmount > 0} ? 'text-gray-900' : 'text-gray-400'">
+                                <span th:if="${entry.debitAmount != null and entry.debitAmount > 0}" th:text="'Rp ' + ${#numbers.formatDecimal(entry.debitAmount, 0, 'POINT', 0, 'COMMA')}">Rp 0</span>
+                                <span th:unless="${entry.debitAmount != null and entry.debitAmount > 0}">-</span>
                             </div>
-                            <div class="col-span-3 text-right text-sm font-mono text-gray-400">-</div>
-                            <div class="col-span-3 text-right text-sm font-mono text-gray-900">Rp 15.000.000</div>
+                            <div class="col-span-3 text-right text-sm font-mono"
+                                 th:classappend="${entry.creditAmount != null and entry.creditAmount > 0} ? 'text-gray-900' : 'text-gray-400'">
+                                <span th:if="${entry.creditAmount != null and entry.creditAmount > 0}" th:text="'Rp ' + ${#numbers.formatDecimal(entry.creditAmount, 0, 'POINT', 0, 'COMMA')}">Rp 0</span>
+                                <span th:unless="${entry.creditAmount != null and entry.creditAmount > 0}">-</span>
+                            </div>
                         </div>
                     </div>
 
                     <!-- Journal Totals -->
                     <div class="grid grid-cols-12 gap-4 px-6 py-4 bg-gray-50 border-t border-gray-200">
                         <div class="col-span-6 text-sm font-semibold text-gray-700">Total</div>
-                        <div class="col-span-3 text-right text-sm font-mono font-semibold text-gray-900">Rp 15.000.000</div>
-                        <div class="col-span-3 text-right text-sm font-mono font-semibold text-gray-900">Rp 15.000.000</div>
+                        <div class="col-span-3 text-right text-sm font-mono font-semibold text-gray-900"
+                             th:text="'Rp ' + ${#numbers.formatDecimal(totalDebit, 0, 'POINT', 0, 'COMMA')}">Rp 0</div>
+                        <div class="col-span-3 text-right text-sm font-mono font-semibold text-gray-900"
+                             th:text="'Rp ' + ${#numbers.formatDecimal(totalCredit, 0, 'POINT', 0, 'COMMA')}">Rp 0</div>
                     </div>
                 </div>
             </div>
@@ -178,7 +261,30 @@
                 <div class="p-6">
                     <div class="flow-root">
                         <ul class="-mb-8">
-                            <li>
+                            <!-- Void event -->
+                            <li th:if="${transaction.status.name() == 'VOID'}">
+                                <div class="relative pb-8">
+                                    <span class="absolute left-4 top-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true"></span>
+                                    <div class="relative flex space-x-3">
+                                        <div>
+                                            <span class="h-8 w-8 rounded-full bg-red-100 flex items-center justify-center ring-8 ring-white">
+                                                <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
+                                                </svg>
+                                            </span>
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <p class="text-sm text-gray-900">Transaksi <span class="font-medium">di-void</span></p>
+                                            <p class="text-xs text-gray-500 mt-0.5">
+                                                <span th:text="${#temporals.format(transaction.voidedAt, 'd MMM yyyy, HH:mm')} + ' WIB - ' + ${transaction.voidedBy}">22 Nov 2025, 14:30 WIB - admin</span>
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </li>
+
+                            <!-- Posted event -->
+                            <li th:if="${transaction.postedAt != null}">
                                 <div class="relative pb-8">
                                     <span class="absolute left-4 top-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true"></span>
                                     <div class="relative flex space-x-3">
@@ -191,13 +297,16 @@
                                         </div>
                                         <div class="flex-1 min-w-0">
                                             <p class="text-sm text-gray-900">Transaksi <span class="font-medium">diposting</span></p>
-                                            <p class="text-xs text-gray-500 mt-0.5">22 Nov 2025, 14:30 WIB - admin</p>
+                                            <p class="text-xs text-gray-500 mt-0.5">
+                                                <span th:text="${#temporals.format(transaction.postedAt, 'd MMM yyyy, HH:mm')} + ' WIB - ' + ${transaction.postedBy}">22 Nov 2025, 14:30 WIB - admin</span>
+                                            </p>
                                         </div>
                                     </div>
                                 </div>
                             </li>
 
-                            <li>
+                            <!-- Updated event (if modified after creation) -->
+                            <li th:if="${transaction.updatedAt != null and !transaction.updatedAt.equals(transaction.createdAt)}">
                                 <div class="relative pb-8">
                                     <span class="absolute left-4 top-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true"></span>
                                     <div class="relative flex space-x-3">
@@ -210,12 +319,15 @@
                                         </div>
                                         <div class="flex-1 min-w-0">
                                             <p class="text-sm text-gray-900">Draft <span class="font-medium">diperbarui</span></p>
-                                            <p class="text-xs text-gray-500 mt-0.5">22 Nov 2025, 14:25 WIB - admin</p>
+                                            <p class="text-xs text-gray-500 mt-0.5">
+                                                <span th:text="${#temporals.format(transaction.updatedAt, 'd MMM yyyy, HH:mm')} + ' WIB'">22 Nov 2025, 14:25 WIB</span>
+                                            </p>
                                         </div>
                                     </div>
                                 </div>
                             </li>
 
+                            <!-- Created event -->
                             <li>
                                 <div class="relative">
                                     <div class="relative flex space-x-3">
@@ -228,7 +340,9 @@
                                         </div>
                                         <div class="flex-1 min-w-0">
                                             <p class="text-sm text-gray-900">Transaksi <span class="font-medium">dibuat</span> sebagai draft</p>
-                                            <p class="text-xs text-gray-500 mt-0.5">22 Nov 2025, 14:20 WIB - admin</p>
+                                            <p class="text-xs text-gray-500 mt-0.5">
+                                                <span th:text="${#temporals.format(transaction.createdAt, 'd MMM yyyy, HH:mm')} + ' WIB'">22 Nov 2025, 14:20 WIB</span>
+                                            </p>
                                         </div>
                                     </div>
                                 </div>
@@ -249,5 +363,54 @@
             </div>
         </div>
     </div>
+
+    <!-- Script for post/delete actions -->
+    <th:block layout:fragment="scripts">
+        <script th:inline="javascript">
+            document.addEventListener('DOMContentLoaded', function() {
+                // Post button handler
+                document.getElementById('btn-post')?.addEventListener('click', async function() {
+                    const id = this.dataset.id;
+                    if (confirm('Posting transaksi ini? Setelah diposting tidak dapat diedit.')) {
+                        try {
+                            const response = await fetch(`/transactions/api/${id}/post`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' }
+                            });
+                            if (response.ok) {
+                                window.location.reload();
+                            } else {
+                                const error = await response.json();
+                                alert('Gagal posting: ' + (error.message || 'Unknown error'));
+                            }
+                        } catch (err) {
+                            alert('Gagal posting: ' + err.message);
+                        }
+                    }
+                });
+
+                // Delete button handler
+                document.getElementById('btn-delete')?.addEventListener('click', async function() {
+                    const id = this.dataset.id;
+                    if (confirm('Hapus transaksi ini? Aksi ini tidak dapat dibatalkan.')) {
+                        try {
+                            const response = await fetch(`/transactions/api/${id}`, {
+                                method: 'DELETE',
+                                headers: { 'Content-Type': 'application/json' }
+                            });
+                            if (response.ok) {
+                                window.location.href = '/transactions';
+                            } else {
+                                const error = await response.json();
+                                alert('Gagal menghapus: ' + (error.message || 'Unknown error'));
+                            }
+                        } catch (err) {
+                            alert('Gagal menghapus: ' + err.message);
+                        }
+                    }
+                });
+            });
+        </script>
+    </th:block>
 </body>
 </html>

@@ -63,7 +63,7 @@ audit_logs
 The features are ordered to maximize code reuse and enable incremental validation:
 
 ```
-1.1 COA ✅ → 1.2 Journal Entries ✅ → 1.3 Reports ✅ → 1.4 Templates ✅ → 1.6 Formula → 1.5 Transactions
+1.1 COA ✅ → 1.2 Journal Entries ✅ → 1.3 Reports ✅ → 1.4 Templates ✅ → 1.6 Formula ✅ → 1.5 Transactions ✅
                     │                      │               │                │              │
                     │                      │               │                │              │
                     └── Core service ──────┴── Validates ──┴── Generates ───┴── Unified ───┘
@@ -232,21 +232,21 @@ TemplateExecutionEngine {
 
 ---
 
-### 1.5 Transactions
+### 1.5 Transactions ✅
 
 **Purpose:** User-friendly abstraction over templates. Non-accountants select a template, fill in amounts.
 
 **Dependencies:** Templates (1.4), JournalEntryService (1.2)
 
-- [ ] Transaction entity with type and numbering
-- [ ] Transaction sequences per type (auto-increment per category)
-- [ ] Status workflow (draft → posted → void)
-- [ ] Transaction form UI (driven by template structure)
-- [ ] Account mapping from template
-- [ ] Transaction list with filters (date, type, status)
-- [ ] Transaction detail view
-- [ ] Post transaction (executes template → creates journal entry)
-- [ ] Void transaction (voids linked journal entry)
+- [x] Transaction entity with type and numbering
+- [x] Transaction sequences per type (auto-increment per category)
+- [x] Status workflow (draft → posted → void)
+- [x] Transaction form UI (driven by template structure)
+- [x] Account mapping from template
+- [x] Transaction list with filters (date, type, status)
+- [x] Transaction detail view
+- [x] Post transaction (executes template → creates journal entry)
+- [x] Void transaction (creates reversal entries)
 
 ```sql
 -- V005: Transactions

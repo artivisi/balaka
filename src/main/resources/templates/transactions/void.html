@@ -7,9 +7,9 @@
     <title>Void Transaksi</title>
 </head>
 <body>
-    <h1 layout:fragment="page-title">Void Transaksi</h1>
+    <h1 id="page-title" layout:fragment="page-title">Void Transaksi</h1>
 
-    <div layout:fragment="content" class="h-full flex flex-col overflow-y-auto">
+    <div id="void-form-content" layout:fragment="content" class="h-full flex flex-col overflow-y-auto">
         <div class="max-w-2xl">
             <!-- Breadcrumb -->
             <nav class="flex items-center space-x-2 text-sm text-gray-500 mb-6">
@@ -17,7 +17,8 @@
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                 </svg>
-                <a th:href="@{/transactions/txn-001}" class="hover:text-primary-600 transition-colors">TRX-2025-0023</a>
+                <a th:href="@{/transactions/{id}(id=${transaction.id})}" class="hover:text-primary-600 transition-colors"
+                   th:text="${transaction.transactionNumber}">TRX-2025-0001</a>
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                 </svg>
@@ -48,12 +49,17 @@
                 <div class="p-6">
                     <div class="flex items-start justify-between">
                         <div>
-                            <h3 class="text-lg font-bold text-gray-900">TRX-2025-0023</h3>
-                            <p class="text-sm text-gray-600 mt-1">Jasa Konsultasi PT. Maju Bersama</p>
-                            <p class="text-xs text-gray-500 mt-2">22 November 2025</p>
+                            <h3 class="text-lg font-bold text-gray-900" th:text="${transaction.transactionNumber}">TRX-2025-0001</h3>
+                            <p class="text-sm text-gray-600 mt-1" th:text="${transaction.description}">Description</p>
+                            <p class="text-xs text-gray-500 mt-2" th:text="${#temporals.format(transaction.transactionDate, 'd MMMM yyyy')}">22 November 2025</p>
                         </div>
                         <div class="text-right">
-                            <p class="text-xl font-bold text-green-600">+ Rp 15.000.000</p>
+                            <p th:classappend="${transaction.journalTemplate?.category?.name() == 'INCOME' or transaction.journalTemplate?.category?.name() == 'RECEIPT'} ? 'text-green-600' : (${transaction.journalTemplate?.category?.name() == 'EXPENSE' or transaction.journalTemplate?.category?.name() == 'PAYMENT'} ? 'text-red-600' : 'text-gray-900')"
+                               class="text-xl font-bold">
+                                <span th:if="${transaction.journalTemplate?.category?.name() == 'INCOME' or transaction.journalTemplate?.category?.name() == 'RECEIPT'}">+ </span>
+                                <span th:if="${transaction.journalTemplate?.category?.name() == 'EXPENSE' or transaction.journalTemplate?.category?.name() == 'PAYMENT'}">- </span>
+                                <span th:text="'Rp ' + ${#numbers.formatDecimal(transaction.amount, 0, 'POINT', 0, 'COMMA')}">Rp 0</span>
+                            </p>
                             <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-accent-100 text-accent-800 mt-2">
                                 Posted
                             </span>
@@ -65,13 +71,12 @@
                         <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">Jurnal yang akan dibatalkan</p>
                         <div class="bg-gray-50 rounded-lg p-4">
                             <div class="space-y-2 text-sm">
-                                <div class="flex justify-between">
-                                    <span class="text-gray-600">1.1.02 - Bank BCA</span>
-                                    <span class="font-mono text-red-600">Debit: Rp 15.000.000 (dibatalkan)</span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span class="text-gray-600">4.1.01 - Pendapatan Jasa Konsultasi</span>
-                                    <span class="font-mono text-red-600">Kredit: Rp 15.000.000 (dibatalkan)</span>
+                                <div th:each="entry : ${transaction.journalEntries}" class="flex justify-between">
+                                    <span class="text-gray-600" th:text="${entry.account?.accountCode + ' - ' + entry.account?.accountName}">1.1.01 - Account</span>
+                                    <span class="font-mono text-red-600">
+                                        <span th:if="${entry.debitAmount != null and entry.debitAmount > 0}" th:text="'Debit: Rp ' + ${#numbers.formatDecimal(entry.debitAmount, 0, 'POINT', 0, 'COMMA')} + ' (dibatalkan)'">Debit: Rp 0 (dibatalkan)</span>
+                                        <span th:if="${entry.creditAmount != null and entry.creditAmount > 0}" th:text="'Kredit: Rp ' + ${#numbers.formatDecimal(entry.creditAmount, 0, 'POINT', 0, 'COMMA')} + ' (dibatalkan)'">Kredit: Rp 0 (dibatalkan)</span>
+                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -85,7 +90,8 @@
                     <h2 class="text-lg font-semibold text-gray-900">Alasan Void</h2>
                 </div>
 
-                <form action="#" method="post" class="p-6">
+                <form id="void-form" class="p-6"
+                      x-data="{ voidReason: '', confirmVoid: false }">
                     <div class="space-y-6">
                         <!-- Void Reason Selection -->
                         <div>
@@ -94,24 +100,24 @@
                             </label>
                             <div class="space-y-2">
                                 <label class="flex items-center p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
-                                    <input type="radio" name="voidReason" value="wrong_amount" class="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500">
-                                    <span class="ml-3 text-sm text-gray-700">Salah input jumlah</span>
+                                    <input type="radio" name="voidReason" value="INPUT_ERROR" x-model="voidReason"
+                                           class="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500">
+                                    <span class="ml-3 text-sm text-gray-700">Kesalahan Input</span>
                                 </label>
                                 <label class="flex items-center p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
-                                    <input type="radio" name="voidReason" value="wrong_account" class="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500">
-                                    <span class="ml-3 text-sm text-gray-700">Salah pilih akun</span>
+                                    <input type="radio" name="voidReason" value="DUPLICATE" x-model="voidReason"
+                                           class="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500">
+                                    <span class="ml-3 text-sm text-gray-700">Transaksi Duplikat</span>
                                 </label>
                                 <label class="flex items-center p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
-                                    <input type="radio" name="voidReason" value="duplicate" class="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500">
-                                    <span class="ml-3 text-sm text-gray-700">Transaksi duplikat</span>
+                                    <input type="radio" name="voidReason" value="CANCELLED" x-model="voidReason"
+                                           class="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500">
+                                    <span class="ml-3 text-sm text-gray-700">Transaksi Dibatalkan</span>
                                 </label>
                                 <label class="flex items-center p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
-                                    <input type="radio" name="voidReason" value="cancelled" class="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500">
-                                    <span class="ml-3 text-sm text-gray-700">Transaksi dibatalkan klien</span>
-                                </label>
-                                <label class="flex items-center p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
-                                    <input type="radio" name="voidReason" value="other" class="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500">
-                                    <span class="ml-3 text-sm text-gray-700">Alasan lainnya</span>
+                                    <input type="radio" name="voidReason" value="OTHER" x-model="voidReason"
+                                           class="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500">
+                                    <span class="ml-3 text-sm text-gray-700">Alasan Lainnya</span>
                                 </label>
                             </div>
                         </div>
@@ -119,10 +125,10 @@
                         <!-- Additional Notes -->
                         <div>
                             <label for="voidNotes" class="block text-sm font-medium text-gray-700 mb-1">
-                                Keterangan tambahan
+                                Keterangan tambahan <span class="text-red-500">*</span>
                             </label>
                             <textarea id="voidNotes" name="voidNotes" rows="3"
-                                      placeholder="Jelaskan alasan void secara detail (wajib diisi)..."
+                                      placeholder="Jelaskan alasan void secara detail..."
                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm resize-none"
                                       required></textarea>
                             <p class="text-xs text-gray-500 mt-1">Catatan ini akan disimpan di audit trail untuk keperluan audit</p>
@@ -131,7 +137,8 @@
                         <!-- Confirmation Checkbox -->
                         <div class="bg-amber-50 rounded-lg p-4 border border-amber-200">
                             <label class="flex items-start cursor-pointer">
-                                <input type="checkbox" name="confirmVoid" class="w-4 h-4 mt-0.5 text-red-600 border-gray-300 rounded focus:ring-red-500" required>
+                                <input type="checkbox" name="confirmVoid" x-model="confirmVoid"
+                                       class="w-4 h-4 mt-0.5 text-red-600 border-gray-300 rounded focus:ring-red-500" required>
                                 <span class="ml-3 text-sm text-amber-800">
                                     Saya memahami bahwa void transaksi tidak dapat dibatalkan dan semua jurnal entry terkait akan dikembalikan ke kondisi sebelumnya.
                                 </span>
@@ -141,11 +148,14 @@
 
                     <!-- Form Actions -->
                     <div class="mt-6 pt-6 border-t border-gray-200 flex items-center justify-between">
-                        <a th:href="@{/transactions/txn-001}"
+                        <a th:href="@{/transactions/{id}(id=${transaction.id})}"
                            class="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors">
                             Batal
                         </a>
-                        <button type="submit"
+                        <button id="btn-void" type="button"
+                                :disabled="!voidReason || !confirmVoid"
+                                :class="{'opacity-50 cursor-not-allowed': !voidReason || !confirmVoid}"
+                                th:data-id="${transaction.id}"
                                 class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors">
                             <span class="flex items-center">
                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -159,5 +169,49 @@
             </div>
         </div>
     </div>
+
+    <!-- Script for void action -->
+    <th:block layout:fragment="scripts">
+        <script th:inline="javascript">
+            document.addEventListener('DOMContentLoaded', function() {
+                const transactionId = /*[[${transaction.id}]]*/ '';
+
+                document.getElementById('btn-void')?.addEventListener('click', async function() {
+                    const voidReason = document.querySelector('input[name="voidReason"]:checked')?.value;
+                    const voidNotes = document.getElementById('voidNotes').value;
+                    const confirmVoid = document.querySelector('input[name="confirmVoid"]').checked;
+
+                    if (!voidReason || !voidNotes || !confirmVoid) {
+                        alert('Lengkapi semua field yang diperlukan');
+                        return;
+                    }
+
+                    if (!confirm('Void transaksi ini? Aksi ini tidak dapat dibatalkan.')) {
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch(`/transactions/api/${transactionId}/void`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                reason: voidReason,
+                                notes: voidNotes
+                            })
+                        });
+
+                        if (response.ok) {
+                            window.location.href = `/transactions/${transactionId}`;
+                        } else {
+                            const error = await response.json();
+                            alert('Gagal void transaksi: ' + (error.message || 'Unknown error'));
+                        }
+                    } catch (err) {
+                        alert('Gagal void transaksi: ' + err.message);
+                    }
+                });
+            });
+        </script>
+    </th:block>
 </body>
 </html>

@@ -28,7 +28,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Controller
 @RequestMapping("/transactions")
@@ -44,13 +47,45 @@ public class TransactionController {
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String search,
+            @RequestParam(required = false) LocalDate startDate,
+            @RequestParam(required = false) LocalDate endDate,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
             Model model) {
         model.addAttribute("currentPage", "transactions");
         model.addAttribute("selectedStatus", status);
         model.addAttribute("selectedCategory", category);
         model.addAttribute("searchQuery", search);
+        model.addAttribute("startDate", startDate);
+        model.addAttribute("endDate", endDate);
         model.addAttribute("statuses", TransactionStatus.values());
         model.addAttribute("categories", TemplateCategory.values());
+        List<JournalTemplate> templates = journalTemplateService.findAll();
+        model.addAttribute("templates", templates);
+        // Group templates by category for dropdown
+        Map<TemplateCategory, List<JournalTemplate>> templatesByCategory = templates.stream()
+                .collect(Collectors.groupingBy(JournalTemplate::getCategory));
+        model.addAttribute("templatesByCategory", templatesByCategory);
+        model.addAttribute("voidReasons", com.artivisi.accountingfinance.enums.VoidReason.values());
+
+        // Parse status and category if provided
+        TransactionStatus statusEnum = status != null && !status.isEmpty() ? TransactionStatus.valueOf(status) : null;
+        TemplateCategory categoryEnum = category != null && !category.isEmpty() ? TemplateCategory.valueOf(category) : null;
+
+        // Get transactions
+        Page<Transaction> transactionPage;
+        Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
+
+        if (search != null && !search.isEmpty()) {
+            transactionPage = transactionService.search(search, pageable);
+        } else {
+            transactionPage = transactionService.findByFilters(statusEnum, categoryEnum, startDate, endDate, pageable);
+        }
+
+        model.addAttribute("transactions", transactionPage.getContent());
+        model.addAttribute("page", transactionPage);
+        model.addAttribute("draftCount", transactionService.countByStatus(TransactionStatus.DRAFT));
+
         return "transactions/list";
     }
 
@@ -70,8 +105,20 @@ public class TransactionController {
 
     @GetMapping("/{id}")
     public String detail(@PathVariable UUID id, Model model) {
+        Transaction transaction = transactionService.findByIdWithJournalEntries(id);
         model.addAttribute("currentPage", "transactions");
-        model.addAttribute("transaction", transactionService.findByIdWithJournalEntries(id));
+        model.addAttribute("transaction", transaction);
+
+        // Calculate totals from journal entries
+        java.math.BigDecimal totalDebit = transaction.getJournalEntries().stream()
+                .map(e -> e.getDebitAmount() != null ? e.getDebitAmount() : java.math.BigDecimal.ZERO)
+                .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+        java.math.BigDecimal totalCredit = transaction.getJournalEntries().stream()
+                .map(e -> e.getCreditAmount() != null ? e.getCreditAmount() : java.math.BigDecimal.ZERO)
+                .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+        model.addAttribute("totalDebit", totalDebit);
+        model.addAttribute("totalCredit", totalCredit);
+
         return "transactions/detail";
     }
 
@@ -92,7 +139,7 @@ public class TransactionController {
 
     @GetMapping("/{id}/void")
     public String voidForm(@PathVariable UUID id, Model model) {
-        Transaction transaction = transactionService.findById(id);
+        Transaction transaction = transactionService.findByIdWithJournalEntries(id);
         if (!transaction.isPosted()) {
             return "redirect:/transactions/" + id;
         }

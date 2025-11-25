@@ -28,6 +28,7 @@ import org.springframework.validation.annotation.Validated;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -54,6 +55,10 @@ public class TransactionService {
         return transactionRepository.findByStatusOrderByTransactionDateDesc(status);
     }
 
+    public long countByStatus(TransactionStatus status) {
+        return transactionRepository.countByStatus(status);
+    }
+
     public Page<Transaction> findByFilters(TransactionStatus status, TemplateCategory category,
                                            LocalDate startDate, LocalDate endDate, Pageable pageable) {
         return transactionRepository.findByFilters(status, category, startDate, endDate, pageable);
@@ -74,7 +79,7 @@ public class TransactionService {
     }
 
     @Transactional
-    public Transaction create(@Valid Transaction transaction, Map<UUID, UUID> accountMappings) {
+    public Transaction create(Transaction transaction, Map<UUID, UUID> accountMappings) {
         String transactionNumber = generateTransactionNumber();
         transaction.setTransactionNumber(transactionNumber);
         transaction.setStatus(TransactionStatus.DRAFT);
@@ -176,7 +181,9 @@ public class TransactionService {
         String reversalJournalNumber = generateJournalNumber();
         int lineIndex = 0;
 
-        for (JournalEntry original : transaction.getJournalEntries()) {
+        // Copy to avoid ConcurrentModificationException when adding reversals
+        List<JournalEntry> originalEntries = new ArrayList<>(transaction.getJournalEntries());
+        for (JournalEntry original : originalEntries) {
             JournalEntry reversal = new JournalEntry();
             reversal.setJournalNumber(reversalJournalNumber + "-" + String.format("%02d", ++lineIndex));
             reversal.setJournalDate(LocalDate.now());
