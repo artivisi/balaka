@@ -14,12 +14,32 @@ CREATE TABLE company_config (
     tax_id VARCHAR(50),
     fiscal_year_start_month INTEGER NOT NULL DEFAULT 1,
     currency_code VARCHAR(10) NOT NULL DEFAULT 'IDR',
+    signing_officer_name VARCHAR(255),
+    signing_officer_title VARCHAR(100),
+    company_logo_path VARCHAR(500),
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
     created_by VARCHAR(100),
     updated_by VARCHAR(100),
     deleted_at TIMESTAMP
 );
+
+-- Company Bank Accounts (multiple per company)
+CREATE TABLE company_bank_accounts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    bank_name VARCHAR(100) NOT NULL,
+    bank_branch VARCHAR(100),
+    account_number VARCHAR(50) NOT NULL,
+    account_name VARCHAR(255) NOT NULL,
+    currency_code VARCHAR(10) NOT NULL DEFAULT 'IDR',
+    is_default BOOLEAN NOT NULL DEFAULT FALSE,
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_company_bank_active ON company_bank_accounts(active);
+CREATE INDEX idx_company_bank_default ON company_bank_accounts(is_default);
 
 -- ============================================
 -- Chart of Accounts

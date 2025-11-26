@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/main}"
+      lang="id">
+<head>
+    <title>Pengaturan Perusahaan</title>
+</head>
+<body>
+    <h1 id="page-title" layout:fragment="page-title">Pengaturan Perusahaan</h1>
+
+    <div layout:fragment="content" class="space-y-6">
+        <!-- Success Message -->
+        <div th:if="${successMessage}" class="p-4 bg-green-50 border border-green-200 rounded-lg">
+            <p class="text-sm text-green-600" th:text="${successMessage}">Success</p>
+        </div>
+
+        <!-- Company Info Section -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-6">Informasi Perusahaan</h2>
+
+            <form th:action="@{/settings/company}" th:object="${config}" method="post" class="space-y-6">
+                <input type="hidden" th:field="*{id}" />
+
+                <!-- Validation Errors -->
+                <div th:if="${#fields.hasErrors('*')}" class="p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <p class="text-sm text-red-600 font-medium">Terdapat kesalahan:</p>
+                    <ul class="mt-2 text-sm text-red-600 list-disc list-inside">
+                        <li th:each="err : ${#fields.errors('*')}" th:text="${err}">Error</li>
+                    </ul>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Company Name -->
+                    <div class="md:col-span-2">
+                        <label for="companyName" class="block text-sm font-medium text-gray-700 mb-1">Nama Perusahaan *</label>
+                        <input type="text" id="companyName" th:field="*{companyName}"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                               th:classappend="${#fields.hasErrors('companyName')} ? 'border-red-500' : ''"
+                               required>
+                    </div>
+
+                    <!-- Company Address -->
+                    <div class="md:col-span-2">
+                        <label for="companyAddress" class="block text-sm font-medium text-gray-700 mb-1">Alamat</label>
+                        <textarea id="companyAddress" th:field="*{companyAddress}" rows="3"
+                                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"></textarea>
+                    </div>
+
+                    <!-- Phone -->
+                    <div>
+                        <label for="companyPhone" class="block text-sm font-medium text-gray-700 mb-1">Telepon</label>
+                        <input type="text" id="companyPhone" th:field="*{companyPhone}"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
+                    </div>
+
+                    <!-- Email -->
+                    <div>
+                        <label for="companyEmail" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                        <input type="email" id="companyEmail" th:field="*{companyEmail}"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
+                    </div>
+
+                    <!-- NPWP -->
+                    <div>
+                        <label for="taxId" class="block text-sm font-medium text-gray-700 mb-1">NPWP</label>
+                        <input type="text" id="taxId" th:field="*{taxId}"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                               placeholder="00.000.000.0-000.000">
+                    </div>
+
+                    <!-- Currency -->
+                    <div>
+                        <label for="currencyCode" class="block text-sm font-medium text-gray-700 mb-1">Mata Uang</label>
+                        <select id="currencyCode" th:field="*{currencyCode}"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
+                            <option value="IDR">IDR - Rupiah</option>
+                            <option value="USD">USD - US Dollar</option>
+                            <option value="SGD">SGD - Singapore Dollar</option>
+                        </select>
+                    </div>
+
+                    <!-- Fiscal Year Start Month -->
+                    <div>
+                        <label for="fiscalYearStartMonth" class="block text-sm font-medium text-gray-700 mb-1">Awal Tahun Fiskal</label>
+                        <select id="fiscalYearStartMonth" th:field="*{fiscalYearStartMonth}"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
+                            <option value="1">Januari</option>
+                            <option value="2">Februari</option>
+                            <option value="3">Maret</option>
+                            <option value="4">April</option>
+                            <option value="5">Mei</option>
+                            <option value="6">Juni</option>
+                            <option value="7">Juli</option>
+                            <option value="8">Agustus</option>
+                            <option value="9">September</option>
+                            <option value="10">Oktober</option>
+                            <option value="11">November</option>
+                            <option value="12">Desember</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Signing Officer Section -->
+                <div class="border-t pt-6 mt-6">
+                    <h3 class="text-md font-medium text-gray-900 mb-4">Penanda Tangan Dokumen</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="signingOfficerName" class="block text-sm font-medium text-gray-700 mb-1">Nama</label>
+                            <input type="text" id="signingOfficerName" th:field="*{signingOfficerName}"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                                   placeholder="Nama lengkap penanda tangan">
+                        </div>
+                        <div>
+                            <label for="signingOfficerTitle" class="block text-sm font-medium text-gray-700 mb-1">Jabatan</label>
+                            <input type="text" id="signingOfficerTitle" th:field="*{signingOfficerTitle}"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                                   placeholder="Direktur / Finance Manager">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Logo Section -->
+                <div class="border-t pt-6 mt-6">
+                    <h3 class="text-md font-medium text-gray-900 mb-4">Logo Perusahaan</h3>
+                    <div>
+                        <label for="companyLogoPath" class="block text-sm font-medium text-gray-700 mb-1">Path Logo</label>
+                        <input type="text" id="companyLogoPath" th:field="*{companyLogoPath}"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                               placeholder="/images/logo.png">
+                        <p class="mt-1 text-sm text-gray-500">Path relatif ke file logo di folder static</p>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex items-center justify-end gap-3 pt-4 border-t">
+                    <button type="submit"
+                            class="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+                        Simpan Pengaturan
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Bank Accounts Section -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-lg font-semibold text-gray-900">Rekening Bank</h2>
+                <a th:href="@{/settings/bank-accounts/new}"
+                   class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm">
+                    + Tambah Rekening
+                </a>
+            </div>
+
+            <div th:if="${#lists.isEmpty(bankAccounts)}" class="text-center py-8 text-gray-500">
+                Belum ada rekening bank. Klik "Tambah Rekening" untuk menambahkan.
+            </div>
+
+            <div th:unless="${#lists.isEmpty(bankAccounts)}" class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Bank</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">No. Rekening</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Atas Nama</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        <tr th:each="bank : ${bankAccounts}" th:class="${bank.active} ? '' : 'bg-gray-50'">
+                            <td class="px-4 py-3">
+                                <div class="font-medium text-gray-900" th:text="${bank.bankName}">BCA</div>
+                                <div th:if="${bank.bankBranch}" class="text-sm text-gray-500" th:text="${bank.bankBranch}">Cabang</div>
+                            </td>
+                            <td class="px-4 py-3 font-mono text-sm" th:text="${bank.accountNumber}">1234567890</td>
+                            <td class="px-4 py-3" th:text="${bank.accountName}">PT ABC</td>
+                            <td class="px-4 py-3">
+                                <span th:if="${bank.isDefault}"
+                                      class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    Utama
+                                </span>
+                                <span th:unless="${bank.active}"
+                                      class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                                    Nonaktif
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 text-right space-x-2">
+                                <a th:href="@{/settings/bank-accounts/{id}/edit(id=${bank.id})}"
+                                   class="text-primary-600 hover:text-primary-900 text-sm">Edit</a>
+                                <form th:unless="${bank.isDefault}" th:action="@{/settings/bank-accounts/{id}/set-default(id=${bank.id})}"
+                                      method="post" class="inline">
+                                    <button type="submit" class="text-green-600 hover:text-green-900 text-sm">Jadikan Utama</button>
+                                </form>
+                                <form th:if="${bank.active}" th:action="@{/settings/bank-accounts/{id}/deactivate(id=${bank.id})}"
+                                      method="post" class="inline">
+                                    <button type="submit" class="text-yellow-600 hover:text-yellow-900 text-sm">Nonaktifkan</button>
+                                </form>
+                                <form th:unless="${bank.active}" th:action="@{/settings/bank-accounts/{id}/activate(id=${bank.id})}"
+                                      method="post" class="inline">
+                                    <button type="submit" class="text-green-600 hover:text-green-900 text-sm">Aktifkan</button>
+                                </form>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

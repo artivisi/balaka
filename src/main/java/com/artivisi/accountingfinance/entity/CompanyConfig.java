@@ -46,4 +46,16 @@ public class CompanyConfig extends BaseEntity {
     @Size(max = 10, message = "Currency code must not exceed 10 characters")
     @Column(name = "currency_code", nullable = false, length = 10)
     private String currencyCode = "IDR";
+
+    @Size(max = 255, message = "Signing officer name must not exceed 255 characters")
+    @Column(name = "signing_officer_name", length = 255)
+    private String signingOfficerName;
+
+    @Size(max = 100, message = "Signing officer title must not exceed 100 characters")
+    @Column(name = "signing_officer_title", length = 100)
+    private String signingOfficerTitle;
+
+    @Size(max = 500, message = "Company logo path must not exceed 500 characters")
+    @Column(name = "company_logo_path", length = 500)
+    private String companyLogoPath;
 }

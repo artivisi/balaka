@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/main}"
+      lang="id">
+<head>
+    <title th:text="${bankAccount.id != null} ? 'Edit Rekening Bank' : 'Rekening Bank Baru'">Rekening Bank</title>
+</head>
+<body>
+    <h1 id="page-title" layout:fragment="page-title" th:text="${bankAccount.id != null} ? 'Edit Rekening Bank' : 'Rekening Bank Baru'">Rekening Bank</h1>
+
+    <div layout:fragment="content" class="max-w-2xl">
+        <div class="bg-white rounded-lg shadow p-6">
+            <form th:action="${bankAccount.id != null} ? @{/settings/bank-accounts/{id}(id=${bankAccount.id})} : @{/settings/bank-accounts/new}"
+                  th:object="${bankAccount}"
+                  method="post" class="space-y-6">
+
+                <!-- Validation Errors -->
+                <div th:if="${#fields.hasErrors('*')}" class="p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <p class="text-sm text-red-600 font-medium">Terdapat kesalahan:</p>
+                    <ul class="mt-2 text-sm text-red-600 list-disc list-inside">
+                        <li th:each="err : ${#fields.errors('*')}" th:text="${err}">Error</li>
+                    </ul>
+                </div>
+
+                <!-- Bank Name -->
+                <div>
+                    <label for="bankName" class="block text-sm font-medium text-gray-700 mb-1">Nama Bank *</label>
+                    <input type="text" id="bankName" th:field="*{bankName}"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                           th:classappend="${#fields.hasErrors('bankName')} ? 'border-red-500' : ''"
+                           placeholder="BCA / BNI / Mandiri" required>
+                    <p th:if="${#fields.hasErrors('bankName')}" th:errors="*{bankName}" class="mt-1 text-sm text-red-500"></p>
+                </div>
+
+                <!-- Bank Branch -->
+                <div>
+                    <label for="bankBranch" class="block text-sm font-medium text-gray-700 mb-1">Cabang</label>
+                    <input type="text" id="bankBranch" th:field="*{bankBranch}"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                           placeholder="KCP Sudirman">
+                </div>
+
+                <!-- Account Number -->
+                <div>
+                    <label for="accountNumber" class="block text-sm font-medium text-gray-700 mb-1">Nomor Rekening *</label>
+                    <input type="text" id="accountNumber" th:field="*{accountNumber}"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 font-mono"
+                           th:classappend="${#fields.hasErrors('accountNumber')} ? 'border-red-500' : ''"
+                           placeholder="1234567890" required>
+                    <p th:if="${#fields.hasErrors('accountNumber')}" th:errors="*{accountNumber}" class="mt-1 text-sm text-red-500"></p>
+                </div>
+
+                <!-- Account Name -->
+                <div>
+                    <label for="accountName" class="block text-sm font-medium text-gray-700 mb-1">Nama Pemilik Rekening *</label>
+                    <input type="text" id="accountName" th:field="*{accountName}"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                           th:classappend="${#fields.hasErrors('accountName')} ? 'border-red-500' : ''"
+                           placeholder="PT Perusahaan ABC" required>
+                    <p th:if="${#fields.hasErrors('accountName')}" th:errors="*{accountName}" class="mt-1 text-sm text-red-500"></p>
+                </div>
+
+                <!-- Currency -->
+                <div>
+                    <label for="currencyCode" class="block text-sm font-medium text-gray-700 mb-1">Mata Uang</label>
+                    <select id="currencyCode" th:field="*{currencyCode}"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
+                        <option value="IDR">IDR - Rupiah</option>
+                        <option value="USD">USD - US Dollar</option>
+                        <option value="SGD">SGD - Singapore Dollar</option>
+                    </select>
+                </div>
+
+                <!-- Default Account -->
+                <div class="flex items-center">
+                    <input type="checkbox" id="isDefault" th:field="*{isDefault}"
+                           class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
+                    <label for="isDefault" class="ml-2 block text-sm text-gray-700">
+                        Jadikan rekening utama
+                    </label>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex items-center justify-end gap-3 pt-4 border-t">
+                    <a th:href="@{/settings}"
+                       class="px-4 py-2 text-gray-600 hover:text-gray-900">Batal</a>
+                    <button type="submit"
+                            class="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+                        Simpan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
