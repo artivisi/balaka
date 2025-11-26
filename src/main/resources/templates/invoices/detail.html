@@ -81,6 +81,13 @@
                 &larr; Kembali ke Daftar
             </a>
             <div class="flex items-center gap-2">
+                <!-- Print -->
+                <a th:href="@{/invoices/{id}/print(id=${invoice.id})}"
+                   target="_blank"
+                   class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                    Cetak
+                </a>
+
                 <!-- Edit (only draft) -->
                 <a th:if="${invoice.status.name() == 'DRAFT'}"
                    th:href="@{/invoices/{id}/edit(id=${invoice.id})}"

@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laporan Laba Rugi</title>
+    <style>
+        @page { size: A4; margin: 12mm; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; font-size: 9pt; line-height: 1.4; color: #1f2937; background: white; }
+        .container { max-width: 210mm; margin: 0 auto; padding: 6mm; }
+
+        /* Header */
+        .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5mm; padding-bottom: 3mm; border-bottom: 2px solid #4f46e5; }
+        .company-info { flex: 1; }
+        .company-logo { max-height: 45px; max-width: 160px; margin-bottom: 2mm; }
+        .company-name { font-size: 13pt; font-weight: 700; color: #1f2937; }
+        .company-details { font-size: 8pt; color: #6b7280; line-height: 1.5; margin-top: 1mm; }
+        .report-title-section { text-align: right; }
+        .report-title { font-size: 15pt; font-weight: 700; color: #4f46e5; }
+        .report-subtitle { font-size: 8pt; color: #6b7280; margin-top: 1mm; }
+        .report-period { font-size: 9pt; color: #374151; margin-top: 2mm; font-weight: 500; }
+
+        /* Section Headers */
+        .section-header { font-size: 9pt; font-weight: 700; padding: 2mm 0; margin: 3mm 0 2mm 0; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid; }
+        .section-header.revenue { color: #059669; border-color: #6ee7b7; }
+        .section-header.expense { color: #dc2626; border-color: #fca5a5; }
+
+        /* Items */
+        .item-row { display: flex; justify-content: space-between; padding: 1.5mm 2mm; border-bottom: 1px solid #f3f4f6; }
+        .item-row:hover { background: #f9fafb; }
+        .item-name { font-size: 9pt; color: #374151; }
+        .item-value { font-size: 9pt; font-family: 'Consolas', monospace; }
+
+        /* Totals */
+        .total-row { display: flex; justify-content: space-between; padding: 2.5mm 3mm; margin-top: 2mm; border-radius: 4px; font-weight: 700; font-size: 9pt; }
+        .total-row.revenue { background: #d1fae5; color: #065f46; }
+        .total-row.expense { background: #fee2e2; color: #991b1b; }
+
+        /* Net Income Box */
+        .net-income-box { margin-top: 5mm; padding: 4mm; border-radius: 6px; text-align: center; }
+        .net-income-box.profit { background: linear-gradient(135deg, #059669 0%, #10b981 100%); color: white; }
+        .net-income-box.loss { background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%); color: white; }
+        .net-income-label { font-size: 9pt; opacity: 0.9; }
+        .net-income-title { font-size: 11pt; font-weight: 700; margin-top: 1mm; }
+        .net-income-value { font-size: 18pt; font-weight: 700; font-family: 'Consolas', monospace; margin-top: 2mm; }
+
+        /* Summary Table */
+        .summary-table { margin-top: 4mm; border: 1px solid #e5e7eb; border-radius: 4px; overflow: hidden; }
+        .summary-row { display: flex; justify-content: space-between; padding: 2mm 3mm; border-bottom: 1px solid #e5e7eb; }
+        .summary-row:last-child { border-bottom: none; }
+        .summary-row.header { background: #f9fafb; font-weight: 600; font-size: 8pt; text-transform: uppercase; color: #6b7280; }
+
+        /* Footer */
+        .footer { margin-top: 6mm; padding-top: 3mm; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-between; font-size: 7pt; color: #9ca3af; }
+
+        /* Print Controls */
+        .print-controls { position: fixed; top: 10px; right: 10px; display: flex; gap: 8px; z-index: 1000; }
+        .btn { padding: 8px 16px; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; border: none; text-decoration: none; }
+        .btn-print { background: #4f46e5; color: white; }
+        .btn-back { background: #f3f4f6; color: #374151; }
+
+        @media print {
+            .print-controls { display: none; }
+            body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+        }
+    </style>
+</head>
+<body>
+    <div class="print-controls">
+        <a th:href="@{/reports/income-statement(startDate=${startDate}, endDate=${endDate})}" class="btn btn-back">Kembali</a>
+        <button onclick="window.print()" class="btn btn-print">Cetak</button>
+    </div>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="company-info">
+                <img th:if="${company.companyLogoPath != null and !company.companyLogoPath.isEmpty()}"
+                     th:src="@{${company.companyLogoPath}}" alt="Logo" class="company-logo">
+                <img th:unless="${company.companyLogoPath != null and !company.companyLogoPath.isEmpty()}"
+                     th:src="@{/images/logo-placeholder.svg}" alt="Logo" class="company-logo">
+                <div class="company-name" th:text="${company.companyName}">Nama Perusahaan</div>
+                <div class="company-details">
+                    <span th:if="${company.companyAddress}" th:text="${company.companyAddress}">Alamat</span><br th:if="${company.companyAddress}">
+                    <span th:if="${company.companyPhone}">Tel: [[${company.companyPhone}]]</span>
+                    <span th:if="${company.companyPhone and company.companyEmail}"> | </span>
+                    <span th:if="${company.companyEmail}" th:text="${company.companyEmail}">email</span><br th:if="${company.companyPhone or company.companyEmail}">
+                    <span th:if="${company.taxId}">NPWP: [[${company.taxId}]]</span>
+                </div>
+            </div>
+            <div class="report-title-section">
+                <div class="report-title">LABA RUGI</div>
+                <div class="report-subtitle">Laporan Laba Rugi / Income Statement</div>
+                <div class="report-period" th:text="'Periode: ' + ${#temporals.format(startDate, 'd MMMM yyyy')} + ' - ' + ${#temporals.format(endDate, 'd MMMM yyyy')}">Periode</div>
+            </div>
+        </div>
+
+        <!-- Content -->
+        <div class="content">
+            <!-- PENDAPATAN -->
+            <div class="section-header revenue">Pendapatan</div>
+            <div class="items">
+                <th:block th:if="${report != null and !report.revenueItems.isEmpty()}">
+                    <div th:each="item : ${report.revenueItems}" class="item-row">
+                        <span class="item-name" th:text="${item.account.accountName}">Pendapatan</span>
+                        <span class="item-value" th:text="${#numbers.formatDecimal(item.balance, 1, 'POINT', 0, 'COMMA')}">0</span>
+                    </div>
+                </th:block>
+                <div th:if="${report == null or report.revenueItems.isEmpty()}" class="item-row">
+                    <span class="item-name" style="color: #9ca3af;">Tidak ada pendapatan</span>
+                    <span class="item-value">-</span>
+                </div>
+            </div>
+            <div th:if="${report != null}" class="total-row revenue">
+                <span>Total Pendapatan</span>
+                <span th:text="${#numbers.formatDecimal(report.totalRevenue, 1, 'POINT', 0, 'COMMA')}">0</span>
+            </div>
+
+            <!-- BEBAN -->
+            <div class="section-header expense">Beban Operasional</div>
+            <div class="items">
+                <th:block th:if="${report != null and !report.expenseItems.isEmpty()}">
+                    <div th:each="item : ${report.expenseItems}" class="item-row">
+                        <span class="item-name" th:text="${item.account.accountName}">Beban</span>
+                        <span class="item-value" th:text="'(' + ${#numbers.formatDecimal(item.balance, 1, 'POINT', 0, 'COMMA')} + ')'">0</span>
+                    </div>
+                </th:block>
+                <div th:if="${report == null or report.expenseItems.isEmpty()}" class="item-row">
+                    <span class="item-name" style="color: #9ca3af;">Tidak ada beban</span>
+                    <span class="item-value">-</span>
+                </div>
+            </div>
+            <div th:if="${report != null}" class="total-row expense">
+                <span>Total Beban Operasional</span>
+                <span th:text="'(' + ${#numbers.formatDecimal(report.totalExpense, 1, 'POINT', 0, 'COMMA')} + ')'">0</span>
+            </div>
+
+            <!-- Net Income Box -->
+            <div th:if="${report != null}" class="net-income-box"
+                 th:classappend="${report.netIncome.compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? 'profit' : 'loss'">
+                <div class="net-income-label">Net Income</div>
+                <div class="net-income-title" th:text="${report.netIncome.compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? 'LABA BERSIH' : 'RUGI BERSIH'">LABA BERSIH</div>
+                <div class="net-income-value" th:text="${#numbers.formatDecimal(report.netIncome, 1, 'POINT', 0, 'COMMA')}">0</div>
+            </div>
+
+            <!-- Summary -->
+            <div th:if="${report != null}" class="summary-table">
+                <div class="summary-row header">
+                    <span>Ringkasan</span>
+                    <span>Jumlah</span>
+                </div>
+                <div class="summary-row">
+                    <span>Total Pendapatan</span>
+                    <span style="font-family: monospace;" th:text="${#numbers.formatDecimal(report.totalRevenue, 1, 'POINT', 0, 'COMMA')}">0</span>
+                </div>
+                <div class="summary-row">
+                    <span>Total Beban</span>
+                    <span style="font-family: monospace;" th:text="'(' + ${#numbers.formatDecimal(report.totalExpense, 1, 'POINT', 0, 'COMMA')} + ')'">0</span>
+                </div>
+                <div class="summary-row" style="background: #f9fafb; font-weight: 600;">
+                    <span th:text="${report.netIncome.compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? 'Laba Bersih' : 'Rugi Bersih'">Laba/Rugi</span>
+                    <span style="font-family: monospace;" th:text="${#numbers.formatDecimal(report.netIncome, 1, 'POINT', 0, 'COMMA')}">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <span th:text="'Dicetak: ' + ${#temporals.format(#temporals.createNow(), 'dd MMMM yyyy HH:mm')}">Dicetak: 01 Jan 2025</span>
+            <span th:text="${company.companyName}">Nama Perusahaan</span>
+        </div>
+    </div>
+</body>
+</html>

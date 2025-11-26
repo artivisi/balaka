@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:fragment="layout(reportTitle, reportSubtitle, reportPeriod, content)"
+      lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${reportTitle}">Report</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 15mm;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            font-size: 10pt;
+            line-height: 1.4;
+            color: #1f2937;
+            background: white;
+        }
+
+        .report-container {
+            max-width: 210mm;
+            margin: 0 auto;
+            padding: 8mm;
+        }
+
+        /* Header */
+        .report-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 6mm;
+            padding-bottom: 4mm;
+            border-bottom: 2px solid #4f46e5;
+        }
+
+        .company-info {
+            flex: 1;
+        }
+
+        .company-logo {
+            max-height: 50px;
+            max-width: 180px;
+            margin-bottom: 2mm;
+        }
+
+        .company-name {
+            font-size: 14pt;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 1mm;
+        }
+
+        .company-details {
+            font-size: 8pt;
+            color: #6b7280;
+            line-height: 1.5;
+        }
+
+        .report-title-section {
+            text-align: right;
+        }
+
+        .report-title {
+            font-size: 16pt;
+            font-weight: 700;
+            color: #4f46e5;
+            letter-spacing: 0.5px;
+        }
+
+        .report-subtitle {
+            font-size: 9pt;
+            color: #6b7280;
+            margin-top: 1mm;
+        }
+
+        .report-period {
+            font-size: 9pt;
+            color: #374151;
+            margin-top: 2mm;
+            font-weight: 500;
+        }
+
+        /* Content Area */
+        .report-content {
+            margin-top: 4mm;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 4mm;
+        }
+
+        th, td {
+            padding: 2mm 3mm;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        th {
+            background: #f9fafb;
+            font-weight: 600;
+            font-size: 8pt;
+            text-transform: uppercase;
+            color: #6b7280;
+            letter-spacing: 0.3px;
+        }
+
+        td {
+            font-size: 9pt;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .font-mono {
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+
+        .font-bold {
+            font-weight: 700;
+        }
+
+        .font-semibold {
+            font-weight: 600;
+        }
+
+        /* Section Headers */
+        .section-header {
+            font-size: 10pt;
+            font-weight: 700;
+            color: #1f2937;
+            padding: 3mm 0;
+            border-bottom: 2px solid #e5e7eb;
+            margin-bottom: 2mm;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .section-header.assets {
+            color: #1d4ed8;
+            border-color: #93c5fd;
+        }
+
+        .section-header.liabilities {
+            color: #dc2626;
+            border-color: #fca5a5;
+        }
+
+        .section-header.equity {
+            color: #7c3aed;
+            border-color: #c4b5fd;
+        }
+
+        .section-header.revenue {
+            color: #059669;
+            border-color: #6ee7b7;
+        }
+
+        .section-header.expense {
+            color: #dc2626;
+            border-color: #fca5a5;
+        }
+
+        /* Subtotals */
+        .subtotal-row {
+            background: #f9fafb;
+            font-weight: 600;
+        }
+
+        .total-row {
+            background: #f3f4f6;
+            font-weight: 700;
+            font-size: 10pt;
+        }
+
+        .grand-total-row {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            font-weight: 700;
+            font-size: 11pt;
+        }
+
+        .grand-total-row td {
+            border: none;
+            padding: 3mm;
+        }
+
+        /* Balance Status */
+        .balance-status {
+            margin-top: 4mm;
+            padding: 3mm;
+            border-radius: 4px;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .balance-status.balanced {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #6ee7b7;
+        }
+
+        .balance-status.unbalanced {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
+
+        /* Profit/Loss Box */
+        .profit-box {
+            margin-top: 4mm;
+            padding: 4mm;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .profit-box.profit {
+            background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+            color: white;
+        }
+
+        .profit-box.loss {
+            background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+            color: white;
+        }
+
+        .profit-label {
+            font-size: 9pt;
+            opacity: 0.9;
+        }
+
+        .profit-value {
+            font-size: 16pt;
+            font-weight: 700;
+            margin-top: 1mm;
+        }
+
+        /* Footer */
+        .report-footer {
+            margin-top: 8mm;
+            padding-top: 4mm;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            font-size: 8pt;
+            color: #9ca3af;
+        }
+
+        .print-date {
+            text-align: left;
+        }
+
+        .page-number {
+            text-align: right;
+        }
+
+        /* Print Controls */
+        .print-controls {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            gap: 8px;
+            z-index: 1000;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .btn-print {
+            background: #4f46e5;
+            color: white;
+        }
+
+        .btn-print:hover {
+            background: #4338ca;
+        }
+
+        .btn-back {
+            background: #f3f4f6;
+            color: #374151;
+        }
+
+        .btn-back:hover {
+            background: #e5e7eb;
+        }
+
+        @media print {
+            .print-controls {
+                display: none;
+            }
+
+            body {
+                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact;
+            }
+
+            .report-container {
+                padding: 0;
+            }
+        }
+
+        /* Two Column Layout for Balance Sheet */
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6mm;
+        }
+
+        .column {
+            min-width: 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- Print Controls -->
+    <div class="print-controls">
+        <a th:href="${backUrl}" class="btn btn-back">Kembali</a>
+        <button onclick="window.print()" class="btn btn-print">Cetak</button>
+    </div>
+
+    <div class="report-container">
+        <!-- Header -->
+        <div class="report-header">
+            <div class="company-info">
+                <img th:if="${company.companyLogoPath != null and !company.companyLogoPath.isEmpty()}"
+                     th:src="@{${company.companyLogoPath}}"
+                     alt="Logo" class="company-logo">
+                <img th:unless="${company.companyLogoPath != null and !company.companyLogoPath.isEmpty()}"
+                     th:src="@{/images/logo-placeholder.svg}"
+                     alt="Logo" class="company-logo">
+                <div class="company-name" th:text="${company.companyName}">Nama Perusahaan</div>
+                <div class="company-details">
+                    <span th:if="${company.companyAddress}" th:text="${company.companyAddress}">Alamat</span><br th:if="${company.companyAddress}">
+                    <span th:if="${company.companyPhone}">Tel: <span th:text="${company.companyPhone}">021-xxx</span></span>
+                    <span th:if="${company.companyPhone and company.companyEmail}"> | </span>
+                    <span th:if="${company.companyEmail}" th:text="${company.companyEmail}">email@company.com</span><br th:if="${company.companyPhone or company.companyEmail}">
+                    <span th:if="${company.taxId}">NPWP: <span th:text="${company.taxId}">00.000.000.0-000.000</span></span>
+                </div>
+            </div>
+            <div class="report-title-section">
+                <div class="report-title" th:text="${reportTitle}">LAPORAN</div>
+                <div class="report-subtitle" th:text="${reportSubtitle}">Report</div>
+                <div class="report-period" th:text="${reportPeriod}">Periode</div>
+            </div>
+        </div>
+
+        <!-- Content -->
+        <div class="report-content" th:insert="${content}">
+            Report content goes here
+        </div>
+
+        <!-- Footer -->
+        <div class="report-footer">
+            <div class="print-date" th:text="'Dicetak: ' + ${#temporals.format(#temporals.createNow(), 'dd MMMM yyyy HH:mm')}">Dicetak: 01 Januari 2025 10:00</div>
+            <div th:text="${company.companyName}">Nama Perusahaan</div>
+        </div>
+    </div>
+</body>
+</html>

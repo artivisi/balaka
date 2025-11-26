@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="'Invoice ' + ${invoice.invoiceNumber}">Invoice</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 15mm;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            font-size: 11pt;
+            line-height: 1.5;
+            color: #1f2937;
+            background: white;
+        }
+
+        .invoice-container {
+            max-width: 210mm;
+            margin: 0 auto;
+            padding: 10mm;
+        }
+
+        /* Header */
+        .invoice-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8mm;
+            padding-bottom: 5mm;
+            border-bottom: 2px solid #4f46e5;
+        }
+
+        .company-info {
+            flex: 1;
+        }
+
+        .company-logo {
+            max-height: 60px;
+            max-width: 200px;
+            margin-bottom: 3mm;
+        }
+
+        .company-name {
+            font-size: 16pt;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 2mm;
+        }
+
+        .company-details {
+            font-size: 9pt;
+            color: #6b7280;
+            line-height: 1.6;
+        }
+
+        .invoice-title-section {
+            text-align: right;
+        }
+
+        .invoice-title {
+            font-size: 24pt;
+            font-weight: 700;
+            color: #4f46e5;
+            letter-spacing: 1px;
+        }
+
+        .invoice-number {
+            font-size: 11pt;
+            font-family: 'Consolas', 'Monaco', monospace;
+            color: #374151;
+            margin-top: 2mm;
+        }
+
+        /* Two Column Section */
+        .two-column {
+            display: flex;
+            justify-content: space-between;
+            gap: 10mm;
+            margin-bottom: 8mm;
+        }
+
+        .column {
+            flex: 1;
+        }
+
+        .section-label {
+            font-size: 8pt;
+            font-weight: 600;
+            color: #9ca3af;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 2mm;
+        }
+
+        .client-name {
+            font-size: 12pt;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 1mm;
+        }
+
+        .client-details {
+            font-size: 10pt;
+            color: #4b5563;
+            line-height: 1.6;
+        }
+
+        /* Invoice Details Table */
+        .invoice-meta {
+            background: #f9fafb;
+            border-radius: 4px;
+            padding: 4mm;
+        }
+
+        .meta-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 1.5mm 0;
+        }
+
+        .meta-row:not(:last-child) {
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .meta-label {
+            font-size: 9pt;
+            color: #6b7280;
+        }
+
+        .meta-value {
+            font-size: 10pt;
+            font-weight: 500;
+            color: #1f2937;
+        }
+
+        /* Amount Section */
+        .amount-section {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            border-radius: 6px;
+            padding: 6mm;
+            margin-bottom: 8mm;
+            color: white;
+        }
+
+        .amount-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .amount-label {
+            font-size: 10pt;
+            opacity: 0.9;
+        }
+
+        .amount-value {
+            font-size: 20pt;
+            font-weight: 700;
+        }
+
+        .amount-words {
+            font-size: 9pt;
+            font-style: italic;
+            opacity: 0.85;
+            margin-top: 2mm;
+            text-align: right;
+        }
+
+        /* Project Info */
+        .project-section {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 4px;
+            padding: 4mm;
+            margin-bottom: 8mm;
+        }
+
+        .project-label {
+            font-size: 8pt;
+            font-weight: 600;
+            color: #166534;
+            text-transform: uppercase;
+            margin-bottom: 1mm;
+        }
+
+        .project-name {
+            font-size: 11pt;
+            font-weight: 500;
+            color: #15803d;
+        }
+
+        .project-term {
+            font-size: 9pt;
+            color: #4ade80;
+            margin-top: 1mm;
+        }
+
+        /* Notes */
+        .notes-section {
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+            border-radius: 4px;
+            padding: 4mm;
+            margin-bottom: 8mm;
+        }
+
+        .notes-label {
+            font-size: 8pt;
+            font-weight: 600;
+            color: #92400e;
+            text-transform: uppercase;
+            margin-bottom: 1mm;
+        }
+
+        .notes-content {
+            font-size: 10pt;
+            color: #78350f;
+        }
+
+        /* Bank Account Section */
+        .bank-section {
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
+            border-radius: 6px;
+            padding: 5mm;
+            margin-bottom: 8mm;
+        }
+
+        .bank-title {
+            font-size: 10pt;
+            font-weight: 600;
+            color: #0369a1;
+            margin-bottom: 3mm;
+        }
+
+        .bank-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3mm;
+        }
+
+        .bank-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .bank-label {
+            font-size: 8pt;
+            color: #64748b;
+        }
+
+        .bank-value {
+            font-size: 10pt;
+            font-weight: 500;
+            color: #0f172a;
+        }
+
+        .bank-value.mono {
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 12pt;
+            letter-spacing: 0.5px;
+        }
+
+        /* Signature Section */
+        .signature-section {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 15mm;
+        }
+
+        .signature-box {
+            text-align: center;
+            width: 60mm;
+        }
+
+        .signature-location {
+            font-size: 9pt;
+            color: #6b7280;
+            margin-bottom: 2mm;
+        }
+
+        .signature-space {
+            height: 20mm;
+            border-bottom: 1px solid #d1d5db;
+            margin-bottom: 2mm;
+        }
+
+        .signature-name {
+            font-size: 11pt;
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .signature-title {
+            font-size: 9pt;
+            color: #6b7280;
+        }
+
+        /* Footer */
+        .invoice-footer {
+            margin-top: 10mm;
+            padding-top: 5mm;
+            border-top: 1px solid #e5e7eb;
+            text-align: center;
+            font-size: 8pt;
+            color: #9ca3af;
+        }
+
+        /* Print Button - hidden when printing */
+        .print-controls {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            gap: 8px;
+            z-index: 1000;
+        }
+
+        .btn-print, .btn-back {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+
+        .btn-print {
+            background: #4f46e5;
+            color: white;
+        }
+
+        .btn-print:hover {
+            background: #4338ca;
+        }
+
+        .btn-back {
+            background: #f3f4f6;
+            color: #374151;
+        }
+
+        .btn-back:hover {
+            background: #e5e7eb;
+        }
+
+        @media print {
+            .print-controls {
+                display: none;
+            }
+
+            body {
+                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact;
+            }
+        }
+
+        /* Status Badge */
+        .status-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 8pt;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-draft { background: #f3f4f6; color: #6b7280; }
+        .status-sent { background: #dbeafe; color: #1d4ed8; }
+        .status-paid { background: #dcfce7; color: #166534; }
+        .status-overdue { background: #fee2e2; color: #dc2626; }
+        .status-cancelled { background: #f3f4f6; color: #9ca3af; }
+    </style>
+</head>
+<body>
+    <!-- Print Controls -->
+    <div class="print-controls">
+        <a th:href="@{/invoices/{id}(id=${invoice.id})}" class="btn-back">Kembali</a>
+        <button onclick="window.print()" class="btn-print">Cetak Invoice</button>
+    </div>
+
+    <div class="invoice-container">
+        <!-- Header -->
+        <div class="invoice-header">
+            <div class="company-info">
+                <img th:if="${company.companyLogoPath != null and !company.companyLogoPath.isEmpty()}"
+                     th:src="@{${company.companyLogoPath}}"
+                     alt="Logo" class="company-logo">
+                <img th:unless="${company.companyLogoPath != null and !company.companyLogoPath.isEmpty()}"
+                     th:src="@{/images/logo-placeholder.svg}"
+                     alt="Logo" class="company-logo">
+                <div class="company-name" th:text="${company.companyName}">Nama Perusahaan</div>
+                <div class="company-details">
+                    <span th:if="${company.companyAddress}" th:text="${company.companyAddress}">Alamat Perusahaan</span><br th:if="${company.companyAddress}">
+                    <span th:if="${company.companyPhone}">Tel: <span th:text="${company.companyPhone}">021-xxx</span></span>
+                    <span th:if="${company.companyPhone and company.companyEmail}"> | </span>
+                    <span th:if="${company.companyEmail}">Email: <span th:text="${company.companyEmail}">email@company.com</span></span><br th:if="${company.companyPhone or company.companyEmail}">
+                    <span th:if="${company.taxId}">NPWP: <span th:text="${company.taxId}">00.000.000.0-000.000</span></span>
+                </div>
+            </div>
+            <div class="invoice-title-section">
+                <div class="invoice-title">INVOICE</div>
+                <div class="invoice-number" th:text="${invoice.invoiceNumber}">INV-202501-0001</div>
+                <div style="margin-top: 3mm;">
+                    <span th:if="${invoice.status.name() == 'DRAFT'}" class="status-badge status-draft">Draf</span>
+                    <span th:if="${invoice.status.name() == 'SENT'}" class="status-badge status-sent">Terkirim</span>
+                    <span th:if="${invoice.status.name() == 'PAID'}" class="status-badge status-paid">Lunas</span>
+                    <span th:if="${invoice.status.name() == 'OVERDUE'}" class="status-badge status-overdue">Jatuh Tempo</span>
+                    <span th:if="${invoice.status.name() == 'CANCELLED'}" class="status-badge status-cancelled">Dibatalkan</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Client & Invoice Details -->
+        <div class="two-column">
+            <div class="column">
+                <div class="section-label">Kepada</div>
+                <div class="client-name" th:text="${invoice.client.name}">Nama Klien</div>
+                <div class="client-details">
+                    <span th:if="${invoice.client.contactPerson}" th:text="${invoice.client.contactPerson}">Contact Person</span><br th:if="${invoice.client.contactPerson}">
+                    <span th:if="${invoice.client.address}" th:text="${invoice.client.address}">Alamat Klien</span><br th:if="${invoice.client.address}">
+                    <span th:if="${invoice.client.phone}">Tel: <span th:text="${invoice.client.phone}">021-xxx</span></span>
+                    <span th:if="${invoice.client.phone and invoice.client.email}"> | </span>
+                    <span th:if="${invoice.client.email}" th:text="${invoice.client.email}">email@client.com</span>
+                </div>
+            </div>
+            <div class="column">
+                <div class="invoice-meta">
+                    <div class="meta-row">
+                        <span class="meta-label">Tanggal Invoice</span>
+                        <span class="meta-value" th:text="${#temporals.format(invoice.invoiceDate, 'dd MMMM yyyy')}">01 Januari 2025</span>
+                    </div>
+                    <div class="meta-row">
+                        <span class="meta-label">Jatuh Tempo</span>
+                        <span class="meta-value" th:text="${#temporals.format(invoice.dueDate, 'dd MMMM yyyy')}">15 Januari 2025</span>
+                    </div>
+                    <div class="meta-row" th:if="${invoice.paidAt}">
+                        <span class="meta-label">Tanggal Bayar</span>
+                        <span class="meta-value" th:text="${#temporals.format(invoice.paidAt, 'dd MMMM yyyy')}">15 Januari 2025</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Project Info (if any) -->
+        <div th:if="${invoice.project}" class="project-section">
+            <div class="project-label">Proyek</div>
+            <div class="project-name" th:text="${invoice.project.code + ' - ' + invoice.project.name}">PRJ001 - Nama Proyek</div>
+            <div th:if="${invoice.paymentTerm}" class="project-term">
+                Termin: <span th:text="${invoice.paymentTerm.name}">DP 30%</span>
+            </div>
+        </div>
+
+        <!-- Amount Section -->
+        <div class="amount-section">
+            <div class="amount-header">
+                <span class="amount-label">Total Tagihan</span>
+                <span class="amount-value" th:text="'Rp ' + ${#numbers.formatDecimal(invoice.amount, 0, 'COMMA', 0, 'POINT')}">Rp 10.000.000</span>
+            </div>
+            <div class="amount-words" th:text="${amountInWords}">Sepuluh juta rupiah</div>
+        </div>
+
+        <!-- Notes (if any) -->
+        <div th:if="${invoice.notes != null and !invoice.notes.isEmpty()}" class="notes-section">
+            <div class="notes-label">Catatan</div>
+            <div class="notes-content" th:text="${invoice.notes}">Catatan invoice</div>
+        </div>
+
+        <!-- Bank Account Section -->
+        <div th:if="${bankAccount != null}" class="bank-section">
+            <div class="bank-title">Pembayaran dapat ditransfer ke:</div>
+            <div class="bank-details">
+                <div class="bank-item">
+                    <span class="bank-label">Bank</span>
+                    <span class="bank-value" th:text="${bankAccount.bankName + (bankAccount.bankBranch != null ? ' - ' + bankAccount.bankBranch : '')}">BCA - KCP Sudirman</span>
+                </div>
+                <div class="bank-item">
+                    <span class="bank-label">Nomor Rekening</span>
+                    <span class="bank-value mono" th:text="${bankAccount.accountNumber}">1234567890</span>
+                </div>
+                <div class="bank-item" style="grid-column: span 2;">
+                    <span class="bank-label">Atas Nama</span>
+                    <span class="bank-value" th:text="${bankAccount.accountName}">PT Nama Perusahaan</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Signature Section -->
+        <div class="signature-section" th:if="${company.signingOfficerName != null and !company.signingOfficerName.isEmpty()}">
+            <div class="signature-box">
+                <div class="signature-location" th:text="${city != null ? city + ', ' : ''} + ${#temporals.format(#temporals.createNow(), 'dd MMMM yyyy')}">Jakarta, 01 Januari 2025</div>
+                <div class="signature-space"></div>
+                <div class="signature-name" th:text="${company.signingOfficerName}">Nama Penanda Tangan</div>
+                <div class="signature-title" th:text="${company.signingOfficerTitle}">Direktur</div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="invoice-footer">
+            Dokumen ini dicetak secara elektronik dan sah tanpa tanda tangan basah.<br>
+            <span th:text="${company.companyName}">Nama Perusahaan</span> |
+            <span th:if="${company.companyPhone}" th:text="${company.companyPhone}">021-xxx</span>
+            <span th:if="${company.companyPhone and company.companyEmail}"> | </span>
+            <span th:if="${company.companyEmail}" th:text="${company.companyEmail}">email@company.com</span>
+        </div>
+    </div>
+</body>
+</html>

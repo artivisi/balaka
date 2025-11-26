@@ -1,10 +1,15 @@
 package com.artivisi.accountingfinance.controller;
 
+import com.artivisi.accountingfinance.entity.CompanyBankAccount;
+import com.artivisi.accountingfinance.entity.CompanyConfig;
 import com.artivisi.accountingfinance.entity.Invoice;
 import com.artivisi.accountingfinance.enums.InvoiceStatus;
 import com.artivisi.accountingfinance.service.ClientService;
+import com.artivisi.accountingfinance.service.CompanyBankAccountService;
+import com.artivisi.accountingfinance.service.CompanyConfigService;
 import com.artivisi.accountingfinance.service.InvoiceService;
 import com.artivisi.accountingfinance.service.ProjectService;
+import com.artivisi.accountingfinance.util.AmountToWordsUtil;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -31,6 +36,8 @@ public class InvoiceController {
     private final InvoiceService invoiceService;
     private final ClientService clientService;
     private final ProjectService projectService;
+    private final CompanyConfigService companyConfigService;
+    private final CompanyBankAccountService bankAccountService;
 
     @GetMapping
     public String list(
@@ -225,5 +232,19 @@ public class InvoiceController {
             redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
             return "redirect:/invoices/" + id;
         }
+    }
+
+    @GetMapping("/{id}/print")
+    public String print(@PathVariable UUID id, Model model) {
+        Invoice invoice = invoiceService.findById(id);
+        CompanyConfig company = companyConfigService.getConfig();
+        CompanyBankAccount bankAccount = bankAccountService.findDefaultAccount().orElse(null);
+
+        model.addAttribute("invoice", invoice);
+        model.addAttribute("company", company);
+        model.addAttribute("bankAccount", bankAccount);
+        model.addAttribute("amountInWords", AmountToWordsUtil.toWords(invoice.getAmount()));
+
+        return "invoices/print";
     }
 }

@@ -1,6 +1,8 @@
 package com.artivisi.accountingfinance.controller;
 
+import com.artivisi.accountingfinance.entity.CompanyConfig;
 import com.artivisi.accountingfinance.service.ClientService;
+import com.artivisi.accountingfinance.service.CompanyConfigService;
 import com.artivisi.accountingfinance.service.ProjectProfitabilityService;
 import com.artivisi.accountingfinance.service.ProjectService;
 import com.artivisi.accountingfinance.service.ReportExportService;
@@ -30,6 +32,7 @@ public class ReportController {
     private final ProjectProfitabilityService profitabilityService;
     private final ProjectService projectService;
     private final ClientService clientService;
+    private final CompanyConfigService companyConfigService;
 
     private static final DateTimeFormatter FILE_DATE_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd");
 
@@ -320,5 +323,52 @@ public class ReportController {
     public ResponseEntity<ProjectProfitabilityService.CostOverrunReport> apiCostOverrun(
             @RequestParam UUID projectId) {
         return ResponseEntity.ok(profitabilityService.calculateCostOverrun(projectId));
+    }
+
+    // ==================== PRINT ENDPOINTS ====================
+
+    @GetMapping("/trial-balance/print")
+    public String printTrialBalance(
+            @RequestParam(required = false) LocalDate asOfDate,
+            Model model) {
+        LocalDate reportDate = asOfDate != null ? asOfDate : LocalDate.now();
+        CompanyConfig company = companyConfigService.getConfig();
+
+        model.addAttribute("asOfDate", reportDate);
+        model.addAttribute("report", reportService.generateTrialBalance(reportDate));
+        model.addAttribute("company", company);
+
+        return "reports/trial-balance-print";
+    }
+
+    @GetMapping("/balance-sheet/print")
+    public String printBalanceSheet(
+            @RequestParam(required = false) LocalDate asOfDate,
+            Model model) {
+        LocalDate reportDate = asOfDate != null ? asOfDate : LocalDate.now();
+        CompanyConfig company = companyConfigService.getConfig();
+
+        model.addAttribute("asOfDate", reportDate);
+        model.addAttribute("report", reportService.generateBalanceSheet(reportDate));
+        model.addAttribute("company", company);
+
+        return "reports/balance-sheet-print";
+    }
+
+    @GetMapping("/income-statement/print")
+    public String printIncomeStatement(
+            @RequestParam(required = false) LocalDate startDate,
+            @RequestParam(required = false) LocalDate endDate,
+            Model model) {
+        LocalDate start = startDate != null ? startDate : LocalDate.now().withDayOfMonth(1);
+        LocalDate end = endDate != null ? endDate : LocalDate.now();
+        CompanyConfig company = companyConfigService.getConfig();
+
+        model.addAttribute("startDate", start);
+        model.addAttribute("endDate", end);
+        model.addAttribute("report", reportService.generateIncomeStatement(start, end));
+        model.addAttribute("company", company);
+
+        return "reports/income-statement-print";
     }
 }
