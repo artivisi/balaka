@@ -1,0 +1,211 @@
+{
+  "name": "SAK EMKM - IT Services",
+  "version": "1.0",
+  "accounts": [
+    {
+      "code": "1",
+      "name": "ASET",
+      "type": "ASSET",
+      "normalBalance": "DEBIT",
+      "isHeader": true,
+      "isPermanent": true
+    },
+    {
+      "code": "1.1",
+      "name": "Aset Lancar",
+      "type": "ASSET",
+      "normalBalance": "DEBIT",
+      "parentCode": "1",
+      "isHeader": true,
+      "isPermanent": true
+    },
+    {
+      "code": "1.1.01",
+      "name": "Kas",
+      "type": "ASSET",
+      "normalBalance": "DEBIT",
+      "parentCode": "1.1",
+      "isHeader": false,
+      "isPermanent": true,
+      "description": "Kas di tangan"
+    },
+    {
+      "code": "1.1.02",
+      "name": "Bank",
+      "type": "ASSET",
+      "normalBalance": "DEBIT",
+      "parentCode": "1.1",
+      "isHeader": false,
+      "isPermanent": true,
+      "description": "Rekening bank perusahaan"
+    },
+    {
+      "code": "1.1.03",
+      "name": "Piutang Usaha",
+      "type": "ASSET",
+      "normalBalance": "DEBIT",
+      "parentCode": "1.1",
+      "isHeader": false,
+      "isPermanent": true,
+      "description": "Piutang dari pelanggan"
+    },
+    {
+      "code": "2",
+      "name": "LIABILITAS",
+      "type": "LIABILITY",
+      "normalBalance": "CREDIT",
+      "isHeader": true,
+      "isPermanent": true
+    },
+    {
+      "code": "2.1",
+      "name": "Liabilitas Jangka Pendek",
+      "type": "LIABILITY",
+      "normalBalance": "CREDIT",
+      "parentCode": "2",
+      "isHeader": true,
+      "isPermanent": true
+    },
+    {
+      "code": "2.1.01",
+      "name": "Hutang Usaha",
+      "type": "LIABILITY",
+      "normalBalance": "CREDIT",
+      "parentCode": "2.1",
+      "isHeader": false,
+      "isPermanent": true,
+      "description": "Hutang kepada supplier"
+    },
+    {
+      "code": "2.1.02",
+      "name": "Hutang PPN",
+      "type": "LIABILITY",
+      "normalBalance": "CREDIT",
+      "parentCode": "2.1",
+      "isHeader": false,
+      "isPermanent": true,
+      "description": "PPN yang harus disetor"
+    },
+    {
+      "code": "3",
+      "name": "EKUITAS",
+      "type": "EQUITY",
+      "normalBalance": "CREDIT",
+      "isHeader": true,
+      "isPermanent": true
+    },
+    {
+      "code": "3.1",
+      "name": "Modal",
+      "type": "EQUITY",
+      "normalBalance": "CREDIT",
+      "parentCode": "3",
+      "isHeader": true,
+      "isPermanent": true
+    },
+    {
+      "code": "3.1.01",
+      "name": "Modal Disetor",
+      "type": "EQUITY",
+      "normalBalance": "CREDIT",
+      "parentCode": "3.1",
+      "isHeader": false,
+      "isPermanent": true,
+      "description": "Modal yang disetor pemilik"
+    },
+    {
+      "code": "3.1.02",
+      "name": "Laba Ditahan",
+      "type": "EQUITY",
+      "normalBalance": "CREDIT",
+      "parentCode": "3.1",
+      "isHeader": false,
+      "isPermanent": true,
+      "description": "Akumulasi laba bersih"
+    },
+    {
+      "code": "4",
+      "name": "PENDAPATAN",
+      "type": "REVENUE",
+      "normalBalance": "CREDIT",
+      "isHeader": true,
+      "isPermanent": false
+    },
+    {
+      "code": "4.1",
+      "name": "Pendapatan Operasional",
+      "type": "REVENUE",
+      "normalBalance": "CREDIT",
+      "parentCode": "4",
+      "isHeader": true,
+      "isPermanent": false
+    },
+    {
+      "code": "4.1.01",
+      "name": "Pendapatan Jasa",
+      "type": "REVENUE",
+      "normalBalance": "CREDIT",
+      "parentCode": "4.1",
+      "isHeader": false,
+      "isPermanent": false,
+      "description": "Pendapatan dari jasa konsultasi"
+    },
+    {
+      "code": "4.1.02",
+      "name": "Pendapatan Development",
+      "type": "REVENUE",
+      "normalBalance": "CREDIT",
+      "parentCode": "4.1",
+      "isHeader": false,
+      "isPermanent": false,
+      "description": "Pendapatan dari pembuatan software"
+    },
+    {
+      "code": "5",
+      "name": "BEBAN",
+      "type": "EXPENSE",
+      "normalBalance": "DEBIT",
+      "isHeader": true,
+      "isPermanent": false
+    },
+    {
+      "code": "5.1",
+      "name": "Beban Operasional",
+      "type": "EXPENSE",
+      "normalBalance": "DEBIT",
+      "parentCode": "5",
+      "isHeader": true,
+      "isPermanent": false
+    },
+    {
+      "code": "5.1.01",
+      "name": "Beban Gaji",
+      "type": "EXPENSE",
+      "normalBalance": "DEBIT",
+      "parentCode": "5.1",
+      "isHeader": false,
+      "isPermanent": false,
+      "description": "Gaji karyawan"
+    },
+    {
+      "code": "5.1.02",
+      "name": "Beban Sewa",
+      "type": "EXPENSE",
+      "normalBalance": "DEBIT",
+      "parentCode": "5.1",
+      "isHeader": false,
+      "isPermanent": false,
+      "description": "Sewa kantor"
+    },
+    {
+      "code": "5.1.03",
+      "name": "Beban Server & Cloud",
+      "type": "EXPENSE",
+      "normalBalance": "DEBIT",
+      "parentCode": "5.1",
+      "isHeader": false,
+      "isPermanent": false,
+      "description": "Biaya server dan layanan cloud"
+    }
+  ]
+}

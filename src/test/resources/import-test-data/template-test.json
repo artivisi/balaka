@@ -1,0 +1,28 @@
+{
+  "name": "Test Template Import",
+  "version": "1.0",
+  "templates": [
+    {
+      "name": "Test Import Template",
+      "category": "INCOME",
+      "cashFlowCategory": "OPERATING",
+      "description": "Template for testing import functionality",
+      "templateType": "SIMPLE",
+      "tags": ["test", "import"],
+      "lines": [
+        {
+          "accountCode": "1.1.02",
+          "position": "DEBIT",
+          "formula": "amount",
+          "description": "Test debit line"
+        },
+        {
+          "accountCode": "4.1.01",
+          "position": "CREDIT",
+          "formula": "amount",
+          "description": "Test credit line"
+        }
+      ]
+    }
+  ]
+}

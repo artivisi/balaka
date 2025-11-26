@@ -698,7 +698,7 @@ When milestone is marked complete:
 
 ---
 
-### 1.12 Data Import
+### 1.12 Data Import ✅
 
 **Purpose:** Import COA and Journal Templates from JSON/Excel files. Replaces hardcoded seed data in migrations.
 
@@ -713,33 +713,28 @@ When milestone is marked complete:
 #### Features
 
 ##### COA Import
-- [ ] Import from JSON file
-- [ ] Import from Excel file (XLSX)
-- [ ] Validate account structure (parent references, account types)
-- [ ] Validate account codes (uniqueness, format)
-- [ ] Preview before import (show what will be created)
-- [ ] Import progress indicator
-- [ ] Error handling with line-by-line feedback
-- [ ] Skip existing accounts option
-- [ ] **Clear before import option** - delete all existing accounts before importing
+- [x] Import from JSON file
+- [x] Import from Excel file (XLSX)
+- [x] Validate account structure (parent references, account types)
+- [x] Validate account codes (uniqueness, format)
+- [x] Preview before import (show what will be created)
+- [x] Error handling with line-by-line feedback
+- [x] **Clear before import option** - delete all existing accounts before importing
 
 ##### Journal Template Import
-- [ ] Import from JSON file
-- [ ] Validate template structure (lines, formulas)
-- [ ] Validate account references (must exist in COA)
-- [ ] Preview before import
-- [ ] Import progress indicator
-- [ ] Error handling with detailed feedback
-- [ ] Skip existing templates option
-- [ ] **Clear before import option** - delete all existing templates before importing
+- [x] Import from JSON file
+- [x] Validate template structure (lines, formulas)
+- [x] Validate account references (must exist in COA)
+- [x] Preview before import
+- [x] Error handling with detailed feedback
+- [x] **Clear before import option** - delete all existing templates before importing
 
 ##### Clear Data (Pre-Import)
-- [ ] Clear all COA accounts (with cascade validation)
-- [ ] Block clear if journal entries exist (data integrity)
-- [ ] Clear all journal templates (with cascade to template lines)
-- [ ] Block clear if transactions reference templates
-- [ ] Confirmation dialog with warning
-- [ ] Audit log of clear operation
+- [x] Clear all COA accounts (with cascade validation)
+- [x] Block clear if journal entries exist (data integrity)
+- [x] Clear all journal templates (with cascade to template lines)
+- [x] Block clear if transactions reference templates
+- [x] Checkbox confirmation before clear
 
 ##### First-Run Setup Wizard
 - [ ] Detect empty COA on first login

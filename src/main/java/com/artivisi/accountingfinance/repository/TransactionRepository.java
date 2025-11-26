@@ -59,4 +59,6 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
     List<Transaction> findPostedTransactionsBetweenDates(
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate);
+
+    boolean existsByJournalTemplateId(UUID templateId);
 }

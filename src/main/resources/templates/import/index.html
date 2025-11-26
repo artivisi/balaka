@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/main}"
+      lang="id">
+<head>
+    <title>Import Data</title>
+</head>
+<body>
+    <h1 layout:fragment="page-title" id="page-title">Import Data</h1>
+
+    <div layout:fragment="content" class="max-w-4xl mx-auto">
+        <!-- Success Message -->
+        <div th:if="${successMessage}" class="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg">
+            <span th:text="${successMessage}">Success message</span>
+        </div>
+
+        <!-- Error Message -->
+        <div th:if="${errorMessage}" class="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+            <span th:text="${errorMessage}">Error message</span>
+        </div>
+
+        <!-- Import Options -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- COA Import Card -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center mb-4">
+                    <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mr-4">
+                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-semibold text-gray-900">Bagan Akun (COA)</h2>
+                        <p class="text-sm text-gray-500">Import daftar akun dari file JSON atau Excel</p>
+                    </div>
+                </div>
+                <div class="space-y-3">
+                    <a th:href="@{/import/coa}" class="block w-full px-4 py-2 bg-blue-600 text-white text-center font-medium rounded-lg hover:bg-blue-700 transition-colors">
+                        Import Bagan Akun
+                    </a>
+                    <a th:href="@{/import/download/coa-sample}" class="block w-full px-4 py-2 border border-gray-300 text-gray-700 text-center font-medium rounded-lg hover:bg-gray-50 transition-colors">
+                        Download Template JSON
+                    </a>
+                    <form th:if="${canClearAccounts}" th:action="@{/import/coa/clear}" method="post" class="mt-2"
+                          onsubmit="return confirm('PERINGATAN: Semua bagan akun akan dihapus. Lanjutkan?');">
+                        <button type="submit" class="w-full px-4 py-2 border border-red-300 text-red-700 text-center font-medium rounded-lg hover:bg-red-50 transition-colors">
+                            Hapus Semua Akun
+                        </button>
+                    </form>
+                    <p th:unless="${canClearAccounts}" class="text-xs text-gray-500 text-center">
+                        * Tidak dapat menghapus akun karena sudah ada jurnal
+                    </p>
+                </div>
+            </div>
+
+            <!-- Template Import Card -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center mb-4">
+                    <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mr-4">
+                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-semibold text-gray-900">Template Jurnal</h2>
+                        <p class="text-sm text-gray-500">Import template transaksi dari file JSON</p>
+                    </div>
+                </div>
+                <div class="space-y-3">
+                    <a th:href="@{/import/templates}" class="block w-full px-4 py-2 bg-green-600 text-white text-center font-medium rounded-lg hover:bg-green-700 transition-colors">
+                        Import Template
+                    </a>
+                    <a th:href="@{/import/download/template-sample}" class="block w-full px-4 py-2 border border-gray-300 text-gray-700 text-center font-medium rounded-lg hover:bg-gray-50 transition-colors">
+                        Download Template JSON
+                    </a>
+                    <form th:if="${canClearTemplates}" th:action="@{/import/templates/clear}" method="post" class="mt-2"
+                          onsubmit="return confirm('PERINGATAN: Semua template jurnal akan dihapus. Lanjutkan?');">
+                        <button type="submit" class="w-full px-4 py-2 border border-red-300 text-red-700 text-center font-medium rounded-lg hover:bg-red-50 transition-colors">
+                            Hapus Semua Template
+                        </button>
+                    </form>
+                    <p th:unless="${canClearTemplates}" class="text-xs text-gray-500 text-center">
+                        * Tidak dapat menghapus template karena sudah ada transaksi
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Info Section -->
+        <div class="mt-8 bg-gray-50 rounded-lg p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Petunjuk Import</h3>
+            <div class="space-y-4 text-sm text-gray-600">
+                <div>
+                    <h4 class="font-medium text-gray-900">Format File</h4>
+                    <ul class="list-disc list-inside mt-1 space-y-1">
+                        <li>Bagan Akun: JSON atau Excel (XLSX)</li>
+                        <li>Template Jurnal: JSON</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-medium text-gray-900">Proses Import</h4>
+                    <ol class="list-decimal list-inside mt-1 space-y-1">
+                        <li>Upload file</li>
+                        <li>Preview data dan validasi</li>
+                        <li>Konfirmasi import</li>
+                        <li>Lihat hasil import</li>
+                    </ol>
+                </div>
+                <div>
+                    <h4 class="font-medium text-gray-900">Opsi Import</h4>
+                    <ul class="list-disc list-inside mt-1 space-y-1">
+                        <li><strong>Lewati yang sudah ada:</strong> Data dengan kode/nama yang sama akan dilewati</li>
+                        <li><strong>Hapus sebelum import:</strong> Menghapus semua data sebelum import (hanya jika belum ada transaksi)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,188 @@
+{
+  "name": "IT Services Templates",
+  "version": "1.0",
+  "templates": [
+    {
+      "name": "Pendapatan Jasa Konsultasi",
+      "category": "INCOME",
+      "cashFlowCategory": "OPERATING",
+      "description": "Template untuk mencatat pendapatan jasa konsultasi",
+      "templateType": "SIMPLE",
+      "tags": ["jasa", "konsultasi", "pendapatan"],
+      "lines": [
+        {
+          "accountCode": "1.1.02",
+          "position": "DEBIT",
+          "formula": "amount",
+          "description": "Penerimaan ke bank"
+        },
+        {
+          "accountCode": "4.1.01",
+          "position": "CREDIT",
+          "formula": "amount",
+          "description": "Pendapatan jasa"
+        }
+      ]
+    },
+    {
+      "name": "Pendapatan Jasa dengan PPN",
+      "category": "INCOME",
+      "cashFlowCategory": "OPERATING",
+      "description": "Template untuk pendapatan jasa dengan PPN 11%",
+      "templateType": "SIMPLE",
+      "tags": ["jasa", "ppn", "pendapatan"],
+      "lines": [
+        {
+          "accountCode": "1.1.02",
+          "position": "DEBIT",
+          "formula": "amount",
+          "description": "Total penerimaan (DPP + PPN)"
+        },
+        {
+          "accountCode": "4.1.01",
+          "position": "CREDIT",
+          "formula": "amount / 1.11",
+          "description": "DPP (Dasar Pengenaan Pajak)"
+        },
+        {
+          "accountCode": "2.1.02",
+          "position": "CREDIT",
+          "formula": "amount - (amount / 1.11)",
+          "description": "PPN Keluaran 11%"
+        }
+      ]
+    },
+    {
+      "name": "Pembayaran Beban Gaji",
+      "category": "EXPENSE",
+      "cashFlowCategory": "OPERATING",
+      "description": "Template untuk pembayaran gaji karyawan",
+      "templateType": "SIMPLE",
+      "tags": ["gaji", "beban", "operasional"],
+      "lines": [
+        {
+          "accountCode": "5.1.01",
+          "position": "DEBIT",
+          "formula": "amount",
+          "description": "Beban gaji"
+        },
+        {
+          "accountCode": "1.1.02",
+          "position": "CREDIT",
+          "formula": "amount",
+          "description": "Pembayaran dari bank"
+        }
+      ]
+    },
+    {
+      "name": "Pembayaran Beban Sewa",
+      "category": "EXPENSE",
+      "cashFlowCategory": "OPERATING",
+      "description": "Template untuk pembayaran sewa kantor",
+      "templateType": "SIMPLE",
+      "tags": ["sewa", "beban", "operasional"],
+      "lines": [
+        {
+          "accountCode": "5.1.02",
+          "position": "DEBIT",
+          "formula": "amount",
+          "description": "Beban sewa"
+        },
+        {
+          "accountCode": "1.1.02",
+          "position": "CREDIT",
+          "formula": "amount",
+          "description": "Pembayaran dari bank"
+        }
+      ]
+    },
+    {
+      "name": "Pembayaran Biaya Server & Cloud",
+      "category": "EXPENSE",
+      "cashFlowCategory": "OPERATING",
+      "description": "Template untuk pembayaran server dan layanan cloud",
+      "templateType": "SIMPLE",
+      "tags": ["server", "cloud", "operasional"],
+      "lines": [
+        {
+          "accountCode": "5.1.03",
+          "position": "DEBIT",
+          "formula": "amount",
+          "description": "Beban server & cloud"
+        },
+        {
+          "accountCode": "1.1.02",
+          "position": "CREDIT",
+          "formula": "amount",
+          "description": "Pembayaran dari bank"
+        }
+      ]
+    },
+    {
+      "name": "Penerimaan Piutang",
+      "category": "RECEIPT",
+      "cashFlowCategory": "OPERATING",
+      "description": "Template untuk penerimaan pembayaran piutang dari pelanggan",
+      "templateType": "SIMPLE",
+      "tags": ["piutang", "penerimaan"],
+      "lines": [
+        {
+          "accountCode": "1.1.02",
+          "position": "DEBIT",
+          "formula": "amount",
+          "description": "Penerimaan ke bank"
+        },
+        {
+          "accountCode": "1.1.03",
+          "position": "CREDIT",
+          "formula": "amount",
+          "description": "Pengurangan piutang"
+        }
+      ]
+    },
+    {
+      "name": "Pembayaran Hutang",
+      "category": "PAYMENT",
+      "cashFlowCategory": "OPERATING",
+      "description": "Template untuk pembayaran hutang ke supplier",
+      "templateType": "SIMPLE",
+      "tags": ["hutang", "pembayaran"],
+      "lines": [
+        {
+          "accountCode": "2.1.01",
+          "position": "DEBIT",
+          "formula": "amount",
+          "description": "Pengurangan hutang"
+        },
+        {
+          "accountCode": "1.1.02",
+          "position": "CREDIT",
+          "formula": "amount",
+          "description": "Pembayaran dari bank"
+        }
+      ]
+    },
+    {
+      "name": "Transfer Kas ke Bank",
+      "category": "TRANSFER",
+      "cashFlowCategory": "OPERATING",
+      "description": "Template untuk setor kas ke bank",
+      "templateType": "SIMPLE",
+      "tags": ["kas", "bank", "transfer"],
+      "lines": [
+        {
+          "accountCode": "1.1.02",
+          "position": "DEBIT",
+          "formula": "amount",
+          "description": "Penambahan saldo bank"
+        },
+        {
+          "accountCode": "1.1.01",
+          "position": "CREDIT",
+          "formula": "amount",
+          "description": "Pengurangan kas"
+        }
+      ]
+    }
+  ]
+}
