@@ -736,14 +736,6 @@ When milestone is marked complete:
 - [x] Block clear if transactions reference templates
 - [x] Checkbox confirmation before clear
 
-##### First-Run Setup Wizard
-- [ ] Detect empty COA on first login
-- [ ] Offer import options:
-  - Start from scratch (empty)
-  - Import from file
-  - Use SAK EMKM template (downloadable)
-- [ ] Guide user through initial setup
-
 #### Importable Templates
 
 Pre-built templates available for download (not in migrations):
@@ -827,19 +819,16 @@ Pre-built templates available for download (not in migrations):
 ```
 
 #### UI with HTMX
-- File upload with drag-and-drop
-- Real-time validation feedback
-- Import progress bar
-- Success/error summary
+- [x] File upload
+- [x] Real-time validation feedback (HTMX preview)
+- [x] Success/error summary
 
 #### Implementation
-- [ ] Create ImportService for COA
-- [ ] Create ImportService for Templates
-- [ ] Create ImportController with HTMX endpoints
-- [ ] Create import UI pages
-- [ ] Create setup wizard for first-run
-- [ ] Create downloadable template files
-- [ ] Add import menu item
+- [x] Create DataImportService (unified for COA and Templates)
+- [x] Create DataImportController with HTMX endpoints
+- [x] Create import UI pages
+- [x] Add import menu item
+- [x] Sample file downloads
 
 ---
 
