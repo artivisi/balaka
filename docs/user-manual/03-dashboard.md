@@ -2,31 +2,47 @@
 
 ## Halaman Dashboard
 
-Dashboard adalah halaman utama yang menampilkan ringkasan kondisi keuangan bisnis Anda secara real-time.
+Dashboard adalah halaman utama yang menampilkan ringkasan kondisi keuangan bisnis Anda. Dashboard menggunakan HTMX untuk memuat data KPI secara dinamis.
 
-## Komponen Dashboard
+## Kartu KPI
 
-### Kartu Ringkasan
+Dashboard menampilkan 8 kartu KPI (Key Performance Indicator) yang diperbarui secara real-time:
 
-- **Total Pendapatan** - Jumlah pendapatan pada periode berjalan
-- **Total Pengeluaran** - Jumlah pengeluaran pada periode berjalan
-- **Laba/Rugi Bersih** - Selisih antara pendapatan dan pengeluaran
-- **Saldo Kas & Bank** - Total saldo kas dan rekening bank
+### Kartu Pendapatan & Beban
 
-### Grafik Keuangan
+| Kartu | Deskripsi |
+|-------|-----------|
+| **Pendapatan** | Total pendapatan bulan berjalan dengan persentase perubahan dari bulan sebelumnya |
+| **Beban** | Total beban bulan berjalan dengan persentase perubahan dari bulan sebelumnya |
+| **Laba Bersih** | Selisih pendapatan dan beban dengan persentase perubahan dari bulan sebelumnya |
+| **Margin Laba** | Persentase laba bersih terhadap pendapatan dengan selisih poin dari bulan sebelumnya |
 
-Dashboard menampilkan grafik yang memvisualisasikan:
-- Tren pendapatan dan pengeluaran bulanan
-- Perbandingan antar kategori transaksi
-- Perkembangan saldo kas
+### Kartu Posisi Keuangan
 
-### Transaksi Terakhir
+| Kartu | Deskripsi |
+|-------|-----------|
+| **Kas & Bank** | Total saldo akun kas dan bank |
+| **Piutang** | Total saldo piutang usaha |
+| **Hutang** | Total saldo hutang usaha |
+| **Transaksi** | Jumlah transaksi yang dicatat pada bulan berjalan |
 
-Daftar 10 transaksi terbaru yang dicatat dalam sistem, menampilkan:
-- Tanggal transaksi
-- Keterangan
-- Jumlah
-- Status (Draft/Posted/Void)
+## Pemilihan Periode
+
+Gunakan pemilih bulan di bagian atas untuk melihat KPI periode lain:
+
+1. Klik pada field pemilih bulan
+2. Pilih bulan dan tahun yang diinginkan
+3. Data KPI akan diperbarui secara otomatis
+
+Periode yang ditampilkan akan terlihat di header kartu KPI (contoh: "November 2025").
+
+## Indikator Perubahan
+
+Setiap kartu menampilkan indikator perubahan dibandingkan bulan sebelumnya:
+
+- **Warna hijau** dengan panah naik: peningkatan (positif untuk pendapatan/laba, perlu perhatian untuk beban)
+- **Warna merah** dengan panah turun: penurunan
+- Format: persentase untuk nilai moneter, poin untuk margin
 
 ## Navigasi
 
@@ -38,9 +54,9 @@ Gunakan menu sidebar di sebelah kiri untuk mengakses fitur lainnya:
 | Transaksi | Pencatatan transaksi |
 | Buku Besar | Laporan per akun |
 | Laporan | Laporan keuangan |
+| Amortisasi | Jadwal amortisasi |
+| Klien | Manajemen klien |
+| Proyek | Manajemen proyek |
+| Invoice | Daftar invoice |
 | Akun | Bagan akun |
 | Template | Template jurnal |
-
-## Periode Tampilan
-
-Anda dapat mengubah periode tampilan dashboard dengan memilih rentang tanggal di bagian atas halaman.

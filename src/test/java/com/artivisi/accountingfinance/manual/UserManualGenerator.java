@@ -56,8 +56,15 @@ public class UserManualGenerator {
             new Section("dashboard", "Dashboard", "03-dashboard.md", List.of("dashboard")),
             new Section("bagan-akun", "Bagan Akun", "04-bagan-akun.md", List.of("accounts-list", "accounts-form")),
             new Section("template-jurnal", "Template Jurnal", "05-template-jurnal.md", List.of("templates-list", "templates-detail", "templates-form")),
-            new Section("transaksi", "Transaksi", "06-transaksi.md", List.of("transactions-list", "transactions-form", "transactions-detail")),
-            new Section("buku-besar", "Buku Besar", "07-buku-besar.md", List.of("journals-list", "journals-detail"))
+            new Section("transaksi", "Transaksi", "06-transaksi.md", List.of("transactions-list", "transactions-detail", "transactions-form")),
+            new Section("buku-besar", "Buku Besar", "07-buku-besar.md", List.of("journals-list", "journals-detail")),
+            new Section("laporan-keuangan", "Laporan Keuangan", "08-laporan-keuangan.md", List.of("reports-trial-balance", "reports-balance-sheet", "reports-income-statement")),
+            new Section("amortisasi", "Jadwal Amortisasi", "09-amortisasi.md", List.of("amortization-list", "amortization-form")),
+            new Section("klien", "Manajemen Klien", "10-klien.md", List.of("clients-list", "clients-detail", "clients-form")),
+            new Section("proyek", "Manajemen Proyek", "11-proyek.md", List.of("projects-list", "projects-detail", "projects-form")),
+            new Section("invoice", "Invoice", "12-invoice.md", List.of("invoices-list")),
+            new Section("laporan-profitabilitas", "Laporan Profitabilitas", "13-laporan-profitabilitas.md", List.of("reports-project-profitability", "reports-client-profitability")),
+            new Section("glosarium", "Glosarium", "14-glosarium.md", List.of())
         );
     }
 
@@ -293,7 +300,7 @@ public class UserManualGenerator {
                 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                     <div class="lg:grid lg:grid-cols-12 lg:gap-8">
                         <aside class="hidden lg:block lg:col-span-3 no-print">
-                            <nav class="sticky top-24 bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                            <nav class="sticky top-24 bg-white rounded-lg shadow-sm border border-gray-200 p-4 max-h-[calc(100vh-8rem)] overflow-y-auto">
                                 <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Daftar Isi</h2>
                                 <ul class="space-y-2">
                                     {{TOC}}

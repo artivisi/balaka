@@ -33,6 +33,13 @@ public class ScreenshotCapture {
             String section
     ) {}
 
+    // Seed data UUIDs for detail pages
+    private static final String TEMPLATE_ID = "e0000000-0000-0000-0000-000000000001"; // Pendapatan Jasa Konsultasi
+    private static final String TRANSACTION_ID = "a0000000-0000-0000-0000-000000000002"; // TRX-TEST-0002
+    private static final String JOURNAL_ID = "b0000000-0000-0000-0000-000000000001"; // JE-TEST-0001
+    private static final String CLIENT_ID = "c0500000-0000-0000-0000-000000000001"; // PT ABC Technology
+    private static final String PROJECT_ID = "a0500000-0000-0000-0000-000000000001"; // Website Development ABC
+
     public static List<PageDefinition> getPageDefinitions() {
         return List.of(
             // Authentication
@@ -41,7 +48,7 @@ public class ScreenshotCapture {
 
             // Dashboard
             new PageDefinition("dashboard", "Dashboard", "/dashboard", true,
-                    "Tampilan utama dengan ringkasan keuangan", "dashboard"),
+                    "Tampilan utama dengan KPI keuangan bulanan", "dashboard"),
 
             // Chart of Accounts
             new PageDefinition("accounts-list", "Daftar Akun", "/accounts", true,
@@ -51,25 +58,65 @@ public class ScreenshotCapture {
 
             // Templates
             new PageDefinition("templates-list", "Daftar Template", "/templates", true,
-                    "Daftar template jurnal dengan kategori", "template-jurnal"),
-            new PageDefinition("templates-detail", "Detail Template", "/templates/TPL-001", true,
+                    "Daftar template jurnal dengan kategori dan pencarian", "template-jurnal"),
+            new PageDefinition("templates-detail", "Detail Template", "/templates/" + TEMPLATE_ID, true,
                     "Konfigurasi dan formula template", "template-jurnal"),
             new PageDefinition("templates-form", "Form Template", "/templates/new", true,
-                    "Form untuk membuat template baru", "template-jurnal"),
+                    "Form untuk membuat template baru dengan formula", "template-jurnal"),
 
             // Transactions
             new PageDefinition("transactions-list", "Daftar Transaksi", "/transactions", true,
-                    "Daftar transaksi dengan filter status dan periode", "transaksi"),
+                    "Daftar transaksi dengan filter status, periode, dan proyek", "transaksi"),
+            new PageDefinition("transactions-detail", "Detail Transaksi", "/transactions/" + TRANSACTION_ID, true,
+                    "Detail transaksi dengan jurnal dan audit trail", "transaksi"),
             new PageDefinition("transactions-form", "Form Transaksi", "/transactions/new", true,
                     "Form untuk membuat transaksi baru", "transaksi"),
-            new PageDefinition("transactions-detail", "Detail Transaksi", "/transactions/TRX-2025-0001", true,
-                    "Detail transaksi dengan jurnal dan audit trail", "transaksi"),
 
             // Journal Entries
             new PageDefinition("journals-list", "Buku Besar", "/journals", true,
                     "Tampilan buku besar dengan saldo berjalan", "buku-besar"),
-            new PageDefinition("journals-detail", "Detail Jurnal", "/journals/JE-2025-0001", true,
-                    "Detail entri jurnal dengan dampak akun", "buku-besar")
+            new PageDefinition("journals-detail", "Detail Jurnal", "/journals/" + JOURNAL_ID, true,
+                    "Detail entri jurnal dengan dampak akun", "buku-besar"),
+
+            // Reports
+            new PageDefinition("reports-trial-balance", "Neraca Saldo", "/reports/trial-balance", true,
+                    "Laporan neraca saldo per tanggal", "laporan-keuangan"),
+            new PageDefinition("reports-balance-sheet", "Neraca", "/reports/balance-sheet", true,
+                    "Laporan posisi keuangan (Neraca)", "laporan-keuangan"),
+            new PageDefinition("reports-income-statement", "Laba Rugi", "/reports/income-statement", true,
+                    "Laporan laba rugi per periode", "laporan-keuangan"),
+
+            // Amortization Schedules
+            new PageDefinition("amortization-list", "Daftar Jadwal Amortisasi", "/amortization", true,
+                    "Daftar jadwal amortisasi dengan filter tipe dan status", "amortisasi"),
+            new PageDefinition("amortization-form", "Form Jadwal Amortisasi", "/amortization/new", true,
+                    "Form untuk membuat jadwal amortisasi baru", "amortisasi"),
+
+            // Clients
+            new PageDefinition("clients-list", "Daftar Klien", "/clients", true,
+                    "Daftar klien dengan pencarian", "klien"),
+            new PageDefinition("clients-detail", "Detail Klien", "/clients/" + CLIENT_ID, true,
+                    "Detail klien dengan daftar proyek", "klien"),
+            new PageDefinition("clients-form", "Form Klien", "/clients/new", true,
+                    "Form untuk menambah klien baru", "klien"),
+
+            // Projects
+            new PageDefinition("projects-list", "Daftar Proyek", "/projects", true,
+                    "Daftar proyek dengan filter status dan klien", "proyek"),
+            new PageDefinition("projects-detail", "Detail Proyek", "/projects/" + PROJECT_ID, true,
+                    "Detail proyek dengan milestone dan termin pembayaran", "proyek"),
+            new PageDefinition("projects-form", "Form Proyek", "/projects/new", true,
+                    "Form untuk membuat proyek baru", "proyek"),
+
+            // Invoices
+            new PageDefinition("invoices-list", "Daftar Invoice", "/invoices", true,
+                    "Daftar invoice dengan filter status dan klien", "invoice"),
+
+            // Profitability Reports
+            new PageDefinition("reports-project-profitability", "Profitabilitas Proyek", "/reports/project-profitability", true,
+                    "Laporan profitabilitas per proyek", "laporan-profitabilitas"),
+            new PageDefinition("reports-client-profitability", "Profitabilitas Klien", "/reports/client-profitability", true,
+                    "Laporan profitabilitas per klien", "laporan-profitabilitas")
         );
     }
 

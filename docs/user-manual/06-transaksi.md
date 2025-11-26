@@ -20,6 +20,7 @@ Transaksi adalah pencatatan aktivitas keuangan yang terjadi dalam bisnis Anda. S
    - **Periode** - Filter berdasarkan rentang tanggal
    - **Status** - Filter berdasarkan status transaksi
    - **Kategori** - Filter berdasarkan kategori template
+   - **Proyek** - Filter berdasarkan proyek terkait
 
 ## Membuat Transaksi Baru
 
@@ -29,6 +30,7 @@ Transaksi adalah pencatatan aktivitas keuangan yang terjadi dalam bisnis Anda. S
    - **Tanggal** - Tanggal transaksi terjadi
    - **Jumlah** - Nilai transaksi dalam Rupiah
    - **Akun Sumber** - Pilih akun kas/bank yang terlibat
+   - **Proyek** - Pilih proyek terkait untuk tracking profitabilitas (opsional)
    - **Keterangan** - Deskripsi yang jelas tentang transaksi
    - **No. Referensi** - Nomor invoice/dokumen terkait (opsional)
 4. Review **Preview Jurnal** untuk memastikan kebenaran

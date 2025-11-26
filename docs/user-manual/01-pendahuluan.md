@@ -6,11 +6,17 @@ Aplikasi Akunting adalah sistem pencatatan keuangan yang dirancang khusus untuk 
 
 ## Fitur Utama
 
+- **Dashboard KPI** - Ringkasan keuangan bulanan dengan perbandingan periode sebelumnya
 - **Bagan Akun (Chart of Accounts)** - Struktur akun yang sesuai standar akuntansi
-- **Template Jurnal** - Mempermudah pencatatan transaksi berulang
+- **Template Jurnal** - Mempermudah pencatatan transaksi berulang dengan formula perhitungan
 - **Transaksi** - Pencatatan transaksi dengan jurnal otomatis
 - **Buku Besar** - Laporan saldo dan mutasi per akun
-- **Laporan Keuangan** - Neraca, Laba Rugi, dan Arus Kas
+- **Laporan Keuangan** - Neraca Saldo, Neraca, dan Laba Rugi dengan ekspor PDF/Excel
+- **Jadwal Amortisasi** - Otomatisasi beban dibayar dimuka dan pendapatan diterima dimuka
+- **Manajemen Klien** - Pengelolaan data klien
+- **Manajemen Proyek** - Tracking proyek dengan milestone dan termin pembayaran
+- **Invoice** - Penerbitan dan pelacakan invoice
+- **Laporan Profitabilitas** - Analisis profitabilitas per proyek dan klien
 
 ## Persyaratan Sistem
 
