@@ -721,6 +721,7 @@ When milestone is marked complete:
 - [ ] Import progress indicator
 - [ ] Error handling with line-by-line feedback
 - [ ] Skip existing accounts option
+- [ ] **Clear before import option** - delete all existing accounts before importing
 
 ##### Journal Template Import
 - [ ] Import from JSON file
@@ -730,6 +731,15 @@ When milestone is marked complete:
 - [ ] Import progress indicator
 - [ ] Error handling with detailed feedback
 - [ ] Skip existing templates option
+- [ ] **Clear before import option** - delete all existing templates before importing
+
+##### Clear Data (Pre-Import)
+- [ ] Clear all COA accounts (with cascade validation)
+- [ ] Block clear if journal entries exist (data integrity)
+- [ ] Clear all journal templates (with cascade to template lines)
+- [ ] Block clear if transactions reference templates
+- [ ] Confirmation dialog with warning
+- [ ] Audit log of clear operation
 
 ##### First-Run Setup Wizard
 - [ ] Detect empty COA on first login
