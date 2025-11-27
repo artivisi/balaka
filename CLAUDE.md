@@ -22,16 +22,15 @@ Indonesian accounting application for small businesses. Spring Boot 4.0 + Thymel
   - 1.11 User Manual: ✅ Complete
   - 1.12 Data Import: ✅ Complete
   - 1.13 Deployment & Operations: ✅ Complete
-- **Phase 2:** Tax Compliance 🚧 In Progress
-  - 2.0 Refactoring: ✅ Complete
-  - 2.1 Document Attachment: ✅ Complete
-  - 2.2 Telegram Receipt Import: ✅ Complete
-  - 2.3-2.5 Tax Accounts/Templates: ✅ Complete
-  - 2.6 Tax Reports: ✅ Complete
-  - 2.7 Fiscal Period Management: ✅ Complete
+- **Phase 2:** Tax Compliance + Cash Flow 🚧 In Progress
+  - 2.0-2.7: ✅ Complete (Refactoring, Documents, Telegram, Tax, Reports, Fiscal Periods)
   - 2.8 Tax Calendar: ⏳ Next
   - 2.9 Backup & Restore: ✅ Complete
-  - See `docs/06-implementation-plan.md` for full plan
+  - 2.10 Cash Flow Statement: ⏳ Pending
+- **Phase 3:** Payroll (PPh 21, BPJS)
+- **Phase 4:** Reconciliation & Analytics (Bank/Marketplace, Tags, Trends, Alerts, RBAC)
+- **Phase 5:** Assets & Budget
+- See `docs/06-implementation-plan.md` for full plan
 
 ## Key Files
 
@@ -93,12 +92,9 @@ Phase 1 (Core Accounting MVP) is complete. All features implemented:
 - Data Import (COA & Templates from JSON/Excel)
 - Deployment & Operations (Pulumi, Ansible, Backup/Restore)
 
-Phase 2 (Tax Compliance) in progress:
-- Document Attachment, Telegram Receipt Import complete
-- Tax Accounts and Templates (PPN, PPh) complete
-- Tax Reports (PPN Summary, PPh 23, Coretax Export) complete
-- Fiscal Period Management complete
-- Backup & Restore utility complete
-- Next: Tax Calendar (2.8)
+Phase 2 (Tax Compliance + Cash Flow) in progress:
+- 2.0-2.7: Complete (Documents, Telegram, Tax Templates, Reports, Fiscal Periods)
+- 2.9: Backup & Restore complete
+- Next: 2.8 Tax Calendar, then 2.10 Cash Flow Statement
 
 See `docs/06-implementation-plan.md` for full plan

@@ -13,9 +13,9 @@
 |-------|-------|--------|
 | **0** | Project Setup | ✅ Complete |
 | **1** | Core Accounting (MVP) - IT Services | ✅ Complete |
-| **2** | Tax Compliance | 🚧 In Progress (2.0-2.7, 2.9 done) |
-| **3** | Reconciliation | ⏳ Not Started |
-| **4** | Payroll | ⏳ Not Started |
+| **2** | Tax Compliance + Cash Flow | 🚧 In Progress (2.0-2.7, 2.9 done) |
+| **3** | Payroll | ⏳ Not Started |
+| **4** | Reconciliation & Analytics | ⏳ Not Started |
 | **5** | Assets & Budget | ⏳ Not Started |
 | **6+** | Other Industries, Advanced Features | ⏳ Not Started |
 
@@ -1612,7 +1612,129 @@ fiscal_periods
 - [x] Remote sync (rsync, optional)
 - [x] Notifications (webhook, optional)
 
-### 2.10 Transaction Tags
+### 2.10 Cash Flow Statement
+- [ ] Cash flow report generation
+- [ ] Group by cash_flow_category from templates
+- [ ] Operating/Investing/Financing sections
+- [ ] PDF/Excel export
+
+**Deliverable:** Tax-compliant accounting with export formats for DJP, document storage, Telegram receipt import with OCR, proper backup/restore, and cash flow reporting
+
+---
+
+## Phase 3: Payroll
+
+**Goal:** Full payroll with PPh 21 and BPJS
+
+### 3.1 Employee Management
+- [ ] Employee entity
+- [ ] Employee CRUD UI
+- [ ] PTKP status configuration
+- [ ] NPWP validation
+
+```sql
+-- V011: Employees
+employees
+```
+
+### 3.2 Salary Components
+- [ ] Salary component entity
+- [ ] Component types (gaji pokok, tunjangan, BPJS, etc.)
+- [ ] Preloaded component templates for IT Services
+- [ ] Employee salary configuration UI
+
+```sql
+-- V012: Salary components
+salary_components
+```
+
+### 3.3 BPJS Calculation
+- [ ] BPJS Kesehatan rates (4% + 1%)
+- [ ] BPJS Ketenagakerjaan rates (JKK, JKM, JHT, JP)
+- [ ] Company vs employee portion
+- [ ] Auto-calculation service
+
+### 3.4 PPh 21 Calculation
+- [ ] Progressive tax rates (5%-35%)
+- [ ] PTKP deduction by status
+- [ ] Biaya jabatan (5%, max 500rb)
+- [ ] Monthly vs annual calculation
+- [ ] PPh 21 calculator service
+
+### 3.5 Payroll Processing
+- [ ] Payroll run entity
+- [ ] Payroll details entity
+- [ ] Monthly payroll workflow
+- [ ] Calculate all employees
+- [ ] Review and adjust
+- [ ] Post to journal entries
+- [ ] Generate payslips
+
+```sql
+-- V013: Payroll
+payroll_runs
+payroll_details
+```
+
+### 3.6 Payroll Reports
+- [ ] Payroll summary report
+- [ ] PPh 21 monthly report
+- [ ] BPJS report
+- [ ] Payslip PDF generation
+
+**Deliverable:** Complete payroll system with tax compliance
+
+---
+
+## Phase 4: Reconciliation & Analytics
+
+**Goal:** Bank/marketplace reconciliation, transaction tagging, analytics, and access control
+
+### 4.1 Bank Parser Infrastructure
+- [ ] Bank parser config entity
+- [ ] ConfigurableBankStatementParser class
+- [ ] Column name matching with fallback
+- [ ] Preload configs (BCA, BNI, BSI, CIMB)
+- [ ] Admin UI for parser config
+
+```sql
+-- V014: Bank parser configs
+bank_parser_configs
+```
+
+### 4.2 Bank Reconciliation
+- [ ] Bank reconciliation entity
+- [ ] Statement items entity
+- [ ] CSV upload and parsing
+- [ ] Auto-matching (exact date + amount)
+- [ ] Fuzzy matching (±1 day)
+- [ ] Manual matching UI
+- [ ] Create missing transactions from statement
+- [ ] Reconciliation report
+
+```sql
+-- V015: Bank reconciliation
+bank_reconciliations
+bank_statement_items
+```
+
+### 4.3 Marketplace Parser Infrastructure
+- [ ] Marketplace parser config entity
+- [ ] ConfigurableMarketplaceParser class
+- [ ] Preload configs (Tokopedia, Shopee, Bukalapak, Lazada)
+
+```sql
+-- V016: Marketplace parser configs
+marketplace_parser_configs
+```
+
+### 4.4 Marketplace Reconciliation
+- [ ] Settlement upload and parsing
+- [ ] Order matching
+- [ ] Fee expense auto-creation
+- [ ] Marketplace reconciliation report
+
+### 4.5 Transaction Tags
 
 **Purpose:** Flexible multi-dimensional tagging for transactions beyond projects.
 
@@ -1630,7 +1752,7 @@ fiscal_periods
 - [ ] Tag-based reports (summary by tag)
 
 ```sql
--- V012: Transaction tags
+-- V017: Transaction tags
 tag_types (id, name, description, is_system, created_at)
 tags (id, tag_type_id, name, color, created_at)
 journal_entry_tags (journal_entry_id, tag_id, PRIMARY KEY (journal_entry_id, tag_id))
@@ -1645,7 +1767,7 @@ journal_entry_tags (journal_entry_id, tag_id, PRIMARY KEY (journal_entry_id, tag
 
 **Note:** Projects (1.10) handle the primary project tracking. Tags provide additional dimensions for analysis.
 
-### 2.11 Trend Analysis
+### 4.6 Trend Analysis
 
 **Purpose:** Visualize business performance over time.
 
@@ -1671,7 +1793,7 @@ Revenue Trend (Last 12 Months)
      Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec
 ```
 
-### 2.12 Smart Alerts
+### 4.7 Smart Alerts
 
 **Purpose:** Proactive notifications to help users take action before problems occur.
 
@@ -1717,7 +1839,7 @@ Recommendation:
 - [ ] Alert history and acknowledgment
 
 ```sql
--- V013: Smart alerts
+-- V018: Smart alerts
 alert_configurations (id, alert_type, enabled, threshold_value,
     notify_dashboard, notify_email, created_at, updated_at)
 
@@ -1725,7 +1847,7 @@ alert_history (id, alert_type, entity_type, entity_id,
     alert_data, acknowledged, acknowledged_by, acknowledged_at, created_at)
 ```
 
-### 2.13 Account Balances (Materialized) - Performance Optimization
+### 4.8 Account Balances (Materialized) - Performance Optimization
 
 **Purpose:** Cache account balances for faster report generation.
 
@@ -1743,7 +1865,7 @@ alert_history (id, alert_type, entity_type, entity_id,
 account_balances (id, account_id, period_start, period_end, opening_balance, debit_total, credit_total, closing_balance, ...)
 ```
 
-### 2.14 User Management & Role-Based Access Control
+### 4.9 User Management & Role-Based Access Control
 
 **Purpose:** Manage users and restrict access based on roles. Required when adding non-trusted users (staff, external auditors).
 
@@ -1793,7 +1915,7 @@ account_balances (id, account_id, period_start, period_end, opening_balance, deb
 #### Database Schema
 
 ```sql
--- V014: User roles and permissions
+-- V019: User roles and permissions
 CREATE TABLE roles (
     id UUID PRIMARY KEY,
     code VARCHAR(50) NOT NULL UNIQUE,  -- ADMIN, OWNER, ACCOUNTANT, STAFF, AUDITOR
@@ -1861,129 +1983,7 @@ CREATE TABLE user_roles (
 3. **OWNER vs ADMIN:** Business owner shouldn't need technical admin access
 4. **Migration path:** Existing admin user gets ADMIN + OWNER roles
 
-**Deliverable:** Tax-compliant accounting with export formats for DJP, document storage, Telegram receipt import with OCR, proper backup/restore, flexible transaction tagging, trend analysis, smart alerts, optimized balance calculations, and role-based access control
-
----
-
-## Phase 3: Reconciliation
-
-**Goal:** Bank and marketplace reconciliation
-
-### 3.1 Bank Parser Infrastructure
-- [ ] Bank parser config entity
-- [ ] ConfigurableBankStatementParser class
-- [ ] Column name matching with fallback
-- [ ] Preload configs (BCA, BNI, BSI, CIMB)
-- [ ] Admin UI for parser config
-
-```sql
--- V014: Bank parser configs
-bank_parser_configs
-```
-
-### 3.2 Bank Reconciliation
-- [ ] Bank reconciliation entity
-- [ ] Statement items entity
-- [ ] CSV upload and parsing
-- [ ] Auto-matching (exact date + amount)
-- [ ] Fuzzy matching (±1 day)
-- [ ] Manual matching UI
-- [ ] Create missing transactions from statement
-- [ ] Reconciliation report
-
-```sql
--- V015: Bank reconciliation
-bank_reconciliations
-bank_statement_items
-```
-
-### 3.3 Marketplace Parser Infrastructure
-- [ ] Marketplace parser config entity
-- [ ] ConfigurableMarketplaceParser class
-- [ ] Preload configs (Tokopedia, Shopee, Bukalapak, Lazada)
-
-```sql
--- V016: Marketplace parser configs
-marketplace_parser_configs
-```
-
-### 3.4 Marketplace Reconciliation
-- [ ] Settlement upload and parsing
-- [ ] Order matching
-- [ ] Fee expense auto-creation
-- [ ] Marketplace reconciliation report
-
-### 3.5 Cash Flow Statement
-- [ ] Cash flow report generation
-- [ ] Group by cash_flow_category from templates
-- [ ] Operating/Investing/Financing sections
-- [ ] PDF/Excel export
-
-**Deliverable:** Automated reconciliation for bank and marketplace transactions
-
----
-
-## Phase 4: Payroll
-
-**Goal:** Full payroll with PPh 21 and BPJS
-
-### 4.1 Employee Management
-- [ ] Employee entity
-- [ ] Employee CRUD UI
-- [ ] PTKP status configuration
-- [ ] NPWP validation
-
-```sql
--- V017: Employees
-employees
-```
-
-### 4.2 Salary Components
-- [ ] Salary component entity
-- [ ] Component types (gaji pokok, tunjangan, BPJS, etc.)
-- [ ] Preloaded component templates for IT Services
-- [ ] Employee salary configuration UI
-
-```sql
--- V018: Salary components
-salary_components
-```
-
-### 4.3 BPJS Calculation
-- [ ] BPJS Kesehatan rates (4% + 1%)
-- [ ] BPJS Ketenagakerjaan rates (JKK, JKM, JHT, JP)
-- [ ] Company vs employee portion
-- [ ] Auto-calculation service
-
-### 4.4 PPh 21 Calculation
-- [ ] Progressive tax rates (5%-35%)
-- [ ] PTKP deduction by status
-- [ ] Biaya jabatan (5%, max 500rb)
-- [ ] Monthly vs annual calculation
-- [ ] PPh 21 calculator service
-
-### 4.5 Payroll Processing
-- [ ] Payroll run entity
-- [ ] Payroll details entity
-- [ ] Monthly payroll workflow
-- [ ] Calculate all employees
-- [ ] Review and adjust
-- [ ] Post to journal entries
-- [ ] Generate payslips
-
-```sql
--- V019: Payroll
-payroll_runs
-payroll_details
-```
-
-### 4.6 Payroll Reports
-- [ ] Payroll summary report
-- [ ] PPh 21 monthly report
-- [ ] BPJS report
-- [ ] Payslip PDF generation
-
-**Deliverable:** Complete payroll system with tax compliance
+**Deliverable:** Automated reconciliation for bank and marketplace transactions, flexible transaction tagging, trend analysis, smart alerts, optimized balance calculations, and role-based access control
 
 ---
 
