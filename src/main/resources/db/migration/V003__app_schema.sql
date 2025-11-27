@@ -550,3 +550,30 @@ CREATE TABLE amortization_entries (
 CREATE INDEX idx_amort_entries_schedule ON amortization_entries(id_schedule);
 CREATE INDEX idx_amort_entries_status ON amortization_entries(status);
 CREATE INDEX idx_amort_entries_period_end ON amortization_entries(period_end);
+
+-- ============================================
+-- Documents (Attachments)
+-- ============================================
+
+CREATE TABLE documents (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id_transaction UUID REFERENCES transactions(id) ON DELETE CASCADE,
+    id_journal_entry UUID REFERENCES journal_entries(id) ON DELETE CASCADE,
+    id_invoice UUID REFERENCES invoices(id) ON DELETE CASCADE,
+    filename VARCHAR(255) NOT NULL,
+    original_filename VARCHAR(255) NOT NULL,
+    content_type VARCHAR(100) NOT NULL,
+    file_size BIGINT NOT NULL,
+    storage_path VARCHAR(500) NOT NULL,
+    checksum_sha256 VARCHAR(64) NOT NULL,
+    uploaded_by VARCHAR(100),
+    uploaded_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    deleted_at TIMESTAMP
+);
+
+CREATE INDEX idx_documents_transaction ON documents(id_transaction);
+CREATE INDEX idx_documents_journal_entry ON documents(id_journal_entry);
+CREATE INDEX idx_documents_invoice ON documents(id_invoice);
+CREATE INDEX idx_documents_uploaded_at ON documents(uploaded_at);

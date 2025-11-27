@@ -2,6 +2,8 @@ package com.artivisi.accountingfinance.functional.page;
 
 import com.microsoft.playwright.Page;
 
+import java.nio.file.Path;
+
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 
 public class TransactionDetailPage {
@@ -27,6 +29,8 @@ public class TransactionDetailPage {
     public TransactionDetailPage navigate(String transactionId) {
         page.navigate(baseUrl + "/transactions/" + transactionId);
         page.waitForLoadState();
+        // Wait for HTMX to be loaded from CDN before interacting with HTMX-powered forms
+        page.waitForFunction("typeof htmx !== 'undefined'");
         return this;
     }
 
@@ -129,5 +133,45 @@ public class TransactionDetailPage {
 
     public void assertDescriptionText(String description) {
         assertThat(page.locator("text=" + description)).isVisible();
+    }
+
+    // Document attachment methods
+    public void assertDocumentSectionVisible() {
+        assertThat(page.locator("#document-section")).isVisible();
+    }
+
+    public void assertDocumentListContainerVisible() {
+        assertThat(page.locator("#document-list-container")).isVisible();
+    }
+
+    public void assertNoDocumentsMessage() {
+        assertThat(page.locator("text=Belum ada dokumen terlampir")).isVisible();
+    }
+
+    public void uploadDocument(Path filePath) {
+        // Wait for HTMX response after file upload
+        page.waitForResponse(
+                response -> response.url().contains("/documents/transaction/") && response.status() == 200,
+                () -> page.setInputFiles("input[name='file']", filePath)
+        );
+        page.waitForLoadState();
+        // Additional wait for DOM update
+        page.waitForTimeout(300);
+    }
+
+    public void assertDocumentVisible(String filename) {
+        assertThat(page.locator("text=" + filename)).isVisible();
+    }
+
+    public void clickDeleteDocumentButton() {
+        // Handle confirm dialog
+        page.onceDialog(dialog -> dialog.accept());
+        page.click("[title='Hapus']");
+        page.waitForLoadState();
+        page.waitForTimeout(500);
+    }
+
+    public int getDocumentCount() {
+        return page.locator("#document-list-container .flex.items-center.justify-between").count();
     }
 }

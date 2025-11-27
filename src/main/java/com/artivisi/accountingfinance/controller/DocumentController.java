@@ -1,0 +1,235 @@
+package com.artivisi.accountingfinance.controller;
+
+import com.artivisi.accountingfinance.entity.Document;
+import com.artivisi.accountingfinance.service.DocumentService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.UUID;
+
+@Controller
+@RequestMapping("/documents")
+@RequiredArgsConstructor
+@Slf4j
+public class DocumentController {
+
+    private final DocumentService documentService;
+
+    /**
+     * Upload document for a transaction (HTMX endpoint).
+     */
+    @PostMapping("/transaction/{transactionId}")
+    public String uploadForTransaction(
+            @PathVariable UUID transactionId,
+            @RequestParam("file") MultipartFile file,
+            Authentication authentication,
+            Model model) {
+        String username = authentication != null ? authentication.getName() : "system";
+
+        try {
+            Document document = documentService.uploadForTransaction(transactionId, file, username);
+            model.addAttribute("document", document);
+            model.addAttribute("success", true);
+            model.addAttribute("message", "Dokumen berhasil diunggah");
+        } catch (IOException e) {
+            log.error("Failed to upload document for transaction {}: {}", transactionId, e.getMessage());
+            model.addAttribute("success", false);
+            model.addAttribute("message", "Gagal mengunggah dokumen: " + e.getMessage());
+        } catch (IllegalArgumentException e) {
+            model.addAttribute("success", false);
+            model.addAttribute("message", e.getMessage());
+        }
+
+        // Return updated document list fragment
+        List<Document> documents = documentService.findByTransactionId(transactionId);
+        model.addAttribute("documents", documents);
+        model.addAttribute("transactionId", transactionId);
+        return "fragments/document-list :: documentList";
+    }
+
+    /**
+     * Upload document for a journal entry (HTMX endpoint).
+     */
+    @PostMapping("/journal-entry/{journalEntryId}")
+    public String uploadForJournalEntry(
+            @PathVariable UUID journalEntryId,
+            @RequestParam("file") MultipartFile file,
+            Authentication authentication,
+            Model model) {
+        String username = authentication != null ? authentication.getName() : "system";
+
+        try {
+            Document document = documentService.uploadForJournalEntry(journalEntryId, file, username);
+            model.addAttribute("document", document);
+            model.addAttribute("success", true);
+            model.addAttribute("message", "Dokumen berhasil diunggah");
+        } catch (IOException e) {
+            log.error("Failed to upload document for journal entry {}: {}", journalEntryId, e.getMessage());
+            model.addAttribute("success", false);
+            model.addAttribute("message", "Gagal mengunggah dokumen: " + e.getMessage());
+        } catch (IllegalArgumentException e) {
+            model.addAttribute("success", false);
+            model.addAttribute("message", e.getMessage());
+        }
+
+        List<Document> documents = documentService.findByJournalEntryId(journalEntryId);
+        model.addAttribute("documents", documents);
+        model.addAttribute("journalEntryId", journalEntryId);
+        return "fragments/document-list :: documentList";
+    }
+
+    /**
+     * Upload document for an invoice (HTMX endpoint).
+     */
+    @PostMapping("/invoice/{invoiceId}")
+    public String uploadForInvoice(
+            @PathVariable UUID invoiceId,
+            @RequestParam("file") MultipartFile file,
+            Authentication authentication,
+            Model model) {
+        String username = authentication != null ? authentication.getName() : "system";
+
+        try {
+            Document document = documentService.uploadForInvoice(invoiceId, file, username);
+            model.addAttribute("document", document);
+            model.addAttribute("success", true);
+            model.addAttribute("message", "Dokumen berhasil diunggah");
+        } catch (IOException e) {
+            log.error("Failed to upload document for invoice {}: {}", invoiceId, e.getMessage());
+            model.addAttribute("success", false);
+            model.addAttribute("message", "Gagal mengunggah dokumen: " + e.getMessage());
+        } catch (IllegalArgumentException e) {
+            model.addAttribute("success", false);
+            model.addAttribute("message", e.getMessage());
+        }
+
+        List<Document> documents = documentService.findByInvoiceId(invoiceId);
+        model.addAttribute("documents", documents);
+        model.addAttribute("invoiceId", invoiceId);
+        return "fragments/document-list :: documentList";
+    }
+
+    /**
+     * Get documents for a transaction (HTMX endpoint).
+     */
+    @GetMapping("/transaction/{transactionId}")
+    public String getDocumentsForTransaction(
+            @PathVariable UUID transactionId,
+            Model model) {
+        List<Document> documents = documentService.findByTransactionId(transactionId);
+        model.addAttribute("documents", documents);
+        model.addAttribute("transactionId", transactionId);
+        return "fragments/document-list :: documentList";
+    }
+
+    /**
+     * View/download a document.
+     */
+    @GetMapping("/{id}/view")
+    @ResponseBody
+    public ResponseEntity<Resource> viewDocument(@PathVariable UUID id) {
+        Document document = documentService.findById(id);
+        Resource resource = documentService.loadAsResource(id);
+
+        // For images and PDFs, display inline; otherwise download
+        String disposition = (document.isImage() || document.isPdf())
+                ? "inline"
+                : "attachment";
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(document.getContentType()))
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        disposition + "; filename=\"" + document.getOriginalFilename() + "\"")
+                .body(resource);
+    }
+
+    /**
+     * Download a document.
+     */
+    @GetMapping("/{id}/download")
+    @ResponseBody
+    public ResponseEntity<Resource> downloadDocument(@PathVariable UUID id) {
+        Document document = documentService.findById(id);
+        Resource resource = documentService.loadAsResource(id);
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + document.getOriginalFilename() + "\"")
+                .body(resource);
+    }
+
+    /**
+     * Delete a document (HTMX endpoint).
+     */
+    @DeleteMapping("/{id}")
+    public String deleteDocument(
+            @PathVariable UUID id,
+            @RequestParam(required = false) UUID transactionId,
+            @RequestParam(required = false) UUID journalEntryId,
+            @RequestParam(required = false) UUID invoiceId,
+            Model model) {
+        try {
+            documentService.delete(id);
+            model.addAttribute("success", true);
+            model.addAttribute("message", "Dokumen berhasil dihapus");
+        } catch (IOException e) {
+            log.error("Failed to delete document {}: {}", id, e.getMessage());
+            model.addAttribute("success", false);
+            model.addAttribute("message", "Gagal menghapus dokumen: " + e.getMessage());
+        }
+
+        // Return updated document list based on context
+        List<Document> documents;
+        if (transactionId != null) {
+            documents = documentService.findByTransactionId(transactionId);
+            model.addAttribute("transactionId", transactionId);
+        } else if (journalEntryId != null) {
+            documents = documentService.findByJournalEntryId(journalEntryId);
+            model.addAttribute("journalEntryId", journalEntryId);
+        } else if (invoiceId != null) {
+            documents = documentService.findByInvoiceId(invoiceId);
+            model.addAttribute("invoiceId", invoiceId);
+        } else {
+            documents = List.of();
+        }
+
+        model.addAttribute("documents", documents);
+        return "fragments/document-list :: documentList";
+    }
+
+    /**
+     * Get document metadata (API endpoint).
+     */
+    @GetMapping("/api/{id}")
+    @ResponseBody
+    public ResponseEntity<Document> getDocument(@PathVariable UUID id) {
+        return ResponseEntity.ok(documentService.findById(id));
+    }
+
+    /**
+     * Get documents for transaction (API endpoint).
+     */
+    @GetMapping("/api/transaction/{transactionId}")
+    @ResponseBody
+    public ResponseEntity<List<Document>> getDocumentsForTransactionApi(@PathVariable UUID transactionId) {
+        return ResponseEntity.ok(documentService.findByTransactionId(transactionId));
+    }
+}

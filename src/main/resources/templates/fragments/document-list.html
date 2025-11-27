@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- Document list fragment for HTMX swap -->
+<div th:fragment="documentList" id="document-list-container">
+    <!-- Success/Error Message -->
+    <div th:if="${message}"
+         th:classappend="${success} ? 'bg-accent-50 border-accent-200 text-accent-700' : 'bg-red-50 border-red-200 text-red-700'"
+         class="mb-4 p-3 rounded-lg border text-sm flex items-center">
+        <svg th:if="${success}" class="w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+        </svg>
+        <svg th:unless="${success}" class="w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+        </svg>
+        <span th:text="${message}">Message</span>
+    </div>
+
+    <!-- Upload Form -->
+    <form th:if="${transactionId != null}"
+          th:hx-post="@{/documents/transaction/{id}(id=${transactionId})}"
+          hx-target="#document-list-container"
+          hx-swap="outerHTML"
+          hx-encoding="multipart/form-data"
+          hx-trigger="change from:find input[type=file]"
+          class="mb-4">
+        <div class="flex items-center gap-2">
+            <label class="flex-1 cursor-pointer">
+                <div class="flex items-center justify-center px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-primary-400 transition-colors bg-gray-50 hover:bg-gray-100">
+                    <svg class="w-5 h-5 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                    <span class="text-sm text-gray-600">Pilih file (JPG, PNG, GIF, PDF, max 10MB)</span>
+                    <input type="file" name="file" accept="image/jpeg,image/png,image/gif,application/pdf" class="hidden">
+                </div>
+            </label>
+        </div>
+    </form>
+
+    <!-- Document List -->
+    <div th:if="${documents != null and !documents.isEmpty()}" class="space-y-2">
+        <div th:each="doc : ${documents}"
+             class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors group">
+            <div class="flex items-center min-w-0 flex-1">
+                <!-- Icon based on type -->
+                <div th:if="${doc.image}" class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                </div>
+                <div th:if="${doc.pdf}" class="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center flex-shrink-0">
+                    <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                    </svg>
+                </div>
+                <div th:unless="${doc.image or doc.pdf}" class="w-10 h-10 rounded-lg bg-gray-200 flex items-center justify-center flex-shrink-0">
+                    <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                </div>
+
+                <div class="ml-3 min-w-0">
+                    <p class="text-sm font-medium text-gray-900 truncate" th:text="${doc.originalFilename}">document.pdf</p>
+                    <p class="text-xs text-gray-500">
+                        <span th:text="${doc.fileSizeFormatted}">1.2 MB</span>
+                        <span class="mx-1">&middot;</span>
+                        <span th:text="${#temporals.format(doc.uploadedAt, 'd MMM yyyy HH:mm')}">22 Nov 2025 14:30</span>
+                        <span th:if="${doc.uploadedBy != null}" class="mx-1">&middot;</span>
+                        <span th:if="${doc.uploadedBy != null}" th:text="${doc.uploadedBy}">admin</span>
+                    </p>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-1 ml-2">
+                <!-- View button -->
+                <a th:href="@{/documents/{id}/view(id=${doc.id})}"
+                   target="_blank"
+                   class="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                   title="Lihat">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                    </svg>
+                </a>
+                <!-- Download button -->
+                <a th:href="@{/documents/{id}/download(id=${doc.id})}"
+                   class="p-2 text-gray-400 hover:text-accent-600 hover:bg-accent-50 rounded-lg transition-colors"
+                   title="Unduh">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                    </svg>
+                </a>
+                <!-- Delete button -->
+                <button th:hx-delete="@{/documents/{id}(id=${doc.id}, transactionId=${transactionId}, journalEntryId=${journalEntryId}, invoiceId=${invoiceId})}"
+                        hx-target="#document-list-container"
+                        hx-swap="outerHTML"
+                        hx-confirm="Hapus dokumen ini?"
+                        class="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                        title="Hapus">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Empty State -->
+    <div th:if="${documents == null or documents.isEmpty()}" class="text-center py-6 text-gray-500">
+        <svg class="mx-auto h-10 w-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+        </svg>
+        <p class="mt-2 text-sm">Belum ada dokumen terlampir</p>
+    </div>
+</div>
+
+</body>
+</html>
