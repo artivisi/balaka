@@ -2,7 +2,9 @@ package com.artivisi.accountingfinance.ui;
 
 import com.microsoft.playwright.*;
 import com.microsoft.playwright.options.LoadState;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -19,6 +21,8 @@ import java.nio.file.Paths;
 @ActiveProfiles("test")
 public abstract class PlaywrightTestBase {
 
+    protected static Playwright playwright;
+    protected static Browser browser;
     protected BrowserContext context;
     protected Page page;
 
@@ -36,44 +40,27 @@ public abstract class PlaywrightTestBase {
     private static final int SLOW_MO = Integer.parseInt(
             System.getProperty("playwright.slowmo", "0"));
 
-    /**
-     * Singleton holder for Playwright and Browser.
-     * Uses a JVM shutdown hook to close resources after all tests complete.
-     * This fixes the issue where @AfterAll in one test class would close
-     * the browser while other test classes were still running.
-     */
-    private static class BrowserHolder {
-        private static final Playwright playwright;
-        private static final Browser browser;
-
-        static {
-            playwright = Playwright.create();
-            browser = playwright.chromium().launch(new BrowserType.LaunchOptions()
-                    .setHeadless(HEADLESS)
-                    .setSlowMo(SLOW_MO));
-
-            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-                if (browser != null) {
-                    browser.close();
-                }
-                if (playwright != null) {
-                    playwright.close();
-                }
-            }));
-        }
-
-        static Browser getBrowser() {
-            return browser;
-        }
+    @BeforeAll
+    static void launchBrowser() {
+        playwright = Playwright.create();
+        browser = playwright.chromium().launch(new BrowserType.LaunchOptions()
+                .setHeadless(HEADLESS)
+                .setSlowMo(SLOW_MO));
     }
 
-    protected static Browser getBrowser() {
-        return BrowserHolder.getBrowser();
+    @AfterAll
+    static void closeBrowser() {
+        if (browser != null) {
+            browser.close();
+        }
+        if (playwright != null) {
+            playwright.close();
+        }
     }
 
     @BeforeEach
     void createContextAndPage() {
-        context = getBrowser().newContext(new Browser.NewContextOptions()
+        context = browser.newContext(new Browser.NewContextOptions()
                 .setViewportSize(1920, 1080)
                 .setLocale("id-ID"));
         page = context.newPage();

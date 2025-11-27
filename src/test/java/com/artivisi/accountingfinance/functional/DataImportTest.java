@@ -6,6 +6,7 @@ import com.artivisi.accountingfinance.ui.PlaywrightTestBase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.jdbc.Sql;
 
 import java.nio.file.Path;
@@ -119,6 +120,7 @@ class DataImportTest extends PlaywrightTestBase {
     @Test
     @DisplayName("Should clear existing COA and import new data")
     @Sql(scripts = "/db/testmigration/cleanup-for-clear-test.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
+    @DirtiesContext(methodMode = DirtiesContext.MethodMode.AFTER_METHOD)
     void shouldClearExistingCOAAndImportNewData() {
         importPage.navigateToCOAImport();
 
@@ -147,6 +149,7 @@ class DataImportTest extends PlaywrightTestBase {
     @Test
     @DisplayName("Should clear existing Templates and import new data")
     @Sql(scripts = "/db/testmigration/cleanup-for-clear-test.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
+    @DirtiesContext(methodMode = DirtiesContext.MethodMode.AFTER_METHOD)
     void shouldClearExistingTemplatesAndImportNewData() {
         importPage.navigateToTemplateImport();
 
