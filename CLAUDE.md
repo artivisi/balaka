@@ -27,8 +27,9 @@ Indonesian accounting application for small businesses. Spring Boot 4.0 + Thymel
 - **Phase 3:** 🚧 In Progress (Payroll)
   - 3.1 Employee Management: ✅ Complete
   - 3.2 Salary Components: ✅ Complete
-  - 3.3 BPJS Calculation: ⏳ Next
-  - 3.4-3.6: PPh 21, Payroll Processing, Reports
+  - 3.3 BPJS Calculation: ✅ Complete
+  - 3.4 PPh 21 Calculation: ⏳ Next
+  - 3.5-3.6: Payroll Processing, Reports
 - **Phase 4:** Reconciliation & Analytics (Bank/Marketplace, Tags, Trends, Alerts, RBAC)
 - **Phase 5:** Assets & Budget
 - See `docs/06-implementation-plan.md` for full plan
@@ -94,13 +95,17 @@ Phase 3.1 Employee Management complete:
 - 10 Playwright functional tests
 
 Phase 3.2 Salary Components complete:
-- SalaryComponent entity (code, name, type, isPercentage, defaultRate/Amount, isTaxable, bpjsCategory)
-- SalaryComponentType enum (EARNING, DEDUCTION, COMPANY_CONTRIBUTION)
-- Component CRUD UI with activate/deactivate workflow
-- 17 preloaded Indonesian salary components (GAPOK, Tunjangan, BPJS rates)
-- Percentage stored as entered (4.0 for 4%), Java handles calculation
+- SalaryComponent entity with CRUD UI
+- 17 preloaded Indonesian salary components
 - 11 Playwright functional tests
 
-Next: Phase 3.3 (BPJS Calculation)
+Phase 3.3 BPJS Calculation complete:
+- BpjsCalculationService with BigDecimal precision
+- BPJS Kesehatan (4%+1%, ceiling Rp 12M)
+- BPJS Ketenagakerjaan (JKK, JKM, JHT, JP with respective rates)
+- BPJS Calculator UI with breakdown display
+- 25 unit tests + 9 Playwright functional tests
+
+Next: Phase 3.4 (PPh 21 Calculation)
 
 See `docs/06-implementation-plan.md` for full plan

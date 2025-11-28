@@ -304,11 +304,18 @@
 - [x] Functional tests (11 Playwright tests)
 - [x] User manual (61-komponen-gaji.md)
 
-### 3.3 BPJS Calculation
-- [ ] BPJS Kesehatan rates (4% + 1%)
-- [ ] BPJS Ketenagakerjaan rates (JKK, JKM, JHT, JP)
-- [ ] Company vs employee portion
-- [ ] Auto-calculation service
+### 3.3 BPJS Calculation ✅
+- [x] BPJS Kesehatan rates (4% company + 1% employee, ceiling Rp 12,000,000)
+- [x] BPJS Ketenagakerjaan rates (JKK 0.24%-1.74%, JKM 0.3%, JHT 3.7%+2%, JP 2%+1%)
+- [x] JKK risk class support (5 classes for different industries)
+- [x] JP ceiling (Rp 10,042,300 for 2025)
+- [x] Company vs employee portion separation
+- [x] BpjsCalculationService with BigDecimal precision
+- [x] BpjsCalculationResult record with totals
+- [x] BPJS Calculator UI (input salary, select risk class, view breakdown)
+- [x] Ceiling warning display for high salaries
+- [x] Unit tests (25 tests)
+- [x] Functional tests (9 Playwright tests)
 
 ### 3.4 PPh 21 Calculation
 - [ ] Progressive tax rates (5%-35%)
