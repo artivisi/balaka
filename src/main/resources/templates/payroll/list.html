@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/main}"
+      lang="id">
+<head>
+    <title>Daftar Payroll</title>
+</head>
+<body>
+    <h1 id="page-title" layout:fragment="page-title">Daftar Payroll</h1>
+
+    <div layout:fragment="content" class="space-y-6">
+        <!-- Messages -->
+        <div th:if="${successMessage}" class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+            <span th:text="${successMessage}">Success message</span>
+        </div>
+        <div th:if="${errorMessage}" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+            <span th:text="${errorMessage}">Error message</span>
+        </div>
+
+        <!-- Header with Add Button -->
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+                <h2 class="text-lg font-semibold text-gray-900">Proses Penggajian</h2>
+                <p class="text-sm text-gray-500">Kelola payroll bulanan karyawan</p>
+            </div>
+            <a th:href="@{/payroll/new}" id="btn-new-payroll"
+               class="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                Buat Payroll Baru
+            </a>
+        </div>
+
+        <!-- Filter -->
+        <div class="bg-white rounded-lg shadow p-4">
+            <form th:action="@{/payroll}" method="get" class="flex flex-wrap gap-4 items-end">
+                <div class="flex-1 min-w-[200px]">
+                    <label for="status" class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                    <select id="status" name="status"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
+                        <option value="">Semua Status</option>
+                        <option th:each="s : ${statuses}"
+                                th:value="${s.name()}"
+                                th:text="${s.getDisplayName()}"
+                                th:selected="${selectedStatus == s}">Status</option>
+                    </select>
+                </div>
+                <button type="submit" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                    Filter
+                </button>
+            </form>
+        </div>
+
+        <!-- Payroll List -->
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Periode</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Karyawan</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total Bruto</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total Neto</th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    <tr th:each="payroll : ${payrollRuns}" th:id="${'payroll-' + payroll.id}">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-medium text-gray-900" th:text="${payroll.getPeriodDisplayName()}">Januari 2025</div>
+                            <div class="text-xs text-gray-500" th:text="${payroll.payrollPeriod}">2025-01</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900" th:text="${payroll.employeeCount}">5</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900"
+                            th:text="${'Rp ' + #numbers.formatDecimal(payroll.totalGross, 0, 'COMMA', 0, 'POINT')}">Rp 50,000,000</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900"
+                            th:text="${'Rp ' + #numbers.formatDecimal(payroll.totalNetPay, 0, 'COMMA', 0, 'POINT')}">Rp 45,000,000</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-center">
+                            <span th:class="${payroll.status.name() == 'DRAFT' ? 'px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700' :
+                                              payroll.status.name() == 'CALCULATED' ? 'px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-700' :
+                                              payroll.status.name() == 'APPROVED' ? 'px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-700' :
+                                              payroll.status.name() == 'POSTED' ? 'px-2 py-1 text-xs rounded-full bg-green-100 text-green-700' :
+                                              'px-2 py-1 text-xs rounded-full bg-red-100 text-red-700'}"
+                                  th:text="${payroll.status.getDisplayName()}">Draft</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm">
+                            <a th:href="@{/payroll/{id}(id=${payroll.id})}"
+                               class="text-primary-600 hover:text-primary-800">
+                                Detail
+                            </a>
+                        </td>
+                    </tr>
+                    <tr th:if="${payrollRuns.isEmpty()}">
+                        <td colspan="6" class="px-6 py-12 text-center text-gray-500">
+                            <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                            <p>Belum ada data payroll</p>
+                            <a th:href="@{/payroll/new}" class="mt-2 text-primary-600 hover:text-primary-800">Buat payroll baru</a>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        <div th:if="${payrollRuns.totalPages > 1}" class="flex justify-center">
+            <nav class="flex items-center space-x-2">
+                <a th:href="@{/payroll(page=${payrollRuns.number - 1}, status=${selectedStatus?.name()})}"
+                   th:class="${payrollRuns.hasPrevious()} ? 'px-3 py-2 bg-white border rounded-lg hover:bg-gray-50' : 'px-3 py-2 bg-gray-100 border rounded-lg cursor-not-allowed text-gray-400'"
+                   th:if="${payrollRuns.hasPrevious()}">
+                    Sebelumnya
+                </a>
+                <span class="px-4 py-2 text-sm text-gray-700"
+                      th:text="${'Halaman ' + (payrollRuns.number + 1) + ' dari ' + payrollRuns.totalPages}">Halaman 1 dari 5</span>
+                <a th:href="@{/payroll(page=${payrollRuns.number + 1}, status=${selectedStatus?.name()})}"
+                   th:class="${payrollRuns.hasNext()} ? 'px-3 py-2 bg-white border rounded-lg hover:bg-gray-50' : 'px-3 py-2 bg-gray-100 border rounded-lg cursor-not-allowed text-gray-400'"
+                   th:if="${payrollRuns.hasNext()}">
+                    Selanjutnya
+                </a>
+            </nav>
+        </div>
+    </div>
+</body>
+</html>

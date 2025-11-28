@@ -902,3 +902,82 @@ CREATE INDEX idx_esc_employee ON employee_salary_components(employee_id);
 CREATE INDEX idx_esc_component ON employee_salary_components(salary_component_id);
 CREATE INDEX idx_esc_effective_date ON employee_salary_components(effective_date);
 CREATE INDEX idx_esc_end_date ON employee_salary_components(end_date);
+
+-- ============================================
+-- Payroll Processing (Phase 3.5)
+-- ============================================
+
+CREATE TABLE payroll_runs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    payroll_period VARCHAR(7) NOT NULL,    -- Format: YYYY-MM (e.g., 2025-01)
+    period_start DATE NOT NULL,
+    period_end DATE NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'DRAFT',
+
+    -- Summary totals
+    total_gross DECIMAL(19, 2) DEFAULT 0,
+    total_deductions DECIMAL(19, 2) DEFAULT 0,
+    total_net_pay DECIMAL(19, 2) DEFAULT 0,
+    total_company_bpjs DECIMAL(19, 2) DEFAULT 0,
+    total_pph21 DECIMAL(19, 2) DEFAULT 0,
+    employee_count INTEGER DEFAULT 0,
+
+    notes TEXT,
+
+    -- Reference to journal entry when posted
+    id_journal_entry UUID REFERENCES journal_entries(id),
+    posted_at TIMESTAMP,
+    cancelled_at TIMESTAMP,
+    cancel_reason VARCHAR(500),
+
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT chk_payroll_status CHECK (status IN ('DRAFT', 'CALCULATED', 'APPROVED', 'POSTED', 'CANCELLED')),
+    CONSTRAINT uk_payroll_period UNIQUE (payroll_period)
+);
+
+CREATE INDEX idx_payroll_runs_period ON payroll_runs(payroll_period);
+CREATE INDEX idx_payroll_runs_status ON payroll_runs(status);
+CREATE INDEX idx_payroll_runs_journal ON payroll_runs(id_journal_entry);
+
+CREATE TABLE payroll_details (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id_payroll_run UUID NOT NULL REFERENCES payroll_runs(id) ON DELETE CASCADE,
+    id_employee UUID NOT NULL REFERENCES employees(id),
+
+    -- Salary
+    base_salary DECIMAL(19, 2) NOT NULL DEFAULT 0,
+    gross_salary DECIMAL(19, 2) NOT NULL DEFAULT 0,
+
+    -- BPJS Kesehatan
+    bpjs_kes_company DECIMAL(15, 2) DEFAULT 0,
+    bpjs_kes_employee DECIMAL(15, 2) DEFAULT 0,
+
+    -- BPJS Ketenagakerjaan
+    bpjs_jkk DECIMAL(15, 2) DEFAULT 0,
+    bpjs_jkm DECIMAL(15, 2) DEFAULT 0,
+    bpjs_jht_company DECIMAL(15, 2) DEFAULT 0,
+    bpjs_jht_employee DECIMAL(15, 2) DEFAULT 0,
+    bpjs_jp_company DECIMAL(15, 2) DEFAULT 0,
+    bpjs_jp_employee DECIMAL(15, 2) DEFAULT 0,
+
+    -- PPh 21
+    pph21 DECIMAL(15, 2) DEFAULT 0,
+
+    -- Totals
+    total_deductions DECIMAL(19, 2) DEFAULT 0,
+    net_pay DECIMAL(19, 2) DEFAULT 0,
+
+    -- JKK Risk class used
+    jkk_risk_class INTEGER DEFAULT 1,
+
+    notes TEXT,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT uk_payroll_employee UNIQUE (id_payroll_run, id_employee)
+);
+
+CREATE INDEX idx_payroll_details_run ON payroll_details(id_payroll_run);
+CREATE INDEX idx_payroll_details_employee ON payroll_details(id_employee);

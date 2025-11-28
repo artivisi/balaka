@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/main}"
+      lang="id">
+<head>
+    <title>Detail Payroll</title>
+</head>
+<body>
+    <h1 id="page-title" layout:fragment="page-title">
+        Detail Payroll - <span th:text="${payrollRun.getPeriodDisplayName()}">Januari 2025</span>
+    </h1>
+
+    <div layout:fragment="content" class="space-y-6">
+        <!-- Messages -->
+        <div th:if="${successMessage}" id="success-message" data-testid="success-message" class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+            <span th:text="${successMessage}">Success message</span>
+        </div>
+        <div th:if="${errorMessage}" id="error-message" data-testid="error-message" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+            <span th:text="${errorMessage}">Error message</span>
+        </div>
+
+        <!-- Header with Actions -->
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+                <span data-testid="status-badge" th:class="${payrollRun.status.name() == 'DRAFT' ? 'px-3 py-1 text-sm rounded-full bg-gray-100 text-gray-700' :
+                                  payrollRun.status.name() == 'CALCULATED' ? 'px-3 py-1 text-sm rounded-full bg-blue-100 text-blue-700' :
+                                  payrollRun.status.name() == 'APPROVED' ? 'px-3 py-1 text-sm rounded-full bg-yellow-100 text-yellow-700' :
+                                  payrollRun.status.name() == 'POSTED' ? 'px-3 py-1 text-sm rounded-full bg-green-100 text-green-700' :
+                                  'px-3 py-1 text-sm rounded-full bg-red-100 text-red-700'}"
+                      th:text="${payrollRun.status.getDisplayName()}">Calculated</span>
+            </div>
+            <div class="flex space-x-2">
+                <!-- Approve Button -->
+                <form th:if="${payrollRun.isCalculated()}" th:action="@{/payroll/{id}/approve(id=${payrollRun.id})}" method="post">
+                    <button type="submit" id="btn-approve"
+                            class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                        Approve
+                    </button>
+                </form>
+
+                <!-- Cancel Button -->
+                <form th:if="${payrollRun.canCancel()}" th:action="@{/payroll/{id}/cancel(id=${payrollRun.id})}" method="post"
+                      onsubmit="return confirm('Yakin ingin membatalkan payroll ini?')">
+                    <button type="submit" id="btn-cancel"
+                            class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+                        Batalkan
+                    </button>
+                </form>
+
+                <!-- Delete Button (draft only) -->
+                <form th:if="${payrollRun.isDraft()}" th:action="@{/payroll/{id}/delete(id=${payrollRun.id})}" method="post"
+                      onsubmit="return confirm('Yakin ingin menghapus payroll ini?')">
+                    <button type="submit" id="btn-delete"
+                            class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
+                        Hapus
+                    </button>
+                </form>
+
+                <a th:href="@{/payroll}" class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+                    Kembali
+                </a>
+            </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div class="bg-blue-50 rounded-lg p-4">
+                <p class="text-sm text-blue-600 font-medium">Jumlah Karyawan</p>
+                <p class="text-2xl font-bold text-blue-900" data-testid="employee-count" th:text="${payrollRun.employeeCount}">5</p>
+            </div>
+            <div class="bg-green-50 rounded-lg p-4">
+                <p class="text-sm text-green-600 font-medium">Total Bruto</p>
+                <p class="text-2xl font-bold text-green-900" data-testid="total-gross"
+                   th:text="${'Rp ' + #numbers.formatDecimal(payrollRun.totalGross, 0, 'COMMA', 0, 'POINT')}">Rp 50,000,000</p>
+            </div>
+            <div class="bg-orange-50 rounded-lg p-4">
+                <p class="text-sm text-orange-600 font-medium">Total Potongan</p>
+                <p class="text-2xl font-bold text-orange-900" data-testid="total-deductions"
+                   th:text="${'Rp ' + #numbers.formatDecimal(payrollRun.totalDeductions, 0, 'COMMA', 0, 'POINT')}">Rp 5,000,000</p>
+            </div>
+            <div class="bg-primary-50 rounded-lg p-4">
+                <p class="text-sm text-primary-600 font-medium">Total Neto</p>
+                <p class="text-2xl font-bold text-primary-900" data-testid="total-net"
+                   th:text="${'Rp ' + #numbers.formatDecimal(payrollRun.totalNetPay, 0, 'COMMA', 0, 'POINT')}">Rp 45,000,000</p>
+            </div>
+        </div>
+
+        <!-- Additional Summary -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="bg-white rounded-lg shadow p-4">
+                <h4 class="text-sm font-medium text-gray-900 mb-2">BPJS (Ditanggung Perusahaan)</h4>
+                <p class="text-xl font-bold text-gray-900"
+                   th:text="${'Rp ' + #numbers.formatDecimal(payrollRun.totalCompanyBpjs, 0, 'COMMA', 0, 'POINT')}">Rp 5,000,000</p>
+            </div>
+            <div class="bg-white rounded-lg shadow p-4">
+                <h4 class="text-sm font-medium text-gray-900 mb-2">Total PPh 21</h4>
+                <p class="text-xl font-bold text-gray-900"
+                   th:text="${'Rp ' + #numbers.formatDecimal(payrollRun.totalPph21, 0, 'COMMA', 0, 'POINT')}">Rp 1,000,000</p>
+            </div>
+        </div>
+
+        <!-- Employee Details Table -->
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900">Rincian per Karyawan</h3>
+            </div>
+            <div class="overflow-x-auto">
+                <table data-testid="employee-details-table" class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">NIK</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama</th>
+                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Gaji Bruto</th>
+                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">BPJS Karyawan</th>
+                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">PPh 21</th>
+                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Potongan</th>
+                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Gaji Neto</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        <tr th:each="detail : ${details}">
+                            <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900" th:text="${detail.getEmployeeId()}">EMP001</td>
+                            <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900" th:text="${detail.getEmployeeName()}">John Doe</td>
+                            <td class="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-900"
+                                th:text="${'Rp ' + #numbers.formatDecimal(detail.grossSalary, 0, 'COMMA', 0, 'POINT')}">Rp 10,000,000</td>
+                            <td class="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-900"
+                                th:text="${'Rp ' + #numbers.formatDecimal(detail.getTotalEmployeeBpjs(), 0, 'COMMA', 0, 'POINT')}">Rp 300,000</td>
+                            <td class="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-900"
+                                th:text="${'Rp ' + #numbers.formatDecimal(detail.pph21, 0, 'COMMA', 0, 'POINT')}">Rp 235,000</td>
+                            <td class="px-4 py-4 whitespace-nowrap text-right text-sm text-red-600"
+                                th:text="${'(Rp ' + #numbers.formatDecimal(detail.totalDeductions, 0, 'COMMA', 0, 'POINT') + ')'}">Rp 535,000</td>
+                            <td class="px-4 py-4 whitespace-nowrap text-right text-sm font-medium text-green-600"
+                                th:text="${'Rp ' + #numbers.formatDecimal(detail.netPay, 0, 'COMMA', 0, 'POINT')}">Rp 9,465,000</td>
+                        </tr>
+                    </tbody>
+                    <tfoot class="bg-gray-50">
+                        <tr class="font-semibold">
+                            <td colspan="2" class="px-4 py-4 text-sm text-gray-900">Total</td>
+                            <td class="px-4 py-4 text-right text-sm text-gray-900"
+                                th:text="${'Rp ' + #numbers.formatDecimal(payrollRun.totalGross, 0, 'COMMA', 0, 'POINT')}">Rp 50,000,000</td>
+                            <td class="px-4 py-4 text-right text-sm text-gray-900">-</td>
+                            <td class="px-4 py-4 text-right text-sm text-gray-900"
+                                th:text="${'Rp ' + #numbers.formatDecimal(payrollRun.totalPph21, 0, 'COMMA', 0, 'POINT')}">Rp 1,175,000</td>
+                            <td class="px-4 py-4 text-right text-sm text-red-600"
+                                th:text="${'(Rp ' + #numbers.formatDecimal(payrollRun.totalDeductions, 0, 'COMMA', 0, 'POINT') + ')'}">Rp 2,675,000</td>
+                            <td class="px-4 py-4 text-right text-sm font-medium text-green-600"
+                                th:text="${'Rp ' + #numbers.formatDecimal(payrollRun.totalNetPay, 0, 'COMMA', 0, 'POINT')}">Rp 47,325,000</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+        <!-- Cancel Reason (if cancelled) -->
+        <div th:if="${payrollRun.isCancelled() and payrollRun.cancelReason != null}"
+             class="bg-red-50 border border-red-200 rounded-lg p-4">
+            <h4 class="text-sm font-medium text-red-900 mb-1">Alasan Pembatalan:</h4>
+            <p class="text-sm text-red-700" th:text="${payrollRun.cancelReason}">Reason</p>
+            <p class="text-xs text-red-500 mt-2" th:text="${'Dibatalkan pada: ' + #temporals.format(payrollRun.cancelledAt, 'dd MMM yyyy HH:mm')}">Dibatalkan pada: 01 Jan 2025</p>
+        </div>
+
+        <!-- Info Box -->
+        <div class="bg-gray-50 rounded-lg p-4">
+            <h4 class="text-sm font-medium text-gray-900 mb-2">Keterangan:</h4>
+            <ul class="text-xs text-gray-600 space-y-1">
+                <li><strong>BPJS Karyawan:</strong> JHT (2%) + JP (1%) + Kesehatan (1%)</li>
+                <li><strong>BPJS Perusahaan:</strong> JHT (3.7%) + JP (2%) + JKK + JKM (0.3%) + Kesehatan (4%)</li>
+                <li><strong>PPh 21:</strong> Dihitung berdasarkan tarif progresif dan status PTKP masing-masing karyawan</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>
