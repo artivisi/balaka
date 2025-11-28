@@ -615,4 +615,4 @@ Materialization only needed at ~500+ transactions/month sustained for several ye
 - [x] Data retention policy implemented (docs/07-data-retention-policy.md)
 - [x] User documentation ready
 - [x] Admin can manage users
-- [ ] Can export all data (regulatory compliance)
+- [x] Can export all data (regulatory compliance)

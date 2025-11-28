@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/main}"
+      lang="id">
+<head>
+    <title>Ekspor Data</title>
+</head>
+<body>
+    <h1 id="page-title" layout:fragment="page-title">Ekspor Data</h1>
+
+    <div id="export-content" layout:fragment="content">
+        <!-- Back Link -->
+        <div class="mb-4">
+            <a th:href="@{/settings}" class="inline-flex items-center text-sm text-gray-600 hover:text-gray-900">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+                Kembali ke Pengaturan
+            </a>
+        </div>
+
+        <div class="max-w-3xl space-y-6">
+            <!-- Info Card -->
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                <div class="flex items-start">
+                    <svg class="w-6 h-6 text-blue-500 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <div>
+                        <h3 class="text-lg font-medium text-blue-800">Ekspor Seluruh Data</h3>
+                        <p class="mt-2 text-blue-700">
+                            Fitur ini mengekspor seluruh data perusahaan Anda dalam format ZIP.
+                            Ekspor dilakukan sesuai dengan ketentuan UU No. 28 Tahun 2007 tentang KUP
+                            yang mewajibkan penyimpanan data keuangan selama 10 tahun.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statistics Card -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">Data yang Akan Diekspor</h2>
+
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <p class="text-2xl font-bold text-gray-900" th:text="${statistics.accountCount}">0</p>
+                        <p class="text-sm text-gray-600">Akun (COA)</p>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <p class="text-2xl font-bold text-gray-900" th:text="${statistics.journalEntryCount}">0</p>
+                        <p class="text-sm text-gray-600">Jurnal</p>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <p class="text-2xl font-bold text-gray-900" th:text="${statistics.transactionCount}">0</p>
+                        <p class="text-sm text-gray-600">Transaksi</p>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <p class="text-2xl font-bold text-gray-900" th:text="${statistics.clientCount}">0</p>
+                        <p class="text-sm text-gray-600">Klien</p>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <p class="text-2xl font-bold text-gray-900" th:text="${statistics.projectCount}">0</p>
+                        <p class="text-sm text-gray-600">Proyek</p>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <p class="text-2xl font-bold text-gray-900" th:text="${statistics.invoiceCount}">0</p>
+                        <p class="text-sm text-gray-600">Invoice</p>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <p class="text-2xl font-bold text-gray-900" th:text="${statistics.employeeCount}">0</p>
+                        <p class="text-sm text-gray-600">Karyawan</p>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <p class="text-2xl font-bold text-gray-900" th:text="${statistics.payrollRunCount}">0</p>
+                        <p class="text-sm text-gray-600">Payroll</p>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <p class="text-2xl font-bold text-gray-900" th:text="${statistics.documentCount}">0</p>
+                        <p class="text-sm text-gray-600">Dokumen</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Export Contents -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">Isi File Ekspor</h2>
+
+                <ul class="space-y-2 text-sm text-gray-600">
+                    <li class="flex items-center">
+                        <svg class="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        <span><strong>chart-of-accounts.csv</strong> - Daftar akun (COA)</span>
+                    </li>
+                    <li class="flex items-center">
+                        <svg class="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        <span><strong>journal-entries.csv</strong> - Semua jurnal termasuk yang void</span>
+                    </li>
+                    <li class="flex items-center">
+                        <svg class="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        <span><strong>transactions.csv</strong> - Semua transaksi</span>
+                    </li>
+                    <li class="flex items-center">
+                        <svg class="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        <span><strong>clients.csv</strong> - Data klien</span>
+                    </li>
+                    <li class="flex items-center">
+                        <svg class="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        <span><strong>projects.csv</strong> - Data proyek</span>
+                    </li>
+                    <li class="flex items-center">
+                        <svg class="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        <span><strong>invoices.csv</strong> - Semua invoice</span>
+                    </li>
+                    <li class="flex items-center">
+                        <svg class="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        <span><strong>employees.csv</strong> - Data karyawan</span>
+                    </li>
+                    <li class="flex items-center">
+                        <svg class="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        <span><strong>payroll-runs.csv</strong> - Riwayat payroll</span>
+                    </li>
+                    <li class="flex items-center">
+                        <svg class="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        <span><strong>payroll-details.csv</strong> - Detail slip gaji</span>
+                    </li>
+                    <li class="flex items-center">
+                        <svg class="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        <span><strong>audit-logs.csv</strong> - Log aktivitas</span>
+                    </li>
+                    <li class="flex items-center">
+                        <svg class="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        <span><strong>documents/</strong> - File dokumen lampiran</span>
+                    </li>
+                    <li class="flex items-center">
+                        <svg class="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        <span><strong>manifest.json</strong> - Metadata ekspor</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Export Button -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <form th:action="@{/settings/export/download}" method="post">
+                    <button type="submit"
+                            class="inline-flex items-center px-6 py-3 bg-primary-600 text-white text-base font-medium rounded-lg hover:bg-primary-700 transition-colors">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                        </svg>
+                        Ekspor Semua Data
+                    </button>
+                </form>
+                <p class="mt-3 text-sm text-gray-500">
+                    Proses ekspor dapat memakan waktu beberapa menit tergantung jumlah data.
+                </p>
+            </div>
+
+            <!-- Legal Notice -->
+            <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm text-gray-600">
+                <p>
+                    <strong>Catatan:</strong> Data keuangan disimpan sesuai UU No. 28 Tahun 2007 (KUP) yang mewajibkan
+                    penyimpanan selama 10 tahun. Lihat
+                    <a th:href="@{/manual/80-kebijakan-data.html}" class="text-primary-600 hover:underline" target="_blank">
+                        Kebijakan Penyimpanan Data
+                    </a>
+                    untuk informasi lengkap.
+                </p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
