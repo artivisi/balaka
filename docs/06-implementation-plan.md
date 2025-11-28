@@ -347,22 +347,46 @@
 
 ### 3.6 Payroll Reports
 - [ ] Payroll summary report
-- [ ] PPh 21 monthly report
-- [ ] BPJS report
-- [ ] Payslip PDF generation
+- [ ] PPh 21 monthly report (for tax filing)
+- [ ] BPJS report (for contribution submission)
+- [ ] Payslip PDF generation (per employee)
+- [ ] Bukti Potong PPh 21 PDF (1721-A1, for employee annual tax filing)
 
 ### 3.7 User Management & Role-Based Access Control
 - [ ] Reorganize sidebar menu (group related features, add icons, collapsible sections)
-- [ ] Roles: ADMIN, OWNER, ACCOUNTANT, STAFF, AUDITOR
+- [ ] Roles: ADMIN, OWNER, ACCOUNTANT, STAFF, AUDITOR, EMPLOYEE
 - [ ] Permission entity and role-permission mapping
-- [ ] User entity enhancements (link to roles)
+- [ ] User entity enhancements (link to multiple roles)
 - [ ] User CRUD UI
-- [ ] Role assignment UI
+- [ ] Role assignment UI (multi-select, one user can have multiple roles)
 - [ ] @PreAuthorize annotations on controllers
 - [ ] Menu/button visibility based on permissions
 - [ ] Audit logging for permission denied and user management
 
-**Phase 3 Deliverable:** Complete payroll system with tax compliance and role-based access control.
+### 3.8 Employee Self-Service
+- [ ] My Payslips page (read-only, filtered to logged-in employee)
+- [ ] My Bukti Potong PPh 21 page (download PDF)
+- [ ] My Profile page (view/edit limited fields)
+- [ ] Link Employee entity to User entity
+
+**Permission model:** Additive permissions (not role switching).
+- User can have multiple roles (e.g., ACCOUNTANT + EMPLOYEE)
+- Permissions are combined from all assigned roles
+- UI shows all accessible features based on combined permissions
+
+**Implementation complexity comparison (why additive, not role switching):**
+
+| Aspect | Additive | Role Switching |
+|--------|----------|----------------|
+| Security config | Standard Spring Security | Custom service |
+| Session state | None | Track active role |
+| UI components | None extra | Role switcher dropdown |
+| After switch | N/A | Refresh/redirect needed |
+| Lines of code | ~50 | ~150-200 |
+
+Additive is ~3x simpler. Role switching only needed for strict audit trails or compliance requirements.
+
+**Phase 3 Deliverable:** Complete payroll system with tax compliance, role-based access control, and employee self-service.
 
 ---
 

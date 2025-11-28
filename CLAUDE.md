@@ -24,14 +24,15 @@ Indonesian accounting application for small businesses. Spring Boot 4.0 + Thymel
   - 1.13 Deployment & Operations: ✅ Complete
 - **Phase 2:** ✅ Complete (Tax Compliance + Cash Flow)
   - 2.0-2.10: All complete (Refactoring, Documents, Telegram, Tax, Reports, Fiscal Periods, Tax Calendar, Backup/Restore, Cash Flow Statement)
-- **Phase 3:** 🚧 In Progress (Payroll + RBAC)
+- **Phase 3:** 🚧 In Progress (Payroll + RBAC + Employee Self-Service)
   - 3.1 Employee Management: ✅ Complete
   - 3.2 Salary Components: ✅ Complete
   - 3.3 BPJS Calculation: ✅ Complete
   - 3.4 PPh 21 Calculation: ✅ Complete
   - 3.5 Payroll Processing: ✅ Complete
   - 3.6 Payroll Reports: ⏳ Next
-  - 3.7 User Management & RBAC: ⏳ Pending (includes sidebar reorganization)
+  - 3.7 User Management & RBAC: ⏳ Pending (additive permissions, EMPLOYEE role)
+  - 3.8 Employee Self-Service: ⏳ Pending (My Payslips, My Bukti Potong)
 - **Phase 4:** Analytics & Reconciliation (Tags, Trends, Alerts, Bank Recon)
 - **Phase 5:** Assets & Budget
 - See `docs/06-implementation-plan.md` for full plan
