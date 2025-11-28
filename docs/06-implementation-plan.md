@@ -316,13 +316,21 @@
 - [x] Ceiling warning display for high salaries
 - [x] Unit tests (25 tests)
 - [x] Functional tests (9 Playwright tests)
+- [x] User manual (62-kalkulator-bpjs.md)
 
-### 3.4 PPh 21 Calculation
-- [ ] Progressive tax rates (5%-35%)
-- [ ] PTKP deduction by status
-- [ ] Biaya jabatan (5%, max 500rb)
-- [ ] Monthly vs annual calculation
-- [ ] PPh 21 calculator service
+### 3.4 PPh 21 Calculation ✅
+- [x] Progressive tax rates (5%-35%) per PP 58/2023
+- [x] PTKP deduction by status (12 statuses)
+- [x] Biaya jabatan (5%, max Rp 500,000/month)
+- [x] Monthly vs annual calculation
+- [x] Pph21CalculationService with BigDecimal precision
+- [x] PPh 21 Calculator UI (input salary, select PTKP, toggle NPWP)
+- [x] No NPWP penalty (20% higher tax)
+- [x] Effective tax rate display
+- [x] Take home pay calculation
+- [x] Unit tests (28 tests)
+- [x] Functional tests (12 Playwright tests)
+- [x] User manual (63-kalkulator-pph21.md)
 
 ### 3.5 Payroll Processing
 - [ ] Payroll run entity
