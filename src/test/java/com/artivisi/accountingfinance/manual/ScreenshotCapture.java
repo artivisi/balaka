@@ -124,7 +124,21 @@ public class ScreenshotCapture {
             new PageDefinition("reports-pph23-withholding", "Pemotongan PPh 23", "/reports/pph23-withholding", true,
                     "Laporan pemotongan PPh 23 dari vendor", "laporan-pajak"),
             new PageDefinition("reports-tax-summary", "Ringkasan Pajak", "/reports/tax-summary", true,
-                    "Overview semua akun pajak", "laporan-pajak")
+                    "Overview semua akun pajak", "laporan-pajak"),
+
+            // Employees
+            new PageDefinition("employees-list", "Daftar Karyawan", "/employees", true,
+                    "Daftar karyawan dengan filter status dan departemen", "kelola-karyawan"),
+            new PageDefinition("employees-form", "Form Karyawan", "/employees/new", true,
+                    "Form untuk menambah atau mengubah data karyawan", "kelola-karyawan"),
+
+            // Payroll
+            new PageDefinition("payroll-list", "Daftar Payroll", "/payroll", true,
+                    "Daftar payroll run dengan filter periode dan status", "payroll-processing"),
+            new PageDefinition("payroll-form", "Form Payroll", "/payroll/new", true,
+                    "Form untuk membuat payroll run baru", "payroll-processing"),
+            new PageDefinition("payroll-detail", "Detail Payroll", "/payroll", true,
+                    "Detail payroll run dengan daftar karyawan dan perhitungan", "payroll-processing")
         );
     }
 

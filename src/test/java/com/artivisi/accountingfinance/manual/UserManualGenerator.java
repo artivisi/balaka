@@ -82,6 +82,14 @@ public class UserManualGenerator {
             new Section("kelola-template", "Kelola Template", "51-kelola-template.md", List.of("templates-list", "templates-detail", "templates-form")),
             new Section("kelola-klien", "Kelola Klien", "52-kelola-klien.md", List.of("clients-list", "clients-detail", "clients-form")),
             new Section("jadwal-amortisasi", "Jadwal Amortisasi", "53-jadwal-amortisasi.md", List.of("amortization-list", "amortization-form")),
+            new Section("kelola-periode-fiskal", "Kelola Periode Fiskal", "54-kelola-periode-fiskal.md", List.of()),
+
+            // Bagian VI: Penggajian (Payroll)
+            new Section("kelola-karyawan", "Kelola Karyawan", "60-kelola-karyawan.md", List.of("employees-list", "employees-form")),
+            new Section("komponen-gaji", "Komponen Gaji", "61-komponen-gaji.md", List.of()),
+            new Section("kalkulator-bpjs", "Kalkulator BPJS", "62-kalkulator-bpjs.md", List.of()),
+            new Section("kalkulator-pph21", "Kalkulator PPh 21", "63-kalkulator-pph21.md", List.of()),
+            new Section("payroll-processing", "Proses Penggajian", "64-payroll-processing.md", List.of("payroll-list", "payroll-detail", "payroll-form")),
 
             // Lampiran
             new Section("glosarium", "Glosarium", "90-glosarium.md", List.of()),
