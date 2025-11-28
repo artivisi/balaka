@@ -301,42 +301,27 @@
                     </div>
                 </div>
 
-                <!-- Tax Reminders -->
-                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 flex-shrink-0">
-                    <h2 class="text-sm font-semibold text-gray-900 mb-3">Pengingat Pajak</h2>
-                    <div class="space-y-2">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center">
-                                <div class="w-6 h-6 bg-amber-100 rounded-full flex items-center justify-center">
-                                    <svg class="w-3 h-3 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                    </svg>
-                                </div>
-                                <span class="ml-2 text-xs font-medium text-gray-900">PPh 21</span>
-                            </div>
-                            <span class="text-xs text-amber-600 font-medium">18 hari</span>
+                <!-- Tax Calendar Widget - Loaded via HTMX -->
+                <div id="tax-calendar-widget"
+                     hx-get="/tax-calendar/api/widget"
+                     hx-trigger="load"
+                     hx-swap="innerHTML"
+                     class="flex-shrink-0">
+                    <!-- Loading skeleton -->
+                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 animate-pulse">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="h-4 bg-gray-200 rounded w-24"></div>
+                            <div class="h-3 bg-gray-200 rounded w-16"></div>
                         </div>
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center">
-                                <div class="w-6 h-6 bg-amber-100 rounded-full flex items-center justify-center">
-                                    <svg class="w-3 h-3 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                    </svg>
-                                </div>
-                                <span class="ml-2 text-xs font-medium text-gray-900">PPh 23</span>
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between">
+                                <div class="h-3 bg-gray-200 rounded w-20"></div>
+                                <div class="h-3 bg-gray-200 rounded w-16"></div>
                             </div>
-                            <span class="text-xs text-amber-600 font-medium">18 hari</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center">
-                                <div class="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
-                                    <svg class="w-3 h-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                    </svg>
-                                </div>
-                                <span class="ml-2 text-xs font-medium text-gray-900">PPN</span>
+                            <div class="flex items-center justify-between">
+                                <div class="h-3 bg-gray-200 rounded w-24"></div>
+                                <div class="h-3 bg-gray-200 rounded w-14"></div>
                             </div>
-                            <span class="text-xs text-green-600 font-medium">28 hari</span>
                         </div>
                     </div>
                 </div>

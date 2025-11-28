@@ -209,3 +209,21 @@ INSERT INTO journal_templates (id, template_name, category, cash_flow_category, 
 INSERT INTO journal_template_lines (id, id_journal_template, id_account, position, formula, line_order) VALUES
 ('e1000000-0000-0000-0000-000000000025', 'e0000000-0000-0000-0000-000000000013', '20000000-0000-0000-0000-000000000104', 'DEBIT', 'amount', 1),
 ('e1000000-0000-0000-0000-000000000026', 'e0000000-0000-0000-0000-000000000013', '40000000-0000-0000-0000-000000000102', 'CREDIT', 'amount', 2);
+
+-- ============================================
+-- Tax Deadlines - Indonesian Tax Calendar
+-- ============================================
+-- Reference: PMK No. 242/PMK.03/2014
+
+INSERT INTO tax_deadlines (id, name, deadline_type, due_day, use_last_day_of_month, description, reminder_days_before, active) VALUES
+-- Tax Payments (Setor)
+('f0000000-0000-0000-0000-000000000001', 'Setor PPh 21', 'PPH_21_PAYMENT', 10, FALSE, 'Pembayaran PPh Pasal 21 atas gaji karyawan. Jatuh tempo tanggal 10 bulan berikutnya.', 7, TRUE),
+('f0000000-0000-0000-0000-000000000002', 'Setor PPh 23', 'PPH_23_PAYMENT', 10, FALSE, 'Pembayaran PPh Pasal 23 atas jasa, dividen, bunga, royalti. Jatuh tempo tanggal 10 bulan berikutnya.', 7, TRUE),
+('f0000000-0000-0000-0000-000000000003', 'Setor PPh 4(2)', 'PPH_42_PAYMENT', 10, FALSE, 'Pembayaran PPh Pasal 4 ayat 2 (final) atas sewa tanah/bangunan, dll. Jatuh tempo tanggal 10 bulan berikutnya.', 7, TRUE),
+('f0000000-0000-0000-0000-000000000004', 'Setor PPh 25', 'PPH_25_PAYMENT', 15, FALSE, 'Pembayaran angsuran PPh Pasal 25. Jatuh tempo tanggal 15 bulan berikutnya.', 7, TRUE),
+('f0000000-0000-0000-0000-000000000005', 'Setor PPN', 'PPN_PAYMENT', 31, TRUE, 'Pembayaran PPN terutang. Jatuh tempo akhir bulan berikutnya.', 7, TRUE),
+
+-- Tax Reporting (Lapor SPT)
+('f0000000-0000-0000-0000-000000000006', 'Lapor SPT PPh 21', 'SPT_PPH_21', 20, FALSE, 'Pelaporan SPT Masa PPh 21. Jatuh tempo tanggal 20 bulan berikutnya.', 7, TRUE),
+('f0000000-0000-0000-0000-000000000007', 'Lapor SPT PPh 23', 'SPT_PPH_23', 20, FALSE, 'Pelaporan SPT Masa PPh 23 (e-Bupot Unifikasi). Jatuh tempo tanggal 20 bulan berikutnya.', 7, TRUE),
+('f0000000-0000-0000-0000-000000000008', 'Lapor SPT PPN', 'SPT_PPN', 31, TRUE, 'Pelaporan SPT Masa PPN (e-Faktur). Jatuh tempo akhir bulan berikutnya.', 7, TRUE);

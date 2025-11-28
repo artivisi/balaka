@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="id">
+<body>
+<div th:fragment="widget" class="bg-white rounded-lg shadow p-6">
+    <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-medium text-gray-900">Kewajiban Pajak</h3>
+        <a th:href="@{/tax-calendar}" class="text-sm text-primary-600 hover:text-primary-700">Lihat Semua</a>
+    </div>
+
+    <!-- Overdue Items -->
+    <div th:if="${!#lists.isEmpty(overdue)}" class="mb-4">
+        <div class="flex items-center gap-2 mb-2">
+            <span class="w-2 h-2 rounded-full bg-red-500"></span>
+            <span class="text-sm font-medium text-red-600" th:text="'Terlambat (' + ${overdueCount} + ')'">Terlambat (2)</span>
+        </div>
+        <div class="space-y-2">
+            <div th:each="item : ${overdue}" class="flex items-center justify-between text-sm">
+                <span class="text-gray-700" th:text="${item.deadline.name}">Setor PPh 21</span>
+                <span class="text-red-600" th:text="'Terlambat ' + ${-item.daysUntilDue} + ' hari'">Terlambat 3 hari</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Due Soon Items -->
+    <div th:if="${!#lists.isEmpty(dueSoon)}" class="mb-4">
+        <div class="flex items-center gap-2 mb-2">
+            <span class="w-2 h-2 rounded-full bg-yellow-500"></span>
+            <span class="text-sm font-medium text-yellow-600" th:text="'Segera Jatuh Tempo (' + ${dueSoonCount} + ')'">Segera Jatuh Tempo (3)</span>
+        </div>
+        <div class="space-y-2">
+            <div th:each="item : ${dueSoon}" class="flex items-center justify-between text-sm">
+                <span class="text-gray-700" th:text="${item.deadline.name}">Setor PPN</span>
+                <span class="text-yellow-600" th:text="${item.daysUntilDue} + ' hari lagi'">5 hari lagi</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- All Clear Message -->
+    <div th:if="${#lists.isEmpty(overdue) and #lists.isEmpty(dueSoon)}" class="text-center py-4">
+        <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-green-100 flex items-center justify-center">
+            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+            </svg>
+        </div>
+        <p class="text-sm text-gray-500">Semua kewajiban pajak sudah selesai</p>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/main}"
+      lang="id">
+<head>
+    <title>Kalender Pajak - Tahunan</title>
+</head>
+<body>
+    <h1 id="page-title" layout:fragment="page-title">Kalender Pajak Tahunan</h1>
+
+    <div layout:fragment="content" class="space-y-6">
+        <!-- Header -->
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div class="flex flex-wrap items-center gap-4">
+                <select name="year"
+                        class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                        onchange="window.location.href='/tax-calendar/yearly?year=' + this.value">
+                    <option th:each="y : ${#numbers.sequence(2020, 2030)}"
+                            th:value="${y}"
+                            th:text="${y}"
+                            th:selected="${selectedYear == y}">Tahun</option>
+                </select>
+            </div>
+
+            <a th:href="@{/tax-calendar}"
+               class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+                Kembali
+            </a>
+        </div>
+
+        <!-- Yearly Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div th:each="summary : ${summaries}"
+                 class="bg-white rounded-lg shadow overflow-hidden">
+                <a th:href="@{/tax-calendar(year=${summary.year}, month=${summary.month})}"
+                   class="block hover:bg-gray-50 transition-colors">
+                    <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+                        <span class="font-medium text-gray-900" th:text="${monthNames[summary.month]}">Januari</span>
+                        <span th:if="${summary.allCompleted}"
+                              class="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full">Selesai</span>
+                        <span th:if="${summary.overdueCount > 0}"
+                              class="text-xs px-2 py-1 bg-red-100 text-red-800 rounded-full"
+                              th:text="${summary.overdueCount + ' terlambat'}">2 terlambat</span>
+                        <span th:if="${!summary.allCompleted and summary.overdueCount == 0 and summary.dueSoonCount > 0}"
+                              class="text-xs px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full"
+                              th:text="${summary.dueSoonCount + ' segera'}">1 segera</span>
+                    </div>
+                    <div class="p-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm text-gray-500"
+                                  th:text="${summary.completedCount + '/' + summary.totalDeadlines}">5/8</span>
+                            <span class="text-sm text-gray-500"
+                                  th:text="${summary.completionPercentage + '%'}">62%</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="h-2 rounded-full"
+                                 th:classappend="${summary.allCompleted ? 'bg-green-500' : (summary.overdueCount > 0 ? 'bg-red-500' : 'bg-primary-500')}"
+                                 th:style="'width: ' + ${summary.completionPercentage} + '%'"></div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

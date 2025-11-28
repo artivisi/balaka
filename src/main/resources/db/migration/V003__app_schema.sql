@@ -753,3 +753,50 @@ CREATE TABLE fiscal_periods (
 CREATE INDEX idx_fiscal_periods_year ON fiscal_periods(year);
 CREATE INDEX idx_fiscal_periods_status ON fiscal_periods(status);
 CREATE INDEX idx_fiscal_periods_year_month ON fiscal_periods(year, month);
+
+-- ============================================
+-- Tax Deadlines (Phase 2.8)
+-- ============================================
+
+CREATE TABLE tax_deadlines (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(100) NOT NULL,
+    deadline_type VARCHAR(30) NOT NULL UNIQUE,
+    due_day INTEGER NOT NULL,
+    use_last_day_of_month BOOLEAN NOT NULL DEFAULT FALSE,
+    description TEXT,
+    reminder_days_before INTEGER NOT NULL DEFAULT 7,
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT chk_deadline_type CHECK (deadline_type IN (
+        'PPH_21_PAYMENT', 'PPH_23_PAYMENT', 'PPH_42_PAYMENT', 'PPH_25_PAYMENT', 'PPN_PAYMENT',
+        'SPT_PPH_21', 'SPT_PPH_23', 'SPT_PPN'
+    )),
+    CONSTRAINT chk_due_day CHECK (due_day BETWEEN 1 AND 31),
+    CONSTRAINT chk_reminder_days CHECK (reminder_days_before BETWEEN 0 AND 30)
+);
+
+CREATE INDEX idx_tax_deadlines_type ON tax_deadlines(deadline_type);
+CREATE INDEX idx_tax_deadlines_active ON tax_deadlines(active);
+
+CREATE TABLE tax_deadline_completions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id_tax_deadline UUID NOT NULL REFERENCES tax_deadlines(id) ON DELETE CASCADE,
+    year INTEGER NOT NULL,
+    month INTEGER NOT NULL,
+    completed_date DATE NOT NULL,
+    reference_number VARCHAR(100),
+    notes TEXT,
+    completed_by VARCHAR(100),
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT uk_tax_deadline_period UNIQUE (id_tax_deadline, year, month),
+    CONSTRAINT chk_completion_year CHECK (year BETWEEN 2000 AND 2100),
+    CONSTRAINT chk_completion_month CHECK (month BETWEEN 1 AND 12)
+);
+
+CREATE INDEX idx_tax_completions_deadline ON tax_deadline_completions(id_tax_deadline);
+CREATE INDEX idx_tax_completions_period ON tax_deadline_completions(year, month);
