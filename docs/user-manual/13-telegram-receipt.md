@@ -148,3 +148,4 @@ Caption ini akan muncul saat Anda memproses struk di aplikasi, memudahkan pengis
 - [Mencatat Pengeluaran](11-mencatat-pengeluaran.md) - Template untuk berbagai jenis pengeluaran
 - [Laporan Harian](20-laporan-harian.md) - Verifikasi transaksi yang sudah dicatat
 - [Setup Awal](50-setup-awal.md) - Konfigurasi Telegram bot
+- [Setup Telegram Bot](55-setup-telegram.md) - Konfigurasi server-side untuk administrator

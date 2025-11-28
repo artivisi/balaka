@@ -78,6 +78,7 @@ Setiap bab dalam panduan ini mengikuti struktur yang sama:
 - [Kelola Klien](52-kelola-klien.md) - Data klien
 - [Jadwal Amortisasi](53-jadwal-amortisasi.md) - Beban dibayar dimuka
 - [Kelola Periode Fiskal](54-kelola-periode-fiskal.md) - Tutup buku bulanan
+- [Setup Telegram Bot](55-setup-telegram.md) - Konfigurasi integrasi Telegram
 
 ### Lampiran
 - [Glosarium](90-glosarium.md) - Istilah-istilah akuntansi

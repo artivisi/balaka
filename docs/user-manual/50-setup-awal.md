@@ -165,16 +165,24 @@ Kredit : Modal              Rp 90.000.000
 
 **Situasi**: Anda ingin menggunakan fitur kirim struk via Telegram.
 
-**Langkah-langkah**:
+**Untuk Administrator (Server Setup)**:
+
+Lihat [Setup Telegram Bot](55-setup-telegram.md) untuk:
+- Membuat bot di BotFather
+- Konfigurasi environment variables
+- Mendaftarkan webhook
+
+**Untuk End User (Menghubungkan Akun)**:
 
 1. Klik menu **Pengaturan** di sidebar
 2. Pilih tab **Telegram**
-3. Ikuti instruksi untuk menghubungkan Telegram:
-   - Cari bot di Telegram
-   - Kirim kode akses
-4. Verifikasi koneksi berhasil
+3. Klik **Hubungkan Telegram**
+4. Salin kode verifikasi yang muncul
+5. Buka Telegram, cari bot yang dikonfigurasi
+6. Kirim kode verifikasi ke bot
+7. Verifikasi koneksi berhasil
 
-Lihat [Telegram Receipt](13-telegram-receipt.md) untuk panduan lengkap.
+Lihat [Telegram Receipt](13-telegram-receipt.md) untuk panduan penggunaan.
 
 ## Skenario 8: Backup Data
 
