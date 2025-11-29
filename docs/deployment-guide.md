@@ -192,16 +192,13 @@ Before proceeding, verify you have:
 git clone https://github.com/artivisi/aplikasi-akunting.git
 cd aplikasi-akunting
 
-# 2. Build application
-./mvnw clean package -DskipTests
-
-# 3. Provision VPS (optional - if using Pulumi)
+# 2. Provision VPS (optional - if using Pulumi)
 cd deploy/pulumi
 npm install
 pulumi up
 cd ../..
 
-# 4. Configure Ansible
+# 3. Configure Ansible
 cd deploy/ansible
 cp group_vars/all.yml.example group_vars/all.yml
 cp inventory.ini.example inventory.ini
@@ -209,18 +206,17 @@ cp inventory.ini.example inventory.ini
 # Edit group_vars/all.yml with your passwords and domain
 # Edit inventory.ini with your server IP
 
-# 5. Run Ansible for server setup
+# 4. Run Ansible for server setup
 ansible-playbook -i inventory.ini site.yml
 
-# 6. Configure Google Drive OAuth (ONLY if using Google Drive backup)
+# 5. Configure Google Drive OAuth (ONLY if using Google Drive backup)
 # On your LOCAL machine (not the server):
 rclone authorize "drive"
 # Copy the token JSON and add to group_vars/all.yml:
 # backup_gdrive_token: '{"access_token":"...","refresh_token":"...","expiry":"..."}'
 # Then re-run: ansible-playbook -i inventory.ini site.yml
 
-# 7. Build and deploy application (includes automated verification)
-./mvnw clean package -DskipTests
+# 6. Deploy application (builds JAR automatically + includes verification)
 ansible-playbook -i inventory.ini deploy.yml
 ```
 
@@ -296,18 +292,20 @@ This installs and configures:
 
 ### 5. Deploy Application
 
-Build and deploy using Ansible:
+Deploy using Ansible (builds JAR automatically):
 ```bash
-./mvnw clean package -DskipTests
 ansible-playbook -i inventory.ini deploy.yml
 ```
 
 The `deploy.yml` playbook automatically:
-- Builds and validates the JAR file
+- **Builds the JAR locally** (`./mvnw clean package -DskipTests`)
+- Validates the JAR file exists
 - Uploads JAR to server (`/opt/accounting-finance/app.jar`)
 - Restarts the application service
 - Creates/configures admin user with secure credentials
 - Performs health check (HTTP 200 on /login)
+
+**Note:** You don't need to manually run `./mvnw package` - the playbook does it for you!
 
 ### 6. Configure Google Drive OAuth (Only if using Google Drive backup)
 
@@ -1286,14 +1284,12 @@ flowchart LR
 **Use the built-in `deploy.yml` playbook for automated deployments:**
 
 ```bash
-# Build application
-./mvnw clean package -DskipTests
-
-# Deploy using Ansible
+# Deploy using Ansible (builds JAR automatically)
 ansible-playbook -i inventory.ini deploy.yml
 ```
 
 **Advantages of Ansible deployment:**
+- ✅ **Automatic JAR build** - No need to run `./mvnw package` manually
 - ✅ Automated JAR upload and service management
 - ✅ Built-in health checks and rollback capability
 - ✅ Secure admin user creation with bcrypt password hashing

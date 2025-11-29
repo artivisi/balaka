@@ -12,6 +12,8 @@ public record COAImportFileDto(
 
         String version,
 
+        String description,
+
         @Valid
         @NotEmpty(message = "At least one account is required")
         List<COAImportDto> accounts

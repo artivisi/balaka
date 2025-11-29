@@ -102,6 +102,7 @@ public class DataImportService {
         return new COAImportFileDto(
                 file.getOriginalFilename(),
                 "1.0",
+                "Imported from Excel",
                 accounts
         );
     }
