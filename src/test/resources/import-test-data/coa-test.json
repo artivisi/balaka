@@ -1,6 +1,7 @@
 {
   "name": "Test COA Import",
   "version": "1.0",
+  "description": "Test chart of accounts for import verification",
   "accounts": [
     {
       "code": "1",

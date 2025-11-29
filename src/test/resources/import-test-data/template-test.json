@@ -1,6 +1,7 @@
 {
   "name": "Test Template Import",
   "version": "1.0",
+  "description": "Test journal templates for import verification",
   "templates": [
     {
       "name": "Test Import Template",
