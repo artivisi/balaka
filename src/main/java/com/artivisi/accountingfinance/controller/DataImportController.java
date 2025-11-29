@@ -30,11 +30,16 @@ import java.io.IOException;
 @Slf4j
 public class DataImportController {
 
+    private static final String ATTR_ERROR_MESSAGE = "errorMessage";
+    private static final String ATTR_SUCCESS_MESSAGE = "successMessage";
+    private static final String ATTR_CURRENT_PAGE = "currentPage";
+    private static final String ERR_FILE_EMPTY = "File tidak boleh kosong";
+
     private final DataImportService dataImportService;
 
     @GetMapping
     public String index(Model model) {
-        model.addAttribute("currentPage", "import");
+        model.addAttribute(ATTR_CURRENT_PAGE, "import");
         model.addAttribute("canClearAccounts", dataImportService.canClearData());
         model.addAttribute("canClearTemplates", dataImportService.canClearTemplates());
         return "import/index";
@@ -44,7 +49,7 @@ public class DataImportController {
 
     @GetMapping("/coa")
     public String coaImportPage(Model model) {
-        model.addAttribute("currentPage", "import");
+        model.addAttribute(ATTR_CURRENT_PAGE, "import");
         model.addAttribute("canClearAccounts", dataImportService.canClearData());
         return "import/coa-import";
     }
@@ -56,14 +61,14 @@ public class DataImportController {
             Model model) {
 
         if (file.isEmpty()) {
-            model.addAttribute("errorMessage", "File tidak boleh kosong");
+            model.addAttribute(ATTR_ERROR_MESSAGE, "ERR_FILE_EMPTY");
             return htmxRequest != null ? "import/fragments :: preview-error" : "import/coa-import";
         }
 
         String filename = file.getOriginalFilename();
         if (filename == null ||
             (!filename.toLowerCase().endsWith(".json") && !filename.toLowerCase().endsWith(".xlsx"))) {
-            model.addAttribute("errorMessage", "Format file tidak didukung. Gunakan JSON atau XLSX");
+            model.addAttribute(ATTR_ERROR_MESSAGE, "Format file tidak didukung. Gunakan JSON atau XLSX");
             return htmxRequest != null ? "import/fragments :: preview-error" : "import/coa-import";
         }
 
@@ -82,7 +87,7 @@ public class DataImportController {
             return htmxRequest != null ? "import/fragments :: coa-preview" : "import/coa-import";
         } catch (IOException e) {
             log.error("Error parsing COA file: {}", e.getMessage());
-            model.addAttribute("errorMessage", "Error membaca file: " + e.getMessage());
+            model.addAttribute(ATTR_ERROR_MESSAGE, "Error membaca file: " + e.getMessage());
             return htmxRequest != null ? "import/fragments :: preview-error" : "import/coa-import";
         }
     }
@@ -94,14 +99,14 @@ public class DataImportController {
             RedirectAttributes redirectAttributes) {
 
         if (file.isEmpty()) {
-            redirectAttributes.addFlashAttribute("errorMessage", "File tidak boleh kosong");
+            redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, "ERR_FILE_EMPTY");
             return "redirect:/import/coa";
         }
 
         String filename = file.getOriginalFilename();
         if (filename == null ||
             (!filename.toLowerCase().endsWith(".json") && !filename.toLowerCase().endsWith(".xlsx"))) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Format file tidak didukung. Gunakan JSON atau XLSX");
+            redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, "Format file tidak didukung. Gunakan JSON atau XLSX");
             return "redirect:/import/coa";
         }
 
@@ -117,19 +122,19 @@ public class DataImportController {
             redirectAttributes.addFlashAttribute("importResult", result);
 
             if (result.success()) {
-                redirectAttributes.addFlashAttribute("successMessage", result.message());
+                redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, result.message());
             } else {
-                redirectAttributes.addFlashAttribute("errorMessage", result.message());
+                redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, result.message());
             }
 
             return "redirect:/import/result";
         } catch (IllegalStateException e) {
             log.error("Cannot clear COA: {}", e.getMessage());
-            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, e.getMessage());
             return "redirect:/import/coa";
         } catch (IOException e) {
             log.error("Error importing COA: {}", e.getMessage());
-            redirectAttributes.addFlashAttribute("errorMessage", "Error import: " + e.getMessage());
+            redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, "Error import: " + e.getMessage());
             return "redirect:/import/coa";
         }
     }
@@ -138,9 +143,9 @@ public class DataImportController {
     public String clearCOA(RedirectAttributes redirectAttributes) {
         try {
             dataImportService.clearAllData();
-            redirectAttributes.addFlashAttribute("successMessage", "Semua bagan akun berhasil dihapus");
+            redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Semua bagan akun berhasil dihapus");
         } catch (IllegalStateException e) {
-            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, e.getMessage());
         }
         return "redirect:/import";
     }
@@ -149,7 +154,7 @@ public class DataImportController {
 
     @GetMapping("/templates")
     public String templateImportPage(Model model) {
-        model.addAttribute("currentPage", "import");
+        model.addAttribute(ATTR_CURRENT_PAGE, "import");
         model.addAttribute("canClearTemplates", dataImportService.canClearTemplates());
         return "import/template-import";
     }
@@ -161,13 +166,13 @@ public class DataImportController {
             Model model) {
 
         if (file.isEmpty()) {
-            model.addAttribute("errorMessage", "File tidak boleh kosong");
+            model.addAttribute(ATTR_ERROR_MESSAGE, "ERR_FILE_EMPTY");
             return htmxRequest != null ? "import/fragments :: preview-error" : "import/template-import";
         }
 
         String filename = file.getOriginalFilename();
         if (filename == null || !filename.toLowerCase().endsWith(".json")) {
-            model.addAttribute("errorMessage", "Format file tidak didukung. Gunakan JSON");
+            model.addAttribute(ATTR_ERROR_MESSAGE, "Format file tidak didukung. Gunakan JSON");
             return htmxRequest != null ? "import/fragments :: preview-error" : "import/template-import";
         }
 
@@ -180,7 +185,7 @@ public class DataImportController {
             return htmxRequest != null ? "import/fragments :: template-preview" : "import/template-import";
         } catch (IOException e) {
             log.error("Error parsing template file: {}", e.getMessage());
-            model.addAttribute("errorMessage", "Error membaca file: " + e.getMessage());
+            model.addAttribute(ATTR_ERROR_MESSAGE, "Error membaca file: " + e.getMessage());
             return htmxRequest != null ? "import/fragments :: preview-error" : "import/template-import";
         }
     }
@@ -192,13 +197,13 @@ public class DataImportController {
             RedirectAttributes redirectAttributes) {
 
         if (file.isEmpty()) {
-            redirectAttributes.addFlashAttribute("errorMessage", "File tidak boleh kosong");
+            redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, "ERR_FILE_EMPTY");
             return "redirect:/import/templates";
         }
 
         String filename = file.getOriginalFilename();
         if (filename == null || !filename.toLowerCase().endsWith(".json")) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Format file tidak didukung. Gunakan JSON");
+            redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, "Format file tidak didukung. Gunakan JSON");
             return "redirect:/import/templates";
         }
 
@@ -208,19 +213,19 @@ public class DataImportController {
             redirectAttributes.addFlashAttribute("importResult", result);
 
             if (result.success()) {
-                redirectAttributes.addFlashAttribute("successMessage", result.message());
+                redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, result.message());
             } else {
-                redirectAttributes.addFlashAttribute("errorMessage", result.message());
+                redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, result.message());
             }
 
             return "redirect:/import/result";
         } catch (IllegalStateException e) {
             log.error("Cannot clear templates: {}", e.getMessage());
-            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, e.getMessage());
             return "redirect:/import/templates";
         } catch (IOException e) {
             log.error("Error importing templates: {}", e.getMessage());
-            redirectAttributes.addFlashAttribute("errorMessage", "Error import: " + e.getMessage());
+            redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, "Error import: " + e.getMessage());
             return "redirect:/import/templates";
         }
     }
@@ -229,9 +234,9 @@ public class DataImportController {
     public String clearTemplates(RedirectAttributes redirectAttributes) {
         try {
             dataImportService.clearAllTemplates();
-            redirectAttributes.addFlashAttribute("successMessage", "Semua template berhasil dihapus");
+            redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Semua template berhasil dihapus");
         } catch (IllegalStateException e) {
-            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, e.getMessage());
         }
         return "redirect:/import";
     }
@@ -240,7 +245,7 @@ public class DataImportController {
 
     @GetMapping("/result")
     public String resultPage(Model model) {
-        model.addAttribute("currentPage", "import");
+        model.addAttribute(ATTR_CURRENT_PAGE, "import");
         return "import/result";
     }
 

@@ -1,5 +1,6 @@
 package com.artivisi.accountingfinance.controller;
 
+import com.artivisi.accountingfinance.exception.DataExportException;
 import com.artivisi.accountingfinance.service.DataExportService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,7 +12,6 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.io.IOException;
 import java.time.LocalDate;
@@ -34,7 +34,7 @@ public class DataExportController {
     }
 
     @PostMapping("/download")
-    public ResponseEntity<byte[]> downloadExport(RedirectAttributes redirectAttributes) {
+    public ResponseEntity<byte[]> downloadExport() {
         try {
             byte[] zipData = dataExportService.exportAllData();
 
@@ -48,7 +48,7 @@ public class DataExportController {
 
         } catch (IOException e) {
             log.error("Failed to export data", e);
-            throw new RuntimeException("Gagal mengekspor data: " + e.getMessage());
+            throw new DataExportException("Gagal mengekspor data: " + e.getMessage(), e);
         }
     }
 }

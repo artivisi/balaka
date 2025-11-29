@@ -22,6 +22,8 @@ import java.util.UUID;
 @Slf4j
 public class UserService {
 
+    private static final String USER_NOT_FOUND = "User not found: ";
+
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
@@ -74,7 +76,7 @@ public class UserService {
     @Transactional
     public User update(UUID id, User updated, Set<Role> roles) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("User not found: " + id));
+                .orElseThrow(() -> new IllegalArgumentException(USER_NOT_FOUND + id));
 
         // Check username uniqueness if changed
         if (!user.getUsername().equals(updated.getUsername()) &&
@@ -107,7 +109,7 @@ public class UserService {
     @Transactional
     public void changePassword(UUID id, String newPassword) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("User not found: " + id));
+                .orElseThrow(() -> new IllegalArgumentException(USER_NOT_FOUND + id));
 
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
@@ -117,7 +119,7 @@ public class UserService {
     @Transactional
     public void toggleActive(UUID id) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("User not found: " + id));
+                .orElseThrow(() -> new IllegalArgumentException(USER_NOT_FOUND + id));
 
         user.setActive(!user.getActive());
         userRepository.save(user);
@@ -127,7 +129,7 @@ public class UserService {
     @Transactional
     public void delete(UUID id) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("User not found: " + id));
+                .orElseThrow(() -> new IllegalArgumentException(USER_NOT_FOUND + id));
 
         // Prevent self-deletion
         String currentUser = getCurrentUsername();

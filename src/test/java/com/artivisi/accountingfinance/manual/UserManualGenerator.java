@@ -163,7 +163,6 @@ public class UserManualGenerator {
         StringBuilder tocHtml = new StringBuilder();
 
         int groupIndex = 0;
-        int globalIndex = 0;
         for (SectionGroup group : getSectionGroups()) {
             groupIndex++;
 
@@ -187,7 +186,6 @@ public class UserManualGenerator {
             // Build sections within group
             int sectionIndex = 0;
             for (Section section : group.sections()) {
-                globalIndex++;
                 sectionIndex++;
                 String sectionNumber = groupIndex + "." + sectionIndex;
 

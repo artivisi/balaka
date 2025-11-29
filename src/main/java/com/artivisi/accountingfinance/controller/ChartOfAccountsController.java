@@ -26,11 +26,15 @@ import java.util.UUID;
 @PreAuthorize("hasAuthority('" + Permission.ACCOUNT_VIEW + "')")
 public class ChartOfAccountsController {
 
+    private static final String ATTR_SUCCESS_MESSAGE = "successMessage";
+    private static final String ATTR_ERROR_MESSAGE = "errorMessage";
+    private static final String ATTR_CURRENT_PAGE = "currentPage";
+
     private final ChartOfAccountService chartOfAccountService;
 
     @GetMapping
     public String list(Model model) {
-        model.addAttribute("currentPage", "accounts");
+        model.addAttribute(ATTR_CURRENT_PAGE, "accounts");
         model.addAttribute("accounts", chartOfAccountService.findRootAccounts());
         return "accounts/list";
     }
@@ -38,7 +42,7 @@ public class ChartOfAccountsController {
     @GetMapping("/new")
     @PreAuthorize("hasAuthority('" + Permission.ACCOUNT_CREATE + "')")
     public String create(Model model) {
-        model.addAttribute("currentPage", "accounts");
+        model.addAttribute(ATTR_CURRENT_PAGE, "accounts");
         model.addAttribute("account", new ChartOfAccount());
         model.addAttribute("accountTypes", AccountType.values());
         model.addAttribute("parentAccounts", chartOfAccountService.findAll());
@@ -55,7 +59,7 @@ public class ChartOfAccountsController {
                        Model model,
                        RedirectAttributes redirectAttributes) {
         if (bindingResult.hasErrors()) {
-            model.addAttribute("currentPage", "accounts");
+            model.addAttribute(ATTR_CURRENT_PAGE, "accounts");
             model.addAttribute("accountTypes", AccountType.values());
             model.addAttribute("parentAccounts", chartOfAccountService.findAll());
             model.addAttribute("hasChildren", false);
@@ -72,7 +76,7 @@ public class ChartOfAccountsController {
             chartOfAccountService.create(account);
         } catch (IllegalArgumentException e) {
             bindingResult.rejectValue("accountCode", "duplicate", e.getMessage());
-            model.addAttribute("currentPage", "accounts");
+            model.addAttribute(ATTR_CURRENT_PAGE, "accounts");
             model.addAttribute("accountTypes", AccountType.values());
             model.addAttribute("parentAccounts", chartOfAccountService.findAll());
             model.addAttribute("hasChildren", false);
@@ -80,7 +84,7 @@ public class ChartOfAccountsController {
             return "accounts/form";
         }
 
-        redirectAttributes.addFlashAttribute("successMessage", "Akun berhasil ditambahkan");
+        redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Akun berhasil ditambahkan");
         return "redirect:/accounts";
     }
 
@@ -88,7 +92,7 @@ public class ChartOfAccountsController {
     @PreAuthorize("hasAuthority('" + Permission.ACCOUNT_EDIT + "')")
     public String edit(@PathVariable UUID id, Model model) {
         ChartOfAccount account = chartOfAccountService.findById(id);
-        model.addAttribute("currentPage", "accounts");
+        model.addAttribute(ATTR_CURRENT_PAGE, "accounts");
         model.addAttribute("account", account);
         model.addAttribute("accountTypes", AccountType.values());
         model.addAttribute("parentAccounts", chartOfAccountService.findAll());
@@ -108,7 +112,7 @@ public class ChartOfAccountsController {
         boolean hasParent = chartOfAccountService.hasParent(id);
 
         if (bindingResult.hasErrors()) {
-            model.addAttribute("currentPage", "accounts");
+            model.addAttribute(ATTR_CURRENT_PAGE, "accounts");
             model.addAttribute("accountTypes", AccountType.values());
             model.addAttribute("parentAccounts", chartOfAccountService.findAll());
             model.addAttribute("hasChildren", hasChildren);
@@ -120,7 +124,7 @@ public class ChartOfAccountsController {
             chartOfAccountService.update(id, account);
         } catch (IllegalArgumentException e) {
             bindingResult.rejectValue("accountCode", "duplicate", e.getMessage());
-            model.addAttribute("currentPage", "accounts");
+            model.addAttribute(ATTR_CURRENT_PAGE, "accounts");
             model.addAttribute("accountTypes", AccountType.values());
             model.addAttribute("parentAccounts", chartOfAccountService.findAll());
             model.addAttribute("hasChildren", hasChildren);
@@ -128,7 +132,7 @@ public class ChartOfAccountsController {
             return "accounts/form";
         } catch (IllegalStateException e) {
             bindingResult.rejectValue("accountType", "invalid", e.getMessage());
-            model.addAttribute("currentPage", "accounts");
+            model.addAttribute(ATTR_CURRENT_PAGE, "accounts");
             model.addAttribute("accountTypes", AccountType.values());
             model.addAttribute("parentAccounts", chartOfAccountService.findAll());
             model.addAttribute("hasChildren", hasChildren);
@@ -136,7 +140,7 @@ public class ChartOfAccountsController {
             return "accounts/form";
         }
 
-        redirectAttributes.addFlashAttribute("successMessage", "Akun berhasil diperbarui");
+        redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Akun berhasil diperbarui");
         return "redirect:/accounts";
     }
 
@@ -144,7 +148,7 @@ public class ChartOfAccountsController {
     @PreAuthorize("hasAuthority('" + Permission.ACCOUNT_EDIT + "')")
     public String activate(@PathVariable UUID id, RedirectAttributes redirectAttributes) {
         chartOfAccountService.activate(id);
-        redirectAttributes.addFlashAttribute("successMessage", "Akun berhasil diaktifkan");
+        redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Akun berhasil diaktifkan");
         return "redirect:/accounts";
     }
 
@@ -152,7 +156,7 @@ public class ChartOfAccountsController {
     @PreAuthorize("hasAuthority('" + Permission.ACCOUNT_EDIT + "')")
     public String deactivate(@PathVariable UUID id, RedirectAttributes redirectAttributes) {
         chartOfAccountService.deactivate(id);
-        redirectAttributes.addFlashAttribute("successMessage", "Akun berhasil dinonaktifkan");
+        redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Akun berhasil dinonaktifkan");
         return "redirect:/accounts";
     }
 
@@ -161,9 +165,9 @@ public class ChartOfAccountsController {
     public String delete(@PathVariable UUID id, RedirectAttributes redirectAttributes) {
         try {
             chartOfAccountService.delete(id);
-            redirectAttributes.addFlashAttribute("successMessage", "Akun berhasil dihapus");
+            redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Akun berhasil dihapus");
         } catch (IllegalStateException e) {
-            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, e.getMessage());
         }
         return "redirect:/accounts";
     }

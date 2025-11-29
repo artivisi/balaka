@@ -1,7 +1,6 @@
 package com.artivisi.accountingfinance.security;
 
 import com.artivisi.accountingfinance.enums.Role;
-import java.util.EnumSet;
 import java.util.Set;
 
 /**

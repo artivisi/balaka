@@ -132,7 +132,7 @@
                     <h3 class="text-lg font-semibold text-gray-900">BPJS</h3>
                     <span class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-600">Read Only</span>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <dl class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="flex justify-between">
                         <dt class="text-sm text-gray-500">BPJS Kesehatan</dt>
                         <dd class="text-sm font-medium text-gray-900" th:text="${employee.bpjsKesehatanNumber ?: '-'}">0001234567890</dd>
@@ -141,7 +141,7 @@
                         <dt class="text-sm text-gray-500">BPJS Ketenagakerjaan</dt>
                         <dd class="text-sm font-medium text-gray-900" th:text="${employee.bpjsKetenagakerjaanNumber ?: '-'}">0001234567890</dd>
                     </div>
-                </div>
+                </dl>
             </div>
         </div>
     </div>

@@ -33,6 +33,9 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class SettingsController {
 
+    private static final String ATTR_SUCCESS_MESSAGE = "successMessage";
+    private static final String ATTR_CURRENT_PAGE = "currentPage";
+
     private final CompanyConfigService companyConfigService;
     private final CompanyBankAccountService bankAccountService;
     private final TelegramBotService telegramBotService;
@@ -48,7 +51,7 @@ public class SettingsController {
 
         model.addAttribute("config", config);
         model.addAttribute("bankAccounts", bankAccounts);
-        model.addAttribute("currentPage", "settings");
+        model.addAttribute(ATTR_CURRENT_PAGE, "settings");
 
         return "settings/company";
     }
@@ -63,12 +66,12 @@ public class SettingsController {
         if (bindingResult.hasErrors()) {
             List<CompanyBankAccount> bankAccounts = bankAccountService.findAll();
             model.addAttribute("bankAccounts", bankAccounts);
-            model.addAttribute("currentPage", "settings");
+            model.addAttribute(ATTR_CURRENT_PAGE, "settings");
             return "settings/company";
         }
 
         companyConfigService.update(config.getId(), config);
-        redirectAttributes.addFlashAttribute("successMessage", "Pengaturan perusahaan berhasil disimpan");
+        redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Pengaturan perusahaan berhasil disimpan");
         return "redirect:/settings";
     }
 
@@ -81,7 +84,7 @@ public class SettingsController {
 
         List<CompanyBankAccount> bankAccounts = bankAccountService.findAll();
         model.addAttribute("bankAccounts", bankAccounts);
-        model.addAttribute("currentPage", "settings");
+        model.addAttribute(ATTR_CURRENT_PAGE, "settings");
 
         if ("true".equals(hxRequest)) {
             return "settings/fragments/bank-table :: table";
@@ -93,7 +96,7 @@ public class SettingsController {
     @GetMapping("/bank-accounts/new")
     public String newBankAccountForm(Model model) {
         model.addAttribute("bankAccount", new CompanyBankAccount());
-        model.addAttribute("currentPage", "settings");
+        model.addAttribute(ATTR_CURRENT_PAGE, "settings");
         return "settings/bank-form";
     }
 
@@ -105,17 +108,17 @@ public class SettingsController {
             RedirectAttributes redirectAttributes) {
 
         if (bindingResult.hasErrors()) {
-            model.addAttribute("currentPage", "settings");
+            model.addAttribute(ATTR_CURRENT_PAGE, "settings");
             return "settings/bank-form";
         }
 
         try {
             bankAccountService.create(bankAccount);
-            redirectAttributes.addFlashAttribute("successMessage", "Rekening bank berhasil ditambahkan");
+            redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Rekening bank berhasil ditambahkan");
             return "redirect:/settings";
         } catch (IllegalArgumentException e) {
             bindingResult.rejectValue("accountNumber", "duplicate", e.getMessage());
-            model.addAttribute("currentPage", "settings");
+            model.addAttribute(ATTR_CURRENT_PAGE, "settings");
             return "settings/bank-form";
         }
     }
@@ -124,7 +127,7 @@ public class SettingsController {
     public String editBankAccountForm(@PathVariable UUID id, Model model) {
         CompanyBankAccount bankAccount = bankAccountService.findById(id);
         model.addAttribute("bankAccount", bankAccount);
-        model.addAttribute("currentPage", "settings");
+        model.addAttribute(ATTR_CURRENT_PAGE, "settings");
         return "settings/bank-form";
     }
 
@@ -138,18 +141,18 @@ public class SettingsController {
 
         if (bindingResult.hasErrors()) {
             bankAccount.setId(id);
-            model.addAttribute("currentPage", "settings");
+            model.addAttribute(ATTR_CURRENT_PAGE, "settings");
             return "settings/bank-form";
         }
 
         try {
             bankAccountService.update(id, bankAccount);
-            redirectAttributes.addFlashAttribute("successMessage", "Rekening bank berhasil diperbarui");
+            redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Rekening bank berhasil diperbarui");
             return "redirect:/settings";
         } catch (IllegalArgumentException e) {
             bindingResult.rejectValue("accountNumber", "duplicate", e.getMessage());
             bankAccount.setId(id);
-            model.addAttribute("currentPage", "settings");
+            model.addAttribute(ATTR_CURRENT_PAGE, "settings");
             return "settings/bank-form";
         }
     }
@@ -160,7 +163,7 @@ public class SettingsController {
             RedirectAttributes redirectAttributes) {
 
         bankAccountService.setAsDefault(id);
-        redirectAttributes.addFlashAttribute("successMessage", "Rekening utama berhasil diubah");
+        redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Rekening utama berhasil diubah");
         return "redirect:/settings";
     }
 
@@ -170,7 +173,7 @@ public class SettingsController {
             RedirectAttributes redirectAttributes) {
 
         bankAccountService.deactivate(id);
-        redirectAttributes.addFlashAttribute("successMessage", "Rekening bank berhasil dinonaktifkan");
+        redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Rekening bank berhasil dinonaktifkan");
         return "redirect:/settings";
     }
 
@@ -180,7 +183,7 @@ public class SettingsController {
             RedirectAttributes redirectAttributes) {
 
         bankAccountService.activate(id);
-        redirectAttributes.addFlashAttribute("successMessage", "Rekening bank berhasil diaktifkan");
+        redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Rekening bank berhasil diaktifkan");
         return "redirect:/settings";
     }
 
@@ -190,7 +193,7 @@ public class SettingsController {
             RedirectAttributes redirectAttributes) {
 
         bankAccountService.delete(id);
-        redirectAttributes.addFlashAttribute("successMessage", "Rekening bank berhasil dihapus");
+        redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Rekening bank berhasil dihapus");
         return "redirect:/settings";
     }
 
@@ -206,7 +209,7 @@ public class SettingsController {
         model.addAttribute("telegramLink", telegramLink.orElse(null));
         model.addAttribute("telegramEnabled", telegramBotService.isEnabled());
         model.addAttribute("botUsername", telegramBotService.getBotUsername());
-        model.addAttribute("currentPage", "settings");
+        model.addAttribute(ATTR_CURRENT_PAGE, "settings");
 
         return "settings/telegram";
     }
@@ -246,7 +249,7 @@ public class SettingsController {
             telegramLinkRepository.save(telegramLink);
         }
 
-        redirectAttributes.addFlashAttribute("successMessage", "Akun Telegram berhasil diputus");
+        redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Akun Telegram berhasil diputus");
         return "redirect:/settings/telegram";
     }
 }

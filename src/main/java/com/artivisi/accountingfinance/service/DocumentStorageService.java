@@ -85,6 +85,12 @@ public class DocumentStorageService {
     public Resource loadAsResource(String relativePath) {
         try {
             Path filePath = rootLocation.resolve(relativePath).normalize();
+
+            // Prevent path traversal attacks
+            if (!filePath.startsWith(rootLocation)) {
+                throw new SecurityException("Access denied: path traversal attempt detected");
+            }
+
             Resource resource = new UrlResource(filePath.toUri());
 
             if (resource.exists() && resource.isReadable()) {
@@ -102,6 +108,12 @@ public class DocumentStorageService {
      */
     public void delete(String relativePath) throws IOException {
         Path filePath = rootLocation.resolve(relativePath).normalize();
+
+        // Prevent path traversal attacks
+        if (!filePath.startsWith(rootLocation)) {
+            throw new SecurityException("Access denied: path traversal attempt detected");
+        }
+
         Files.deleteIfExists(filePath);
         log.debug("Deleted file: {}", filePath);
     }
@@ -151,6 +163,12 @@ public class DocumentStorageService {
      */
     public boolean exists(String relativePath) {
         Path filePath = rootLocation.resolve(relativePath).normalize();
+
+        // Prevent path traversal attacks
+        if (!filePath.startsWith(rootLocation)) {
+            return false;
+        }
+
         return Files.exists(filePath);
     }
 

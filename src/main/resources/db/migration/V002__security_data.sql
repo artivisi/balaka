@@ -1,5 +1,6 @@
 -- V002: Security Data
--- Insert default admin user (password: admin)
+-- Insert default admin user with bcrypt-hashed credential
+-- IMPORTANT: Change this after first deployment
 
 INSERT INTO users (id, username, password, full_name, email, active, created_at, updated_at)
 VALUES (

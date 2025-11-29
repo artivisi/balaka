@@ -25,6 +25,10 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class FiscalPeriodController {
 
+    private static final String ATTR_SUCCESS_MESSAGE = "successMessage";
+    private static final String ATTR_ERROR_MESSAGE = "errorMessage";
+    private static final String ATTR_CURRENT_PAGE = "currentPage";
+
     private final FiscalPeriodService fiscalPeriodService;
 
     @GetMapping
@@ -42,7 +46,7 @@ public class FiscalPeriodController {
         model.addAttribute("status", status);
         model.addAttribute("statuses", FiscalPeriodStatus.values());
         model.addAttribute("years", fiscalPeriodService.findDistinctYears());
-        model.addAttribute("currentPage", "fiscal-periods");
+        model.addAttribute(ATTR_CURRENT_PAGE, "fiscal-periods");
 
         if ("true".equals(hxRequest)) {
             return "fiscal-periods/fragments/period-table :: table";
@@ -55,7 +59,7 @@ public class FiscalPeriodController {
     public String newForm(Model model) {
         int currentYear = LocalDate.now().getYear();
         model.addAttribute("currentYear", currentYear);
-        model.addAttribute("currentPage", "fiscal-periods");
+        model.addAttribute(ATTR_CURRENT_PAGE, "fiscal-periods");
         return "fiscal-periods/form";
     }
 
@@ -67,10 +71,10 @@ public class FiscalPeriodController {
 
         try {
             FiscalPeriod saved = fiscalPeriodService.create(year, month);
-            redirectAttributes.addFlashAttribute("successMessage", "Periode fiskal berhasil ditambahkan");
+            redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Periode fiskal berhasil ditambahkan");
             return "redirect:/fiscal-periods/" + saved.getId();
         } catch (IllegalArgumentException e) {
-            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, e.getMessage());
             return "redirect:/fiscal-periods/new";
         }
     }
@@ -91,7 +95,7 @@ public class FiscalPeriodController {
         }
 
         if (created > 0) {
-            redirectAttributes.addFlashAttribute("successMessage",
+            redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE,
                     created + " periode fiskal berhasil ditambahkan untuk tahun " + year);
         } else {
             redirectAttributes.addFlashAttribute("infoMessage",
@@ -104,7 +108,7 @@ public class FiscalPeriodController {
     public String detail(@PathVariable UUID id, Model model) {
         FiscalPeriod period = fiscalPeriodService.findById(id);
         model.addAttribute("period", period);
-        model.addAttribute("currentPage", "fiscal-periods");
+        model.addAttribute(ATTR_CURRENT_PAGE, "fiscal-periods");
         return "fiscal-periods/detail";
     }
 
@@ -116,9 +120,9 @@ public class FiscalPeriodController {
 
         try {
             fiscalPeriodService.closeMonth(id, notes);
-            redirectAttributes.addFlashAttribute("successMessage", "Bulan berhasil ditutup");
+            redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Bulan berhasil ditutup");
         } catch (IllegalStateException e) {
-            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, e.getMessage());
         }
         return "redirect:/fiscal-periods/" + id;
     }
@@ -131,9 +135,9 @@ public class FiscalPeriodController {
 
         try {
             fiscalPeriodService.fileTax(id, notes);
-            redirectAttributes.addFlashAttribute("successMessage", "SPT berhasil dilaporkan");
+            redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "SPT berhasil dilaporkan");
         } catch (IllegalStateException e) {
-            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, e.getMessage());
         }
         return "redirect:/fiscal-periods/" + id;
     }
@@ -146,9 +150,9 @@ public class FiscalPeriodController {
 
         try {
             fiscalPeriodService.reopen(id, reason);
-            redirectAttributes.addFlashAttribute("successMessage", "Periode berhasil dibuka kembali");
+            redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Periode berhasil dibuka kembali");
         } catch (IllegalStateException e) {
-            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, e.getMessage());
         }
         return "redirect:/fiscal-periods/" + id;
     }

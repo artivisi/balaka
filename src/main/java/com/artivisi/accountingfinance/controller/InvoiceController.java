@@ -33,6 +33,10 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class InvoiceController {
 
+    private static final String ATTR_SUCCESS_MESSAGE = "successMessage";
+    private static final String ATTR_ERROR_MESSAGE = "errorMessage";
+    private static final String ATTR_CURRENT_PAGE = "currentPage";
+
     private final InvoiceService invoiceService;
     private final ClientService clientService;
     private final ProjectService projectService;
@@ -56,7 +60,7 @@ public class InvoiceController {
         model.addAttribute("selectedStatus", status);
         model.addAttribute("selectedClientId", clientId);
         model.addAttribute("selectedProjectId", projectId);
-        model.addAttribute("currentPage", "invoices");
+        model.addAttribute(ATTR_CURRENT_PAGE, "invoices");
 
         // Summary counts
         model.addAttribute("draftCount", invoiceService.countByStatus(InvoiceStatus.DRAFT));
@@ -86,7 +90,7 @@ public class InvoiceController {
         model.addAttribute("invoice", invoice);
         model.addAttribute("clients", clientService.findActiveClients());
         model.addAttribute("projects", projectService.findActiveProjects());
-        model.addAttribute("currentPage", "invoices");
+        model.addAttribute(ATTR_CURRENT_PAGE, "invoices");
         return "invoices/form";
     }
 
@@ -100,19 +104,19 @@ public class InvoiceController {
         if (bindingResult.hasErrors()) {
             model.addAttribute("clients", clientService.findActiveClients());
             model.addAttribute("projects", projectService.findActiveProjects());
-            model.addAttribute("currentPage", "invoices");
+            model.addAttribute(ATTR_CURRENT_PAGE, "invoices");
             return "invoices/form";
         }
 
         try {
             Invoice saved = invoiceService.create(invoice);
-            redirectAttributes.addFlashAttribute("successMessage", "Invoice berhasil dibuat");
+            redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Invoice berhasil dibuat");
             return "redirect:/invoices/" + saved.getId();
         } catch (IllegalArgumentException e) {
             bindingResult.rejectValue("invoiceNumber", "duplicate", e.getMessage());
             model.addAttribute("clients", clientService.findActiveClients());
             model.addAttribute("projects", projectService.findActiveProjects());
-            model.addAttribute("currentPage", "invoices");
+            model.addAttribute(ATTR_CURRENT_PAGE, "invoices");
             return "invoices/form";
         }
     }
@@ -122,7 +126,7 @@ public class InvoiceController {
         Invoice invoice = invoiceService.findById(id);
 
         model.addAttribute("invoice", invoice);
-        model.addAttribute("currentPage", "invoices");
+        model.addAttribute(ATTR_CURRENT_PAGE, "invoices");
         return "invoices/detail";
     }
 
@@ -137,7 +141,7 @@ public class InvoiceController {
         model.addAttribute("invoice", invoice);
         model.addAttribute("clients", clientService.findActiveClients());
         model.addAttribute("projects", projectService.findActiveProjects());
-        model.addAttribute("currentPage", "invoices");
+        model.addAttribute(ATTR_CURRENT_PAGE, "invoices");
         return "invoices/form";
     }
 
@@ -153,13 +157,13 @@ public class InvoiceController {
             invoice.setId(id);
             model.addAttribute("clients", clientService.findActiveClients());
             model.addAttribute("projects", projectService.findActiveProjects());
-            model.addAttribute("currentPage", "invoices");
+            model.addAttribute(ATTR_CURRENT_PAGE, "invoices");
             return "invoices/form";
         }
 
         try {
             invoiceService.update(id, invoice);
-            redirectAttributes.addFlashAttribute("successMessage", "Invoice berhasil diperbarui");
+            redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Invoice berhasil diperbarui");
             return "redirect:/invoices/" + id;
         } catch (IllegalArgumentException | IllegalStateException e) {
             if (e.getMessage().contains("already exists")) {
@@ -170,7 +174,7 @@ public class InvoiceController {
             invoice.setId(id);
             model.addAttribute("clients", clientService.findActiveClients());
             model.addAttribute("projects", projectService.findActiveProjects());
-            model.addAttribute("currentPage", "invoices");
+            model.addAttribute(ATTR_CURRENT_PAGE, "invoices");
             return "invoices/form";
         }
     }
@@ -179,9 +183,9 @@ public class InvoiceController {
     public String send(@PathVariable UUID id, RedirectAttributes redirectAttributes) {
         try {
             invoiceService.send(id);
-            redirectAttributes.addFlashAttribute("successMessage", "Invoice berhasil dikirim");
+            redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Invoice berhasil dikirim");
         } catch (IllegalStateException e) {
-            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, e.getMessage());
         }
         return "redirect:/invoices/" + id;
     }
@@ -191,7 +195,7 @@ public class InvoiceController {
         Invoice invoice = invoiceService.findById(id);
 
         if (invoice.getStatus() != InvoiceStatus.SENT && invoice.getStatus() != InvoiceStatus.OVERDUE) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Hanya invoice terkirim atau jatuh tempo yang dapat dibayar");
+            redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, "Hanya invoice terkirim atau jatuh tempo yang dapat dibayar");
             return "redirect:/invoices/" + id;
         }
 
@@ -204,9 +208,9 @@ public class InvoiceController {
     public String markPaid(@PathVariable UUID id, RedirectAttributes redirectAttributes) {
         try {
             invoiceService.markAsPaid(id);
-            redirectAttributes.addFlashAttribute("successMessage", "Invoice ditandai sudah dibayar");
+            redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Invoice ditandai sudah dibayar");
         } catch (IllegalStateException e) {
-            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, e.getMessage());
         }
         return "redirect:/invoices/" + id;
     }
@@ -215,9 +219,9 @@ public class InvoiceController {
     public String cancel(@PathVariable UUID id, RedirectAttributes redirectAttributes) {
         try {
             invoiceService.cancel(id);
-            redirectAttributes.addFlashAttribute("successMessage", "Invoice dibatalkan");
+            redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Invoice dibatalkan");
         } catch (IllegalStateException e) {
-            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, e.getMessage());
         }
         return "redirect:/invoices/" + id;
     }
@@ -226,10 +230,10 @@ public class InvoiceController {
     public String delete(@PathVariable UUID id, RedirectAttributes redirectAttributes) {
         try {
             invoiceService.delete(id);
-            redirectAttributes.addFlashAttribute("successMessage", "Invoice berhasil dihapus");
+            redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Invoice berhasil dihapus");
             return "redirect:/invoices";
         } catch (IllegalStateException e) {
-            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, e.getMessage());
             return "redirect:/invoices/" + id;
         }
     }

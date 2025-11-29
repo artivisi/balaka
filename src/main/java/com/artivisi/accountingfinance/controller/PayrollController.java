@@ -34,6 +34,13 @@ import java.util.UUID;
 @RequestMapping("/payroll")
 public class PayrollController {
 
+    private static final String ATTR_CURRENT_PAGE = "currentPage";
+    private static final String ATTR_SUCCESS_MESSAGE = "successMessage";
+    private static final String ATTR_ERROR_MESSAGE = "errorMessage";
+    private static final String PAYROLL_NOT_FOUND = "Payroll tidak ditemukan";
+    private static final String CONTENT_TYPE_XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+    private static final String ATTACHMENT_FILENAME = "attachment; filename=\"";
+
     private final PayrollService payrollService;
     private final PayrollReportService payrollReportService;
 
@@ -55,7 +62,7 @@ public class PayrollController {
         model.addAttribute("payrollRuns", payrollRuns);
         model.addAttribute("statuses", Arrays.asList(PayrollStatus.values()));
         model.addAttribute("selectedStatus", status);
-        model.addAttribute("currentPage", "payroll");
+        model.addAttribute(ATTR_CURRENT_PAGE, "payroll");
 
         return "payroll/list";
     }
@@ -63,7 +70,7 @@ public class PayrollController {
     @GetMapping("/new")
     public String newPayrollForm(Model model) {
         model.addAttribute("payrollForm", new PayrollForm());
-        model.addAttribute("currentPage", "payroll");
+        model.addAttribute(ATTR_CURRENT_PAGE, "payroll");
         model.addAttribute("riskClasses", getRiskClasses());
 
         // Suggest next period
@@ -82,7 +89,7 @@ public class PayrollController {
     ) {
         if (bindingResult.hasErrors()) {
             model.addAttribute("riskClasses", getRiskClasses());
-            model.addAttribute("currentPage", "payroll");
+            model.addAttribute(ATTR_CURRENT_PAGE, "payroll");
             return "payroll/form";
         }
 
@@ -92,7 +99,7 @@ public class PayrollController {
             if (payrollService.existsByPeriod(period.toString())) {
                 bindingResult.rejectValue("period", "duplicate", "Payroll untuk periode ini sudah ada");
                 model.addAttribute("riskClasses", getRiskClasses());
-                model.addAttribute("currentPage", "payroll");
+                model.addAttribute(ATTR_CURRENT_PAGE, "payroll");
                 return "payroll/form";
             }
 
@@ -104,13 +111,13 @@ public class PayrollController {
                 form.getJkkRiskClass()
             );
 
-            redirectAttributes.addFlashAttribute("successMessage",
+            redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE,
                 "Payroll untuk periode " + period.toString() + " berhasil dibuat dan dikalkulasi");
 
             return "redirect:/payroll/" + payrollRun.getId();
 
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, e.getMessage());
             return "redirect:/payroll/new";
         }
     }
@@ -118,13 +125,13 @@ public class PayrollController {
     @GetMapping("/{id}")
     public String detail(@PathVariable UUID id, Model model) {
         PayrollRun payrollRun = payrollService.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException("Payroll tidak ditemukan"));
+            .orElseThrow(() -> new IllegalArgumentException(PAYROLL_NOT_FOUND));
 
         var details = payrollService.getPayrollDetails(id);
 
         model.addAttribute("payrollRun", payrollRun);
         model.addAttribute("details", details);
-        model.addAttribute("currentPage", "payroll");
+        model.addAttribute(ATTR_CURRENT_PAGE, "payroll");
 
         return "payroll/detail";
     }
@@ -136,10 +143,10 @@ public class PayrollController {
     ) {
         try {
             PayrollRun payrollRun = payrollService.approvePayroll(id);
-            redirectAttributes.addFlashAttribute("successMessage",
+            redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE,
                 "Payroll periode " + payrollRun.getPayrollPeriod() + " berhasil di-approve");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, e.getMessage());
         }
 
         return "redirect:/payroll/" + id;
@@ -153,10 +160,10 @@ public class PayrollController {
     ) {
         try {
             PayrollRun payrollRun = payrollService.cancelPayroll(id, reason);
-            redirectAttributes.addFlashAttribute("successMessage",
+            redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE,
                 "Payroll periode " + payrollRun.getPayrollPeriod() + " berhasil dibatalkan");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, e.getMessage());
         }
 
         return "redirect:/payroll/" + id;
@@ -169,10 +176,10 @@ public class PayrollController {
     ) {
         try {
             PayrollRun payrollRun = payrollService.postPayroll(id);
-            redirectAttributes.addFlashAttribute("successMessage",
+            redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE,
                 "Payroll periode " + payrollRun.getPayrollPeriod() + " berhasil di-posting ke jurnal");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, e.getMessage());
         }
 
         return "redirect:/payroll/" + id;
@@ -187,10 +194,10 @@ public class PayrollController {
     ) {
         try {
             PayrollRun payrollRun = payrollService.calculatePayroll(id, baseSalary, jkkRiskClass);
-            redirectAttributes.addFlashAttribute("successMessage",
+            redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE,
                 "Payroll berhasil dikalkulasi ulang");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, e.getMessage());
         }
 
         return "redirect:/payroll/" + id;
@@ -203,9 +210,9 @@ public class PayrollController {
     ) {
         try {
             payrollService.delete(id);
-            redirectAttributes.addFlashAttribute("successMessage", "Payroll berhasil dihapus");
+            redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Payroll berhasil dihapus");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, e.getMessage());
         }
 
         return "redirect:/payroll";
@@ -216,14 +223,14 @@ public class PayrollController {
     @GetMapping("/{id}/export/summary/pdf")
     public ResponseEntity<byte[]> exportSummaryPdf(@PathVariable UUID id) {
         PayrollRun payrollRun = payrollService.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException("Payroll tidak ditemukan"));
+            .orElseThrow(() -> new IllegalArgumentException(PAYROLL_NOT_FOUND));
         List<PayrollDetail> details = payrollService.getPayrollDetails(id);
 
         byte[] pdf = payrollReportService.exportPayrollSummaryToPdf(payrollRun, details);
         String filename = "rekap-gaji-" + payrollRun.getPayrollPeriod() + ".pdf";
 
         return ResponseEntity.ok()
-            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+            .header(HttpHeaders.CONTENT_DISPOSITION, ATTACHMENT_FILENAME + filename + "\"")
             .contentType(MediaType.APPLICATION_PDF)
             .body(pdf);
     }
@@ -231,29 +238,29 @@ public class PayrollController {
     @GetMapping("/{id}/export/summary/excel")
     public ResponseEntity<byte[]> exportSummaryExcel(@PathVariable UUID id) {
         PayrollRun payrollRun = payrollService.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException("Payroll tidak ditemukan"));
+            .orElseThrow(() -> new IllegalArgumentException(PAYROLL_NOT_FOUND));
         List<PayrollDetail> details = payrollService.getPayrollDetails(id);
 
         byte[] excel = payrollReportService.exportPayrollSummaryToExcel(payrollRun, details);
         String filename = "rekap-gaji-" + payrollRun.getPayrollPeriod() + ".xlsx";
 
         return ResponseEntity.ok()
-            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
-            .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+            .header(HttpHeaders.CONTENT_DISPOSITION, ATTACHMENT_FILENAME + filename + "\"")
+            .contentType(MediaType.parseMediaType(CONTENT_TYPE_XLSX))
             .body(excel);
     }
 
     @GetMapping("/{id}/export/pph21/pdf")
     public ResponseEntity<byte[]> exportPph21Pdf(@PathVariable UUID id) {
         PayrollRun payrollRun = payrollService.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException("Payroll tidak ditemukan"));
+            .orElseThrow(() -> new IllegalArgumentException(PAYROLL_NOT_FOUND));
         List<PayrollDetail> details = payrollService.getPayrollDetails(id);
 
         byte[] pdf = payrollReportService.exportPph21ReportToPdf(payrollRun, details);
         String filename = "pph21-" + payrollRun.getPayrollPeriod() + ".pdf";
 
         return ResponseEntity.ok()
-            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+            .header(HttpHeaders.CONTENT_DISPOSITION, ATTACHMENT_FILENAME + filename + "\"")
             .contentType(MediaType.APPLICATION_PDF)
             .body(pdf);
     }
@@ -261,29 +268,29 @@ public class PayrollController {
     @GetMapping("/{id}/export/pph21/excel")
     public ResponseEntity<byte[]> exportPph21Excel(@PathVariable UUID id) {
         PayrollRun payrollRun = payrollService.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException("Payroll tidak ditemukan"));
+            .orElseThrow(() -> new IllegalArgumentException(PAYROLL_NOT_FOUND));
         List<PayrollDetail> details = payrollService.getPayrollDetails(id);
 
         byte[] excel = payrollReportService.exportPph21ReportToExcel(payrollRun, details);
         String filename = "pph21-" + payrollRun.getPayrollPeriod() + ".xlsx";
 
         return ResponseEntity.ok()
-            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
-            .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+            .header(HttpHeaders.CONTENT_DISPOSITION, ATTACHMENT_FILENAME + filename + "\"")
+            .contentType(MediaType.parseMediaType(CONTENT_TYPE_XLSX))
             .body(excel);
     }
 
     @GetMapping("/{id}/export/bpjs/pdf")
     public ResponseEntity<byte[]> exportBpjsPdf(@PathVariable UUID id) {
         PayrollRun payrollRun = payrollService.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException("Payroll tidak ditemukan"));
+            .orElseThrow(() -> new IllegalArgumentException(PAYROLL_NOT_FOUND));
         List<PayrollDetail> details = payrollService.getPayrollDetails(id);
 
         byte[] pdf = payrollReportService.exportBpjsReportToPdf(payrollRun, details);
         String filename = "bpjs-" + payrollRun.getPayrollPeriod() + ".pdf";
 
         return ResponseEntity.ok()
-            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+            .header(HttpHeaders.CONTENT_DISPOSITION, ATTACHMENT_FILENAME + filename + "\"")
             .contentType(MediaType.APPLICATION_PDF)
             .body(pdf);
     }
@@ -291,22 +298,22 @@ public class PayrollController {
     @GetMapping("/{id}/export/bpjs/excel")
     public ResponseEntity<byte[]> exportBpjsExcel(@PathVariable UUID id) {
         PayrollRun payrollRun = payrollService.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException("Payroll tidak ditemukan"));
+            .orElseThrow(() -> new IllegalArgumentException(PAYROLL_NOT_FOUND));
         List<PayrollDetail> details = payrollService.getPayrollDetails(id);
 
         byte[] excel = payrollReportService.exportBpjsReportToExcel(payrollRun, details);
         String filename = "bpjs-" + payrollRun.getPayrollPeriod() + ".xlsx";
 
         return ResponseEntity.ok()
-            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
-            .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+            .header(HttpHeaders.CONTENT_DISPOSITION, ATTACHMENT_FILENAME + filename + "\"")
+            .contentType(MediaType.parseMediaType(CONTENT_TYPE_XLSX))
             .body(excel);
     }
 
     @GetMapping("/{id}/payslip/{employeeId}/pdf")
     public ResponseEntity<byte[]> exportPayslipPdf(@PathVariable UUID id, @PathVariable UUID employeeId) {
         PayrollRun payrollRun = payrollService.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException("Payroll tidak ditemukan"));
+            .orElseThrow(() -> new IllegalArgumentException(PAYROLL_NOT_FOUND));
         List<PayrollDetail> details = payrollService.getPayrollDetails(id);
 
         PayrollDetail detail = details.stream()
@@ -318,7 +325,7 @@ public class PayrollController {
         String filename = "slip-gaji-" + detail.getEmployeeId() + "-" + payrollRun.getPayrollPeriod() + ".pdf";
 
         return ResponseEntity.ok()
-            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+            .header(HttpHeaders.CONTENT_DISPOSITION, ATTACHMENT_FILENAME + filename + "\"")
             .contentType(MediaType.APPLICATION_PDF)
             .body(pdf);
     }
@@ -351,7 +358,7 @@ public class PayrollController {
         model.addAttribute("summaries", summaries);
         model.addAttribute("selectedYear", selectedYear);
         model.addAttribute("yearOptions", yearOptions);
-        model.addAttribute("currentPage", "payroll");
+        model.addAttribute(ATTR_CURRENT_PAGE, "payroll");
 
         return "payroll/bukti-potong";
     }
@@ -366,7 +373,7 @@ public class PayrollController {
         String filename = "1721-A1-" + summary.employee().getEmployeeId() + "-" + year + ".pdf";
 
         return ResponseEntity.ok()
-            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+            .header(HttpHeaders.CONTENT_DISPOSITION, ATTACHMENT_FILENAME + filename + "\"")
             .contentType(MediaType.APPLICATION_PDF)
             .body(pdf);
     }

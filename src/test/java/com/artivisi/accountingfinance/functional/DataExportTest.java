@@ -3,7 +3,6 @@ package com.artivisi.accountingfinance.functional;
 import com.artivisi.accountingfinance.functional.page.LoginPage;
 import com.artivisi.accountingfinance.ui.PlaywrightTestBase;
 import com.microsoft.playwright.Download;
-import com.microsoft.playwright.Page;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;

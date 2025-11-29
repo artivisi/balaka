@@ -55,16 +55,16 @@ public class DataExportService {
             addManifest(zos);
 
             // Export CSV data
-            addCsvEntry(zos, "chart_of_accounts.csv", exportChartOfAccounts());
-            addCsvEntry(zos, "journal_entries.csv", exportJournalEntries());
-            addCsvEntry(zos, "transactions.csv", exportTransactions());
-            addCsvEntry(zos, "clients.csv", exportClients());
-            addCsvEntry(zos, "projects.csv", exportProjects());
-            addCsvEntry(zos, "invoices.csv", exportInvoices());
-            addCsvEntry(zos, "employees.csv", exportEmployees());
-            addCsvEntry(zos, "payroll_runs.csv", exportPayrollRuns());
-            addCsvEntry(zos, "payroll_details.csv", exportPayrollDetails());
-            addCsvEntry(zos, "audit_logs.csv", exportAuditLogs());
+            addTextEntry(zos, "chart_of_accounts.csv", exportChartOfAccounts());
+            addTextEntry(zos, "journal_entries.csv", exportJournalEntries());
+            addTextEntry(zos, "transactions.csv", exportTransactions());
+            addTextEntry(zos, "clients.csv", exportClients());
+            addTextEntry(zos, "projects.csv", exportProjects());
+            addTextEntry(zos, "invoices.csv", exportInvoices());
+            addTextEntry(zos, "employees.csv", exportEmployees());
+            addTextEntry(zos, "payroll_runs.csv", exportPayrollRuns());
+            addTextEntry(zos, "payroll_details.csv", exportPayrollDetails());
+            addTextEntry(zos, "audit_logs.csv", exportAuditLogs());
 
             // Export documents
             exportDocuments(zos);
@@ -358,13 +358,7 @@ public class DataExportService {
             index.append(escapeCsv(doc.getStoragePath())).append(",");
             index.append(doc.getCreatedAt() != null ? doc.getCreatedAt().format(DATETIME_FORMATTER) : "").append("\n");
         }
-        addCsvEntry(zos, "documents/index.csv", index.toString());
-    }
-
-    private void addCsvEntry(ZipOutputStream zos, String filename, String content) throws IOException {
-        zos.putNextEntry(new ZipEntry(filename));
-        zos.write(content.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-        zos.closeEntry();
+        addTextEntry(zos, "documents/index.csv", index.toString());
     }
 
     private void addTextEntry(ZipOutputStream zos, String filename, String content) throws IOException {

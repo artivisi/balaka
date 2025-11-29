@@ -30,6 +30,15 @@ import java.util.stream.Collectors;
 @PreAuthorize("hasAuthority('" + Permission.USER_VIEW + "')")
 public class UserController {
 
+    private static final String ATTR_ROLES = "roles";
+    private static final String ATTR_SELECTED_ROLES = "selectedRoles";
+    private static final String ATTR_ERROR_MESSAGE = "errorMessage";
+    private static final String ATTR_SUCCESS_MESSAGE = "successMessage";
+    private static final String VIEW_FORM = "users/form";
+    private static final String VIEW_CHANGE_PASSWORD = "users/change-password";
+    private static final String REDIRECT_USERS = "redirect:/users";
+    private static final String USER_NOT_FOUND = "User not found: ";
+
     private final UserService userService;
 
     @GetMapping
@@ -44,7 +53,7 @@ public class UserController {
 
         model.addAttribute("users", users);
         model.addAttribute("search", search);
-        model.addAttribute("roles", Role.values());
+        model.addAttribute(ATTR_ROLES, Role.values());
 
         return "users/list";
     }
@@ -53,9 +62,9 @@ public class UserController {
     @PreAuthorize("hasAuthority('" + Permission.USER_CREATE + "')")
     public String newForm(Model model) {
         model.addAttribute("user", new User());
-        model.addAttribute("roles", Role.values());
-        model.addAttribute("selectedRoles", new HashSet<>());
-        return "users/form";
+        model.addAttribute(ATTR_ROLES, Role.values());
+        model.addAttribute(ATTR_SELECTED_ROLES, new HashSet<>());
+        return VIEW_FORM;
     }
 
     @PostMapping
@@ -69,11 +78,11 @@ public class UserController {
             Model model) {
 
         if (bindingResult.hasErrors()) {
-            model.addAttribute("roles", Role.values());
-            model.addAttribute("selectedRoles", selectedRoleNames != null ?
+            model.addAttribute(ATTR_ROLES, Role.values());
+            model.addAttribute(ATTR_SELECTED_ROLES, selectedRoleNames != null ?
                     Arrays.stream(selectedRoleNames).map(Role::valueOf).collect(Collectors.toSet()) :
                     new HashSet<>());
-            return "users/form";
+            return VIEW_FORM;
         }
 
         try {
@@ -82,30 +91,30 @@ public class UserController {
                     new HashSet<>();
 
             if (roles.isEmpty()) {
-                model.addAttribute("errorMessage", "At least one role must be selected");
-                model.addAttribute("roles", Role.values());
-                model.addAttribute("selectedRoles", roles);
-                return "users/form";
+                model.addAttribute(ATTR_ERROR_MESSAGE, "At least one role must be selected");
+                model.addAttribute(ATTR_ROLES, Role.values());
+                model.addAttribute(ATTR_SELECTED_ROLES, roles);
+                return VIEW_FORM;
             }
 
             user.setPassword(password);
             userService.create(user, roles);
-            redirectAttributes.addFlashAttribute("successMessage", "Pengguna berhasil dibuat: " + user.getUsername());
-            return "redirect:/users";
+            redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Pengguna berhasil dibuat: " + user.getUsername());
+            return REDIRECT_USERS;
         } catch (IllegalArgumentException e) {
-            model.addAttribute("errorMessage", e.getMessage());
-            model.addAttribute("roles", Role.values());
-            model.addAttribute("selectedRoles", selectedRoleNames != null ?
+            model.addAttribute(ATTR_ERROR_MESSAGE, e.getMessage());
+            model.addAttribute(ATTR_ROLES, Role.values());
+            model.addAttribute(ATTR_SELECTED_ROLES, selectedRoleNames != null ?
                     Arrays.stream(selectedRoleNames).map(Role::valueOf).collect(Collectors.toSet()) :
                     new HashSet<>());
-            return "users/form";
+            return VIEW_FORM;
         }
     }
 
     @GetMapping("/{id}")
     public String detail(@PathVariable UUID id, Model model) {
         User user = userService.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("User not found: " + id));
+                .orElseThrow(() -> new IllegalArgumentException(USER_NOT_FOUND + id));
 
         model.addAttribute("user", user);
         return "users/detail";
@@ -115,12 +124,12 @@ public class UserController {
     @PreAuthorize("hasAuthority('" + Permission.USER_EDIT + "')")
     public String editForm(@PathVariable UUID id, Model model) {
         User user = userService.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("User not found: " + id));
+                .orElseThrow(() -> new IllegalArgumentException(USER_NOT_FOUND + id));
 
         model.addAttribute("user", user);
-        model.addAttribute("roles", Role.values());
-        model.addAttribute("selectedRoles", user.getRoles());
-        return "users/form";
+        model.addAttribute(ATTR_ROLES, Role.values());
+        model.addAttribute(ATTR_SELECTED_ROLES, user.getRoles());
+        return VIEW_FORM;
     }
 
     @PostMapping("/{id}")
@@ -134,11 +143,11 @@ public class UserController {
             Model model) {
 
         if (bindingResult.hasErrors()) {
-            model.addAttribute("roles", Role.values());
-            model.addAttribute("selectedRoles", selectedRoleNames != null ?
+            model.addAttribute(ATTR_ROLES, Role.values());
+            model.addAttribute(ATTR_SELECTED_ROLES, selectedRoleNames != null ?
                     Arrays.stream(selectedRoleNames).map(Role::valueOf).collect(Collectors.toSet()) :
                     new HashSet<>());
-            return "users/form";
+            return VIEW_FORM;
         }
 
         try {
@@ -147,22 +156,22 @@ public class UserController {
                     new HashSet<>();
 
             if (roles.isEmpty()) {
-                model.addAttribute("errorMessage", "At least one role must be selected");
-                model.addAttribute("roles", Role.values());
-                model.addAttribute("selectedRoles", roles);
-                return "users/form";
+                model.addAttribute(ATTR_ERROR_MESSAGE, "At least one role must be selected");
+                model.addAttribute(ATTR_ROLES, Role.values());
+                model.addAttribute(ATTR_SELECTED_ROLES, roles);
+                return VIEW_FORM;
             }
 
             userService.update(id, user, roles);
-            redirectAttributes.addFlashAttribute("successMessage", "Pengguna berhasil diperbarui: " + user.getUsername());
+            redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Pengguna berhasil diperbarui: " + user.getUsername());
             return "redirect:/users/" + id;
         } catch (IllegalArgumentException e) {
-            model.addAttribute("errorMessage", e.getMessage());
-            model.addAttribute("roles", Role.values());
-            model.addAttribute("selectedRoles", selectedRoleNames != null ?
+            model.addAttribute(ATTR_ERROR_MESSAGE, e.getMessage());
+            model.addAttribute(ATTR_ROLES, Role.values());
+            model.addAttribute(ATTR_SELECTED_ROLES, selectedRoleNames != null ?
                     Arrays.stream(selectedRoleNames).map(Role::valueOf).collect(Collectors.toSet()) :
                     new HashSet<>());
-            return "users/form";
+            return VIEW_FORM;
         }
     }
 
@@ -170,10 +179,10 @@ public class UserController {
     @PreAuthorize("hasAuthority('" + Permission.USER_EDIT + "')")
     public String changePasswordForm(@PathVariable UUID id, Model model) {
         User user = userService.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("User not found: " + id));
+                .orElseThrow(() -> new IllegalArgumentException(USER_NOT_FOUND + id));
 
         model.addAttribute("user", user);
-        return "users/change-password";
+        return VIEW_CHANGE_PASSWORD;
     }
 
     @PostMapping("/{id}/change-password")
@@ -186,22 +195,22 @@ public class UserController {
             Model model) {
 
         User user = userService.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("User not found: " + id));
+                .orElseThrow(() -> new IllegalArgumentException(USER_NOT_FOUND + id));
 
         if (!newPassword.equals(confirmPassword)) {
             model.addAttribute("user", user);
-            model.addAttribute("errorMessage", "Password tidak cocok");
-            return "users/change-password";
+            model.addAttribute(ATTR_ERROR_MESSAGE, "Password tidak cocok");
+            return VIEW_CHANGE_PASSWORD;
         }
 
         if (newPassword.length() < 4) {
             model.addAttribute("user", user);
-            model.addAttribute("errorMessage", "Password minimal 4 karakter");
-            return "users/change-password";
+            model.addAttribute(ATTR_ERROR_MESSAGE, "Password minimal 4 karakter");
+            return VIEW_CHANGE_PASSWORD;
         }
 
         userService.changePassword(id, newPassword);
-        redirectAttributes.addFlashAttribute("successMessage", "Password berhasil diubah");
+        redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Password berhasil diubah");
         return "redirect:/users/" + id;
     }
 
@@ -209,7 +218,7 @@ public class UserController {
     @PreAuthorize("hasAuthority('" + Permission.USER_EDIT + "')")
     public String toggleActive(@PathVariable UUID id, RedirectAttributes redirectAttributes) {
         userService.toggleActive(id);
-        redirectAttributes.addFlashAttribute("successMessage", "Status pengguna berhasil diubah");
+        redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Status pengguna berhasil diubah");
         return "redirect:/users/" + id;
     }
 
@@ -218,10 +227,10 @@ public class UserController {
     public String delete(@PathVariable UUID id, RedirectAttributes redirectAttributes) {
         try {
             userService.delete(id);
-            redirectAttributes.addFlashAttribute("successMessage", "Pengguna berhasil dihapus");
-            return "redirect:/users";
+            redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Pengguna berhasil dihapus");
+            return REDIRECT_USERS;
         } catch (IllegalArgumentException e) {
-            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, e.getMessage());
             return "redirect:/users/" + id;
         }
     }

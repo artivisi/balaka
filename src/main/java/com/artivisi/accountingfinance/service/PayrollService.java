@@ -34,6 +34,7 @@ public class PayrollService {
     private static final Logger log = LoggerFactory.getLogger(PayrollService.class);
 
     private static final int DEFAULT_JKK_RISK_CLASS = 1; // IT Services
+    private static final String PAYROLL_RUN_NOT_FOUND = "Payroll run tidak ditemukan";
 
     // Payroll journal template ID (from V004 seed data)
     private static final UUID PAYROLL_TEMPLATE_ID = UUID.fromString("e0000000-0000-0000-0000-000000000014");
@@ -83,7 +84,7 @@ public class PayrollService {
      */
     public PayrollRun calculatePayroll(UUID payrollRunId, BigDecimal baseSalary, int jkkRiskClass) {
         PayrollRun payrollRun = payrollRunRepository.findById(payrollRunId)
-            .orElseThrow(() -> new IllegalArgumentException("Payroll run tidak ditemukan"));
+            .orElseThrow(() -> new IllegalArgumentException(PAYROLL_RUN_NOT_FOUND));
 
         if (!payrollRun.canEdit()) {
             throw new IllegalStateException("Payroll tidak dapat dikalkulasi karena status: " + payrollRun.getStatus());
@@ -152,7 +153,7 @@ public class PayrollService {
      */
     public PayrollRun approvePayroll(UUID payrollRunId) {
         PayrollRun payrollRun = payrollRunRepository.findById(payrollRunId)
-            .orElseThrow(() -> new IllegalArgumentException("Payroll run tidak ditemukan"));
+            .orElseThrow(() -> new IllegalArgumentException(PAYROLL_RUN_NOT_FOUND));
 
         if (!payrollRun.isCalculated()) {
             throw new IllegalStateException("Payroll harus dalam status CALCULATED untuk di-approve");
@@ -169,7 +170,7 @@ public class PayrollService {
      */
     public PayrollRun cancelPayroll(UUID payrollRunId, String reason) {
         PayrollRun payrollRun = payrollRunRepository.findById(payrollRunId)
-            .orElseThrow(() -> new IllegalArgumentException("Payroll run tidak ditemukan"));
+            .orElseThrow(() -> new IllegalArgumentException(PAYROLL_RUN_NOT_FOUND));
 
         if (!payrollRun.canCancel()) {
             throw new IllegalStateException("Payroll tidak dapat dibatalkan karena status: " + payrollRun.getStatus());
@@ -179,7 +180,9 @@ public class PayrollService {
         payrollRun.setCancelledAt(LocalDateTime.now());
         payrollRun.setCancelReason(reason);
 
-        log.info("Cancelled payroll for period {}, reason: {}", payrollRun.getPayrollPeriod(), reason);
+        // Sanitize reason for log injection prevention
+        String sanitizedReason = reason != null ? reason.replaceAll("[\\r\\n]", " ") : "";
+        log.info("Cancelled payroll for period {}, reason: {}", payrollRun.getPayrollPeriod(), sanitizedReason);
 
         return payrollRunRepository.save(payrollRun);
     }
@@ -195,7 +198,7 @@ public class PayrollService {
      */
     public PayrollRun postPayroll(UUID payrollRunId) {
         PayrollRun payrollRun = payrollRunRepository.findById(payrollRunId)
-            .orElseThrow(() -> new IllegalArgumentException("Payroll run tidak ditemukan"));
+            .orElseThrow(() -> new IllegalArgumentException(PAYROLL_RUN_NOT_FOUND));
 
         if (!payrollRun.canPost()) {
             throw new IllegalStateException("Payroll harus dalam status APPROVED untuk di-posting");
@@ -301,7 +304,7 @@ public class PayrollService {
      */
     public void delete(UUID payrollRunId) {
         PayrollRun payrollRun = payrollRunRepository.findById(payrollRunId)
-            .orElseThrow(() -> new IllegalArgumentException("Payroll run tidak ditemukan"));
+            .orElseThrow(() -> new IllegalArgumentException(PAYROLL_RUN_NOT_FOUND));
 
         if (!payrollRun.isDraft()) {
             throw new IllegalStateException("Hanya payroll dengan status DRAFT yang dapat dihapus");

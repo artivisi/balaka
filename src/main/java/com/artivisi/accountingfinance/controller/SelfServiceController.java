@@ -39,6 +39,10 @@ import java.util.UUID;
 @Slf4j
 public class SelfServiceController {
 
+    private static final String ATTR_NO_EMPLOYEE = "noEmployee";
+    private static final String ATTR_EMPLOYEE = "employee";
+    private static final String REDIRECT_PROFILE = "redirect:/self-service/profile";
+
     private final UserRepository userRepository;
     private final EmployeeRepository employeeRepository;
     private final PayrollDetailRepository payrollDetailRepository;
@@ -55,7 +59,7 @@ public class SelfServiceController {
 
         Optional<Employee> employeeOpt = getCurrentEmployee();
         if (employeeOpt.isEmpty()) {
-            model.addAttribute("noEmployee", true);
+            model.addAttribute(ATTR_NO_EMPLOYEE, true);
             return "self-service/payslips";
         }
 
@@ -66,7 +70,7 @@ public class SelfServiceController {
         List<PayrollDetail> payslips = payrollDetailRepository.findPostedByEmployeeIdAndYear(
                 employee.getId(), yearPrefix);
 
-        model.addAttribute("employee", employee);
+        model.addAttribute(ATTR_EMPLOYEE, employee);
         model.addAttribute("payslips", payslips);
         model.addAttribute("selectedYear", selectedYear);
         model.addAttribute("years", getAvailableYears());
@@ -110,7 +114,7 @@ public class SelfServiceController {
 
         Optional<Employee> employeeOpt = getCurrentEmployee();
         if (employeeOpt.isEmpty()) {
-            model.addAttribute("noEmployee", true);
+            model.addAttribute(ATTR_NO_EMPLOYEE, true);
             return "self-service/bukti-potong";
         }
 
@@ -122,7 +126,7 @@ public class SelfServiceController {
         List<PayrollDetail> payslips = payrollDetailRepository.findPostedByEmployeeIdAndYear(
                 employee.getId(), yearPrefix);
 
-        model.addAttribute("employee", employee);
+        model.addAttribute(ATTR_EMPLOYEE, employee);
         model.addAttribute("hasPayrollData", !payslips.isEmpty());
         model.addAttribute("selectedYear", selectedYear);
         model.addAttribute("years", getAvailableYears());
@@ -149,7 +153,7 @@ public class SelfServiceController {
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
                     .contentType(MediaType.APPLICATION_PDF)
                     .body(pdf);
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException _) {
             return ResponseEntity.notFound().build();
         }
     }
@@ -161,11 +165,11 @@ public class SelfServiceController {
     public String viewProfile(Model model) {
         Optional<Employee> employeeOpt = getCurrentEmployee();
         if (employeeOpt.isEmpty()) {
-            model.addAttribute("noEmployee", true);
+            model.addAttribute(ATTR_NO_EMPLOYEE, true);
             return "self-service/profile";
         }
 
-        model.addAttribute("employee", employeeOpt.get());
+        model.addAttribute(ATTR_EMPLOYEE, employeeOpt.get());
         return "self-service/profile";
     }
 
@@ -174,10 +178,10 @@ public class SelfServiceController {
     public String editProfileForm(Model model) {
         Optional<Employee> employeeOpt = getCurrentEmployee();
         if (employeeOpt.isEmpty()) {
-            return "redirect:/self-service/profile";
+            return REDIRECT_PROFILE;
         }
 
-        model.addAttribute("employee", employeeOpt.get());
+        model.addAttribute(ATTR_EMPLOYEE, employeeOpt.get());
         return "self-service/profile-edit";
     }
 
@@ -193,7 +197,7 @@ public class SelfServiceController {
 
         Optional<Employee> employeeOpt = getCurrentEmployee();
         if (employeeOpt.isEmpty()) {
-            return "redirect:/self-service/profile";
+            return REDIRECT_PROFILE;
         }
 
         Employee employee = employeeOpt.get();
@@ -208,7 +212,7 @@ public class SelfServiceController {
         employeeRepository.save(employee);
 
         redirectAttributes.addFlashAttribute("success", "Profil berhasil diperbarui");
-        return "redirect:/self-service/profile";
+        return REDIRECT_PROFILE;
     }
 
     // ==================== HELPER METHODS ====================

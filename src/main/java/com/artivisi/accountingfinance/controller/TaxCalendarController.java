@@ -25,6 +25,10 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class TaxCalendarController {
 
+    private static final String ATTR_SUCCESS_MESSAGE = "successMessage";
+    private static final String ATTR_ERROR_MESSAGE = "errorMessage";
+    private static final String ATTR_CURRENT_PAGE = "currentPage";
+
     private final TaxDeadlineService taxDeadlineService;
 
     @GetMapping
@@ -47,7 +51,7 @@ public class TaxCalendarController {
         model.addAttribute("selectedYear", selectedYear);
         model.addAttribute("selectedMonth", selectedMonth);
         model.addAttribute("monthNames", getMonthNames());
-        model.addAttribute("currentPage", "tax-calendar");
+        model.addAttribute(ATTR_CURRENT_PAGE, "tax-calendar");
 
         if ("true".equals(hxRequest)) {
             return "tax-calendar/fragments/checklist :: checklist";
@@ -68,7 +72,7 @@ public class TaxCalendarController {
         model.addAttribute("summaries", summaries);
         model.addAttribute("selectedYear", selectedYear);
         model.addAttribute("monthNames", getMonthNames());
-        model.addAttribute("currentPage", "tax-calendar");
+        model.addAttribute(ATTR_CURRENT_PAGE, "tax-calendar");
 
         return "tax-calendar/yearly";
     }
@@ -85,9 +89,9 @@ public class TaxCalendarController {
 
         try {
             taxDeadlineService.markAsCompleted(deadlineId, year, month, completedDate, referenceNumber, notes);
-            redirectAttributes.addFlashAttribute("successMessage", "Kewajiban pajak berhasil ditandai selesai");
+            redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Kewajiban pajak berhasil ditandai selesai");
         } catch (IllegalArgumentException e) {
-            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, e.getMessage());
         }
 
         return "redirect:/tax-calendar?year=" + year + "&month=" + month;
@@ -102,9 +106,9 @@ public class TaxCalendarController {
 
         try {
             taxDeadlineService.removeCompletion(completionId);
-            redirectAttributes.addFlashAttribute("successMessage", "Status selesai berhasil dihapus");
+            redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Status selesai berhasil dihapus");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, e.getMessage());
         }
 
         return "redirect:/tax-calendar?year=" + year + "&month=" + month;
@@ -119,7 +123,7 @@ public class TaxCalendarController {
         model.addAttribute("upcoming", upcoming);
         model.addAttribute("overdue", overdue);
         model.addAttribute("dueSoon", dueSoon);
-        model.addAttribute("currentPage", "tax-calendar");
+        model.addAttribute(ATTR_CURRENT_PAGE, "tax-calendar");
 
         return "tax-calendar/upcoming";
     }
