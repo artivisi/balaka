@@ -59,9 +59,16 @@ backup_remote_enabled: false
 # backup_remote_cron_minute: "0"
 
 # Backblaze B2 Backup (optional - weekly encrypted backup)
+# To configure B2:
+# 1. Sign up at https://www.backblaze.com/b2/cloud-storage.html
+# 2. Create a bucket (e.g., "my-company-backup")
+# 3. Go to "App Keys" section in B2 dashboard
+# 4. Find your Account ID at the top (also called keyID - 25 chars like "0035b35e2e1a0000000000001")
+# 5. Create a new Application Key and copy the applicationKey (long secret shown only once)
+# Note: Account ID and Application Key ID (keyID) are the same value
 backup_b2_enabled: false
-# backup_b2_account_id: "your-b2-account-id"
-# backup_b2_application_key: "your-b2-application-key"
+# backup_b2_account_id: "0035b35e2e1a0000000000001"  # Your B2 Account ID / keyID (25 characters)
+# backup_b2_application_key: "K003xxxxxxxxxxxxxxxxxxxxxxxxxx"  # Your B2 applicationKey (secret)
 # backup_b2_bucket: "your-b2-bucket-name"
 # backup_b2_retention_weeks: 4
 # backup_b2_cron_hour: "3"

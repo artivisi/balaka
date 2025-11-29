@@ -91,7 +91,31 @@ app_domain: "your-domain.com"  # or IP address
 # Optional: Enable SSL
 ssl_enabled: true
 ssl_email: "your-email@example.com"
+
+# Optional: Enable Backblaze B2 Backup
+backup_b2_enabled: true
+backup_b2_account_id: "0123456789abcdef0123"  # Your B2 Account ID (NOT email)
+backup_b2_application_key: "K003xxxxxxxxxxxxxxxxxx"  # Your B2 Application Key
+backup_b2_bucket: "your-bucket-name"
 ```
+
+#### Getting Backblaze B2 Credentials
+
+1. Sign up at https://www.backblaze.com/b2/cloud-storage.html
+2. Create a bucket (e.g., "my-company-backup")
+3. Go to **App Keys** section in the B2 dashboard
+4. Look at the top of the page - you'll see:
+   - **Account ID** (also called `keyID`) - a 25-character string like `0035b35e2e1a0000000000001`
+   - This is displayed above the list of application keys
+5. Click **Add a New Application Key** button
+6. When the key is created, you'll see two values:
+   - **keyID** (Application Key ID) - this is the SAME as your Account ID shown at the top
+   - **applicationKey** - a long secret string (shown only once!)
+7. For the Ansible configuration:
+   - `backup_b2_account_id` = the **Account ID** / **keyID** (25 characters)
+   - `backup_b2_application_key` = the **applicationKey** (the long secret)
+
+**Note:** The **Account ID** and **Application Key ID** (keyID) are typically the SAME value in B2. You only need the Account ID shown at the top of the App Keys page.
 
 ### 3. Run Initial Setup
 

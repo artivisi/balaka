@@ -88,8 +88,8 @@ Prepare these credentials before starting:
 | **Admin Username** | Your choice (NOT 'admin') | `johndoe` | Unique, non-guessable |
 | **Admin Password** | Your choice | `MySecureP@ss123` | For web login |
 | **SSL Email** | Your email | admin@artivisi.com | For Let's Encrypt notifications |
-| **B2 Account ID** | Backblaze B2 Console | `0012345678abcdef` | Optional: for remote backup |
-| **B2 Application Key** | Backblaze B2 Console | `K001xxxxxxxxxxxx` | Optional: for remote backup |
+| **B2 Account ID** | Backblaze B2 Console → App Keys | `0035b35e2e1a0000000000001` | Optional: 25-char keyID (NOT email) |
+| **B2 Application Key** | Backblaze B2 Console → App Keys | `K003xxxxxxxxxxxx` | Optional: Secret applicationKey |
 | **B2 Bucket Name** | Backblaze B2 Console | `artivisi-backup` | Optional: for remote backup |
 | **Google Account** | Your Google account | - | Optional: for Google Drive backup |
 | **Telegram Bot Token** | @BotFather | `123456:ABC-DEF...` | Optional: for receipt upload |
@@ -120,12 +120,24 @@ If using B2 for remote backup:
    - Name: `artivisi-backup` (or your choice)
    - Type: **Private**
    - Encryption: **Server-side (SSE-B2)**
-4. Create Application Key:
-   - Go to **App Keys** > **Add a New Application Key**
+4. Get your Account ID:
+   - Go to **App Keys** section in B2 dashboard
+   - Look at the top of the page for **Account ID** (also called **keyID**)
+   - Format: 25 characters like `0035b35e2e1a0000000000001`
+   - ⚠️ This is NOT your email address!
+5. Create Application Key:
+   - Click **Add a New Application Key** button
    - Name: `accounting-backup`
    - Bucket: select your bucket
    - Permissions: **Read and Write**
-   - Save the **keyID** and **applicationKey** (shown only once!)
+   - When created, you'll see two values:
+     - **keyID** (Application Key ID) - this is the SAME as your Account ID
+     - **applicationKey** - the secret string (shown only once!)
+   - Save the **applicationKey** immediately (you won't see it again)
+
+**What you need for Ansible:**
+- `backup_b2_account_id` = **Account ID** / **keyID** (25 characters, found at top of App Keys page)
+- `backup_b2_application_key` = **applicationKey** (the long secret string)
 
 ### 4. Prepare Google Drive (Optional)
 
@@ -684,8 +696,8 @@ backup_retention_count: 7
 
 # Weekly B2 backup
 backup_b2_enabled: true
-backup_b2_account_id: "your-account-id"
-backup_b2_application_key: "your-app-key"
+backup_b2_account_id: "0035b35e2e1a0000000000001"  # Your B2 Account ID / keyID (25 chars, NOT email)
+backup_b2_application_key: "K003xxxxxxxxxxxx"      # Your B2 applicationKey (secret)
 backup_b2_bucket: "artivisi-backup"
 backup_b2_retention_weeks: 4
 
@@ -844,6 +856,62 @@ tar -xzf backup.tar.gz
 rm /tmp/backup-key
 ```
 
+#### Backup Verification
+
+After deployment completes, Ansible automatically runs verification tests. You can also manually verify backups are working correctly.
+
+##### Verify B2 Backup Upload
+
+Test that encrypted backups are successfully uploaded to Backblaze B2:
+
+```bash
+# SSH to server
+ssh root@YOUR_SERVER
+
+# Download latest backup from B2
+sudo -u accounting bash -c '
+  export RCLONE_CONFIG=/opt/accounting-finance/.config/rclone/rclone.conf
+  rclone copy b2:YOUR_BUCKET_NAME/ /tmp/ --max-age 1d
+'
+
+# List downloaded files
+ls -lh /tmp/*.gpg
+
+# Decrypt the backup
+sudo gpg --decrypt --batch \
+  --passphrase-file /opt/accounting-finance/.backup-key \
+  -o /tmp/backup.tar.gz \
+  /tmp/accounting-finance_*.tar.gz.gpg
+
+# Extract and verify contents
+cd /tmp
+tar -xzf backup.tar.gz
+ls -la accounting-finance_*/
+
+# View manifest
+cat accounting-finance_*/manifest.json
+
+# Check database backup
+head -20 accounting-finance_*/database.sql
+
+# Clean up
+rm -rf /tmp/accounting-finance_* /tmp/backup.tar.gz
+```
+
+**Expected results:**
+- Encrypted backup downloads successfully from B2
+- Decryption works with the backup key
+- Archive contains: `database.sql`, `manifest.json`, and optionally `documents.tar.gz`
+- Manifest shows correct checksums and file sizes
+
+##### Download from Backblaze Web UI
+
+**Note:** Backblaze B2 does not allow downloading `.gpg` encrypted files through the web interface for security reasons. You must use rclone or B2 CLI to download encrypted backups.
+
+To download via web UI, you would need to:
+1. Upload unencrypted backups (not recommended for security)
+2. Or use command-line tools (rclone, B2 CLI)
+
 #### Verification Checklist
 
 After enabling remote backups, verify:
@@ -852,6 +920,7 @@ After enabling remote backups, verify:
 - [ ] Key saved to password manager
 - [ ] Key saved to second location (printed/USB)
 - [ ] Test decryption works with saved key
+- [ ] Download and decrypt a backup from B2 successfully
 - [ ] Document who has access to the key
 
 ## Restore Procedure

@@ -59,15 +59,6 @@
     state: "{{ 'present' if backup_remote_enabled | default(false) else 'absent' }}"
   when: backup_remote_enabled | default(false)
 
-- name: Create .pgpass file for passwordless pg_dump
-  ansible.builtin.copy:
-    dest: "/home/{{ app_user }}/.pgpass"
-    content: "localhost:5432:{{ db_name }}:{{ db_user }}:{{ db_password }}"
-    owner: "{{ app_user }}"
-    group: "{{ app_user }}"
-    mode: "0600"
-  when: app_user != 'accounting'
-
 - name: Create .pgpass file for system user (no home directory)
   ansible.builtin.copy:
     dest: "/opt/{{ app_name }}/.pgpass"
@@ -92,6 +83,29 @@
     mode: "0600"
 
 # Remote Backup to Backblaze B2
+- name: Validate B2 configuration
+  ansible.builtin.fail:
+    msg: |
+      ❌ Invalid Backblaze B2 configuration!
+      
+      The backup_b2_account_id must be your B2 Account ID (also called keyID),
+      not an email address.
+      
+      To find your B2 Account ID:
+      1. Log in to Backblaze B2: https://www.backblaze.com/b2/cloud-storage.html
+      2. Go to "App Keys" section
+      3. Your Account ID (keyID) is displayed at the top of the page
+         Format: 25 characters like "0035b35e2e1a0000000000001"
+      
+      Note: Account ID and Application Key ID are the SAME value.
+      
+      Current value: {{ backup_b2_account_id }}
+      Expected format: 25-character alphanumeric string
+  when:
+    - backup_b2_enabled | default(false)
+    - backup_b2_account_id is defined
+    - "'@' in backup_b2_account_id or backup_b2_account_id | length < 20"
+
 - name: Install rclone for cloud storage sync
   ansible.builtin.apt:
     name: rclone
@@ -109,9 +123,18 @@
     creates: "/opt/{{ app_name }}/.backup-key"
   when: backup_b2_enabled | default(false) or backup_gdrive_enabled | default(false)
 
+- name: Create GPG home directory for system user
+  ansible.builtin.file:
+    path: "/opt/{{ app_name }}/.gnupg"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: "0700"
+  when: backup_b2_enabled | default(false) or backup_gdrive_enabled | default(false)
+
 - name: Create rclone config directory
   ansible.builtin.file:
-    path: "/home/{{ app_user }}/.config/rclone"
+    path: "/opt/{{ app_name }}/.config/rclone"
     state: directory
     owner: "{{ app_user }}"
     group: "{{ app_user }}"
@@ -121,7 +144,7 @@
 - name: Deploy rclone configuration
   ansible.builtin.template:
     src: rclone.conf.j2
-    dest: "/home/{{ app_user }}/.config/rclone/rclone.conf"
+    dest: "/opt/{{ app_name }}/.config/rclone/rclone.conf"
     owner: "{{ app_user }}"
     group: "{{ app_user }}"
     mode: "0600"
@@ -184,6 +207,27 @@
     msg: "Local backup verification failed - no backup file created"
   when: backup_files.matched == 0
 
+- name: Test rclone B2 connection
+  ansible.builtin.command:
+    cmd: "rclone lsd b2:"
+  become: true
+  become_user: "{{ app_user }}"
+  environment:
+    RCLONE_CONFIG: "/opt/{{ app_name }}/.config/rclone/rclone.conf"
+  register: b2_connection_test
+  when: backup_b2_enabled | default(false)
+  changed_when: false
+  failed_when: false
+
+- name: Display B2 connection test result
+  ansible.builtin.debug:
+    msg: |
+      B2 Connection Test:
+      Return code: {{ b2_connection_test.rc }}
+      Stdout: {{ b2_connection_test.stdout }}
+      Stderr: {{ b2_connection_test.stderr }}
+  when: backup_b2_enabled | default(false)
+
 - name: Run test B2 upload
   ansible.builtin.command:
     cmd: "/opt/{{ app_name }}/scripts/backup-b2.sh"
@@ -198,6 +242,8 @@
     cmd: "rclone ls b2:{{ backup_b2_bucket }}/"
   become: true
   become_user: "{{ app_user }}"
+  environment:
+    RCLONE_CONFIG: "/opt/{{ app_name }}/.config/rclone/rclone.conf"
   register: b2_files
   when: backup_b2_enabled | default(false)
   changed_when: false
@@ -223,6 +269,8 @@
     cmd: "rclone ls gdrive:{{ backup_gdrive_folder | default('accounting-backup') }}/"
   become: true
   become_user: "{{ app_user }}"
+  environment:
+    RCLONE_CONFIG: "/opt/{{ app_name }}/.config/rclone/rclone.conf"
   register: gdrive_files
   when: backup_gdrive_enabled | default(false)
   changed_when: false

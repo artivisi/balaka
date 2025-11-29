@@ -4,6 +4,14 @@
 
 set -e
 
+# Set rclone config location for system user
+export RCLONE_CONFIG="/opt/{{ app_name }}/.config/rclone/rclone.conf"
+
+# Set GPG home directory for system user
+export GNUPGHOME="/opt/{{ app_name }}/.gnupg"
+mkdir -p "${GNUPGHOME}"
+chmod 700 "${GNUPGHOME}"
+
 # Load configuration
 CONFIG_FILE="/opt/{{ app_name }}/backup.conf"
 if [ ! -f "${CONFIG_FILE}" ]; then
@@ -51,8 +59,11 @@ fi
 
 # Upload to B2
 log "Uploading to B2 bucket: ${BACKUP_B2_BUCKET}"
-if ! rclone copy "${ENCRYPTED_FILE}" "${RCLONE_B2_REMOTE}:${BACKUP_B2_BUCKET}/" --log-file="${LOG_FILE}" --log-level=INFO; then
-    log "ERROR: B2 upload failed"
+if ! rclone copy "${ENCRYPTED_FILE}" "${RCLONE_B2_REMOTE}:${BACKUP_B2_BUCKET}/" --log-file="${LOG_FILE}" --log-level=DEBUG 2>&1 | tee -a "${LOG_FILE}"; then
+    log "ERROR: B2 upload failed - check ${LOG_FILE} for details"
+    # Show last 20 lines of log for immediate troubleshooting
+    log "Last 20 lines of backup log:"
+    tail -n 20 "${LOG_FILE}" | while read line; do log "  $line"; done
     rm -f "${ENCRYPTED_FILE}"
     exit 1
 fi
