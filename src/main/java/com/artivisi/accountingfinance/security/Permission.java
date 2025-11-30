@@ -112,6 +112,7 @@ public final class Permission {
     // Settings
     public static final String SETTINGS_VIEW = "SETTINGS_VIEW";
     public static final String SETTINGS_EDIT = "SETTINGS_EDIT";
+    public static final String TELEGRAM_MANAGE = "TELEGRAM_MANAGE"; // Manage own Telegram integration
 
     // User Management (Admin only)
     public static final String USER_VIEW = "USER_VIEW";
@@ -198,6 +199,8 @@ public final class Permission {
                 SALARY_COMPONENT_VIEW,
                 PAYROLL_VIEW, PAYROLL_CREATE, PAYROLL_APPROVE, PAYROLL_POST, PAYROLL_EXPORT,
                 CALCULATOR_USE,
+                SETTINGS_VIEW, // Read-only access to settings (can view, but only edit own Telegram)
+                TELEGRAM_MANAGE,
                 OWN_PAYSLIP_VIEW, OWN_PROFILE_VIEW, OWN_PROFILE_EDIT
             );
 
@@ -214,6 +217,8 @@ public final class Permission {
                 PROJECT_VIEW,
                 INVOICE_VIEW,
                 CALCULATOR_USE,
+                SETTINGS_VIEW, // Read-only access to settings (can view, but only edit own Telegram)
+                TELEGRAM_MANAGE,
                 OWN_PAYSLIP_VIEW, OWN_PROFILE_VIEW, OWN_PROFILE_EDIT
             );
 

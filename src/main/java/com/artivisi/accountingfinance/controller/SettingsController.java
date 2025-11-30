@@ -210,6 +210,7 @@ public class SettingsController {
     // ==================== Telegram Settings ====================
 
     @GetMapping("/telegram")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAuthority('" + com.artivisi.accountingfinance.security.Permission.TELEGRAM_MANAGE + "')")
     public String telegramSettings(Authentication authentication, Model model) {
         String username = authentication.getName();
         User user = userRepository.findByUsername(username)
@@ -225,7 +226,7 @@ public class SettingsController {
     }
 
     @PostMapping("/telegram/generate-code")
-    @org.springframework.security.access.prepost.PreAuthorize("hasAuthority('" + com.artivisi.accountingfinance.security.Permission.SETTINGS_EDIT + "')")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAuthority('" + com.artivisi.accountingfinance.security.Permission.TELEGRAM_MANAGE + "')")
     public String generateTelegramCode(
             Authentication authentication,
             RedirectAttributes redirectAttributes) {
@@ -242,7 +243,7 @@ public class SettingsController {
     }
 
     @PostMapping("/telegram/unlink")
-    @org.springframework.security.access.prepost.PreAuthorize("hasAuthority('" + com.artivisi.accountingfinance.security.Permission.SETTINGS_EDIT + "')")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAuthority('" + com.artivisi.accountingfinance.security.Permission.TELEGRAM_MANAGE + "')")
     public String unlinkTelegram(
             Authentication authentication,
             RedirectAttributes redirectAttributes) {
