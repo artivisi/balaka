@@ -165,32 +165,35 @@
                                 </div>
                             </div>
 
-                            <!-- Source Account (for templates with selectable accounts) -->
-                            <div th:if="${selectedTemplate != null and selectedTemplate.lines != null}">
-                                <label for="sourceAccount" class="block text-sm font-medium text-gray-700 mb-1">
-                                    Akun Sumber <span class="text-red-500">*</span>
-                                </label>
-                                <select id="sourceAccount" name="sourceAccountId"
-                                        @change="$dispatch('account-changed')"
-                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
-                                        required>
-                                    <option value="">Pilih akun</option>
-                                    <optgroup label="Kas">
-                                        <th:block th:each="acc : ${accounts}">
-                                            <option th:if="${acc.accountCode.startsWith('1.1.01') or acc.accountCode.contains('Kas')}"
+                            <!-- Dynamic Account Selection (for template lines with null accounts) -->
+                            <th:block th:if="${selectedTemplate != null and selectedTemplate.lines != null}">
+                                <th:block th:each="line, lineStat : ${selectedTemplate.lines}">
+                                    <div th:if="${line.account == null}" class="md:col-span-2">
+                                        <label th:for="${'accountMapping_' + line.id}" 
+                                               class="block text-sm font-medium text-gray-700 mb-1">
+                                            <span th:text="${line.accountHint != null and !#strings.isEmpty(line.accountHint)} ? ${line.accountHint} : 'Akun ' + (${line.position.name() == 'DEBIT'} ? 'Debit' : 'Kredit')">
+                                                Akun
+                                            </span>
+                                            <span class="text-red-500">*</span>
+                                            <span class="inline-flex items-center justify-center w-5 h-5 ml-1 rounded-full bg-blue-100 text-blue-700 font-bold text-xs" 
+                                                  title="Akun dipilih saat input transaksi">?</span>
+                                        </label>
+                                        <select th:id="${'accountMapping_' + line.id}" 
+                                                th:name="${'accountMapping[' + line.id + ']'}"
+                                                @change="$dispatch('account-changed')"
+                                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
+                                                required>
+                                            <option value="">Pilih akun</option>
+                                            <option th:each="acc : ${accounts}"
                                                     th:value="${acc.id}"
                                                     th:text="${acc.accountCode + ' - ' + acc.accountName}">Account</option>
-                                        </th:block>
-                                    </optgroup>
-                                    <optgroup label="Bank">
-                                        <th:block th:each="acc : ${accounts}">
-                                            <option th:if="${acc.accountCode.startsWith('1.1.02') or acc.accountCode.startsWith('1.1.03') or acc.accountName.toLowerCase().contains('bank')}"
-                                                    th:value="${acc.id}"
-                                                    th:text="${acc.accountCode + ' - ' + acc.accountName}">Account</option>
-                                        </th:block>
-                                    </optgroup>
-                                </select>
-                            </div>
+                                        </select>
+                                        <p th:if="${line.description != null and !#strings.isEmpty(line.description)}" 
+                                           class="text-xs text-gray-500 mt-1" 
+                                           th:text="${line.description}">Deskripsi</p>
+                                    </div>
+                                </th:block>
+                            </th:block>
 
                             <!-- Description (full width) -->
                             <div class="md:col-span-2">
@@ -267,7 +270,7 @@
                                  hx-get="/transactions/preview"
                                  th:hx-vals="${'{&quot;templateId&quot;: &quot;' + selectedTemplate.id + '&quot;}'}"
                                  hx-trigger="load, amount-changed from:body, account-changed from:body"
-                                 hx-include="[name='amount'], [name='sourceAccountId']">
+                                 hx-include="[name='amount'], [name^='accountMapping']">
                                 <div class="p-8 text-center text-gray-500">
                                     <div class="animate-pulse">Memuat preview...</div>
                                 </div>

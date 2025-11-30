@@ -249,7 +249,7 @@ public class TransactionController {
     public String preview(
             @RequestParam UUID templateId,
             @RequestParam BigDecimal amount,
-            @RequestParam(required = false) UUID sourceAccountId,
+            @RequestParam(required = false) java.util.Map<String, String> accountMapping,
             Model model) {
         JournalTemplate template = journalTemplateService.findByIdWithLines(templateId);
         
@@ -261,15 +261,20 @@ public class TransactionController {
         
         var previewResult = templateExecutionEngine.preview(template, context);
         
-        // Apply account override if provided
-        if (sourceAccountId != null) {
-            ChartOfAccount overrideAccount = chartOfAccountService.findById(sourceAccountId);
-            // Find the first line that should use the source account and override it
-            for (var entry : previewResult.entries()) {
-                // Override the first credit entry (usually the source account in expense/payment templates)
-                if (entry.getCreditAmount().compareTo(java.math.BigDecimal.ZERO) > 0) {
-                    entry.setAccount(overrideAccount);
-                    break;
+        // Apply account mappings for template lines with null accounts
+        if (accountMapping != null && !accountMapping.isEmpty()) {
+            // Match entries to template lines by order
+            for (int i = 0; i < Math.min(template.getLines().size(), previewResult.entries().size()); i++) {
+                var templateLine = template.getLines().get(i);
+                var entry = previewResult.entries().get(i);
+                
+                // If template line has no account, apply mapping
+                if (templateLine.getAccount() == null) {
+                    String mappedAccountId = accountMapping.get(templateLine.getId().toString());
+                    if (mappedAccountId != null && !mappedAccountId.isEmpty()) {
+                        ChartOfAccount mappedAccount = chartOfAccountService.findById(UUID.fromString(mappedAccountId));
+                        entry.setAccount(mappedAccount);
+                    }
                 }
             }
         }
