@@ -525,21 +525,31 @@ Bank reconciliation feature becomes valuable at ~150+ transactions/month or with
 - [ ] Marketplace reconciliation report
 
 ### Account Balances (Materialized) - Performance Optimization
-- [ ] Account balances entity
-- [ ] Balance update on journal entry post/void
-- [ ] Period-based aggregation (monthly snapshots)
-- [ ] Balance recalculation utility
 
-**When to implement:** Only when report generation exceeds 2 seconds or users report slowness.
+**Not implemented.** The system uses real-time calculation by querying journal_entries directly.
 
-**Performance analysis (PostgreSQL with indexes):**
+**Why not materialized?**
+- Current approach: Sum debit/credit from journal_entries for each report
+- PostgreSQL performance with indexes is excellent for typical transaction volumes
+- Materialization adds complexity: triggers, recalculation logic, cascade updates
+- Trade-off: Simple architecture vs. marginal performance gain
+
+**Performance analysis (PostgreSQL with proper indexes):**
 - 10,000 journal lines: <50ms (5 years @ 80 tx/month)
 - 50,000 journal lines: ~100ms (5 years @ 400 tx/month)
 - 100,000 journal lines: ~200ms (5 years @ 800 tx/month)
 - 500,000 journal lines: ~500ms (5 years @ 4,000 tx/month)
 
 **For typical small IT services (100 tx/month):** Would take 40+ years to reach 100,000 lines.
-Materialization only needed at ~500+ transactions/month sustained for several years.
+
+**When to reconsider:** Only if report generation consistently exceeds 2 seconds and users report slowness (>500 transactions/month sustained for several years).
+
+**Implementation approach if needed:**
+- [ ] Create account_balances table with monthly snapshots
+- [ ] Trigger balance update on journal entry post/void
+- [ ] Background job for period-based aggregation
+- [ ] Balance recalculation utility for data fixes
+- [ ] Modify ReportService to query materialized balances instead of journal_entries
 
 ### Document Management Enhancements
 - [ ] S3-compatible storage backend
