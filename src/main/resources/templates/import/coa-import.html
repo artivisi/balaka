@@ -39,7 +39,7 @@
                 <div>
                     <span class="block text-sm font-medium text-gray-700 mb-2">Pilih File (JSON atau XLSX)</span>
                     <div class="flex items-center justify-center w-full">
-                        <label class="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+                        <label id="dropzone" class="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
                             <div class="flex flex-col items-center justify-center pt-5 pb-6">
                                 <svg class="w-8 h-8 mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
@@ -47,12 +47,56 @@
                                 <p class="mb-2 text-sm text-gray-500"><span class="font-semibold">Klik untuk upload</span> atau drag and drop</p>
                                 <p class="text-xs text-gray-500">JSON atau XLSX</p>
                             </div>
-                            <input type="file" name="file" accept=".json,.xlsx" class="hidden" required
+                            <input id="file-input" type="file" name="file" accept=".json,.xlsx" class="hidden" required
                                    onchange="document.getElementById('file-name').textContent = this.files[0]?.name || 'Belum ada file'"/>
                         </label>
                     </div>
                     <p id="file-name" class="mt-2 text-sm text-gray-500">Belum ada file</p>
                 </div>
+
+                <script>
+                    // Prevent default drag behaviors
+                    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                        document.getElementById('dropzone').addEventListener(eventName, preventDefaults, false);
+                        document.body.addEventListener(eventName, preventDefaults, false);
+                    });
+
+                    function preventDefaults (e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                    }
+
+                    // Highlight drop area when item is dragged over it
+                    ['dragenter', 'dragover'].forEach(eventName => {
+                        document.getElementById('dropzone').addEventListener(eventName, highlight, false);
+                    });
+
+                    ['dragleave', 'drop'].forEach(eventName => {
+                        document.getElementById('dropzone').addEventListener(eventName, unhighlight, false);
+                    });
+
+                    function highlight(e) {
+                        document.getElementById('dropzone').classList.add('border-primary-500', 'bg-primary-50');
+                    }
+
+                    function unhighlight(e) {
+                        document.getElementById('dropzone').classList.remove('border-primary-500', 'bg-primary-50');
+                    }
+
+                    // Handle dropped files
+                    document.getElementById('dropzone').addEventListener('drop', handleDrop, false);
+
+                    function handleDrop(e) {
+                        const dt = e.dataTransfer;
+                        const files = dt.files;
+                        const fileInput = document.getElementById('file-input');
+                        fileInput.files = files;
+                        
+                        // Trigger change event to update file name display
+                        const event = new Event('change', { bubbles: true });
+                        fileInput.dispatchEvent(event);
+                    }
+                </script>
 
                 <!-- Preview Button -->
                 <button type="submit" class="w-full px-4 py-2 bg-primary-600 text-white font-medium rounded-lg hover:bg-primary-700 transition-colors">
