@@ -39,6 +39,11 @@ public class InvoiceService {
                 .orElseThrow(() -> new EntityNotFoundException("Invoice not found with id: " + id));
     }
 
+    public Invoice findByInvoiceNumber(String invoiceNumber) {
+        return invoiceRepository.findByInvoiceNumber(invoiceNumber)
+                .orElseThrow(() -> new EntityNotFoundException("Invoice not found with number: " + invoiceNumber));
+    }
+
     public Page<Invoice> findAll(Pageable pageable) {
         return invoiceRepository.findAllByOrderByInvoiceDateDesc(pageable);
     }

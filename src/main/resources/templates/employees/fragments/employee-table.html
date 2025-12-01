@@ -46,7 +46,7 @@
                         <span th:unless="${employee.active}" class="ml-1 px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600">Nonaktif</span>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-right">
-                        <a th:href="@{/employees/{id}(id=${employee.id})}"
+                        <a th:href="@{/employees/{employeeId}(employeeId=${employee.employeeId})}"
                            class="text-primary-600 hover:text-primary-900 text-sm font-medium">Lihat</a>
                     </td>
                 </tr>

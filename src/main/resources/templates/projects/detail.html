@@ -16,7 +16,7 @@
                 <h2 class="text-xl font-semibold text-gray-900" th:text="${project.name}">Project Name</h2>
                 <p class="text-sm text-gray-500 font-mono" th:text="${project.code}">PRJ-001</p>
                 <p class="text-sm text-gray-500 mt-1" th:if="${project.client}">
-                    Klien: <a th:href="@{/clients/{id}(id=${project.client.id})}" class="text-primary-600 hover:underline" th:text="${project.client.name}">Client Name</a>
+                    Klien: <a th:href="@{/clients/{code}(code=${project.client.code})}" class="text-primary-600 hover:underline" th:text="${project.client.name}">Client Name</a>
                 </p>
             </div>
             <div class="flex items-center gap-2">
@@ -66,7 +66,7 @@
             <div class="px-6 py-4 border-b flex items-center justify-between">
                 <h3 class="text-lg font-medium text-gray-900">Milestone</h3>
                 <a th:if="${project.status.name() == 'ACTIVE'}"
-                   th:href="@{/projects/{id}/milestones/new(id=${project.id})}"
+                   th:href="@{/projects/{code}/milestones/new(code=${project.code})}"
                    id="btn-new-milestone"
                    class="px-3 py-1.5 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
                     + Tambah
@@ -104,7 +104,7 @@
                             <div th:if="${project.status.name() == 'ACTIVE'}" class="flex items-center gap-1 ml-2">
                                 <!-- Start button for pending -->
                                 <form th:if="${milestone.status.name() == 'PENDING'}"
-                                      th:action="@{/projects/{projectId}/milestones/{id}/start(projectId=${project.id}, id=${milestone.id})}"
+                                      th:action="@{/projects/{projectCode}/milestones/{id}/start(projectCode=${project.code}, id=${milestone.id})}"
                                       method="post" class="inline">
                                     <button type="submit" class="p-1.5 text-yellow-600 hover:bg-yellow-50 rounded" title="Mulai">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -115,7 +115,7 @@
                                 </form>
                                 <!-- Complete button for in progress -->
                                 <form th:if="${milestone.status.name() == 'IN_PROGRESS'}"
-                                      th:action="@{/projects/{projectId}/milestones/{id}/complete(projectId=${project.id}, id=${milestone.id})}"
+                                      th:action="@{/projects/{projectCode}/milestones/{id}/complete(projectCode=${project.code}, id=${milestone.id})}"
                                       method="post" class="inline">
                                     <button type="submit" class="p-1.5 text-green-600 hover:bg-green-50 rounded" title="Selesai">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -125,7 +125,7 @@
                                 </form>
                                 <!-- Reset button for completed -->
                                 <form th:if="${milestone.status.name() == 'COMPLETED'}"
-                                      th:action="@{/projects/{projectId}/milestones/{id}/reset(projectId=${project.id}, id=${milestone.id})}"
+                                      th:action="@{/projects/{projectCode}/milestones/{id}/reset(projectCode=${project.code}, id=${milestone.id})}"
                                       method="post" class="inline">
                                     <button type="submit" class="p-1.5 text-gray-600 hover:bg-gray-100 rounded" title="Reset">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -134,14 +134,14 @@
                                     </button>
                                 </form>
                                 <!-- Edit button -->
-                                <a th:href="@{/projects/{projectId}/milestones/{id}/edit(projectId=${project.id}, id=${milestone.id})}"
+                                <a th:href="@{/projects/{projectCode}/milestones/{id}/edit(projectCode=${project.code}, id=${milestone.id})}"
                                    class="p-1.5 text-gray-600 hover:bg-gray-100 rounded" title="Edit">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                                     </svg>
                                 </a>
                                 <!-- Delete button -->
-                                <form th:action="@{/projects/{projectId}/milestones/{id}/delete(projectId=${project.id}, id=${milestone.id})}"
+                                <form th:action="@{/projects/{projectCode}/milestones/{id}/delete(projectCode=${project.code}, id=${milestone.id})}"
                                       method="post" class="inline"
                                       onsubmit="return confirm('Hapus milestone ini?')">
                                     <button type="submit" class="p-1.5 text-red-600 hover:bg-red-50 rounded" title="Hapus">
@@ -162,7 +162,7 @@
             <div class="px-6 py-4 border-b flex items-center justify-between">
                 <h3 class="text-lg font-medium text-gray-900">Termin Pembayaran</h3>
                 <a th:if="${project.status.name() == 'ACTIVE' && project.client != null}"
-                   th:href="@{/projects/{id}/payment-terms/new(id=${project.id})}"
+                   th:href="@{/projects/{code}/payment-terms/new(code=${project.code})}"
                    id="btn-new-payment-term"
                    class="px-3 py-1.5 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
                     + Tambah
@@ -196,7 +196,7 @@
                         </div>
                         <div class="flex items-center gap-2" th:if="${project.status.name() == 'ACTIVE'}">
                             <!-- Generate Invoice -->
-                            <form th:action="@{/projects/{projectId}/payment-terms/{id}/generate-invoice(projectId=${project.id}, id=${term.id})}"
+                            <form th:action="@{/projects/{projectCode}/payment-terms/{id}/generate-invoice(projectCode=${project.code}, id=${term.id})}"
                                   method="post" class="inline"
                                   onsubmit="return confirm('Buat invoice dari termin ini?')">
                                 <button type="submit" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title="Buat Invoice">
@@ -206,14 +206,14 @@
                                 </button>
                             </form>
                             <!-- Edit -->
-                            <a th:href="@{/projects/{projectId}/payment-terms/{id}/edit(projectId=${project.id}, id=${term.id})}"
+                            <a th:href="@{/projects/{projectCode}/payment-terms/{id}/edit(projectCode=${project.code}, id=${term.id})}"
                                class="p-1.5 text-gray-600 hover:bg-gray-100 rounded" title="Edit">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                                 </svg>
                             </a>
                             <!-- Delete -->
-                            <form th:action="@{/projects/{projectId}/payment-terms/{id}/delete(projectId=${project.id}, id=${term.id})}"
+                            <form th:action="@{/projects/{projectCode}/payment-terms/{id}/delete(projectCode=${project.code}, id=${term.id})}"
                                   method="post" class="inline"
                                   onsubmit="return confirm('Hapus termin pembayaran ini?')">
                                 <button type="submit" class="p-1.5 text-red-600 hover:bg-red-50 rounded" title="Hapus">
@@ -234,12 +234,12 @@
                 &larr; Kembali ke Daftar
             </a>
             <div class="flex items-center gap-2">
-                <a th:href="@{/projects/{id}/edit(id=${project.id})}"
+                <a th:href="@{/projects/{code}/edit(code=${project.code})}"
                    class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
                     Edit
                 </a>
                 <form th:if="${project.status.name() == 'ACTIVE'}"
-                      th:action="@{/projects/{id}/complete(id=${project.id})}"
+                      th:action="@{/projects/{code}/complete(code=${project.code})}"
                       method="post" class="inline"
                       onsubmit="return confirm('Tandai proyek ini selesai?')">
                     <button type="submit" class="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">
@@ -247,7 +247,7 @@
                     </button>
                 </form>
                 <form th:if="${project.status.name() == 'ACTIVE'}"
-                      th:action="@{/projects/{id}/archive(id=${project.id})}"
+                      th:action="@{/projects/{code}/archive(code=${project.code})}"
                       method="post" class="inline"
                       onsubmit="return confirm('Arsipkan proyek ini?')">
                     <button type="submit" class="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">
@@ -255,7 +255,7 @@
                     </button>
                 </form>
                 <form th:if="${project.status.name() != 'ACTIVE'}"
-                      th:action="@{/projects/{id}/reactivate(id=${project.id})}"
+                      th:action="@{/projects/{code}/reactivate(code=${project.code})}"
                       method="post" class="inline">
                     <button type="submit" class="px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors">
                         Aktifkan Kembali

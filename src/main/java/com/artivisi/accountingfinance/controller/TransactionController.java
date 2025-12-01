@@ -8,6 +8,7 @@ import com.artivisi.accountingfinance.entity.JournalTemplate;
 import com.artivisi.accountingfinance.entity.Project;
 import com.artivisi.accountingfinance.entity.Transaction;
 import com.artivisi.accountingfinance.enums.TemplateCategory;
+import jakarta.persistence.EntityNotFoundException;
 import com.artivisi.accountingfinance.enums.TransactionStatus;
 import com.artivisi.accountingfinance.security.Permission;
 import com.artivisi.accountingfinance.service.ChartOfAccountService;
@@ -61,7 +62,7 @@ public class TransactionController {
     public String list(
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String category,
-            @RequestParam(required = false) UUID projectId,
+            @RequestParam(required = false) String projectCode,
             @RequestParam(required = false) String search,
             @RequestParam(required = false) LocalDate startDate,
             @RequestParam(required = false) LocalDate endDate,
@@ -72,7 +73,7 @@ public class TransactionController {
         model.addAttribute("currentPage", "transactions");
         model.addAttribute("selectedStatus", status);
         model.addAttribute("selectedCategory", category);
-        model.addAttribute("selectedProjectId", projectId);
+        model.addAttribute("selectedProjectCode", projectCode);
         model.addAttribute("searchQuery", search);
         model.addAttribute("startDate", startDate);
         model.addAttribute("endDate", endDate);
@@ -90,6 +91,18 @@ public class TransactionController {
         // Parse status and category if provided
         TransactionStatus statusEnum = status != null && !status.isEmpty() ? TransactionStatus.valueOf(status) : null;
         TemplateCategory categoryEnum = category != null && !category.isEmpty() ? TemplateCategory.valueOf(category) : null;
+
+        // Resolve project code to UUID if provided
+        UUID projectId = null;
+        if (projectCode != null && !projectCode.isBlank()) {
+            try {
+                Project project = projectService.findByCode(projectCode);
+                projectId = project.getId();
+                model.addAttribute("selectedProjectId", projectId);
+            } catch (EntityNotFoundException e) {
+                // Project not found, ignore filter
+            }
+        }
 
         // Get transactions
         Page<Transaction> transactionPage;

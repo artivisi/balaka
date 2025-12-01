@@ -112,7 +112,7 @@ public class InvoiceController {
         try {
             Invoice saved = invoiceService.create(invoice);
             redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Invoice berhasil dibuat");
-            return "redirect:/invoices/" + saved.getId();
+            return "redirect:/invoices/" + saved.getInvoiceNumber();
         } catch (IllegalArgumentException e) {
             bindingResult.rejectValue("invoiceNumber", "duplicate", e.getMessage());
             model.addAttribute("clients", clientService.findActiveClients());
@@ -122,21 +122,21 @@ public class InvoiceController {
         }
     }
 
-    @GetMapping("/{id}")
-    public String detail(@PathVariable UUID id, Model model) {
-        Invoice invoice = invoiceService.findById(id);
+    @GetMapping("/{invoiceNumber}")
+    public String detail(@PathVariable String invoiceNumber, Model model) {
+        Invoice invoice = invoiceService.findByInvoiceNumber(invoiceNumber);
 
         model.addAttribute("invoice", invoice);
         model.addAttribute(ATTR_CURRENT_PAGE, "invoices");
         return "invoices/detail";
     }
 
-    @GetMapping("/{id}/edit")
-    public String editForm(@PathVariable UUID id, Model model) {
-        Invoice invoice = invoiceService.findById(id);
+    @GetMapping("/{invoiceNumber}/edit")
+    public String editForm(@PathVariable String invoiceNumber, Model model) {
+        Invoice invoice = invoiceService.findByInvoiceNumber(invoiceNumber);
 
         if (invoice.getStatus() != InvoiceStatus.DRAFT) {
-            return "redirect:/invoices/" + id;
+            return "redirect:/invoices/" + invoiceNumber;
         }
 
         model.addAttribute("invoice", invoice);
@@ -146,16 +146,17 @@ public class InvoiceController {
         return "invoices/form";
     }
 
-    @PostMapping("/{id}")
+    @PostMapping("/{invoiceNumber}")
     public String update(
-            @PathVariable UUID id,
+            @PathVariable String invoiceNumber,
             @Valid @ModelAttribute("invoice") Invoice invoice,
             BindingResult bindingResult,
             Model model,
             RedirectAttributes redirectAttributes) {
 
         if (bindingResult.hasErrors()) {
-            invoice.setId(id);
+            Invoice existing = invoiceService.findByInvoiceNumber(invoiceNumber);
+            invoice.setId(existing.getId());
             model.addAttribute("clients", clientService.findActiveClients());
             model.addAttribute("projects", projectService.findActiveProjects());
             model.addAttribute(ATTR_CURRENT_PAGE, "invoices");
@@ -163,16 +164,18 @@ public class InvoiceController {
         }
 
         try {
-            invoiceService.update(id, invoice);
+            Invoice existing = invoiceService.findByInvoiceNumber(invoiceNumber);
+            invoiceService.update(existing.getId(), invoice);
             redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Invoice berhasil diperbarui");
-            return "redirect:/invoices/" + id;
+            return "redirect:/invoices/" + invoice.getInvoiceNumber();
         } catch (IllegalArgumentException | IllegalStateException e) {
             if (e.getMessage().contains("already exists")) {
                 bindingResult.rejectValue("invoiceNumber", "duplicate", e.getMessage());
             } else {
                 bindingResult.reject("error", e.getMessage());
             }
-            invoice.setId(id);
+            Invoice existing = invoiceService.findByInvoiceNumber(invoiceNumber);
+            invoice.setId(existing.getId());
             model.addAttribute("clients", clientService.findActiveClients());
             model.addAttribute("projects", projectService.findActiveProjects());
             model.addAttribute(ATTR_CURRENT_PAGE, "invoices");
@@ -180,68 +183,72 @@ public class InvoiceController {
         }
     }
 
-    @PostMapping("/{id}/send")
-    public String send(@PathVariable UUID id, RedirectAttributes redirectAttributes) {
+    @PostMapping("/{invoiceNumber}/send")
+    public String send(@PathVariable String invoiceNumber, RedirectAttributes redirectAttributes) {
         try {
-            invoiceService.send(id);
+            Invoice invoice = invoiceService.findByInvoiceNumber(invoiceNumber);
+            invoiceService.send(invoice.getId());
             redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Invoice berhasil dikirim");
         } catch (IllegalStateException e) {
             redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, e.getMessage());
         }
-        return "redirect:/invoices/" + id;
+        return "redirect:/invoices/" + invoiceNumber;
     }
 
-    @GetMapping("/{id}/pay")
-    public String payForm(@PathVariable UUID id, RedirectAttributes redirectAttributes) {
-        Invoice invoice = invoiceService.findById(id);
+    @GetMapping("/{invoiceNumber}/pay")
+    public String payForm(@PathVariable String invoiceNumber, RedirectAttributes redirectAttributes) {
+        Invoice invoice = invoiceService.findByInvoiceNumber(invoiceNumber);
 
         if (invoice.getStatus() != InvoiceStatus.SENT && invoice.getStatus() != InvoiceStatus.OVERDUE) {
             redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, "Hanya invoice terkirim atau jatuh tempo yang dapat dibayar");
-            return "redirect:/invoices/" + id;
+            return "redirect:/invoices/" + invoiceNumber;
         }
 
         // Redirect to transaction form with invoice id and receipt template
         // Template: Terima Pelunasan Piutang (e0000000-0000-0000-0000-000000000010)
-        return "redirect:/transactions/new?invoiceId=" + id + "&templateId=e0000000-0000-0000-0000-000000000010";
+        return "redirect:/transactions/new?invoiceId=" + invoice.getId() + "&templateId=e0000000-0000-0000-0000-000000000010";
     }
 
-    @PostMapping("/{id}/mark-paid")
-    public String markPaid(@PathVariable UUID id, RedirectAttributes redirectAttributes) {
+    @PostMapping("/{invoiceNumber}/mark-paid")
+    public String markPaid(@PathVariable String invoiceNumber, RedirectAttributes redirectAttributes) {
         try {
-            invoiceService.markAsPaid(id);
+            Invoice invoice = invoiceService.findByInvoiceNumber(invoiceNumber);
+            invoiceService.markAsPaid(invoice.getId());
             redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Invoice ditandai sudah dibayar");
         } catch (IllegalStateException e) {
             redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, e.getMessage());
         }
-        return "redirect:/invoices/" + id;
+        return "redirect:/invoices/" + invoiceNumber;
     }
 
-    @PostMapping("/{id}/cancel")
-    public String cancel(@PathVariable UUID id, RedirectAttributes redirectAttributes) {
+    @PostMapping("/{invoiceNumber}/cancel")
+    public String cancel(@PathVariable String invoiceNumber, RedirectAttributes redirectAttributes) {
         try {
-            invoiceService.cancel(id);
+            Invoice invoice = invoiceService.findByInvoiceNumber(invoiceNumber);
+            invoiceService.cancel(invoice.getId());
             redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Invoice dibatalkan");
         } catch (IllegalStateException e) {
             redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, e.getMessage());
         }
-        return "redirect:/invoices/" + id;
+        return "redirect:/invoices/" + invoiceNumber;
     }
 
-    @PostMapping("/{id}/delete")
-    public String delete(@PathVariable UUID id, RedirectAttributes redirectAttributes) {
+    @PostMapping("/{invoiceNumber}/delete")
+    public String delete(@PathVariable String invoiceNumber, RedirectAttributes redirectAttributes) {
         try {
-            invoiceService.delete(id);
+            Invoice invoice = invoiceService.findByInvoiceNumber(invoiceNumber);
+            invoiceService.delete(invoice.getId());
             redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Invoice berhasil dihapus");
             return "redirect:/invoices";
         } catch (IllegalStateException e) {
             redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, e.getMessage());
-            return "redirect:/invoices/" + id;
+            return "redirect:/invoices/" + invoiceNumber;
         }
     }
 
-    @GetMapping("/{id}/print")
-    public String print(@PathVariable UUID id, Model model) {
-        Invoice invoice = invoiceService.findById(id);
+    @GetMapping("/{invoiceNumber}/print")
+    public String print(@PathVariable String invoiceNumber, Model model) {
+        Invoice invoice = invoiceService.findByInvoiceNumber(invoiceNumber);
         CompanyConfig company = companyConfigService.getConfig();
         CompanyBankAccount bankAccount = bankAccountService.findDefaultAccount().orElse(null);
 

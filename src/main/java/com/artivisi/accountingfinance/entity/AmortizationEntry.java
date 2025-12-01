@@ -66,6 +66,9 @@ public class AmortizationEntry {
     @Column(name = "id_journal_entry")
     private UUID journalEntryId;
 
+    @Column(name = "journal_number", length = 20)
+    private String journalNumber;
+
     @NotNull(message = "Status is required")
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)

@@ -551,19 +551,19 @@ class ProjectTest extends PlaywrightTestBase {
             formPage.fillName(projectName);
             formPage.clickSubmit();
 
-            // Get project ID from URL
+            // Verify URL now contains the project code
             String url = page.url();
-            String projectId = url.substring(url.lastIndexOf("/") + 1);
+            assertThat(url).endsWith("/" + projectCode);
 
             // Navigate to transactions and filter by this project
             transactionListPage.navigate();
             page.waitForLoadState();
 
             // Filter by the new project - this will wait for URL change
-            transactionListPage.filterByProject(projectId);
+            transactionListPage.filterByProject(projectCode);
 
-            // The filter should be applied (URL should contain projectId parameter)
-            assertThat(page.url()).contains("projectId=" + projectId);
+            // The filter should be applied (URL should contain projectCode parameter)
+            assertThat(page.url()).contains("projectCode=" + projectCode);
         }
     }
 }

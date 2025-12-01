@@ -178,7 +178,7 @@
                                 </svg>
                                 <span th:text="${transaction.project.code + ' - ' + transaction.project.name}">PRJ-001 - Project Name</span>
                             </span>
-                            <a th:href="@{/projects/{id}(id=${transaction.project.id})}"
+                            <a th:href="@{/projects/{code}(code=${transaction.project.code})}"
                                class="ml-2 text-xs text-indigo-600 hover:text-indigo-800">
                                 Lihat Detail
                             </a>

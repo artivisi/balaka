@@ -19,7 +19,7 @@
                         <span class="text-sm font-mono text-gray-900" th:text="${project.code}">PRJ-001</span>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
-                        <a th:href="@{/projects/{id}(id=${project.id})}" class="text-sm font-medium text-primary-600 hover:text-primary-900" th:text="${project.name}">Project Name</a>
+                        <a th:href="@{/projects/{code}(code=${project.code})}" class="text-sm font-medium text-primary-600 hover:text-primary-900" th:text="${project.name}">Project Name</a>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
                         <span class="text-sm text-gray-600" th:text="${project.client?.name} ?: '-'">Client Name</span>
@@ -33,7 +33,7 @@
                         <span th:if="${project.status.name() == 'ARCHIVED'}" class="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600" th:text="${project.status.indonesianName}">Diarsipkan</span>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-center">
-                        <a th:href="@{/projects/{id}(id=${project.id})}" class="text-primary-600 hover:text-primary-900 text-sm">Detail</a>
+                        <a th:href="@{/projects/{code}(code=${project.code})}" class="text-primary-600 hover:text-primary-900 text-sm">Detail</a>
                     </td>
                 </tr>
                 <tr th:if="${projects.empty}">

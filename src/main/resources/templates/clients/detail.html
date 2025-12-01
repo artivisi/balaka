@@ -82,12 +82,12 @@
                 &larr; Kembali ke Daftar
             </a>
             <div class="flex items-center gap-2">
-                <a th:href="@{/clients/{id}/edit(id=${client.id})}"
+                <a th:href="@{/clients/{code}/edit(code=${client.code})}"
                    class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
                     Edit
                 </a>
                 <form th:if="${client.active}"
-                      th:action="@{/clients/{id}/deactivate(id=${client.id})}"
+                      th:action="@{/clients/{code}/deactivate(code=${client.code})}"
                       method="post" class="inline"
                       onsubmit="return confirm('Nonaktifkan klien ini?')">
                     <button type="submit" class="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">
@@ -95,7 +95,7 @@
                     </button>
                 </form>
                 <form th:unless="${client.active}"
-                      th:action="@{/clients/{id}/activate(id=${client.id})}"
+                      th:action="@{/clients/{code}/activate(code=${client.code})}"
                       method="post" class="inline">
                     <button type="submit" class="px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors">
                         Aktifkan
@@ -113,7 +113,7 @@
                 <p th:if="${client.projects.empty}" class="text-gray-500 text-center py-4">Belum ada proyek</p>
                 <div th:unless="${client.projects.empty}" class="space-y-2">
                     <a th:each="project : ${client.projects}"
-                       th:href="@{/projects/{id}(id=${project.id})}"
+                       th:href="@{/projects/{code}(code=${project.code})}"
                        class="block p-3 border rounded-lg hover:bg-gray-50">
                         <div class="flex items-center justify-between">
                             <div>

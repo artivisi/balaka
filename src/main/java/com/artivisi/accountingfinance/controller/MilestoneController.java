@@ -20,7 +20,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import java.util.UUID;
 
 @Controller
-@RequestMapping("/projects/{projectId}/milestones")
+@RequestMapping("/projects/{projectCode}/milestones")
 @RequiredArgsConstructor
 public class MilestoneController {
 
@@ -28,8 +28,8 @@ public class MilestoneController {
     private final ProjectService projectService;
 
     @GetMapping("/new")
-    public String newForm(@PathVariable UUID projectId, Model model) {
-        Project project = projectService.findById(projectId);
+    public String newForm(@PathVariable String projectCode, Model model) {
+        Project project = projectService.findByCode(projectCode);
         ProjectMilestone milestone = new ProjectMilestone();
 
         model.addAttribute("project", project);
@@ -40,26 +40,27 @@ public class MilestoneController {
 
     @PostMapping("/new")
     public String create(
-            @PathVariable UUID projectId,
+            @PathVariable String projectCode,
             @Valid @ModelAttribute("milestone") ProjectMilestone milestone,
             BindingResult bindingResult,
             Model model,
             RedirectAttributes redirectAttributes) {
 
         if (bindingResult.hasErrors()) {
-            Project project = projectService.findById(projectId);
+            Project project = projectService.findByCode(projectCode);
             model.addAttribute("project", project);
             model.addAttribute("currentPage", "projects");
             return "milestones/form";
         }
 
         try {
-            milestoneService.create(projectId, milestone);
+            Project project = projectService.findByCode(projectCode);
+            milestoneService.create(project.getId(), milestone);
             redirectAttributes.addFlashAttribute("successMessage", "Milestone berhasil ditambahkan");
-            return "redirect:/projects/" + projectId;
+            return "redirect:/projects/" + projectCode;
         } catch (IllegalArgumentException e) {
             bindingResult.rejectValue("sequence", "duplicate", e.getMessage());
-            Project project = projectService.findById(projectId);
+            Project project = projectService.findByCode(projectCode);
             model.addAttribute("project", project);
             model.addAttribute("currentPage", "projects");
             return "milestones/form";
@@ -68,11 +69,11 @@ public class MilestoneController {
 
     @GetMapping("/{id}/edit")
     public String editForm(
-            @PathVariable UUID projectId,
+            @PathVariable String projectCode,
             @PathVariable UUID id,
             Model model) {
 
-        Project project = projectService.findById(projectId);
+        Project project = projectService.findByCode(projectCode);
         ProjectMilestone milestone = milestoneService.findById(id);
 
         model.addAttribute("project", project);
@@ -83,7 +84,7 @@ public class MilestoneController {
 
     @PostMapping("/{id}")
     public String update(
-            @PathVariable UUID projectId,
+            @PathVariable String projectCode,
             @PathVariable UUID id,
             @Valid @ModelAttribute("milestone") ProjectMilestone milestone,
             BindingResult bindingResult,
@@ -91,7 +92,7 @@ public class MilestoneController {
             RedirectAttributes redirectAttributes) {
 
         if (bindingResult.hasErrors()) {
-            Project project = projectService.findById(projectId);
+            Project project = projectService.findByCode(projectCode);
             milestone.setId(id);
             model.addAttribute("project", project);
             model.addAttribute("currentPage", "projects");
@@ -101,10 +102,10 @@ public class MilestoneController {
         try {
             milestoneService.update(id, milestone);
             redirectAttributes.addFlashAttribute("successMessage", "Milestone berhasil diperbarui");
-            return "redirect:/projects/" + projectId;
+            return "redirect:/projects/" + projectCode;
         } catch (IllegalArgumentException e) {
             bindingResult.rejectValue("sequence", "duplicate", e.getMessage());
-            Project project = projectService.findById(projectId);
+            Project project = projectService.findByCode(projectCode);
             milestone.setId(id);
             model.addAttribute("project", project);
             model.addAttribute("currentPage", "projects");
@@ -114,7 +115,7 @@ public class MilestoneController {
 
     @PostMapping("/{id}/start")
     public String start(
-            @PathVariable UUID projectId,
+            @PathVariable String projectCode,
             @PathVariable UUID id,
             @RequestHeader(value = "HX-Request", required = false) String hxRequest,
             RedirectAttributes redirectAttributes) {
@@ -122,16 +123,16 @@ public class MilestoneController {
         milestoneService.startMilestone(id);
 
         if ("true".equals(hxRequest)) {
-            return "redirect:/projects/" + projectId + "/milestones-fragment";
+            return "redirect:/projects/" + projectCode + "/milestones-fragment";
         }
 
         redirectAttributes.addFlashAttribute("successMessage", "Milestone dimulai");
-        return "redirect:/projects/" + projectId;
+        return "redirect:/projects/" + projectCode;
     }
 
     @PostMapping("/{id}/complete")
     public String complete(
-            @PathVariable UUID projectId,
+            @PathVariable String projectCode,
             @PathVariable UUID id,
             @RequestHeader(value = "HX-Request", required = false) String hxRequest,
             RedirectAttributes redirectAttributes) {
@@ -139,16 +140,16 @@ public class MilestoneController {
         milestoneService.completeMilestone(id);
 
         if ("true".equals(hxRequest)) {
-            return "redirect:/projects/" + projectId + "/milestones-fragment";
+            return "redirect:/projects/" + projectCode + "/milestones-fragment";
         }
 
         redirectAttributes.addFlashAttribute("successMessage", "Milestone selesai");
-        return "redirect:/projects/" + projectId;
+        return "redirect:/projects/" + projectCode;
     }
 
     @PostMapping("/{id}/reset")
     public String reset(
-            @PathVariable UUID projectId,
+            @PathVariable String projectCode,
             @PathVariable UUID id,
             @RequestHeader(value = "HX-Request", required = false) String hxRequest,
             RedirectAttributes redirectAttributes) {
@@ -156,21 +157,21 @@ public class MilestoneController {
         milestoneService.resetMilestone(id);
 
         if ("true".equals(hxRequest)) {
-            return "redirect:/projects/" + projectId + "/milestones-fragment";
+            return "redirect:/projects/" + projectCode + "/milestones-fragment";
         }
 
         redirectAttributes.addFlashAttribute("successMessage", "Milestone direset");
-        return "redirect:/projects/" + projectId;
+        return "redirect:/projects/" + projectCode;
     }
 
     @PostMapping("/{id}/delete")
     public String delete(
-            @PathVariable UUID projectId,
+            @PathVariable String projectCode,
             @PathVariable UUID id,
             RedirectAttributes redirectAttributes) {
 
         milestoneService.delete(id);
         redirectAttributes.addFlashAttribute("successMessage", "Milestone berhasil dihapus");
-        return "redirect:/projects/" + projectId;
+        return "redirect:/projects/" + projectCode;
     }
 }

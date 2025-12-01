@@ -386,7 +386,7 @@
 <body>
     <!-- Print Controls -->
     <div class="print-controls">
-        <a th:href="@{/invoices/{id}(id=${invoice.id})}" class="btn-back">Kembali</a>
+        <a th:href="@{/invoices/{invoiceNumber}(invoiceNumber=${invoice.invoiceNumber})}" class="btn-back">Kembali</a>
         <button onclick="window.print()" class="btn-print">Cetak Invoice</button>
     </div>
 

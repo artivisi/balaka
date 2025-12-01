@@ -46,20 +46,14 @@ class JournalEntryEditTest extends PlaywrightTestBase {
 
         journalFormPage.clickSaveDraft();
 
-        // Wait for redirect to detail page with UUID
-        page.waitForURL(url -> url.matches(".*/journals/[0-9a-f-]{36}$"),
+        // Wait for redirect to detail page with journal number
+        page.waitForURL(url -> url.matches(".*/journals/JE-\\d{4}-\\d{4}$"),
                 new com.microsoft.playwright.Page.WaitForURLOptions().setTimeout(10000));
 
         String url = page.url();
-        String id = url.substring(url.lastIndexOf("/") + 1);
+        String journalNumber = url.substring(url.lastIndexOf("/") + 1);
 
-        // Get journal number via API
-        APIResponse response = page.context().request().get(baseUrl() + "/journals/api/" + id);
-        String body = response.text();
-        // Extract journalNumber from JSON response (simple parsing)
-        String journalNumber = extractJsonValue(body, "journalNumber");
-
-        return new JournalEntryInfo(id, journalNumber);
+        return new JournalEntryInfo(journalNumber, journalNumber);
     }
 
     private JournalEntryInfo createPostedJournalEntry() {
@@ -78,19 +72,14 @@ class JournalEntryEditTest extends PlaywrightTestBase {
 
         journalFormPage.clickSaveAndPost();
 
-        // Wait for redirect to detail page with UUID
-        page.waitForURL(url -> url.matches(".*/journals/[0-9a-f-]{36}$"),
+        // Wait for redirect to detail page with journal number
+        page.waitForURL(url -> url.matches(".*/journals/JE-\\d{4}-\\d{4}$"),
                 new com.microsoft.playwright.Page.WaitForURLOptions().setTimeout(10000));
 
         String url = page.url();
-        String id = url.substring(url.lastIndexOf("/") + 1);
+        String journalNumber = url.substring(url.lastIndexOf("/") + 1);
 
-        // Get journal number via API
-        APIResponse response = page.context().request().get(baseUrl() + "/journals/api/" + id);
-        String body = response.text();
-        String journalNumber = extractJsonValue(body, "journalNumber");
-
-        return new JournalEntryInfo(id, journalNumber);
+        return new JournalEntryInfo(journalNumber, journalNumber);
     }
 
     private String extractJsonValue(String json, String key) {
@@ -235,8 +224,8 @@ class JournalEntryEditTest extends PlaywrightTestBase {
             // Click save and wait for redirect
             journalFormPage.clickSaveDraft();
 
-            // Wait for redirect to detail page with UUID
-            page.waitForURL(url -> url.matches(".*/journals/[0-9a-f-]{36}$"),
+            // Wait for redirect to detail page with journal number
+            page.waitForURL(url -> url.matches(".*/journals/JE-\\d{4}-\\d{4}$"),
                     new com.microsoft.playwright.Page.WaitForURLOptions().setTimeout(10000));
 
             // Navigate back to edit to verify changes persisted
@@ -261,8 +250,8 @@ class JournalEntryEditTest extends PlaywrightTestBase {
 
             journalFormPage.clickSaveAndPost();
 
-            // Wait for redirect to detail page with UUID
-            page.waitForURL(url -> url.matches(".*/journals/[0-9a-f-]{36}$"),
+            // Wait for redirect to detail page with journal number
+            page.waitForURL(url -> url.matches(".*/journals/JE-\\d{4}-\\d{4}$"),
                     new com.microsoft.playwright.Page.WaitForURLOptions().setTimeout(10000));
 
             // Try to edit again - should redirect since it's now posted

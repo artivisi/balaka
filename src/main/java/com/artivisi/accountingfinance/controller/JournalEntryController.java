@@ -179,10 +179,11 @@ public class JournalEntryController {
         return ResponseEntity.ok(journalEntryService.findAllByDateRange(startDate, endDate, pageable));
     }
 
-    @GetMapping("/api/{id}")
+    @GetMapping("/api/{journalNumber}")
     @ResponseBody
-    public ResponseEntity<JournalEntry> apiGet(@PathVariable UUID id) {
-        return ResponseEntity.ok(journalEntryService.findById(id));
+    public ResponseEntity<JournalEntry> apiGet(@PathVariable String journalNumber) {
+        JournalEntry entry = journalEntryService.findByJournalNumber(journalNumber);
+        return ResponseEntity.ok(entry);
     }
 
     @PostMapping("/api")

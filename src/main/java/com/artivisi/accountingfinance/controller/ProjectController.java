@@ -83,7 +83,7 @@ public class ProjectController {
         try {
             Project saved = projectService.create(project, clientId);
             redirectAttributes.addFlashAttribute("successMessage", "Proyek berhasil ditambahkan");
-            return "redirect:/projects/" + saved.getId();
+            return "redirect:/projects/" + saved.getCode();
         } catch (IllegalArgumentException e) {
             bindingResult.rejectValue("code", "duplicate", e.getMessage());
             model.addAttribute("clients", clientService.findActiveClients());
@@ -92,26 +92,26 @@ public class ProjectController {
         }
     }
 
-    @GetMapping("/{id}")
-    public String detail(@PathVariable UUID id, Model model) {
-        Project project = projectService.findById(id);
+    @GetMapping("/{code}")
+    public String detail(@PathVariable String code, Model model) {
+        Project project = projectService.findByCode(code);
         model.addAttribute("project", project);
         model.addAttribute("currentPage", "projects");
         return "projects/detail";
     }
 
-    @GetMapping("/{id}/edit")
-    public String editForm(@PathVariable UUID id, Model model) {
-        Project project = projectService.findById(id);
+    @GetMapping("/{code}/edit")
+    public String editForm(@PathVariable String code, Model model) {
+        Project project = projectService.findByCode(code);
         model.addAttribute("project", project);
         model.addAttribute("clients", clientService.findActiveClients());
         model.addAttribute("currentPage", "projects");
         return "projects/form";
     }
 
-    @PostMapping("/{id}")
+    @PostMapping("/{code}")
     public String update(
-            @PathVariable UUID id,
+            @PathVariable String code,
             @Valid @ModelAttribute("project") Project project,
             BindingResult bindingResult,
             @RequestParam(required = false) UUID clientId,
@@ -119,52 +119,58 @@ public class ProjectController {
             RedirectAttributes redirectAttributes) {
 
         if (bindingResult.hasErrors()) {
-            project.setId(id);
+            Project existing = projectService.findByCode(code);
+            project.setId(existing.getId());
             model.addAttribute("clients", clientService.findActiveClients());
             model.addAttribute("currentPage", "projects");
             return "projects/form";
         }
 
         try {
-            projectService.update(id, project, clientId);
+            Project existing = projectService.findByCode(code);
+            projectService.update(existing.getId(), project, clientId);
             redirectAttributes.addFlashAttribute("successMessage", "Proyek berhasil diperbarui");
-            return "redirect:/projects/" + id;
+            return "redirect:/projects/" + project.getCode();
         } catch (IllegalArgumentException e) {
             bindingResult.rejectValue("code", "duplicate", e.getMessage());
-            project.setId(id);
+            Project existing = projectService.findByCode(code);
+            project.setId(existing.getId());
             model.addAttribute("clients", clientService.findActiveClients());
             model.addAttribute("currentPage", "projects");
             return "projects/form";
         }
     }
 
-    @PostMapping("/{id}/complete")
+    @PostMapping("/{code}/complete")
     public String complete(
-            @PathVariable UUID id,
+            @PathVariable String code,
             RedirectAttributes redirectAttributes) {
 
-        projectService.complete(id);
+        Project project = projectService.findByCode(code);
+        projectService.complete(project.getId());
         redirectAttributes.addFlashAttribute("successMessage", "Proyek berhasil diselesaikan");
-        return "redirect:/projects/" + id;
+        return "redirect:/projects/" + code;
     }
 
-    @PostMapping("/{id}/archive")
+    @PostMapping("/{code}/archive")
     public String archive(
-            @PathVariable UUID id,
+            @PathVariable String code,
             RedirectAttributes redirectAttributes) {
 
-        projectService.archive(id);
+        Project project = projectService.findByCode(code);
+        projectService.archive(project.getId());
         redirectAttributes.addFlashAttribute("successMessage", "Proyek berhasil diarsipkan");
-        return "redirect:/projects/" + id;
+        return "redirect:/projects/" + code;
     }
 
-    @PostMapping("/{id}/reactivate")
+    @PostMapping("/{code}/reactivate")
     public String reactivate(
-            @PathVariable UUID id,
+            @PathVariable String code,
             RedirectAttributes redirectAttributes) {
 
-        projectService.reactivate(id);
+        Project project = projectService.findByCode(code);
+        projectService.reactivate(project.getId());
         redirectAttributes.addFlashAttribute("successMessage", "Proyek berhasil diaktifkan kembali");
-        return "redirect:/projects/" + id;
+        return "redirect:/projects/" + code;
     }
 }

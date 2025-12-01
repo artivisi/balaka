@@ -67,6 +67,7 @@ public class AmortizationEntryService {
 
         // Update amortization entry
         entry.setJournalEntryId(savedEntries.get(0).getId());
+        entry.setJournalNumber(savedEntries.get(0).getJournalNumber());
         entry.setStatus(AmortizationEntryStatus.POSTED);
         entry.setPostedAt(LocalDateTime.now());
         entry.setGeneratedAt(LocalDateTime.now());

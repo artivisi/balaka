@@ -46,15 +46,15 @@ class JournalEntryViewTest extends PlaywrightTestBase {
 
         journalFormPage.clickSaveDraft();
 
-        page.waitForURL(url -> url.matches(".*/journals/[0-9a-f-]{36}$"),
+        page.waitForURL(url -> url.matches(".*/journals/JE-\\d{4}-\\d{4}$"),
                 new com.microsoft.playwright.Page.WaitForURLOptions().setTimeout(10000));
 
         String url = page.url();
-        String id = url.substring(url.lastIndexOf("/") + 1);
+        String journalNumber = url.substring(url.lastIndexOf("/") + 1);
 
-        APIResponse response = page.context().request().get(baseUrl() + "/journals/api/" + id);
+        APIResponse response = page.context().request().get(baseUrl() + "/journals/api/" + journalNumber);
         String body = response.text();
-        String journalNumber = extractJsonValue(body, "journalNumber");
+        String id = extractJsonValue(body, "id");
 
         return new JournalEntryInfo(id, journalNumber);
     }
@@ -75,15 +75,15 @@ class JournalEntryViewTest extends PlaywrightTestBase {
 
         journalFormPage.clickSaveAndPost();
 
-        page.waitForURL(url -> url.matches(".*/journals/[0-9a-f-]{36}$"),
+        page.waitForURL(url -> url.matches(".*/journals/JE-\\d{4}-\\d{4}$"),
                 new com.microsoft.playwright.Page.WaitForURLOptions().setTimeout(10000));
 
         String url = page.url();
-        String id = url.substring(url.lastIndexOf("/") + 1);
+        String journalNumber = url.substring(url.lastIndexOf("/") + 1);
 
-        APIResponse response = page.context().request().get(baseUrl() + "/journals/api/" + id);
+        APIResponse response = page.context().request().get(baseUrl() + "/journals/api/" + journalNumber);
         String body = response.text();
-        String journalNumber = extractJsonValue(body, "journalNumber");
+        String id = extractJsonValue(body, "id");
 
         return new JournalEntryInfo(id, journalNumber);
     }
@@ -106,7 +106,7 @@ class JournalEntryViewTest extends PlaywrightTestBase {
         void shouldDisplayJournalNumber() {
             JournalEntryInfo info = createDraftJournalEntry();
 
-            journalDetailPage.navigate(info.id());
+            journalDetailPage.navigate(info.journalNumber());
 
             journalDetailPage.assertJournalNumberVisible();
             journalDetailPage.assertJournalNumberText(info.journalNumber());
@@ -117,7 +117,7 @@ class JournalEntryViewTest extends PlaywrightTestBase {
         void shouldDisplayDescription() {
             JournalEntryInfo info = createDraftJournalEntry();
 
-            journalDetailPage.navigate(info.id());
+            journalDetailPage.navigate(info.journalNumber());
 
             journalDetailPage.assertJournalDescriptionText("Test Entry for View");
         }
@@ -127,7 +127,7 @@ class JournalEntryViewTest extends PlaywrightTestBase {
         void shouldDisplayJournalDate() {
             JournalEntryInfo info = createDraftJournalEntry();
 
-            journalDetailPage.navigate(info.id());
+            journalDetailPage.navigate(info.journalNumber());
 
             journalDetailPage.assertJournalDateContains("2025");
         }
@@ -137,7 +137,7 @@ class JournalEntryViewTest extends PlaywrightTestBase {
         void shouldDisplayReferenceNumber() {
             JournalEntryInfo info = createDraftJournalEntry();
 
-            journalDetailPage.navigate(info.id());
+            journalDetailPage.navigate(info.journalNumber());
 
             journalDetailPage.assertReferenceNumberText("VIEW-TEST-001");
         }
@@ -152,7 +152,7 @@ class JournalEntryViewTest extends PlaywrightTestBase {
         void shouldDisplayJournalLines() {
             JournalEntryInfo info = createDraftJournalEntry();
 
-            journalDetailPage.navigate(info.id());
+            journalDetailPage.navigate(info.journalNumber());
 
             journalDetailPage.assertJournalLinesVisible();
             journalDetailPage.assertJournalLineCount(2);
@@ -163,7 +163,7 @@ class JournalEntryViewTest extends PlaywrightTestBase {
         void shouldDisplayCalculatedTotals() {
             JournalEntryInfo info = createDraftJournalEntry();
 
-            journalDetailPage.navigate(info.id());
+            journalDetailPage.navigate(info.journalNumber());
 
             journalDetailPage.assertTotalDebitText("1.000.000");
             journalDetailPage.assertTotalCreditText("1.000.000");
@@ -174,7 +174,7 @@ class JournalEntryViewTest extends PlaywrightTestBase {
         void shouldShowBalancedStatus() {
             JournalEntryInfo info = createDraftJournalEntry();
 
-            journalDetailPage.navigate(info.id());
+            journalDetailPage.navigate(info.journalNumber());
 
             journalDetailPage.assertBalanceStatusVisible();
             journalDetailPage.assertBalanced();
@@ -190,7 +190,7 @@ class JournalEntryViewTest extends PlaywrightTestBase {
         void shouldShowDraftStatusBadge() {
             JournalEntryInfo info = createDraftJournalEntry();
 
-            journalDetailPage.navigate(info.id());
+            journalDetailPage.navigate(info.journalNumber());
 
             journalDetailPage.assertStatusBadgeVisible();
             journalDetailPage.assertStatusBadgeText("Draft");
@@ -201,7 +201,7 @@ class JournalEntryViewTest extends PlaywrightTestBase {
         void shouldShowDraftStatusBanner() {
             JournalEntryInfo info = createDraftJournalEntry();
 
-            journalDetailPage.navigate(info.id());
+            journalDetailPage.navigate(info.journalNumber());
 
             journalDetailPage.assertDraftBannerVisible();
             journalDetailPage.assertPostedBannerNotVisible();
@@ -213,7 +213,7 @@ class JournalEntryViewTest extends PlaywrightTestBase {
         void shouldShowEditButtonForDraft() {
             JournalEntryInfo info = createDraftJournalEntry();
 
-            journalDetailPage.navigate(info.id());
+            journalDetailPage.navigate(info.journalNumber());
 
             journalDetailPage.assertEditButtonVisible();
         }
@@ -223,7 +223,7 @@ class JournalEntryViewTest extends PlaywrightTestBase {
         void shouldShowPostButtonForDraft() {
             JournalEntryInfo info = createDraftJournalEntry();
 
-            journalDetailPage.navigate(info.id());
+            journalDetailPage.navigate(info.journalNumber());
 
             journalDetailPage.assertPostButtonVisible();
             journalDetailPage.assertPostButtonEnabled();
@@ -234,7 +234,7 @@ class JournalEntryViewTest extends PlaywrightTestBase {
         void shouldNotShowVoidButtonForDraft() {
             JournalEntryInfo info = createDraftJournalEntry();
 
-            journalDetailPage.navigate(info.id());
+            journalDetailPage.navigate(info.journalNumber());
 
             journalDetailPage.assertVoidButtonNotVisible();
         }
@@ -249,7 +249,7 @@ class JournalEntryViewTest extends PlaywrightTestBase {
         void shouldShowPostedStatusBadge() {
             JournalEntryInfo info = createPostedJournalEntry();
 
-            journalDetailPage.navigate(info.id());
+            journalDetailPage.navigate(info.journalNumber());
 
             journalDetailPage.assertStatusBadgeVisible();
             journalDetailPage.assertStatusBadgeText("Posted");
@@ -260,7 +260,7 @@ class JournalEntryViewTest extends PlaywrightTestBase {
         void shouldShowPostedStatusBanner() {
             JournalEntryInfo info = createPostedJournalEntry();
 
-            journalDetailPage.navigate(info.id());
+            journalDetailPage.navigate(info.journalNumber());
 
             journalDetailPage.assertPostedBannerVisible();
             journalDetailPage.assertDraftBannerNotVisible();
@@ -272,7 +272,7 @@ class JournalEntryViewTest extends PlaywrightTestBase {
         void shouldNotShowEditButtonForPosted() {
             JournalEntryInfo info = createPostedJournalEntry();
 
-            journalDetailPage.navigate(info.id());
+            journalDetailPage.navigate(info.journalNumber());
 
             journalDetailPage.assertEditButtonNotVisible();
         }
@@ -282,7 +282,7 @@ class JournalEntryViewTest extends PlaywrightTestBase {
         void shouldNotShowPostButtonForPosted() {
             JournalEntryInfo info = createPostedJournalEntry();
 
-            journalDetailPage.navigate(info.id());
+            journalDetailPage.navigate(info.journalNumber());
 
             journalDetailPage.assertPostButtonNotVisible();
         }
@@ -292,7 +292,7 @@ class JournalEntryViewTest extends PlaywrightTestBase {
         void shouldShowVoidButtonForPosted() {
             JournalEntryInfo info = createPostedJournalEntry();
 
-            journalDetailPage.navigate(info.id());
+            journalDetailPage.navigate(info.journalNumber());
 
             journalDetailPage.assertVoidButtonVisible();
         }
@@ -302,7 +302,7 @@ class JournalEntryViewTest extends PlaywrightTestBase {
         void shouldShowPostedTimestamp() {
             JournalEntryInfo info = createPostedJournalEntry();
 
-            journalDetailPage.navigate(info.id());
+            journalDetailPage.navigate(info.journalNumber());
 
             journalDetailPage.assertPostedAtVisible();
         }
@@ -317,7 +317,7 @@ class JournalEntryViewTest extends PlaywrightTestBase {
         void shouldDisplayAccountImpactSection() {
             JournalEntryInfo info = createDraftJournalEntry();
 
-            journalDetailPage.navigate(info.id());
+            journalDetailPage.navigate(info.journalNumber());
 
             journalDetailPage.assertAccountImpactSectionVisible();
         }
@@ -327,7 +327,7 @@ class JournalEntryViewTest extends PlaywrightTestBase {
         void shouldDisplayCorrectNumberOfRows() {
             JournalEntryInfo info = createDraftJournalEntry();
 
-            journalDetailPage.navigate(info.id());
+            journalDetailPage.navigate(info.journalNumber());
 
             // Should have 2 rows - one for Kas and one for Pendapatan Jasa Konsultasi
             journalDetailPage.assertAccountImpactRowCount(2);
@@ -338,7 +338,7 @@ class JournalEntryViewTest extends PlaywrightTestBase {
         void shouldDisplayAccountsInImpactSection() {
             JournalEntryInfo info = createDraftJournalEntry();
 
-            journalDetailPage.navigate(info.id());
+            journalDetailPage.navigate(info.journalNumber());
 
             journalDetailPage.assertAccountImpactContainsAccount("1.1.01");
             journalDetailPage.assertAccountImpactContainsAccount("4.1.01");
@@ -349,7 +349,7 @@ class JournalEntryViewTest extends PlaywrightTestBase {
         void shouldDisplayDebitAndCreditMovements() {
             JournalEntryInfo info = createDraftJournalEntry();
 
-            journalDetailPage.navigate(info.id());
+            journalDetailPage.navigate(info.journalNumber());
 
             // Kas has debit of 1,000,000
             journalDetailPage.assertAccountImpactRowHasDebitMovement("1.1.01", "1.000.000");

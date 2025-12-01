@@ -98,7 +98,7 @@ class AccountValidationTest extends PlaywrightTestBase {
 
             journalFormPage.clickSaveDraft();
 
-            page.waitForURL(url -> url.matches(".*/journals/[0-9a-f-]{36}$"),
+            page.waitForURL(url -> url.matches(".*/journals/JE-\\d{4}-\\d{4}$"),
                     new com.microsoft.playwright.Page.WaitForURLOptions().setTimeout(10000));
 
             // Navigate to account edit form for Kas
@@ -164,7 +164,7 @@ class AccountValidationTest extends PlaywrightTestBase {
 
             journalFormPage.clickSaveDraft();
 
-            page.waitForURL(url -> url.matches(".*/journals/[0-9a-f-]{36}$"),
+            page.waitForURL(url -> url.matches(".*/journals/JE-\\d{4}-\\d{4}$"),
                     new com.microsoft.playwright.Page.WaitForURLOptions().setTimeout(10000));
 
             // Navigate to accounts page

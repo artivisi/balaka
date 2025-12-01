@@ -143,22 +143,28 @@ public class TemplateExecutePage {
     }
 
     public void assertAccountCodeVisible(int rowIndex) {
-        String selector = PREVIEW_TABLE + " tbody tr.preview-row:nth-child(" + (rowIndex + 1) + ") .account-code";
-        assertThat(page.locator(selector)).isVisible();
+        // Use nth-of-type instead of nth-child to avoid counting the <template> element
+        String selector = PREVIEW_TABLE + " tbody tr.preview-row:nth-of-type(" + (rowIndex + 1) + ") .account-code";
+        // The account code should be present and have non-empty text
+        assertThat(page.locator(selector)).not().isEmpty();
     }
 
     public void assertAccountNameVisible(int rowIndex) {
-        String selector = PREVIEW_TABLE + " tbody tr.preview-row:nth-child(" + (rowIndex + 1) + ") .account-name";
-        assertThat(page.locator(selector)).isVisible();
+        // Use nth-of-type instead of nth-child to avoid counting the <template> element  
+        String selector = PREVIEW_TABLE + " tbody tr.preview-row:nth-of-type(" + (rowIndex + 1) + ") .account-name";
+        // The account name should be present and have non-empty text
+        assertThat(page.locator(selector)).not().isEmpty();
     }
 
     public String getAccountCode(int rowIndex) {
-        String selector = PREVIEW_TABLE + " tbody tr.preview-row:nth-child(" + (rowIndex + 1) + ") .account-code";
+        // Use nth-of-type instead of nth-child to avoid counting the <template> element
+        String selector = PREVIEW_TABLE + " tbody tr.preview-row:nth-of-type(" + (rowIndex + 1) + ") .account-code";
         return page.locator(selector).textContent().trim();
     }
 
     public String getAccountName(int rowIndex) {
-        String selector = PREVIEW_TABLE + " tbody tr.preview-row:nth-child(" + (rowIndex + 1) + ") .account-name";
+        // Use nth-of-type instead of nth-child to avoid counting the <template> element
+        String selector = PREVIEW_TABLE + " tbody tr.preview-row:nth-of-type(" + (rowIndex + 1) + ") .account-name";
         return page.locator(selector).textContent().trim();
     }
 

@@ -65,7 +65,7 @@
                 </select>
 
                 <!-- Project Filter -->
-                <select id="filter-project" name="projectId" th:if="${projects != null and !projects.isEmpty()}"
+                <select id="filter-project" name="projectCode" th:if="${projects != null and !projects.isEmpty()}"
                         hx-get="/transactions"
                         hx-target="#transaction-table"
                         hx-swap="outerHTML"
@@ -73,9 +73,9 @@
                         hx-include="#filter-form"
                         class="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
                     <option value="">Semua Proyek</option>
-                    <option th:each="prj : ${projects}" th:value="${prj.id}"
+                    <option th:each="prj : ${projects}" th:value="${prj.code}"
                             th:text="${prj.code + ' - ' + prj.name}"
-                            th:selected="${selectedProjectId != null and selectedProjectId == prj.id}">Project</option>
+                            th:selected="${selectedProjectCode != null and selectedProjectCode == prj.code}">Project</option>
                 </select>
 
                 <button type="submit" id="btn-filter" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">

@@ -19,8 +19,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.util.UUID;
-
 @Controller
 @RequestMapping("/clients")
 @RequiredArgsConstructor
@@ -73,7 +71,7 @@ public class ClientController {
         try {
             Client saved = clientService.create(client);
             redirectAttributes.addFlashAttribute("successMessage", "Klien berhasil ditambahkan");
-            return "redirect:/clients/" + saved.getId();
+            return "redirect:/clients/" + saved.getCode();
         } catch (IllegalArgumentException e) {
             bindingResult.rejectValue("code", "duplicate", e.getMessage());
             model.addAttribute("currentPage", "clients");
@@ -81,65 +79,70 @@ public class ClientController {
         }
     }
 
-    @GetMapping("/{id}")
-    public String detail(@PathVariable UUID id, Model model) {
-        Client client = clientService.findById(id);
+    @GetMapping("/{code}")
+    public String detail(@PathVariable String code, Model model) {
+        Client client = clientService.findByCode(code);
         model.addAttribute("client", client);
         model.addAttribute("currentPage", "clients");
         return "clients/detail";
     }
 
-    @GetMapping("/{id}/edit")
-    public String editForm(@PathVariable UUID id, Model model) {
-        Client client = clientService.findById(id);
+    @GetMapping("/{code}/edit")
+    public String editForm(@PathVariable String code, Model model) {
+        Client client = clientService.findByCode(code);
         model.addAttribute("client", client);
         model.addAttribute("currentPage", "clients");
         return "clients/form";
     }
 
-    @PostMapping("/{id}")
+    @PostMapping("/{code}")
     public String update(
-            @PathVariable UUID id,
+            @PathVariable String code,
             @Valid Client client,
             BindingResult bindingResult,
             Model model,
             RedirectAttributes redirectAttributes) {
 
         if (bindingResult.hasErrors()) {
-            client.setId(id);
+            Client existing = clientService.findByCode(code);
+            client.setId(existing.getId());
             model.addAttribute("currentPage", "clients");
             return "clients/form";
         }
 
         try {
-            clientService.update(id, client);
+            Client existing = clientService.findByCode(code);
+            clientService.update(existing.getId(), client);
             redirectAttributes.addFlashAttribute("successMessage", "Klien berhasil diperbarui");
-            return "redirect:/clients/" + id;
+            return "redirect:/clients/" + client.getCode();
         } catch (IllegalArgumentException e) {
             bindingResult.rejectValue("code", "duplicate", e.getMessage());
-            client.setId(id);
+            Client existing = clientService.findByCode(code);
+            client.setId(existing.getId());
             model.addAttribute("currentPage", "clients");
             return "clients/form";
         }
     }
 
-    @PostMapping("/{id}/deactivate")
+    @PostMapping("/{code}/deactivate")
     public String deactivate(
-            @PathVariable UUID id,
+            @PathVariable String code,
             RedirectAttributes redirectAttributes) {
 
-        clientService.deactivate(id);
+        Client client = clientService.findByCode(code);
+        clientService.deactivate(client.getId());
         redirectAttributes.addFlashAttribute("successMessage", "Klien berhasil dinonaktifkan");
-        return "redirect:/clients/" + id;
+        return "redirect:/clients/" + code;
     }
 
-    @PostMapping("/{id}/activate")
+    @PostMapping("/{code}/activate")
     public String activate(
-            @PathVariable UUID id,
+            @PathVariable String code,
             RedirectAttributes redirectAttributes) {
 
-        clientService.activate(id);
+        Client client = clientService.findByCode(code);
+        clientService.activate(client.getId());
         redirectAttributes.addFlashAttribute("successMessage", "Klien berhasil diaktifkan");
-        return "redirect:/clients/" + id;
+        return "redirect:/clients/" + code;
     }
 }

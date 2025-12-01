@@ -20,7 +20,7 @@
         </nav>
 
         <div class="bg-white rounded-lg shadow p-6">
-            <form th:action="${invoice.id != null} ? @{/invoices/{id}(id=${invoice.id})} : @{/invoices/new}"
+            <form th:action="${invoice.id != null} ? @{/invoices/{invoiceNumber}(invoiceNumber=${invoice.invoiceNumber})} : @{/invoices/new}"
                   th:object="${invoice}"
                   method="post" class="space-y-6">
 

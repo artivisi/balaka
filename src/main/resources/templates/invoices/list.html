@@ -80,7 +80,7 @@
                     </tr>
                     <tr th:each="invoice : ${invoices}" class="hover:bg-gray-50">
                         <td class="px-6 py-4">
-                            <a th:href="@{/invoices/{id}(id=${invoice.id})}" class="text-primary-600 hover:underline font-mono" th:text="${invoice.invoiceNumber}">INV-001</a>
+                            <a th:href="@{/invoices/{invoiceNumber}(invoiceNumber=${invoice.invoiceNumber})}" class="text-primary-600 hover:underline font-mono" th:text="${invoice.invoiceNumber}">INV-001</a>
                         </td>
                         <td class="px-6 py-4 text-sm" th:text="${invoice.client.name}">Client</td>
                         <td class="px-6 py-4 text-sm" th:text="${invoice.project != null ? invoice.project.name : '-'}">Project</td>
@@ -95,7 +95,7 @@
                             <span th:if="${invoice.status.name() == 'CANCELLED'}" class="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-500">Dibatalkan</span>
                         </td>
                         <td class="px-6 py-4 text-center">
-                            <a th:href="@{/invoices/{id}(id=${invoice.id})}" class="text-primary-600 hover:underline text-sm">Detail</a>
+                            <a th:href="@{/invoices/{invoiceNumber}(invoiceNumber=${invoice.invoiceNumber})}" class="text-primary-600 hover:underline text-sm">Detail</a>
                         </td>
                     </tr>
                 </tbody>

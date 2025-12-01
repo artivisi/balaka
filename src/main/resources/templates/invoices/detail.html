@@ -15,10 +15,10 @@
             <div>
                 <h2 class="text-xl font-semibold text-gray-900 font-mono" th:text="${invoice.invoiceNumber}">INV-001</h2>
                 <p class="text-sm text-gray-500 mt-1">
-                    <a th:href="@{/clients/{id}(id=${invoice.client.id})}" class="text-primary-600 hover:underline" th:text="${invoice.client.name}">Client Name</a>
+                    <a th:href="@{/clients/{code}(code=${invoice.client.code})}" class="text-primary-600 hover:underline" th:text="${invoice.client.name}">Client Name</a>
                 </p>
                 <p class="text-sm text-gray-500" th:if="${invoice.project}">
-                    Proyek: <a th:href="@{/projects/{id}(id=${invoice.project.id})}" class="text-primary-600 hover:underline" th:text="${invoice.project.name}">Project Name</a>
+                    Proyek: <a th:href="@{/projects/{code}(code=${invoice.project.code})}" class="text-primary-600 hover:underline" th:text="${invoice.project.name}">Project Name</a>
                 </p>
             </div>
             <div class="flex items-center gap-2">
@@ -82,7 +82,7 @@
             </a>
             <div class="flex items-center gap-2">
                 <!-- Print -->
-                <a th:href="@{/invoices/{id}/print(id=${invoice.id})}"
+                <a th:href="@{/invoices/{invoiceNumber}/print(invoiceNumber=${invoice.invoiceNumber})}"
                    target="_blank"
                    class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
                     Cetak
@@ -90,14 +90,14 @@
 
                 <!-- Edit (only draft) -->
                 <a th:if="${invoice.status.name() == 'DRAFT'}"
-                   th:href="@{/invoices/{id}/edit(id=${invoice.id})}"
+                   th:href="@{/invoices/{invoiceNumber}/edit(invoiceNumber=${invoice.invoiceNumber})}"
                    class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
                     Edit
                 </a>
 
                 <!-- Send (only draft) -->
                 <form th:if="${invoice.status.name() == 'DRAFT'}"
-                      th:action="@{/invoices/{id}/send(id=${invoice.id})}"
+                      th:action="@{/invoices/{invoiceNumber}/send(invoiceNumber=${invoice.invoiceNumber})}"
                       method="post" class="inline"
                       onsubmit="return confirm('Kirim invoice ini ke klien?')">
                     <button type="submit" class="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">
@@ -107,14 +107,14 @@
 
                 <!-- Mark as Paid (sent or overdue) - redirects to transaction form -->
                 <a th:if="${invoice.status.name() == 'SENT' || invoice.status.name() == 'OVERDUE'}"
-                   th:href="@{/invoices/{id}/pay(id=${invoice.id})}"
+                   th:href="@{/invoices/{invoiceNumber}/pay(invoiceNumber=${invoice.invoiceNumber})}"
                    class="px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors">
                     Tandai Lunas
                 </a>
 
                 <!-- Cancel (not paid) -->
                 <form th:if="${invoice.status.name() != 'PAID' && invoice.status.name() != 'CANCELLED'}"
-                      th:action="@{/invoices/{id}/cancel(id=${invoice.id})}"
+                      th:action="@{/invoices/{invoiceNumber}/cancel(invoiceNumber=${invoice.invoiceNumber})}"
                       method="post" class="inline"
                       onsubmit="return confirm('Batalkan invoice ini?')">
                     <button type="submit" class="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">
@@ -124,7 +124,7 @@
 
                 <!-- Delete (draft or cancelled) -->
                 <form th:if="${invoice.status.name() == 'DRAFT' || invoice.status.name() == 'CANCELLED'}"
-                      th:action="@{/invoices/{id}/delete(id=${invoice.id})}"
+                      th:action="@{/invoices/{invoiceNumber}/delete(invoiceNumber=${invoice.invoiceNumber})}"
                       method="post" class="inline"
                       onsubmit="return confirm('Hapus invoice ini?')">
                     <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">

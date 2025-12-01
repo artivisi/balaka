@@ -27,7 +27,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
-import java.util.UUID;
 
 @Controller
 @RequestMapping("/employees")
@@ -95,7 +94,7 @@ public class EmployeeController {
         try {
             Employee saved = employeeService.create(employee);
             redirectAttributes.addFlashAttribute("successMessage", "Karyawan berhasil ditambahkan");
-            return "redirect:/employees/" + saved.getId();
+            return "redirect:/employees/" + saved.getEmployeeId();
         } catch (IllegalArgumentException e) {
             if (e.getMessage().contains("NIK")) {
                 bindingResult.rejectValue("employeeId", "duplicate", e.getMessage());
@@ -109,42 +108,44 @@ public class EmployeeController {
         }
     }
 
-    @GetMapping("/{id}")
-    public String detail(@PathVariable UUID id, Model model) {
-        Employee employee = employeeService.findById(id);
+    @GetMapping("/{employeeId}")
+    public String detail(@PathVariable String employeeId, Model model) {
+        Employee employee = employeeService.findByEmployeeId(employeeId);
         model.addAttribute("employee", employee);
         model.addAttribute("currentPage", "employees");
         return "employees/detail";
     }
 
-    @GetMapping("/{id}/edit")
+    @GetMapping("/{employeeId}/edit")
     @PreAuthorize("hasAuthority('" + Permission.EMPLOYEE_EDIT + "')")
-    public String editForm(@PathVariable UUID id, Model model) {
-        Employee employee = employeeService.findById(id);
+    public String editForm(@PathVariable String employeeId, Model model) {
+        Employee employee = employeeService.findByEmployeeId(employeeId);
         model.addAttribute("employee", employee);
         addFormAttributes(model);
         return "employees/form";
     }
 
-    @PostMapping("/{id}")
+    @PostMapping("/{employeeId}")
     @PreAuthorize("hasAuthority('" + Permission.EMPLOYEE_EDIT + "')")
     public String update(
-            @PathVariable UUID id,
+            @PathVariable String employeeId,
             @Valid @ModelAttribute("employee") Employee employee,
             BindingResult bindingResult,
             Model model,
             RedirectAttributes redirectAttributes) {
 
         if (bindingResult.hasErrors()) {
-            employee.setId(id);
+            Employee existing = employeeService.findByEmployeeId(employeeId);
+            employee.setId(existing.getId());
             addFormAttributes(model);
             return "employees/form";
         }
 
         try {
-            employeeService.update(id, employee);
+            Employee existing = employeeService.findByEmployeeId(employeeId);
+            employeeService.update(existing.getId(), employee);
             redirectAttributes.addFlashAttribute("successMessage", "Karyawan berhasil diperbarui");
-            return "redirect:/employees/" + id;
+            return "redirect:/employees/" + employee.getEmployeeId();
         } catch (IllegalArgumentException e) {
             if (e.getMessage().contains("NIK")) {
                 bindingResult.rejectValue("employeeId", "duplicate", e.getMessage());
@@ -153,32 +154,35 @@ public class EmployeeController {
             } else {
                 bindingResult.reject("error", e.getMessage());
             }
-            employee.setId(id);
+            Employee existing = employeeService.findByEmployeeId(employeeId);
+            employee.setId(existing.getId());
             addFormAttributes(model);
             return "employees/form";
         }
     }
 
-    @PostMapping("/{id}/deactivate")
+    @PostMapping("/{employeeId}/deactivate")
     @PreAuthorize("hasAuthority('" + Permission.EMPLOYEE_EDIT + "')")
     public String deactivate(
-            @PathVariable UUID id,
+            @PathVariable String employeeId,
             RedirectAttributes redirectAttributes) {
 
-        employeeService.deactivate(id);
+        Employee employee = employeeService.findByEmployeeId(employeeId);
+        employeeService.deactivate(employee.getId());
         redirectAttributes.addFlashAttribute("successMessage", "Karyawan berhasil dinonaktifkan");
-        return "redirect:/employees/" + id;
+        return "redirect:/employees/" + employeeId;
     }
 
-    @PostMapping("/{id}/activate")
+    @PostMapping("/{employeeId}/activate")
     @PreAuthorize("hasAuthority('" + Permission.EMPLOYEE_EDIT + "')")
     public String activate(
-            @PathVariable UUID id,
+            @PathVariable String employeeId,
             RedirectAttributes redirectAttributes) {
 
-        employeeService.activate(id);
+        Employee employee = employeeService.findByEmployeeId(employeeId);
+        employeeService.activate(employee.getId());
         redirectAttributes.addFlashAttribute("successMessage", "Karyawan berhasil diaktifkan");
-        return "redirect:/employees/" + id;
+        return "redirect:/employees/" + employeeId;
     }
 
     private void addFormAttributes(Model model) {

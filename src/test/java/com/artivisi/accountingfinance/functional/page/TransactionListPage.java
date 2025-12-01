@@ -95,11 +95,11 @@ public class TransactionListPage {
         page.waitForLoadState();
     }
 
-    public void filterByProject(String projectId) {
-        page.selectOption(FILTER_PROJECT, projectId);
+    public void filterByProject(String projectCode) {
+        page.selectOption(FILTER_PROJECT, projectCode);
         page.click(FILTER_BUTTON);
-        // Wait for URL to contain the projectId parameter
-        page.waitForURL("**/transactions**projectId=" + projectId + "**",
+        // Wait for URL to contain the projectCode parameter
+        page.waitForURL("**/transactions**projectCode=" + projectCode + "**",
             new com.microsoft.playwright.Page.WaitForURLOptions().setTimeout(10000));
         page.waitForLoadState();
     }
