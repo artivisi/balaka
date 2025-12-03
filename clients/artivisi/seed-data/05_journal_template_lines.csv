@@ -55,8 +55,10 @@ Prive / Pengambilan Pribadi,1,3.2.01,,DEBIT,amount,Laba Ditahan
 Prive / Pengambilan Pribadi,2,1.1.02,,CREDIT,amount,Bank BCA
 Beban Admin Bank,1,5.2.01,,DEBIT,amount,Beban Bank
 Beban Admin Bank,2,1.1.02,,CREDIT,amount,Bank BCA
-Pendapatan Bunga Bank,1,1.1.02,,DEBIT,amount,Bank BCA
-Pendapatan Bunga Bank,2,4.2.01,,CREDIT,amount,Pendapatan Bunga
+Terima Bunga Bank (Non-Halal),1,1.1.02,,DEBIT,amount,Bank BCA
+Terima Bunga Bank (Non-Halal),2,2.3.01,,CREDIT,amount,Dana Non-Halal
+Salurkan Dana Non-Halal,1,2.3.01,,DEBIT,amount,Dana Non-Halal
+Salurkan Dana Non-Halal,2,1.1.02,,CREDIT,amount,Bank BCA
 Penyusutan Peralatan,1,5.1.18,,DEBIT,amount,Beban Penyusutan
 Penyusutan Peralatan,2,1.2.02,,CREDIT,amount,Akum. Penyusutan Peralatan
 Amortisasi Aset Tak Berwujud,1,5.1.19,,DEBIT,amount,Beban Amortisasi
@@ -121,7 +123,7 @@ Beli Deposito,1,1.1.20,,DEBIT,amount,Deposito
 Beli Deposito,2,1.1.02,,CREDIT,amount,Bank BCA
 Cairkan Deposito,1,1.1.02,,DEBIT,pokok + bunga,Bank BCA (pokok + bunga)
 Cairkan Deposito,2,1.1.20,,CREDIT,pokok,Deposito (nilai pokok)
-Cairkan Deposito,3,4.2.01,,CREDIT,bunga,Pendapatan Bunga
+Cairkan Deposito,3,2.3.01,,CREDIT,bunga,Dana Non-Halal (bunga)
 Beli Logam Mulia,1,1.1.21,,DEBIT,amount,Logam Mulia
 Beli Logam Mulia,2,1.1.02,,CREDIT,amount,Bank BCA
 Jual Logam Mulia (Laba),1,1.1.02,,DEBIT,hasilPenjualan,Bank BCA (hasil penjualan)
@@ -194,5 +196,6 @@ Saldo Awal Tahun,38,2.1.21,,CREDIT,hutangPph23,Hutang PPh 23
 Saldo Awal Tahun,39,2.1.22,,CREDIT,hutangPph42,Hutang PPh 4(2)
 Saldo Awal Tahun,40,2.1.23,,CREDIT,hutangPph25,Hutang PPh 25
 Saldo Awal Tahun,41,2.1.24,,CREDIT,hutangPph29,Hutang PPh 29
-Saldo Awal Tahun,42,3.1.01,,CREDIT,modalDisetor,Modal Disetor
-Saldo Awal Tahun,43,3.2.01,,CREDIT,labaDitahan,Laba Ditahan (termasuk laba tahun lalu)
+Saldo Awal Tahun,42,2.3.01,,CREDIT,danaNonHalal,Dana Non-Halal
+Saldo Awal Tahun,43,3.1.01,,CREDIT,modalDisetor,Modal Disetor
+Saldo Awal Tahun,44,3.2.01,,CREDIT,labaDitahan,Laba Ditahan (termasuk laba tahun lalu)

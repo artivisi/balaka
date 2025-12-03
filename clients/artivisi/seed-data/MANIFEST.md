@@ -9,9 +9,9 @@ Name: PT Artivisi Intermedia
 NPWP: -
 
 ## Export Contents
-- Chart of Accounts: 89 records
+- Chart of Accounts: 91 records
 - Salary Components: 17 records
-- Journal Templates: 65 records
+- Journal Templates: 66 records
 - Asset Categories: 4 records
 - Journal Entries: 0 records
 - Transactions: 0 records
@@ -38,3 +38,4 @@ All other tables are empty placeholders.
 - v2.0: Added PPN, PPh 23, PPh 4(2) tax templates
 - v2.1: Added payroll, BPJS, investment templates
 - v3.0: Added fixed asset accounts, asset categories, depreciation templates, salary components
+- v3.1: Sharia compliance - Dana Non-Halal account, bunga masuk ke liability bukan revenue
