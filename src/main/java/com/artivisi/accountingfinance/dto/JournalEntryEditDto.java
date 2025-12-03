@@ -13,9 +13,9 @@ public record JournalEntryEditDto(
     public static JournalEntryEditDto fromEntity(JournalEntry entry) {
         return new JournalEntryEditDto(
                 entry.getAccount() != null ? entry.getAccount().getId().toString() : null,
-                entry.getJournalDate() != null ? entry.getJournalDate().toString() : null,
-                entry.getReferenceNumber(),
-                entry.getDescription(),
+                entry.getEffectiveJournalDate() != null ? entry.getEffectiveJournalDate().toString() : null,
+                entry.getEffectiveReferenceNumber(),
+                entry.getEffectiveDescription(),
                 entry.getDebitAmount() != null ? entry.getDebitAmount().doubleValue() : 0.0,
                 entry.getCreditAmount() != null ? entry.getCreditAmount().doubleValue() : 0.0
         );

@@ -179,7 +179,7 @@ public class TemplateExecutionEngine {
             return new PreviewEntry(
                     entry.getAccount() != null ? entry.getAccount().getAccountCode() : null,
                     entry.getAccount() != null ? entry.getAccount().getAccountName() : null,
-                    entry.getDescription(),
+                    entry.getEffectiveDescription(),
                     entry.getDebitAmount(),
                     entry.getCreditAmount()
             );

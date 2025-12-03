@@ -21,13 +21,19 @@ public interface JournalEntryRepository extends JpaRepository<JournalEntry, UUID
 
     List<JournalEntry> findByTransactionIdOrderByJournalNumberAsc(UUID transactionId);
 
-    List<JournalEntry> findByAccountIdAndJournalDateBetweenOrderByJournalDateAscJournalNumberAsc(
-            UUID accountId, LocalDate startDate, LocalDate endDate);
+    @Query("SELECT j FROM JournalEntry j JOIN j.transaction t WHERE " +
+           "j.account.id = :accountId AND " +
+           "t.transactionDate BETWEEN :startDate AND :endDate " +
+           "ORDER BY t.transactionDate, j.journalNumber")
+    List<JournalEntry> findByAccountIdAndDateRange(
+            @Param("accountId") UUID accountId,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate);
 
     @Query("SELECT j FROM JournalEntry j JOIN j.transaction t WHERE " +
            "j.account.id = :accountId AND t.status = 'POSTED' AND " +
-           "j.journalDate BETWEEN :startDate AND :endDate " +
-           "ORDER BY j.journalDate, j.journalNumber")
+           "t.transactionDate BETWEEN :startDate AND :endDate " +
+           "ORDER BY t.transactionDate, j.journalNumber")
     List<JournalEntry> findPostedEntriesByAccountAndDateRange(
             @Param("accountId") UUID accountId,
             @Param("startDate") LocalDate startDate,
@@ -35,8 +41,8 @@ public interface JournalEntryRepository extends JpaRepository<JournalEntry, UUID
 
     @Query("SELECT j FROM JournalEntry j JOIN j.transaction t WHERE " +
            "j.account.id = :accountId AND t.status = 'POSTED' AND " +
-           "j.journalDate BETWEEN :startDate AND :endDate " +
-           "ORDER BY j.journalDate, j.journalNumber")
+           "t.transactionDate BETWEEN :startDate AND :endDate " +
+           "ORDER BY t.transactionDate, j.journalNumber")
     Page<JournalEntry> findPostedEntriesByAccountAndDateRangePaged(
             @Param("accountId") UUID accountId,
             @Param("startDate") LocalDate startDate,
@@ -45,11 +51,11 @@ public interface JournalEntryRepository extends JpaRepository<JournalEntry, UUID
 
     @Query("SELECT j FROM JournalEntry j JOIN j.transaction t WHERE " +
            "j.account.id = :accountId AND t.status = 'POSTED' AND " +
-           "j.journalDate BETWEEN :startDate AND :endDate AND " +
-           "(LOWER(j.description) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+           "t.transactionDate BETWEEN :startDate AND :endDate AND " +
+           "(LOWER(t.description) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
            "LOWER(j.journalNumber) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-           "LOWER(j.referenceNumber) LIKE LOWER(CONCAT('%', :search, '%'))) " +
-           "ORDER BY j.journalDate, j.journalNumber")
+           "LOWER(t.referenceNumber) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+           "ORDER BY t.transactionDate, j.journalNumber")
     Page<JournalEntry> findPostedEntriesByAccountAndDateRangeAndSearchPaged(
             @Param("accountId") UUID accountId,
             @Param("startDate") LocalDate startDate,
@@ -59,56 +65,48 @@ public interface JournalEntryRepository extends JpaRepository<JournalEntry, UUID
 
     @Query("SELECT COUNT(j) FROM JournalEntry j JOIN j.transaction t WHERE " +
            "j.account.id = :accountId AND t.status = 'POSTED' AND " +
-           "j.journalDate BETWEEN :startDate AND :endDate")
+           "t.transactionDate BETWEEN :startDate AND :endDate")
     long countPostedEntriesByAccountAndDateRange(
             @Param("accountId") UUID accountId,
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate);
 
     @Query("SELECT j FROM JournalEntry j JOIN j.transaction t WHERE " +
-           "t.status = 'POSTED' AND j.journalDate BETWEEN :startDate AND :endDate " +
-           "ORDER BY j.journalDate, j.journalNumber")
+           "t.status = 'POSTED' AND t.transactionDate BETWEEN :startDate AND :endDate " +
+           "ORDER BY t.transactionDate, j.journalNumber")
     Page<JournalEntry> findAllPostedEntriesByDateRange(
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate,
             Pageable pageable);
 
     @Query("SELECT COALESCE(SUM(j.debitAmount), 0) FROM JournalEntry j JOIN j.transaction t " +
-           "WHERE j.account.id = :accountId AND t.status = 'POSTED' AND j.journalDate < :date")
+           "WHERE j.account.id = :accountId AND t.status = 'POSTED' AND t.transactionDate < :date")
     BigDecimal sumDebitBeforeDate(@Param("accountId") UUID accountId, @Param("date") LocalDate date);
 
     @Query("SELECT COALESCE(SUM(j.creditAmount), 0) FROM JournalEntry j JOIN j.transaction t " +
-           "WHERE j.account.id = :accountId AND t.status = 'POSTED' AND j.journalDate < :date")
+           "WHERE j.account.id = :accountId AND t.status = 'POSTED' AND t.transactionDate < :date")
     BigDecimal sumCreditBeforeDate(@Param("accountId") UUID accountId, @Param("date") LocalDate date);
 
-    @Query("SELECT COALESCE(SUM(j.debitAmount), 0) FROM JournalEntry j " +
-           "WHERE j.account.id = :accountId AND j.status = 'POSTED' AND " +
-           "j.journalDate BETWEEN :startDate AND :endDate")
+    @Query("SELECT COALESCE(SUM(j.debitAmount), 0) FROM JournalEntry j JOIN j.transaction t " +
+           "WHERE j.account.id = :accountId AND t.status = 'POSTED' AND " +
+           "t.transactionDate BETWEEN :startDate AND :endDate")
     BigDecimal sumDebitByAccountAndDateRange(
             @Param("accountId") UUID accountId,
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate);
 
-    @Query("SELECT COALESCE(SUM(j.creditAmount), 0) FROM JournalEntry j " +
-           "WHERE j.account.id = :accountId AND j.status = 'POSTED' AND " +
-           "j.journalDate BETWEEN :startDate AND :endDate")
+    @Query("SELECT COALESCE(SUM(j.creditAmount), 0) FROM JournalEntry j JOIN j.transaction t " +
+           "WHERE j.account.id = :accountId AND t.status = 'POSTED' AND " +
+           "t.transactionDate BETWEEN :startDate AND :endDate")
     BigDecimal sumCreditByAccountAndDateRange(
             @Param("accountId") UUID accountId,
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate);
 
-    // Methods for manual journal entries (using journal entry status)
     List<JournalEntry> findAllByJournalNumberOrderByIdAsc(String journalNumber);
 
     @Query("SELECT j FROM JournalEntry j LEFT JOIN FETCH j.account WHERE j.journalNumber = :journalNumber ORDER BY j.id ASC")
     List<JournalEntry> findAllByJournalNumberWithAccount(@Param("journalNumber") String journalNumber);
-
-    @Query("SELECT j FROM JournalEntry j WHERE j.status = 'POSTED' AND j.transaction IS NULL " +
-           "AND j.journalDate BETWEEN :startDate AND :endDate " +
-           "ORDER BY j.journalDate, j.journalNumber")
-    List<JournalEntry> findManualPostedEntriesByDateRange(
-            @Param("startDate") LocalDate startDate,
-            @Param("endDate") LocalDate endDate);
 
     boolean existsByJournalNumber(String journalNumber);
 
@@ -119,18 +117,18 @@ public interface JournalEntryRepository extends JpaRepository<JournalEntry, UUID
     Integer findMaxSequenceByPrefix(@Param("prefix") String prefix);
 
     // Project profitability queries
-    @Query("SELECT COALESCE(SUM(j.debitAmount), 0) FROM JournalEntry j " +
-           "WHERE j.project.id = :projectId AND j.account.id = :accountId AND j.status = 'POSTED' AND " +
-           "j.journalDate BETWEEN :startDate AND :endDate")
+    @Query("SELECT COALESCE(SUM(j.debitAmount), 0) FROM JournalEntry j JOIN j.transaction t " +
+           "WHERE j.project.id = :projectId AND j.account.id = :accountId AND t.status = 'POSTED' AND " +
+           "t.transactionDate BETWEEN :startDate AND :endDate")
     BigDecimal sumDebitByProjectAndAccountAndDateRange(
             @Param("projectId") UUID projectId,
             @Param("accountId") UUID accountId,
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate);
 
-    @Query("SELECT COALESCE(SUM(j.creditAmount), 0) FROM JournalEntry j " +
-           "WHERE j.project.id = :projectId AND j.account.id = :accountId AND j.status = 'POSTED' AND " +
-           "j.journalDate BETWEEN :startDate AND :endDate")
+    @Query("SELECT COALESCE(SUM(j.creditAmount), 0) FROM JournalEntry j JOIN j.transaction t " +
+           "WHERE j.project.id = :projectId AND j.account.id = :accountId AND t.status = 'POSTED' AND " +
+           "t.transactionDate BETWEEN :startDate AND :endDate")
     BigDecimal sumCreditByProjectAndAccountAndDateRange(
             @Param("projectId") UUID projectId,
             @Param("accountId") UUID accountId,
@@ -138,9 +136,9 @@ public interface JournalEntryRepository extends JpaRepository<JournalEntry, UUID
             @Param("endDate") LocalDate endDate);
 
     // Fiscal year closing queries
-    @Query("SELECT COUNT(j) FROM JournalEntry j WHERE j.referenceNumber LIKE :pattern AND j.status = 'POSTED'")
+    @Query("SELECT COUNT(j) FROM JournalEntry j JOIN j.transaction t WHERE t.referenceNumber LIKE :pattern AND t.status = 'POSTED'")
     long countByReferenceNumberLike(@Param("pattern") String pattern);
 
-    @Query("SELECT j FROM JournalEntry j WHERE j.referenceNumber LIKE :pattern ORDER BY j.referenceNumber, j.id")
+    @Query("SELECT j FROM JournalEntry j JOIN j.transaction t WHERE t.referenceNumber LIKE :pattern ORDER BY t.referenceNumber, j.id")
     List<JournalEntry> findByReferenceNumberLike(@Param("pattern") String pattern);
 }

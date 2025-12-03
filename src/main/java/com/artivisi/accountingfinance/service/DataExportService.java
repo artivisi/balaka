@@ -637,9 +637,9 @@ public class DataExportService {
         List<JournalEntry> entries = journalEntryRepository.findAll(Sort.by("journalNumber"));
         for (JournalEntry je : entries) {
             csv.append(escapeCsv(je.getJournalNumber())).append(",");
-            csv.append(je.getJournalDate() != null ? je.getJournalDate().format(DATE_FORMATTER) : "").append(",");
+            csv.append(je.getEffectiveJournalDate() != null ? je.getEffectiveJournalDate().format(DATE_FORMATTER) : "").append(",");
             csv.append(je.getTransaction() != null ? escapeCsv(je.getTransaction().getTransactionNumber()) : "").append(",");
-            csv.append(escapeCsv(je.getDescription())).append(",");
+            csv.append(escapeCsv(je.getEffectiveDescription())).append(",");
             csv.append(je.getStatus()).append(",");
             csv.append(je.getAccount() != null ? escapeCsv(je.getAccount().getAccountCode()) : "").append(",");
             csv.append(je.getDebitAmount()).append(",");

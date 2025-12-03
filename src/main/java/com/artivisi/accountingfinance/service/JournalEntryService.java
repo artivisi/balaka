@@ -237,7 +237,7 @@ public class JournalEntryService {
         }
 
         JournalEntry firstEntry = entries.get(0);
-        LocalDate journalDate = firstEntry.getJournalDate();
+        LocalDate journalDate = firstEntry.getEffectiveJournalDate();
         boolean isPosted = firstEntry.isPosted() || firstEntry.isVoid();
 
         List<AccountImpact> impacts = new ArrayList<>();
