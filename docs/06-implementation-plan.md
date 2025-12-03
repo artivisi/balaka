@@ -15,9 +15,10 @@
 | **1** | Core Accounting (MVP) - IT Services | ✅ Complete |
 | **2** | Tax Compliance + Cash Flow | ✅ Complete |
 | **3** | Payroll + RBAC + Self-Service | ✅ Complete |
-| **4** | Reconciliation & Analytics | ⏳ Not Started |
-| **5** | Assets & Budget | ⏳ Not Started |
-| **6+** | Other Industries, Advanced Features | ⏳ Not Started |
+| **4** | Fixed Assets | ⏳ Not Started |
+| **5** | Budget, Analytics & Reconciliation | ⏳ Not Started |
+| **6** | API for Multi-Industry Integration | ⏳ Not Started |
+| **7+** | Other Industries, Advanced Features | ⏳ Not Started |
 
 ---
 
@@ -397,109 +398,72 @@
 
 Additive is ~3x simpler. Role switching only needed for strict audit trails or compliance requirements.
 
-### 3.9 Full Data Export/Import ⏳
+### 3.9 Full Data Export/Import ✅
 
 **Goal:** Complete data portability for semi-production workflow (export → reset DB → import).
 
-**Current gap:** DataExportService only exports 11 of 34 entities. Missing: JournalTemplate, CompanyConfig, SalaryComponent, EmployeeSalaryComponent, FiscalPeriod, TaxDeadline, CompanyBankAccount, MerchantMapping, User/UserRole, and 12 others.
-
-#### Export Format
-- **Container:** ZIP archive
-- **Content:** CSV files with numbered prefix for import order
-- **Encoding:** UTF-8, RFC 4180 CSV escaping
-- **References:** Natural keys (codes, not UUIDs)
-
-#### Import Order (filename prefix determines sequence)
-```
-01_company_config.csv
-02_chart_of_accounts.csv
-03_salary_components.csv
-04_journal_templates.csv
-05_journal_template_lines.csv
-06_journal_template_tags.csv
-07_clients.csv
-08_projects.csv
-09_project_milestones.csv
-10_project_payment_terms.csv
-11_fiscal_periods.csv
-12_tax_deadlines.csv
-13_company_bank_accounts.csv
-14_merchant_mappings.csv
-15_employees.csv
-16_employee_salary_components.csv
-17_invoices.csv
-18_transactions.csv
-19_transaction_account_mappings.csv
-20_journal_entries.csv
-21_payroll_runs.csv
-22_payroll_details.csv
-23_amortization_schedules.csv
-24_amortization_entries.csv
-25_tax_transaction_details.csv
-26_tax_deadline_completions.csv
-27_draft_transactions.csv
-28_users.csv
-29_user_roles.csv
-30_user_template_preferences.csv
-31_telegram_user_links.csv
-32_audit_logs.csv
-33_transaction_sequences.csv
-documents/
-  index.csv
-  {files...}
-MANIFEST.md
-```
-
-#### Import Behavior: Full Replace
-Import **clears all existing data** and replaces 100% with exported file content:
-1. Truncate all tables (reverse dependency order)
-2. Load CSVs in filename order
-3. No merge with existing data
-
-#### Import Strategy: Map Pre-load
-Pre-load reference entities into Maps before processing dependent CSVs to avoid N+1 queries:
-
-```java
-Map<String, ChartOfAccount> accountMap;      // for journal entries, template lines
-Map<String, Client> clientMap;               // for projects, invoices
-Map<String, Project> projectMap;             // for transactions, invoices
-Map<String, JournalTemplate> templateMap;    // for transactions
-Map<String, Employee> employeeMap;           // for payroll details
-Map<String, SalaryComponent> componentMap;   // for employee salary components
-```
-
-Estimated import duration (moderate dataset): ~3-5 seconds.
-
-#### Implementation Tasks
-- [ ] Enhance DataExportService: add all 34 entities with numbered CSV filenames
-- [ ] Create DataImportService: parse CSVs in filename order, create entities
-- [ ] Pre-load reference entities into Maps before processing dependent CSVs
-- [ ] Handle passwords (import bcrypt hashes as-is)
-- [ ] Resolve references via natural keys (new UUIDs generated on import)
-- [ ] Import controller and UI (`/settings/import`)
-- [ ] Validation preview before import
-- [ ] Functional test: full round-trip verification
-  1. Start from seed migration (base COA, templates, admin user)
-  2. Modify seed data (edit COA names, update template lines)
-  3. Add custom data (new accounts, new templates, company config)
-  4. Create transactions (income, expense, with journal entries)
-  5. Add payroll data (employee, payroll run)
-  6. Export all data
-  7. Import exported data (truncates all tables, replaces with export)
-  8. Verify: modified seed data reflects edits
-  9. Verify: custom accounts and templates present
-  10. Verify: transactions and journal entries intact
-  11. Verify: payroll data restored
+#### Implementation
+- [x] DataExportService: exports 33 entities with numbered CSV filenames
+- [x] DataImportService: parses CSVs in filename order, creates entities
+- [x] Map pre-load strategy for O(1) reference lookups
+- [x] Passwords preserved (bcrypt hashes imported as-is)
+- [x] References resolved via natural keys (new UUIDs generated on import)
+- [x] Import controller and UI (`/settings/import`)
+- [x] Functional test: `FullDataExportImportTest.java` (round-trip verification)
 
 **Phase 3 Deliverable:** ✅ Complete payroll system with tax compliance, role-based access control, and employee self-service.
 
 ---
 
-## Phase 4: Analytics & Reconciliation
+## Phase 4: Fixed Assets
 
-**Goal:** Transaction tagging, analytics, and bank reconciliation
+**Goal:** Fixed asset tracking with depreciation
 
-### 4.1 Transaction Tags
+**Implementation note:** Follow payroll pattern for journal posting:
+- Route through Transaction → JournalTemplate → JournalEntry (not direct journal creation)
+- Use extended FormulaContext with domain-specific variables (e.g., `assetCost`, `accumulatedDepreciation`, `disposalProceeds`, `gainLoss`)
+- Create system templates for: asset purchase, depreciation entry, asset disposal
+- Keep asset-specific logic in AssetService, core accounting remains generic
+
+### 4.1 Fixed Asset Register
+- [ ] Fixed asset entity
+- [ ] Asset categories
+- [ ] Asset CRUD UI
+- [ ] Purchase recording
+
+### 4.2 Depreciation
+- [ ] Straight-line calculation
+- [ ] Declining balance calculation
+- [ ] Depreciation schedule
+- [ ] Monthly depreciation batch job
+- [ ] Auto-journal via templates
+
+### 4.3 Asset Disposal
+- [ ] Disposal workflow
+- [ ] Gain/loss calculation
+- [ ] Disposal journal entry
+
+**Phase 4 Deliverable:** Fixed asset management with depreciation and disposal.
+
+---
+
+## Phase 5: Budget, Analytics & Reconciliation
+
+**Goal:** Budget management, transaction tagging, analytics, and bank reconciliation
+
+### 5.1 Budget Setup
+- [ ] Budget entity
+- [ ] Budget per account per period
+- [ ] Budget CRUD UI
+- [ ] Copy from previous period
+
+### 5.2 Budget Reports
+- [ ] Budget vs Actual report
+- [ ] Variance analysis
+- [ ] Over-budget highlighting
+- [ ] PDF/Excel export
+
+### 5.3 Transaction Tags
 - [ ] Tag type entity (user-defined: "Client", "Channel", "Category")
 - [ ] Tag entity (values per type)
 - [ ] Tag type CRUD UI
@@ -508,7 +472,7 @@ Estimated import duration (moderate dataset): ~3-5 seconds.
 - [ ] Tag filters in transaction list
 - [ ] Tag-based reports (summary by tag)
 
-### 4.2 Trend Analysis
+### 5.4 Trend Analysis
 - [ ] Revenue trend chart (12 months)
 - [ ] Expense trend by category (12 months)
 - [ ] Profit margin trend (12 months)
@@ -516,7 +480,7 @@ Estimated import duration (moderate dataset): ~3-5 seconds.
 - [ ] Comparison: current period vs previous period
 - [ ] Comparison: current period vs same period last year
 
-### 4.3 Smart Alerts
+### 5.5 Smart Alerts
 - [ ] Project cost overrun alert
 - [ ] Project margin drop alert
 - [ ] Overdue receivables alert
@@ -529,7 +493,7 @@ Estimated import duration (moderate dataset): ~3-5 seconds.
 - [ ] Alert delivery: Dashboard notification, Email (optional)
 - [ ] Alert history and acknowledgment
 
-### 4.4 Bank Reconciliation
+### 5.6 Bank Reconciliation
 - [ ] Bank parser config entity
 - [ ] ConfigurableBankStatementParser class
 - [ ] Column name matching with fallback
@@ -553,55 +517,59 @@ Estimated import duration (moderate dataset): ~3-5 seconds.
 **For typical small IT services (30-80 tx/month):** Manual reconciliation takes ~15 min/month.
 Bank reconciliation feature becomes valuable at ~150+ transactions/month or with multiple bank accounts.
 
-**Phase 4 Deliverable:** Transaction tagging, trend analysis, smart alerts, and bank reconciliation.
+**Phase 5 Deliverable:** Budget management, transaction tagging, trend analysis, smart alerts, and bank reconciliation.
 
 ---
 
-## Phase 5: Assets & Budget
+## Phase 6: API for Multi-Industry Integration
 
-**Goal:** Fixed asset tracking and budget management
+**Goal:** Expose REST API for domain-specific applications to record transactions
 
-**Implementation note:** Follow payroll pattern for journal posting:
-- Route through Transaction → JournalTemplate → JournalEntry (not direct journal creation)
-- Use extended FormulaContext with domain-specific variables (e.g., `assetCost`, `accumulatedDepreciation`, `disposalProceeds`, `gainLoss`)
-- Create system templates for: asset purchase, depreciation entry, asset disposal
-- Keep asset-specific logic in AssetService, core accounting remains generic
+**Strategy document:** `docs/08-multi-industry-expansion-strategy.md`
 
-### 5.1 Fixed Asset Register
-- [ ] Fixed asset entity
-- [ ] Asset categories
-- [ ] Asset CRUD UI
-- [ ] Purchase recording
+### 6.1 API Foundation ⏳
+- [ ] Transaction entity: add `idempotency_key` column (unique, nullable)
+- [ ] ApiKey entity (hashed key, name, permissions, created_at, last_used_at, active)
+- [ ] ApiKeyService (generate, validate, revoke)
+- [ ] ApiKeyAuthenticationFilter (Bearer token validation)
+- [ ] TransactionApiController (`@RestController`, `/api/transactions`)
+  - [ ] POST /api/transactions (execute template, create transaction)
+  - [ ] GET /api/transactions/{id} (get by ID)
+  - [ ] GET /api/transactions?idempotencyKey={key} (check existence)
+- [ ] TemplateApiController (`/api/templates`)
+  - [ ] GET /api/templates (list templates)
+  - [ ] GET /api/templates/{code} (get template details)
+- [ ] AccountApiController (`/api/accounts`)
+  - [ ] GET /api/accounts (list accounts)
+  - [ ] GET /api/accounts/{code} (get account details)
+- [ ] API error response format (error code, message, timestamp)
+- [ ] OpenAPI/Swagger documentation
+- [ ] Integration tests for all API endpoints
+- [ ] User manual: API documentation
 
-### 5.2 Depreciation
-- [ ] Straight-line calculation
-- [ ] Declining balance calculation
-- [ ] Depreciation schedule
-- [ ] Monthly depreciation batch job
-- [ ] Auto-journal via templates
+### 6.2 API Enhancements ⏳
+- [ ] ReportApiController (`/api/reports`)
+  - [ ] GET /api/reports/trial-balance
+  - [ ] GET /api/reports/balance-sheet
+  - [ ] GET /api/reports/income-statement
+- [ ] Pagination support (page, size, sort)
+- [ ] Date range filtering for reports
+- [ ] Rate limiting (configurable per API key)
+- [ ] API audit logging (request/response, latency, errors)
+- [ ] API versioning header (Accept-Version or URL prefix)
 
-### 5.3 Asset Disposal
-- [ ] Disposal workflow
-- [ ] Gain/loss calculation
-- [ ] Disposal journal entry
+### 6.3 API Management UI ⏳
+- [ ] API Keys list page (`/settings/api-keys`)
+- [ ] Generate new API key (show once, then hashed)
+- [ ] Revoke API key
+- [ ] View API key usage statistics
+- [ ] Permission scopes (read-only, read-write, admin)
 
-### 5.4 Budget Setup
-- [ ] Budget entity
-- [ ] Budget per account per period
-- [ ] Budget CRUD UI
-- [ ] Copy from previous period
-
-### 5.5 Budget Reports
-- [ ] Budget vs Actual report
-- [ ] Variance analysis
-- [ ] Over-budget highlighting
-- [ ] PDF/Excel export
-
-**Phase 5 Deliverable:** Asset management and budget tracking.
+**Phase 6 Deliverable:** REST API enabling domain-specific applications (grant management, inventory, POS, etc.) to integrate with core accounting.
 
 ---
 
-## Phase 6+: Future Enhancements
+## Phase 7+: Future Enhancements
 
 ### Additional Industry Templates
 - [ ] Photography COA and journal templates
