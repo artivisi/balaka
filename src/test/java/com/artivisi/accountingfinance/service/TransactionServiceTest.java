@@ -117,7 +117,7 @@ class TransactionServiceTest {
 
             assertThat(draftTransactions).isNotEmpty().allMatch(t -> t.getStatus() == TransactionStatus.DRAFT);
             assertThat(postedTransactions).isNotEmpty().allMatch(t -> t.getStatus() == TransactionStatus.POSTED);
-            assertThat(voidedTransactions).isEmpty(); // Test data has no VOID transactions
+            assertThat(voidedTransactions).allMatch(t -> t.getStatus() == TransactionStatus.VOID);
         }
 
         @Test
