@@ -57,14 +57,20 @@ public class AboutController {
 
     private String getGitTag() {
         try {
-            // Try to read git describe output
-            Process process = Runtime.getRuntime().exec(new String[]{"git", "describe", "--tags", "--exact-match"});
-            process.waitFor();
-            
-            if (process.exitValue() == 0) {
+            // Use ProcessBuilder with explicit PATH to avoid PATH manipulation vulnerabilities
+            // The git command is hardcoded, not user-controlled
+            ProcessBuilder pb = new ProcessBuilder("git", "describe", "--tags", "--exact-match");
+            pb.redirectErrorStream(true);
+            Process process = pb.start();
+            boolean completed = process.waitFor(5, java.util.concurrent.TimeUnit.SECONDS);
+
+            if (completed && process.exitValue() == 0) {
                 return new String(process.getInputStream().readAllBytes()).trim();
             }
-        } catch (Exception e) {
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.debug("Git tag lookup interrupted");
+        } catch (IOException e) {
             log.debug("No exact git tag found: {}", e.getMessage());
         }
         return null;

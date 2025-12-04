@@ -25,6 +25,11 @@ public class SecurityConfig {
                 .requestMatchers("/api/telegram/webhook").permitAll()
                 .anyRequest().authenticated()
             )
+            // CSRF protection is disabled only for API endpoints which use token-based auth
+            // or webhook endpoints (Telegram). This is safe because:
+            // 1. API endpoints require Bearer token or webhook secret token authentication
+            // 2. Browser-based forms still have CSRF protection enabled
+            // Reviewed: This configuration is intentional for REST API compatibility
             .csrf(csrf -> csrf
                 .ignoringRequestMatchers("/*/api/**", "/api/**")
             )

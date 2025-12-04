@@ -161,6 +161,14 @@ public class DataImportService {
                 if (entry.isDirectory()) continue;
 
                 String name = entry.getName();
+
+                // Zip slip protection: reject entries with path traversal
+                if (name.contains("..") || name.startsWith("/") || name.startsWith("\\")) {
+                    log.warn("Rejected potentially malicious zip entry: {}", name);
+                    zis.closeEntry();
+                    continue;
+                }
+
                 byte[] content = zis.readAllBytes();
 
                 if (name.endsWith(".csv") && !name.startsWith("documents/")) {
