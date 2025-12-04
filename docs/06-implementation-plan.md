@@ -129,7 +129,7 @@
 - [x] Manual schedule creation (user-initiated)
 - [x] Auto-post toggle per schedule
 - [x] Monthly batch job (generates journal entries)
-- [ ] Period-end dashboard integration (deferred)
+- [x] Period-end dashboard integration (amortization widget with pending/overdue/due counts)
 - [x] Remaining balance display
 - [x] Schedule completion handling
 - [x] Rounding handling (last period absorbs difference)
@@ -166,7 +166,7 @@
 - [x] Payables Total (Hutang Usaha balance)
 - [x] DashboardService, DashboardController, HTMX endpoint
 - [x] Month selector for historical comparison
-- [ ] Pending amortization entries count widget (deferred)
+- [x] Pending amortization entries count widget (dashboard widget with total/overdue/due this month)
 
 ### 1.11 Comprehensive User Manual ✅
 - [x] 14 chapters in docs/user-manual/*.md

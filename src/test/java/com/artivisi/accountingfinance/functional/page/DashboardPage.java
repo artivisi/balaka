@@ -111,4 +111,32 @@ public class DashboardPage {
         String text = getRevenueCardText();
         return text.contains("%");
     }
+
+    // Amortization widget methods
+    private static final String AMORTIZATION_WIDGET = "#amortization-widget";
+    private static final String AMORTIZATION_WIDGET_CONTENT = "#amortization-widget-content";
+
+    public void waitForAmortizationWidgetToLoad() {
+        page.waitForSelector(AMORTIZATION_WIDGET_CONTENT, new Page.WaitForSelectorOptions().setTimeout(10000));
+    }
+
+    public void assertAmortizationWidgetVisible() {
+        assertThat(page.locator(AMORTIZATION_WIDGET).isVisible()).isTrue();
+    }
+
+    public void assertAmortizationWidgetContentVisible() {
+        assertThat(page.locator(AMORTIZATION_WIDGET_CONTENT).isVisible()).isTrue();
+    }
+
+    public String getAmortizationWidgetText() {
+        return page.locator(AMORTIZATION_WIDGET_CONTENT).textContent();
+    }
+
+    public boolean hasAmortizationTitle() {
+        return getAmortizationWidgetText().contains("Amortisasi");
+    }
+
+    public boolean hasAmortizationLink() {
+        return page.locator(AMORTIZATION_WIDGET_CONTENT + " a[href='/amortization']").count() > 0;
+    }
 }

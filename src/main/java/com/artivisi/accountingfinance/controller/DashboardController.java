@@ -60,6 +60,13 @@ public class DashboardController {
         return "fragments/recent-transactions :: transactions";
     }
 
+    @GetMapping("/dashboard/amortization-widget")
+    public String amortizationWidget(Model model) {
+        var summary = dashboardService.getAmortizationSummary();
+        model.addAttribute("summary", summary);
+        return "fragments/amortization-widget :: widget";
+    }
+
     @GetMapping("/login")
     @PreAuthorize("permitAll()")
     public String login() {

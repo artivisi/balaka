@@ -154,4 +154,37 @@ class DashboardKPITest extends PlaywrightTestBase {
             dashboardPage.assertProfitCardVisible();
         }
     }
+
+    @Nested
+    @DisplayName("1.10.5 Amortization Widget")
+    class AmortizationWidgetTests {
+
+        @Test
+        @DisplayName("Should display amortization widget")
+        void shouldDisplayAmortizationWidget() {
+            dashboardPage.navigate();
+            dashboardPage.waitForAmortizationWidgetToLoad();
+
+            dashboardPage.assertAmortizationWidgetVisible();
+            dashboardPage.assertAmortizationWidgetContentVisible();
+        }
+
+        @Test
+        @DisplayName("Should display amortization widget title")
+        void shouldDisplayAmortizationWidgetTitle() {
+            dashboardPage.navigate();
+            dashboardPage.waitForAmortizationWidgetToLoad();
+
+            assertThat(dashboardPage.hasAmortizationTitle()).isTrue();
+        }
+
+        @Test
+        @DisplayName("Should have link to amortization page")
+        void shouldHaveLinkToAmortizationPage() {
+            dashboardPage.navigate();
+            dashboardPage.waitForAmortizationWidgetToLoad();
+
+            assertThat(dashboardPage.hasAmortizationLink()).isTrue();
+        }
+    }
 }

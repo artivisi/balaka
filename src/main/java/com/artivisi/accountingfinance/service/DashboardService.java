@@ -1,8 +1,10 @@
 package com.artivisi.accountingfinance.service;
 
+import com.artivisi.accountingfinance.entity.AmortizationEntry;
 import com.artivisi.accountingfinance.entity.ChartOfAccount;
 import com.artivisi.accountingfinance.enums.AccountType;
 import com.artivisi.accountingfinance.enums.NormalBalance;
+import com.artivisi.accountingfinance.repository.AmortizationEntryRepository;
 import com.artivisi.accountingfinance.repository.ChartOfAccountRepository;
 import com.artivisi.accountingfinance.repository.JournalEntryRepository;
 import com.artivisi.accountingfinance.repository.TransactionRepository;
@@ -25,6 +27,7 @@ public class DashboardService {
     private final ChartOfAccountRepository chartOfAccountRepository;
     private final JournalEntryRepository journalEntryRepository;
     private final TransactionRepository transactionRepository;
+    private final AmortizationEntryRepository amortizationEntryRepository;
 
     // Account codes for specific KPIs
     private static final String PIUTANG_USAHA_CODE = "1.1.04";
@@ -237,5 +240,58 @@ public class DashboardService {
             LocalDate transactionDate,
             BigDecimal amount,
             com.artivisi.accountingfinance.enums.TemplateCategory category
+    ) {}
+
+    /**
+     * Get amortization summary for dashboard widget.
+     * Shows pending entries count, overdue count, and upcoming entries due this month.
+     */
+    public AmortizationSummary getAmortizationSummary() {
+        LocalDate today = LocalDate.now();
+        LocalDate endOfMonth = YearMonth.now().atEndOfMonth();
+
+        // Total pending entries
+        long totalPending = amortizationEntryRepository.countPendingEntries();
+
+        // Overdue entries (period end before today)
+        List<AmortizationEntry> overdueEntries = amortizationEntryRepository.findPendingEntriesDueByDate(today.minusDays(1));
+        long overdueCount = overdueEntries.size();
+
+        // Due this month (period end between today and end of month)
+        List<AmortizationEntry> dueThisMonth = amortizationEntryRepository.findPendingEntriesDueByDate(endOfMonth);
+        // Exclude overdue from due this month
+        long dueThisMonthCount = dueThisMonth.stream()
+                .filter(e -> !e.getPeriodEnd().isBefore(today))
+                .count();
+
+        // Get next 3 upcoming entries
+        List<UpcomingAmortization> upcomingEntries = amortizationEntryRepository.findPendingEntriesDueByDate(endOfMonth.plusMonths(2))
+                .stream()
+                .limit(3)
+                .map(e -> new UpcomingAmortization(
+                        e.getSchedule().getCode(),
+                        e.getSchedule().getDescription(),
+                        e.getPeriodEnd(),
+                        e.getAmount(),
+                        e.getPeriodEnd().isBefore(today)
+                ))
+                .toList();
+
+        return new AmortizationSummary(totalPending, overdueCount, dueThisMonthCount, upcomingEntries);
+    }
+
+    public record AmortizationSummary(
+            long totalPending,
+            long overdueCount,
+            long dueThisMonth,
+            List<UpcomingAmortization> upcomingEntries
+    ) {}
+
+    public record UpcomingAmortization(
+            String scheduleCode,
+            String description,
+            LocalDate dueDate,
+            BigDecimal amount,
+            boolean isOverdue
     ) {}
 }
