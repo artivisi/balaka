@@ -39,3 +39,4 @@ All other tables are empty placeholders.
 - v2.1: Added payroll, BPJS, investment templates
 - v3.0: Added fixed asset accounts, asset categories, depreciation templates, salary components
 - v3.1: Sharia compliance - Dana Non-Halal account, bunga masuk ke liability bukan revenue
+- v3.2: Fix Saldo Awal Tahun template category from ADJUSTMENT to TRANSFER (enum alignment)

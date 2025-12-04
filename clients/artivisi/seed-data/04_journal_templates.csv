@@ -64,4 +64,4 @@ Pelepasan Aset Tetap,INCOME,INVESTING,DETAILED,"Template untuk mencatat pelepasa
 Isi BBM Kendaraan (Karyawan Bayar),EXPENSE,OPERATING,SIMPLE,"Karyawan isi BBM kendaraan kantor, perusahaan akan ganti",false,false,true,1,0,
 Bayar Reimburse BBM ke Karyawan,PAYMENT,OPERATING,SIMPLE,Pembayaran reimburse BBM ke karyawan,false,false,true,1,0,
 Bayar BBM Langsung,EXPENSE,OPERATING,SIMPLE,Pembayaran BBM langsung dari kas/bank perusahaan,false,false,true,1,0,
-Saldo Awal Tahun,ADJUSTMENT,OPERATING,DETAILED,"Input saldo awal neraca untuk memulai tahun buku baru. Debit: Aset (1.x). Credit: Liabilitas (2.x) dan Ekuitas (3.x). Laba tahun lalu masuk ke Laba Ditahan.",false,false,true,1,0,
+Saldo Awal Tahun,TRANSFER,OPERATING,DETAILED,"Input saldo awal neraca untuk memulai tahun buku baru. Debit: Aset (1.x). Credit: Liabilitas (2.x) dan Ekuitas (3.x). Laba tahun lalu masuk ke Laba Ditahan.",false,false,true,1,0,
