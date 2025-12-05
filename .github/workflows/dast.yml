@@ -1,0 +1,230 @@
+name: DAST Security Scan
+
+on:
+  # Manual trigger for DAST scans
+  workflow_dispatch:
+    inputs:
+      target_url:
+        description: 'Target URL to scan'
+        required: true
+        default: 'http://localhost:10000'
+      scan_type:
+        description: 'Scan type'
+        required: true
+        default: 'baseline'
+        type: choice
+        options:
+          - baseline
+          - full
+          - api
+
+  # Weekly full scan
+  schedule:
+    - cron: '0 2 * * 0'
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  zap-baseline:
+    name: OWASP ZAP Baseline Scan
+    runs-on: ubuntu-latest
+    if: github.event.inputs.scan_type == 'baseline' || github.event_name == 'schedule'
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: accountingdb
+          POSTGRES_USER: accounting
+          POSTGRES_PASSWORD: testpassword
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Start application
+        env:
+          DATABASE_URL: jdbc:postgresql://localhost:5432/accountingdb
+          DATABASE_USERNAME: accounting
+          DATABASE_PASSWORD: testpassword
+        run: |
+          ./mvnw spring-boot:run -DskipTests &
+          sleep 60
+          curl --retry 10 --retry-delay 5 --retry-connrefused http://localhost:10000/login
+
+      - name: OWASP ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.14.0
+        with:
+          target: 'http://localhost:10000'
+          rules_file_name: '.zap/rules.tsv'
+          cmd_options: '-a'
+          allow_issue_writing: true
+          fail_action: false
+
+      - name: Upload ZAP Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: zap-baseline-report
+          path: report_html.html
+
+  zap-full:
+    name: OWASP ZAP Full Scan
+    runs-on: ubuntu-latest
+    if: github.event.inputs.scan_type == 'full'
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: accountingdb
+          POSTGRES_USER: accounting
+          POSTGRES_PASSWORD: testpassword
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Start application
+        env:
+          DATABASE_URL: jdbc:postgresql://localhost:5432/accountingdb
+          DATABASE_USERNAME: accounting
+          DATABASE_PASSWORD: testpassword
+        run: |
+          ./mvnw spring-boot:run -DskipTests &
+          sleep 60
+          curl --retry 10 --retry-delay 5 --retry-connrefused http://localhost:10000/login
+
+      - name: OWASP ZAP Full Scan
+        uses: zaproxy/action-full-scan@v0.12.0
+        with:
+          target: 'http://localhost:10000'
+          rules_file_name: '.zap/rules.tsv'
+          cmd_options: '-a'
+          allow_issue_writing: true
+          fail_action: false
+
+      - name: Upload ZAP Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: zap-full-report
+          path: report_html.html
+
+  trivy-container:
+    name: Trivy Container Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: |
+          if [ -f Dockerfile ]; then
+            docker build -t aplikasi-akunting:scan .
+          else
+            echo "No Dockerfile found, skipping container scan"
+            exit 0
+          fi
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@0.30.0
+        if: hashFiles('Dockerfile') != ''
+        with:
+          image-ref: 'aplikasi-akunting:scan'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: hashFiles('Dockerfile') != '' && always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+          category: trivy
+
+  nuclei-scan:
+    name: Nuclei Vulnerability Scan
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: accountingdb
+          POSTGRES_USER: accounting
+          POSTGRES_PASSWORD: testpassword
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Start application
+        env:
+          DATABASE_URL: jdbc:postgresql://localhost:5432/accountingdb
+          DATABASE_USERNAME: accounting
+          DATABASE_PASSWORD: testpassword
+        run: |
+          ./mvnw spring-boot:run -DskipTests &
+          sleep 60
+          curl --retry 10 --retry-delay 5 --retry-connrefused http://localhost:10000/login
+
+      - name: Run Nuclei Scanner
+        uses: projectdiscovery/nuclei-action@main
+        with:
+          target: http://localhost:10000
+          flags: "-severity critical,high,medium -tags cve,spring,java"
+          output: nuclei-results.txt
+
+      - name: Upload Nuclei results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nuclei-report
+          path: nuclei-results.txt

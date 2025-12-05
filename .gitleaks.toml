@@ -1,0 +1,95 @@
+# GitLeaks Configuration for Indonesian Accounting Application
+# https://github.com/gitleaks/gitleaks
+
+title = "Gitleaks Configuration"
+
+[extend]
+# Extend default rules
+useDefault = true
+
+# Custom rules for Indonesian data patterns
+[[rules]]
+id = "indonesian-npwp"
+description = "Indonesian Tax ID (NPWP)"
+regex = '''(?i)(npwp|tax.?id)['":\s]*[0-9]{2}\.?[0-9]{3}\.?[0-9]{3}\.?[0-9]{1}-?[0-9]{3}\.?[0-9]{3}'''
+keywords = ["npwp", "tax"]
+tags = ["pii", "indonesia"]
+
+[[rules]]
+id = "indonesian-nik"
+description = "Indonesian National ID (NIK/KTP)"
+regex = '''(?i)(nik|ktp|national.?id)['":\s]*[0-9]{16}'''
+keywords = ["nik", "ktp"]
+tags = ["pii", "indonesia"]
+
+[[rules]]
+id = "indonesian-bpjs"
+description = "Indonesian BPJS Number"
+regex = '''(?i)(bpjs)['":\s]*[0-9]{13}'''
+keywords = ["bpjs"]
+tags = ["pii", "indonesia"]
+
+[[rules]]
+id = "bank-account-indonesia"
+description = "Indonesian Bank Account Number"
+regex = '''(?i)(account.?number|rekening|no.?rek)['":\s]*[0-9]{10,16}'''
+keywords = ["account", "rekening"]
+tags = ["financial", "indonesia"]
+
+[[rules]]
+id = "telegram-bot-token"
+description = "Telegram Bot Token"
+regex = '''[0-9]{8,10}:[a-zA-Z0-9_-]{35}'''
+keywords = ["telegram", "bot"]
+tags = ["api", "token"]
+
+[[rules]]
+id = "google-api-key"
+description = "Google API Key"
+regex = '''AIza[0-9A-Za-z\\-_]{35}'''
+keywords = ["google", "api"]
+tags = ["api", "cloud"]
+
+[[rules]]
+id = "postgresql-connection"
+description = "PostgreSQL Connection String with Password"
+regex = '''postgres(ql)?://[^:]+:[^@]+@[^/]+/[^\s]+'''
+keywords = ["postgres", "jdbc"]
+tags = ["database"]
+
+[[rules]]
+id = "spring-datasource-password"
+description = "Spring Datasource Password"
+regex = '''(?i)spring\.datasource\.password\s*[=:]\s*[^\s]+'''
+keywords = ["datasource", "password"]
+tags = ["database", "spring"]
+
+# Allowlist - files and patterns to ignore
+[allowlist]
+description = "Allowlist for false positives"
+
+paths = [
+    '''\.github/workflows/.*\.yml$''',  # GitHub Actions (uses secrets)
+    '''src/test/.*''',                   # Test files
+    '''.*Test\.java$''',                 # Test classes
+    '''.*\.md$''',                       # Documentation
+    '''target/.*''',                     # Build output
+    '''node_modules/.*''',               # Node modules
+    '''\.mvn/.*''',                      # Maven wrapper
+]
+
+regexes = [
+    '''(?i)example|sample|test|mock|fake|dummy''',
+    '''(?i)\$\{.*\}''',                  # Environment variable placeholders
+    '''(?i)@Value\("''',                 # Spring @Value annotations
+    '''(?i)secrets\.(GITHUB_TOKEN|NVD_API_KEY)''',  # GitHub secrets references
+]
+
+commits = [
+    # Add specific commit hashes to ignore if needed
+]
+
+# Entropy settings
+[rules.entropy]
+# Reduce false positives from high-entropy strings
+min = 4.5

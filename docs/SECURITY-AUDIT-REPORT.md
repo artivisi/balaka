@@ -525,6 +525,71 @@ Estimated compliance: **62%** (must reach 100% for production)
 
 ---
 
+## DevSecOps Security Testing
+
+### Current State
+
+| Category | Tool | Status | Java 25 |
+|----------|------|--------|---------|
+| **SCA** | OWASP Dependency-Check | ✅ Implemented | ✅ Yes |
+| **SAST** | SpotBugs/FindSecBugs | ❌ Disabled | ❌ No |
+| **SAST** | CodeQL | ✅ NEW | ✅ Yes (v2.23.1+) |
+| **SAST** | Semgrep | ✅ NEW | ✅ Yes |
+| **Secret Detection** | GitLeaks | ✅ NEW | N/A |
+| **DAST** | OWASP ZAP | ✅ NEW | N/A |
+| **Container** | Trivy | ✅ NEW | N/A |
+| **IaC** | Checkov | ⏳ Planned | N/A |
+
+### Recommended DevSecOps Pipeline
+
+```
+┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+│   Commit    │───▶│    Build    │───▶│   Deploy    │───▶│  Runtime    │
+└─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
+      │                  │                  │                  │
+      ▼                  ▼                  ▼                  ▼
+┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+│  GitLeaks   │    │   CodeQL    │    │ OWASP ZAP   │    │  Nuclei     │
+│ TruffleHog  │    │   Semgrep   │    │   Trivy     │    │  Monitoring │
+│  Pre-commit │    │   SCA       │    │   IaC Scan  │    │  Alerting   │
+└─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
+```
+
+### Tool Configuration Files
+
+| File | Purpose |
+|------|---------|
+| `.github/workflows/codeql.yml` | CodeQL + Semgrep SAST |
+| `.github/workflows/dast.yml` | OWASP ZAP + Trivy + Nuclei |
+| `.github/workflows/security.yml` | OWASP Dependency-Check |
+| `.gitleaks.toml` | Secret detection rules |
+| `.zap/rules.tsv` | ZAP scan rules |
+
+### Java 25 SAST Alternatives
+
+| Tool | Java 25 Support | Integration | Cost |
+|------|-----------------|-------------|------|
+| **CodeQL** | ✅ v2.23.1+ | GitHub native, SARIF | Free |
+| **Semgrep** | ✅ Pattern-based | CLI, GitHub Action | Free/Paid |
+| **SonarQube** | ⚠️ Partial | Self-hosted/Cloud | Free/Paid |
+| **SpotBugs** | ❌ Pending BCEL 6.11 | Maven plugin | Free |
+
+**Recommendation:** Use CodeQL (GitHub native) + Semgrep for comprehensive SAST coverage while SpotBugs awaits Java 25 support.
+
+### Security Test Categories
+
+| Category | Tools | Frequency | Gate |
+|----------|-------|-----------|------|
+| **Pre-commit** | GitLeaks | Every commit | Block |
+| **SAST** | CodeQL, Semgrep | Every PR | Warn/Block |
+| **SCA** | Dependency-Check | Every PR | Block (CVSS ≥7) |
+| **DAST Baseline** | OWASP ZAP | Weekly | Warn |
+| **DAST Full** | OWASP ZAP | Monthly | Report |
+| **Container** | Trivy | Every build | Block (Critical) |
+| **Secrets** | TruffleHog | Every PR | Block |
+
+---
+
 ## Testing Recommendations
 
 ### Penetration Testing Scope

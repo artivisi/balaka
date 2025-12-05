@@ -689,7 +689,105 @@ Additive is ~3x simpler. Role switching only needed for strict audit trails or c
   - [ ] Data flow diagram in documentation
 - [ ] Data Protection Impact Assessment (DPIA) template for high-risk processing
 
-### 6.9 Security Testing & Documentation (P3)
+### 6.9 Automated Security Testing (DevSecOps) (P2)
+
+**Goal:** Implement shift-left security with automated testing in CI/CD pipeline.
+
+**Reference:** OWASP DevSecOps Guideline, NIST SP 800-218 (SSDF)
+
+#### 6.9.1 Static Application Security Testing (SAST)
+- [ ] CodeQL analysis (GitHub native, Java support)
+  - [ ] Add `.github/workflows/codeql.yml`
+  - [ ] Configure security queries for Java
+  - [ ] Enable SARIF upload to GitHub Security tab
+- [ ] Semgrep rules for Spring Security patterns
+  - [ ] Custom rules for authentication bypass
+  - [ ] SQL injection detection
+  - [ ] XSS pattern detection
+- [ ] SonarQube/SonarCloud integration (if not using CodeQL)
+  - [ ] Security hotspot analysis
+  - [ ] Code smell detection
+  - [ ] Quality gate with security thresholds
+
+#### 6.9.2 Software Composition Analysis (SCA)
+- [ ] OWASP Dependency-Check (✅ already implemented)
+  - [ ] Configure fail threshold (CVSS ≥ 7)
+  - [ ] NVD API key for faster scans
+- [ ] Dependency license scanning
+  - [ ] Add license-maven-plugin
+  - [ ] Block copyleft licenses if needed
+- [ ] SBOM generation (Software Bill of Materials)
+  - [ ] CycloneDX format for compliance
+  - [ ] Publish SBOM with releases
+
+#### 6.9.3 Secret Detection
+- [ ] GitLeaks pre-commit hook
+  - [ ] `.gitleaks.toml` configuration
+  - [ ] Custom patterns for Indonesian tax IDs, bank accounts
+- [ ] TruffleHog in CI pipeline
+  - [ ] Scan git history for leaked secrets
+  - [ ] Block PR if secrets detected
+- [ ] GitHub secret scanning (enable in repo settings)
+
+#### 6.9.4 Dynamic Application Security Testing (DAST)
+- [ ] OWASP ZAP baseline scan
+  - [ ] Add `.github/workflows/zap-scan.yml`
+  - [ ] Run against test environment after deployment
+  - [ ] Configure authentication for authenticated scans
+- [ ] OWASP ZAP full scan (weekly schedule)
+  - [ ] API scan with OpenAPI spec
+  - [ ] Spider + active scan
+  - [ ] Custom scan policy for accounting app
+- [ ] Nuclei vulnerability scanner
+  - [ ] Custom templates for Spring Boot
+  - [ ] CVE detection templates
+
+#### 6.9.5 Container Security
+- [ ] Trivy container scanning
+  - [ ] Scan Docker images before push
+  - [ ] OS vulnerability detection
+  - [ ] Application dependency scanning
+- [ ] Dockerfile best practices (hadolint)
+  - [ ] No root user
+  - [ ] Minimal base image
+  - [ ] Multi-stage builds
+- [ ] Container runtime security
+  - [ ] Read-only root filesystem
+  - [ ] Drop all capabilities
+  - [ ] Security context constraints
+
+#### 6.9.6 Infrastructure as Code (IaC) Security
+- [ ] Checkov for Pulumi/Terraform
+  - [ ] Scan `deploy/pulumi/` directory
+  - [ ] Custom policies for Indonesian compliance
+- [ ] Ansible-lint security rules
+  - [ ] Scan `deploy/ansible/` directory
+  - [ ] No hardcoded credentials
+  - [ ] Proper file permissions
+
+#### 6.9.7 API Security Testing
+- [ ] OWASP ZAP API scan with OpenAPI spec
+- [ ] Postman/Newman security test collection
+  - [ ] Authentication bypass tests
+  - [ ] Authorization tests (IDOR)
+  - [ ] Input validation tests
+  - [ ] Rate limiting verification
+- [ ] API fuzzing with RESTler or similar
+
+#### 6.9.8 Security Regression Tests
+- [ ] Playwright security test suite
+  - [ ] Authentication flow tests
+  - [ ] Session management tests
+  - [ ] CSRF token validation
+  - [ ] XSS payload injection tests
+  - [ ] SQL injection attempts (blocked)
+- [ ] JUnit security unit tests
+  - [ ] Password complexity validation
+  - [ ] Input sanitization
+  - [ ] Encryption/decryption
+  - [ ] Access control logic
+
+### 6.10 Security Documentation & Policies (P3)
 - [ ] Functional tests for password complexity validation
 - [ ] Functional tests for account lockout
 - [ ] Functional tests for field-level encryption
