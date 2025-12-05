@@ -696,10 +696,10 @@ Additive is ~3x simpler. Role switching only needed for strict audit trails or c
 **Reference:** OWASP DevSecOps Guideline, NIST SP 800-218 (SSDF)
 
 #### 6.9.1 Static Application Security Testing (SAST)
-- [ ] CodeQL analysis (GitHub native, Java support)
-  - [ ] Add `.github/workflows/codeql.yml`
-  - [ ] Configure security queries for Java
-  - [ ] Enable SARIF upload to GitHub Security tab
+- [x] CodeQL analysis (GitHub native, Java support)
+  - [x] Add `.github/workflows/codeql.yml`
+  - [x] Configure security queries for Java
+  - [x] Enable SARIF upload to GitHub Security tab
 - [ ] Semgrep rules for Spring Security patterns
   - [ ] Custom rules for authentication bypass
   - [ ] SQL injection detection
@@ -721,9 +721,9 @@ Additive is ~3x simpler. Role switching only needed for strict audit trails or c
   - [ ] Publish SBOM with releases
 
 #### 6.9.3 Secret Detection
-- [ ] GitLeaks pre-commit hook
-  - [ ] `.gitleaks.toml` configuration
-  - [ ] Custom patterns for Indonesian tax IDs, bank accounts
+- [x] GitLeaks configuration
+  - [x] `.gitleaks.toml` configuration
+  - [x] Custom patterns for Indonesian tax IDs, bank accounts
 - [ ] TruffleHog in CI pipeline
   - [ ] Scan git history for leaked secrets
   - [ ] Block PR if secrets detected
@@ -780,12 +780,12 @@ Additive is ~3x simpler. Role switching only needed for strict audit trails or c
 - [ ] API fuzzing with RESTler or similar
 
 #### 6.9.8 Security Regression Tests
-- [ ] Playwright security test suite
-  - [ ] Authentication flow tests
-  - [ ] Session management tests
-  - [ ] CSRF token validation
-  - [ ] XSS payload injection tests
-  - [ ] SQL injection attempts (blocked)
+- [x] Playwright security test suite (`SecurityRegressionTest.java`)
+  - [x] Authentication flow tests
+  - [x] Session management tests
+  - [x] CSRF token validation
+  - [x] XSS payload injection tests
+  - [x] SQL injection attempts (blocked)
 - [ ] JUnit security unit tests
   - [ ] Password complexity validation
   - [ ] Input sanitization
