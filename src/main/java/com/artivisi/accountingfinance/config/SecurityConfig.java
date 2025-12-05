@@ -11,11 +11,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
-import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -40,9 +35,10 @@ public class SecurityConfig {
             .csrf(csrf -> csrf
                 .ignoringRequestMatchers("/*/api/**", "/api/**")
             )
-            // CORS configuration - restrict to same-origin for security
-            // This application is served from a single domain, so we deny cross-origin requests
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            // Disable CORS processing - this is a same-origin web application
+            // When CORS is disabled, Spring Security doesn't apply CORS filter
+            // and the browser's same-origin policy handles security
+            .cors(cors -> cors.disable())
             .formLogin(form -> form
                 .loginPage("/login")
                 .defaultSuccessUrl("/dashboard", true)
@@ -95,24 +91,4 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
-    /**
-     * CORS configuration - restrictive by default.
-     * This application is a same-origin web application, so cross-origin requests are denied.
-     * Only allows requests from the same origin (enforced by browser same-origin policy).
-     */
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        // Do not allow any cross-origin requests by default
-        // Only same-origin requests are allowed (browser will not include Origin header)
-        configuration.setAllowedOrigins(List.of()); // Empty list = deny all cross-origin
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("*"));
-        configuration.setAllowCredentials(false);
-        configuration.setMaxAge(3600L);
-
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
-        return source;
-    }
 }
