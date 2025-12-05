@@ -10,6 +10,7 @@ import com.artivisi.accountingfinance.ui.PlaywrightTestBase;
 import com.microsoft.playwright.Download;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.annotation.DirtiesContext;
 
 import java.io.IOException;
@@ -48,6 +49,10 @@ class FullDataExportImportTest extends PlaywrightTestBase {
     private JournalEntryRepository journalEntryRepository;
     @Autowired
     private ClientRepository clientRepository;
+    @Autowired
+    private UserRepository userRepository;
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     private LoginPage loginPage;
 
@@ -186,6 +191,13 @@ class FullDataExportImportTest extends PlaywrightTestBase {
 
         // Verify success message contains "Import berhasil" or similar
         assertThat(successLocator).hasCount(1, new com.microsoft.playwright.assertions.LocatorAssertions.HasCountOptions().setTimeout(30000));
+
+        // Reset admin password after import (import sets random UUID password for security)
+        // This is needed so subsequent tests can login with "admin"/"admin"
+        userRepository.findByUsername("admin").ifPresent(admin -> {
+            admin.setPassword(passwordEncoder.encode("admin"));
+            userRepository.save(admin);
+        });
     }
 
     @Test
