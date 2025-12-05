@@ -743,9 +743,10 @@ Additive is ~3x simpler. Role switching only needed for strict audit trails or c
 - [ ] Dependency license scanning
   - [ ] Add license-maven-plugin
   - [ ] Block copyleft licenses if needed
-- [ ] SBOM generation (Software Bill of Materials)
-  - [ ] CycloneDX format for compliance
-  - [ ] Publish SBOM with releases
+- [x] SBOM generation (Software Bill of Materials)
+  - [x] CycloneDX maven plugin (v2.9.1) - generates sbom.json and sbom.xml on package
+  - [x] Includes compile, provided, runtime scopes
+  - [ ] Publish SBOM with releases (GitHub Actions)
 
 #### 6.9.3 Secret Detection
 - [x] GitLeaks configuration
@@ -829,12 +830,19 @@ Additive is ~3x simpler. Role switching only needed for strict audit trails or c
 - [x] Functional tests for security headers (SecurityRegressionTest.SecurityHeaderTests)
 - [x] GDPR/UU PDP data subject rights (DataSubjectService: export, anonymize, delete, retention check)
 - [x] Integration tests for data subject rights (DataSubjectServiceTest: 11 tests covering Art. 15 & 17)
-- [ ] Penetration testing checklist (manual verification)
+- [x] Penetration testing checklist (manual verification)
+  - [x] docs/09-penetration-testing-checklist.md - comprehensive manual testing guide
+  - [x] Authentication, authorization, input validation sections
+  - [x] OWASP-aligned test cases with expected results
 - [x] Update user manual with security best practices
   - [x] docs/user-manual/70-kelola-pengguna.md (password complexity, lockout, audit log)
   - [x] docs/user-manual/80-kebijakan-data.md (data subject rights, encryption)
   - [x] docs/user-manual/82-keamanan.md (comprehensive security documentation)
-- [ ] Create SECURITY.md with vulnerability reporting process
+- [x] Create SECURITY.md with vulnerability reporting process
+  - [x] Vulnerability disclosure policy with response timeframes
+  - [x] Severity classification (CVSS-based)
+  - [x] Safe harbor statement for security researchers
+  - [x] Summary of security controls implemented
 - [ ] Document security patch procedures for PCI-DSS compliance
 - [x] Privacy policy page (/privacy) with UU PDP and GDPR compliance
 
