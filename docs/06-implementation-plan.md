@@ -730,17 +730,22 @@ Additive is ~3x simpler. Role switching only needed for strict audit trails or c
 - [ ] GitHub secret scanning (enable in repo settings)
 
 #### 6.9.4 Dynamic Application Security Testing (DAST)
-- [ ] OWASP ZAP baseline scan
-  - [ ] Add `.github/workflows/zap-scan.yml`
-  - [ ] Run against test environment after deployment
-  - [ ] Configure authentication for authenticated scans
-- [ ] OWASP ZAP full scan (weekly schedule)
-  - [ ] API scan with OpenAPI spec
-  - [ ] Spider + active scan
-  - [ ] Custom scan policy for accounting app
-- [ ] Nuclei vulnerability scanner
-  - [ ] Custom templates for Spring Boot
-  - [ ] CVE detection templates
+- [x] Spring-integrated ZAP DAST (Recommended approach)
+  - [x] `ZapDastTest.java` - ZAP runs within `@SpringBootTest`
+  - [x] ZAP as Testcontainer with `host.testcontainers.internal` networking
+  - [x] Baseline scan + authenticated scan
+  - [x] Severity thresholds: 0 HIGH, ≤5 MEDIUM allowed
+  - [x] Runs on PRs and weekly schedule
+- [x] OWASP ZAP baseline scan (Standalone approach)
+  - [x] Add `.github/workflows/dast.yml`
+  - [x] Builds JAR then starts app before ZAP scan
+  - [x] Configure authentication for authenticated scans
+- [x] OWASP ZAP full scan (weekly schedule, on-demand)
+  - [x] Spider + active scan
+  - [x] Custom rules in `.zap/rules.tsv`
+- [x] Nuclei vulnerability scanner
+  - [x] Custom templates for Spring Boot
+  - [x] CVE detection templates
 
 #### 6.9.5 Container Security
 - [ ] Trivy container scanning

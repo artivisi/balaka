@@ -4,33 +4,45 @@ on:
   # Manual trigger for DAST scans
   workflow_dispatch:
     inputs:
-      target_url:
-        description: 'Target URL to scan'
-        required: true
-        default: 'http://localhost:10000'
       scan_type:
         description: 'Scan type'
         required: true
-        default: 'baseline'
+        default: 'spring-integrated'
         type: choice
         options:
-          - baseline
-          - full
-          - api
+          - spring-integrated
+          - standalone-baseline
+          - standalone-full
+          - all
 
   # Weekly full scan
   schedule:
     - cron: '0 2 * * 0'
 
+  # Run on PRs to main (spring-integrated only for speed)
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'src/**'
+      - 'pom.xml'
+
 permissions:
   contents: read
   issues: write
+  security-events: write
 
 jobs:
-  zap-baseline:
-    name: OWASP ZAP Baseline Scan
+  # Spring-integrated DAST - ZAP runs within @SpringBootTest
+  # This is the recommended approach as it's fully integrated with Spring's test infrastructure
+  spring-integrated-dast:
+    name: Spring-Integrated ZAP DAST
     runs-on: ubuntu-latest
-    if: github.event.inputs.scan_type == 'baseline' || github.event_name == 'schedule'
+    if: |
+      github.event_name == 'pull_request' ||
+      github.event_name == 'schedule' ||
+      github.event.inputs.scan_type == 'spring-integrated' ||
+      github.event.inputs.scan_type == 'all'
 
     services:
       postgres:
@@ -58,15 +70,82 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: Start application
+      - name: Run Spring-integrated ZAP DAST tests
         env:
           DATABASE_URL: jdbc:postgresql://localhost:5432/accountingdb
           DATABASE_USERNAME: accounting
           DATABASE_PASSWORD: testpassword
         run: |
-          ./mvnw spring-boot:run -DskipTests &
-          sleep 60
-          curl --retry 10 --retry-delay 5 --retry-connrefused http://localhost:10000/login
+          ./mvnw test -Dtest=ZapDastTest -Dgroups=security,dast \
+            -Dspring.datasource.url=jdbc:postgresql://localhost:5432/accountingdb \
+            -Dspring.datasource.username=accounting \
+            -Dspring.datasource.password=testpassword
+
+      - name: Upload ZAP Reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: zap-spring-integrated-reports
+          path: target/security-reports/
+
+  # Standalone ZAP Baseline Scan - Traditional approach
+  # App is started manually, then ZAP scans it
+  standalone-baseline:
+    name: Standalone ZAP Baseline Scan
+    runs-on: ubuntu-latest
+    if: |
+      github.event.inputs.scan_type == 'standalone-baseline' ||
+      github.event.inputs.scan_type == 'all'
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: accountingdb
+          POSTGRES_USER: accounting
+          POSTGRES_PASSWORD: testpassword
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Build application
+        run: ./mvnw package -DskipTests -q
+
+      - name: Start application
+        env:
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/accountingdb
+          SPRING_DATASOURCE_USERNAME: accounting
+          SPRING_DATASOURCE_PASSWORD: testpassword
+        run: |
+          java -jar target/*.jar &
+          APP_PID=$!
+          echo "APP_PID=$APP_PID" >> $GITHUB_ENV
+
+          # Wait for app to be ready
+          echo "Waiting for application to start..."
+          for i in {1..60}; do
+            if curl -s -o /dev/null -w "%{http_code}" http://localhost:10000/login | grep -q "200"; then
+              echo "Application is ready!"
+              break
+            fi
+            echo "Attempt $i: Application not ready yet..."
+            sleep 2
+          done
 
       - name: OWASP ZAP Baseline Scan
         uses: zaproxy/action-baseline@v0.14.0
@@ -77,6 +156,13 @@ jobs:
           allow_issue_writing: true
           fail_action: false
 
+      - name: Stop application
+        if: always()
+        run: |
+          if [ -n "$APP_PID" ]; then
+            kill $APP_PID || true
+          fi
+
       - name: Upload ZAP Report
         uses: actions/upload-artifact@v4
         if: always()
@@ -84,10 +170,11 @@ jobs:
           name: zap-baseline-report
           path: report_html.html
 
-  zap-full:
-    name: OWASP ZAP Full Scan
+  # Standalone ZAP Full Scan - More comprehensive but slower
+  standalone-full:
+    name: Standalone ZAP Full Scan
     runs-on: ubuntu-latest
-    if: github.event.inputs.scan_type == 'full'
+    if: github.event.inputs.scan_type == 'standalone-full' || github.event.inputs.scan_type == 'all'
 
     services:
       postgres:
@@ -115,15 +202,29 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
+      - name: Build application
+        run: ./mvnw package -DskipTests -q
+
       - name: Start application
         env:
-          DATABASE_URL: jdbc:postgresql://localhost:5432/accountingdb
-          DATABASE_USERNAME: accounting
-          DATABASE_PASSWORD: testpassword
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/accountingdb
+          SPRING_DATASOURCE_USERNAME: accounting
+          SPRING_DATASOURCE_PASSWORD: testpassword
         run: |
-          ./mvnw spring-boot:run -DskipTests &
-          sleep 60
-          curl --retry 10 --retry-delay 5 --retry-connrefused http://localhost:10000/login
+          java -jar target/*.jar &
+          APP_PID=$!
+          echo "APP_PID=$APP_PID" >> $GITHUB_ENV
+
+          # Wait for app to be ready
+          echo "Waiting for application to start..."
+          for i in {1..60}; do
+            if curl -s -o /dev/null -w "%{http_code}" http://localhost:10000/login | grep -q "200"; then
+              echo "Application is ready!"
+              break
+            fi
+            echo "Attempt $i: Application not ready yet..."
+            sleep 2
+          done
 
       - name: OWASP ZAP Full Scan
         uses: zaproxy/action-full-scan@v0.12.0
@@ -134,6 +235,13 @@ jobs:
           allow_issue_writing: true
           fail_action: false
 
+      - name: Stop application
+        if: always()
+        run: |
+          if [ -n "$APP_PID" ]; then
+            kill $APP_PID || true
+          fi
+
       - name: Upload ZAP Report
         uses: actions/upload-artifact@v4
         if: always()
@@ -141,26 +249,32 @@ jobs:
           name: zap-full-report
           path: report_html.html
 
+  # Trivy container scan (if Dockerfile exists)
   trivy-container:
     name: Trivy Container Scan
     runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Build Docker image
+      - name: Check for Dockerfile
+        id: check_dockerfile
         run: |
           if [ -f Dockerfile ]; then
-            docker build -t aplikasi-akunting:scan .
+            echo "exists=true" >> $GITHUB_OUTPUT
           else
-            echo "No Dockerfile found, skipping container scan"
-            exit 0
+            echo "exists=false" >> $GITHUB_OUTPUT
           fi
 
+      - name: Build Docker image
+        if: steps.check_dockerfile.outputs.exists == 'true'
+        run: docker build -t aplikasi-akunting:scan .
+
       - name: Run Trivy vulnerability scanner
+        if: steps.check_dockerfile.outputs.exists == 'true'
         uses: aquasecurity/trivy-action@0.30.0
-        if: hashFiles('Dockerfile') != ''
         with:
           image-ref: 'aplikasi-akunting:scan'
           format: 'sarif'
@@ -168,16 +282,17 @@ jobs:
           severity: 'CRITICAL,HIGH'
 
       - name: Upload Trivy scan results
+        if: steps.check_dockerfile.outputs.exists == 'true'
         uses: github/codeql-action/upload-sarif@v3
-        if: hashFiles('Dockerfile') != '' && always()
         with:
           sarif_file: 'trivy-results.sarif'
           category: trivy
 
+  # Nuclei vulnerability scan
   nuclei-scan:
     name: Nuclei Vulnerability Scan
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.scan_type == 'all'
 
     services:
       postgres:
@@ -205,15 +320,23 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: Start application
+      - name: Build and start application
         env:
-          DATABASE_URL: jdbc:postgresql://localhost:5432/accountingdb
-          DATABASE_USERNAME: accounting
-          DATABASE_PASSWORD: testpassword
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/accountingdb
+          SPRING_DATASOURCE_USERNAME: accounting
+          SPRING_DATASOURCE_PASSWORD: testpassword
         run: |
-          ./mvnw spring-boot:run -DskipTests &
-          sleep 60
-          curl --retry 10 --retry-delay 5 --retry-connrefused http://localhost:10000/login
+          ./mvnw package -DskipTests -q
+          java -jar target/*.jar &
+
+          # Wait for app to be ready
+          for i in {1..60}; do
+            if curl -s -o /dev/null -w "%{http_code}" http://localhost:10000/login | grep -q "200"; then
+              echo "Application is ready!"
+              break
+            fi
+            sleep 2
+          done
 
       - name: Run Nuclei Scanner
         uses: projectdiscovery/nuclei-action@main

@@ -155,6 +155,13 @@
 			<version>0.64.8</version>
 			<scope>test</scope>
 		</dependency>
+		<!-- OWASP ZAP Client API for DAST integration tests -->
+		<dependency>
+			<groupId>org.zaproxy</groupId>
+			<artifactId>zap-clientapi</artifactId>
+			<version>1.14.0</version>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 
 	<build>
