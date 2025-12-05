@@ -24,6 +24,7 @@ import java.time.Duration;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
  * OWASP ZAP DAST Integration Test
@@ -31,7 +32,8 @@ import static org.junit.jupiter.api.Assertions.*;
  * This test integrates OWASP ZAP into the Spring Boot test infrastructure.
  * ZAP runs as a Testcontainer and scans the running application.
  *
- * Run with: ./mvnw test -Dtest=ZapDastTest
+ * CI-only by default. To run locally:
+ *   ./mvnw test -Dtest=ZapDastTest -Dgroups=dast -DexcludedGroups= -Ddast.enabled=true
  *
  * The test will:
  * 1. Start the Spring Boot app on a random port
@@ -47,6 +49,11 @@ import static org.junit.jupiter.api.Assertions.*;
 @Tag("security")
 @Tag("dast")
 class ZapDastTest {
+
+    // CI environment variable (GitHub Actions sets CI=true)
+    private static final boolean IS_CI = "true".equals(System.getenv("CI"));
+    // Manual override: -Ddast.enabled=true
+    private static final boolean DAST_ENABLED = "true".equals(System.getProperty("dast.enabled"));
 
     private static final Logger log = LoggerFactory.getLogger(ZapDastTest.class);
     private static final Path REPORTS_DIR = Paths.get("target/security-reports");
@@ -70,6 +77,11 @@ class ZapDastTest {
 
     @BeforeEach
     void setupZap() throws Exception {
+        // Skip container startup if not in CI and not explicitly enabled
+        if (!IS_CI && !DAST_ENABLED) {
+            return;
+        }
+
         // Expose the Spring Boot port to Docker containers
         Testcontainers.exposeHostPorts(port);
 
@@ -109,6 +121,9 @@ class ZapDastTest {
     @Test
     @DisplayName("Should pass baseline security scan")
     void shouldPassBaselineSecurityScan() throws Exception {
+        assumeTrue(IS_CI || DAST_ENABLED,
+                "DAST tests skipped locally. Use -Ddast.enabled=true to run.");
+
         String targetUrl = "http://host.testcontainers.internal:" + port;
 
         log.info("Starting ZAP baseline scan against {}", targetUrl);
@@ -188,6 +203,9 @@ class ZapDastTest {
     @Test
     @DisplayName("Should pass authenticated scan")
     void shouldPassAuthenticatedScan() throws Exception {
+        assumeTrue(IS_CI || DAST_ENABLED,
+                "DAST tests skipped locally. Use -Ddast.enabled=true to run.");
+
         String targetUrl = "http://host.testcontainers.internal:" + port;
 
         log.info("Starting ZAP authenticated scan against {}", targetUrl);
