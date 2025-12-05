@@ -622,17 +622,45 @@ Additive is ~3x simpler. Role switching only needed for strict audit trails or c
 - [ ] API error responses without sensitive information
 - [ ] Move Telegram token from URL to header-based authentication
 
-### 6.8 Security Testing & Documentation (P3)
+### 6.8 GDPR/UU PDP Compliance (P2)
+
+**Note:** UU PDP (Law No. 27/2022) is Indonesian data protection law, similar to GDPR.
+
+- [ ] True data deletion capability (not just soft delete) for data subject requests
+- [ ] Data Subject Access Request (DSAR) workflow
+  - [ ] Employee self-service: export all personal data (JSON/PDF)
+  - [ ] Admin: process deletion requests with audit trail
+- [ ] Consent management for data processing
+  - [ ] ConsentRecord entity (user, purpose, granted_at, withdrawn_at)
+  - [ ] Consent capture on employee onboarding
+  - [ ] Consent withdrawal workflow
+- [ ] Privacy notice display in application (/privacy-policy)
+- [ ] Data breach response procedures
+  - [ ] DataBreachIncident entity (detected_at, description, affected_count, notified_at)
+  - [ ] Breach notification template (72h GDPR / 14 days UU PDP)
+  - [ ] Breach response checklist in documentation
+- [ ] Data retention enforcement
+  - [ ] Automated purge job for expired data (based on docs/07-data-retention-policy.md)
+  - [ ] Retention period configuration per data type
+  - [ ] Pre-deletion notification to admins
+- [ ] Records of Processing Activities (ROPA)
+  - [ ] Document what PII is collected, why, retention period
+  - [ ] Data flow diagram in documentation
+- [ ] Data Protection Impact Assessment (DPIA) template for high-risk processing
+
+### 6.9 Security Testing & Documentation (P3)
 - [ ] Functional tests for password complexity validation
 - [ ] Functional tests for account lockout
 - [ ] Functional tests for field-level encryption
 - [ ] Functional tests for security headers
+- [ ] Functional tests for data deletion (GDPR right to erasure)
 - [ ] Penetration testing checklist (manual verification)
 - [ ] Update user manual with security best practices
 - [ ] Create SECURITY.md with vulnerability reporting process
 - [ ] Document security patch procedures for PCI-DSS compliance
+- [ ] Create PRIVACY.md with data processing documentation
 
-**Phase 6 Deliverable:** Production-ready security posture with encrypted PII, strong authentication, comprehensive audit logging, and compliance with OWASP Top 10 and PCI-DSS requirements.
+**Phase 6 Deliverable:** Production-ready security posture with encrypted PII, strong authentication, comprehensive audit logging, and compliance with OWASP Top 10, PCI-DSS, and UU PDP/GDPR requirements.
 
 ---
 

@@ -406,6 +406,41 @@ Data exports contain full database including sensitive data, exported as unencry
 
 Estimated compliance: **62%** (must reach 100% for production)
 
+### GDPR / UU PDP Compliance
+
+**Note:** UU PDP (Law No. 27/2022) is Indonesian data protection law with requirements similar to GDPR.
+
+| Requirement | GDPR Article | UU PDP | Status | Gap |
+|-------------|--------------|--------|--------|-----|
+| Lawful Basis | Art. 6 | Pasal 20 | ❌ Missing | No consent tracking |
+| Data Subject Access | Art. 15 | Pasal 7 | ⚠️ Partial | Admin-only export |
+| Right to Rectification | Art. 16 | Pasal 8 | ✅ Pass | Users can edit data |
+| Right to Erasure | Art. 17 | Pasal 9 | ❌ Fail | Soft delete only |
+| Data Portability | Art. 20 | Pasal 12 | ⚠️ Partial | Export exists, not self-service |
+| Privacy by Design | Art. 25 | Pasal 34 | ⚠️ Partial | Some controls |
+| Data Protection Officer | Art. 37 | Pasal 53 | N/A | Organizational |
+| Breach Notification | Art. 33-34 | Pasal 46 | ❌ Missing | No procedures (72h/14 days) |
+| Records of Processing | Art. 30 | Pasal 31 | ❌ Missing | No ROPA documentation |
+| Data Retention | Art. 5(1)(e) | Pasal 25 | ⚠️ Partial | Policy exists, no enforcement |
+| Security Measures | Art. 32 | Pasal 35 | ⚠️ Partial | Encryption planned |
+| DPIA | Art. 35 | Pasal 34 | ❌ Missing | No assessment |
+
+**Key GDPR/UU PDP Gaps:**
+
+1. **No True Deletion** - Soft delete doesn't satisfy right to erasure
+2. **No Consent Management** - No tracking of processing consent
+3. **No Breach Response** - Missing notification procedures
+4. **No Self-Service Data Export** - Employees can't export their own data
+5. **No Privacy Notice** - No in-app privacy policy display
+6. **No ROPA** - No documentation of processing activities
+
+**Indonesian-Specific Requirements (UU PDP):**
+
+- Data controller must notify KOMDIGI within 14 days of breach (vs 72h GDPR)
+- Written consent required for sensitive data processing
+- Data transfer restrictions (domestic processing preferred)
+- Penalties up to 2% of annual revenue or IDR 20 billion
+
 ---
 
 ## Testing Recommendations
