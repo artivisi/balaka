@@ -6,6 +6,7 @@ import com.artivisi.accountingfinance.entity.JournalTemplate;
 import com.artivisi.accountingfinance.entity.JournalTemplateLine;
 import com.artivisi.accountingfinance.entity.Transaction;
 import com.artivisi.accountingfinance.enums.JournalPosition;
+import com.artivisi.accountingfinance.enums.TemplateType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,6 +15,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -68,13 +70,19 @@ public class TemplateExecutionEngine {
         BigDecimal totalCredit = BigDecimal.ZERO;
 
         for (JournalTemplateLine line : template.getLines()) {
-            BigDecimal amount = evaluateFormula(line.getFormula(), context.amount());
-            BigDecimal debit = line.getPosition() == JournalPosition.DEBIT ? amount : BigDecimal.ZERO;
-            BigDecimal credit = line.getPosition() == JournalPosition.CREDIT ? amount : BigDecimal.ZERO;
+            BigDecimal lineAmount = evaluateFormula(line.getFormula(), context);
+            BigDecimal debit = line.getPosition() == JournalPosition.DEBIT ? lineAmount : BigDecimal.ZERO;
+            BigDecimal credit = line.getPosition() == JournalPosition.CREDIT ? lineAmount : BigDecimal.ZERO;
+
+            // Handle dynamic accounts (null account with accountHint)
+            String accountCode = line.getAccount() != null ? line.getAccount().getAccountCode() : "?";
+            String accountName = line.getAccount() != null
+                    ? line.getAccount().getAccountName()
+                    : (line.getAccountHint() != null ? line.getAccountHint() : "Pilih saat transaksi");
 
             previewEntries.add(new PreviewEntry(
-                    line.getAccount().getAccountCode(),
-                    line.getAccount().getAccountName(),
+                    accountCode,
+                    accountName,
                     context.description(),
                     debit,
                     credit
@@ -115,10 +123,24 @@ public class TemplateExecutionEngine {
             errors.add("Transaction date is required");
         }
 
-        if (context.amount() == null) {
-            errors.add("Amount is required");
-        } else if (context.amount().compareTo(BigDecimal.ZERO) <= 0) {
-            errors.add("Amount must be positive");
+        // For DETAILED templates, check variables; for SIMPLE templates, check amount
+        boolean isDetailedTemplate = template.getTemplateType() == TemplateType.DETAILED;
+
+        if (isDetailedTemplate) {
+            // For DETAILED templates, at least one variable must have a positive value
+            boolean hasValidVariable = context.variables() != null &&
+                    context.variables().values().stream()
+                            .anyMatch(v -> v != null && v.compareTo(BigDecimal.ZERO) > 0);
+            if (!hasValidVariable) {
+                errors.add("At least one variable must have a positive value");
+            }
+        } else {
+            // For SIMPLE templates, amount is required
+            if (context.amount() == null) {
+                errors.add("Amount is required");
+            } else if (context.amount().compareTo(BigDecimal.ZERO) <= 0) {
+                errors.add("Amount must be positive");
+            }
         }
 
         if (context.description() == null || context.description().isBlank()) {
@@ -136,15 +158,15 @@ public class TemplateExecutionEngine {
             entry.setAccount(line.getAccount());
 
             // Evaluate formula to get amount
-            BigDecimal amount = evaluateFormula(line.getFormula(), context.amount());
+            BigDecimal lineAmount = evaluateFormula(line.getFormula(), context);
 
             // Set debit or credit based on position
             if (line.getPosition() == JournalPosition.DEBIT) {
-                entry.setDebitAmount(amount);
+                entry.setDebitAmount(lineAmount);
                 entry.setCreditAmount(BigDecimal.ZERO);
             } else {
                 entry.setDebitAmount(BigDecimal.ZERO);
-                entry.setCreditAmount(amount);
+                entry.setCreditAmount(lineAmount);
             }
 
             entries.add(entry);
@@ -156,11 +178,13 @@ public class TemplateExecutionEngine {
     /**
      * Evaluate formula expressions using FormulaEvaluator.
      * Delegates to unified SpEL-based evaluation.
+     * Supports both SIMPLE templates (using 'amount') and DETAILED templates (using custom variables).
      *
      * @see FormulaEvaluator
      */
-    BigDecimal evaluateFormula(String formula, BigDecimal amount) {
-        return formulaEvaluator.evaluate(formula, FormulaContext.of(amount));
+    BigDecimal evaluateFormula(String formula, ExecutionContext context) {
+        FormulaContext formulaContext = FormulaContext.of(context.amount(), context.variables());
+        return formulaEvaluator.evaluate(formula, formulaContext);
     }
 
     // Records for input/output
@@ -169,11 +193,17 @@ public class TemplateExecutionEngine {
             LocalDate transactionDate,
             BigDecimal amount,
             String description,
-            String referenceNumber
+            String referenceNumber,
+            Map<String, BigDecimal> variables
     ) {
-        // Constructor without referenceNumber for backward compatibility
+        // Constructor without referenceNumber and variables for backward compatibility (SIMPLE templates)
         public ExecutionContext(LocalDate transactionDate, BigDecimal amount, String description) {
-            this(transactionDate, amount, description, null);
+            this(transactionDate, amount, description, null, Map.of());
+        }
+
+        // Constructor with referenceNumber but no variables
+        public ExecutionContext(LocalDate transactionDate, BigDecimal amount, String description, String referenceNumber) {
+            this(transactionDate, amount, description, referenceNumber, Map.of());
         }
     }
 

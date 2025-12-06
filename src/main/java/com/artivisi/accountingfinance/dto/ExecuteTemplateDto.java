@@ -6,15 +6,36 @@ import jakarta.validation.constraints.NotNull;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Map;
 
+/**
+ * DTO for executing journal templates.
+ *
+ * For SIMPLE templates: use 'amount' field
+ * For DETAILED templates: use 'variables' map with formula variable names as keys
+ */
 public record ExecuteTemplateDto(
         @NotNull(message = "Transaction date is required")
         LocalDate transactionDate,
 
-        @NotNull(message = "Amount is required")
-        @DecimalMin(value = "0.01", message = "Amount must be positive")
+        // Note: No validation here - for DETAILED templates, amount can be null/0
+        // For SIMPLE templates, validation is done in TemplateExecutionEngine.validate()
         BigDecimal amount,
 
         @NotBlank(message = "Description is required")
-        String description
-) {}
+        String description,
+
+        /**
+         * Variables for DETAILED templates.
+         * Key: formula variable name (e.g., "kas", "bankBca")
+         * Value: amount for that variable
+         */
+        Map<String, BigDecimal> variables
+) {
+    /**
+     * Returns non-null variables map (empty if null).
+     */
+    public Map<String, BigDecimal> safeVariables() {
+        return variables != null ? variables : Map.of();
+    }
+}

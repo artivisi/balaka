@@ -328,6 +328,22 @@ cat /opt/accounting-finance/.pgpass
 sudo -u accounting bash -x /opt/accounting-finance/scripts/backup.sh
 ```
 
+### Database Reset (Clear All Data)
+
+**WARNING:** This will delete ALL data. Use only for fresh deployments or when data migration is not needed.
+
+```bash
+# Stop application first
+sudo systemctl stop accounting-finance
+
+# Drop and recreate database
+sudo -u postgres psql -c "DROP DATABASE IF EXISTS accountingdb;"
+sudo -u postgres psql -c "CREATE DATABASE accountingdb OWNER accounting;"
+
+# Restart application (Flyway will recreate schema and seed data)
+sudo systemctl start accounting-finance
+```
+
 ## Rollback Procedure
 
 ### Application Rollback

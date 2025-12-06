@@ -166,10 +166,50 @@ public class JournalTemplateController {
 
     @GetMapping("/{id}/execute")
     public String executePage(@PathVariable UUID id, Model model) {
+        JournalTemplate template = journalTemplateService.findByIdWithLines(id);
         model.addAttribute("currentPage", "templates");
-        model.addAttribute("template", journalTemplateService.findByIdWithLines(id));
+        model.addAttribute("template", template);
+
+        // For DETAILED templates, extract unique formula variable names
+        // Variables are simple identifiers like "kas", "bankBca", etc. (not "amount" or expressions)
+        // Use LinkedHashMap to preserve order while deduplicating by variable name
+        java.util.Map<String, FormulaVariable> uniqueVariables = new java.util.LinkedHashMap<>();
+        for (JournalTemplateLine line : template.getLines()) {
+            String formula = line.getFormula();
+            if (isSimpleVariable(formula) && !"amount".equalsIgnoreCase(formula)) {
+                String varName = formula.trim();
+                if (!uniqueVariables.containsKey(varName)) {
+                    String label = line.getDescription() != null
+                            ? line.getDescription()
+                            : (line.getAccount() != null ? line.getAccount().getAccountName() : varName);
+                    uniqueVariables.put(varName, new FormulaVariable(varName, label));
+                }
+            }
+        }
+        java.util.List<FormulaVariable> formulaVariables = new java.util.ArrayList<>(uniqueVariables.values());
+        model.addAttribute("formulaVariables", formulaVariables);
+        model.addAttribute("isDetailedTemplate", !formulaVariables.isEmpty());
+
         return "templates/execute";
     }
+
+    /**
+     * Check if formula is a simple variable name (identifier only).
+     */
+    private boolean isSimpleVariable(String formula) {
+        if (formula == null || formula.isBlank()) return false;
+        String trimmed = formula.trim();
+        if (trimmed.isEmpty()) return false;
+        char first = trimmed.charAt(0);
+        if (!Character.isLetter(first) && first != '_') return false;
+        for (int i = 1; i < trimmed.length(); i++) {
+            char c = trimmed.charAt(i);
+            if (!Character.isLetterOrDigit(c) && c != '_') return false;
+        }
+        return true;
+    }
+
+    public record FormulaVariable(String name, String label) {}
 
     // Form POST Endpoints
 
@@ -309,8 +349,10 @@ public class JournalTemplateController {
         JournalTemplate template = journalTemplateService.findByIdWithLines(id);
         TemplateExecutionEngine.ExecutionContext context = new TemplateExecutionEngine.ExecutionContext(
                 dto.transactionDate(),
-                dto.amount(),
-                dto.description()
+                dto.amount() != null ? dto.amount() : java.math.BigDecimal.ZERO,
+                dto.description(),
+                null,
+                dto.safeVariables()
         );
         return ResponseEntity.ok(templateExecutionEngine.preview(template, context));
     }
@@ -324,8 +366,10 @@ public class JournalTemplateController {
         JournalTemplate template = journalTemplateService.findByIdWithLines(id);
         TemplateExecutionEngine.ExecutionContext context = new TemplateExecutionEngine.ExecutionContext(
                 dto.transactionDate(),
-                dto.amount(),
-                dto.description()
+                dto.amount() != null ? dto.amount() : java.math.BigDecimal.ZERO,
+                dto.description(),
+                null,
+                dto.safeVariables()
         );
 
         // Record user usage

@@ -449,12 +449,17 @@ INSERT INTO journal_template_lines (id, id_journal_template, id_account, positio
 -- SYSTEM TEMPLATE: Manual Journal Entry
 -- ============================================
 -- Template: Jurnal Manual (Manual Journal Entry)
--- This is a special system template used for manual journal entries.
--- It has no template lines - the user defines their own debit/credit lines.
--- Used internally by the system when creating transactions for manual entries.
+-- This template allows users to create custom one-off journal entries
+-- by selecting both debit and credit accounts at transaction time.
 INSERT INTO journal_templates (id, template_name, category, cash_flow_category, template_type, description, is_system, active) VALUES
-('e0000000-0000-0000-0000-000000000099', 'Jurnal Manual', 'TRANSFER', 'OPERATING', 'SIMPLE', 'Template sistem untuk jurnal manual. Tidak memiliki baris template - pengguna mendefinisikan sendiri baris debit/kredit.', TRUE, TRUE);
--- Note: No template lines for MANUAL template - lines are user-defined
+('e0000000-0000-0000-0000-000000000099', 'Jurnal Manual', 'TRANSFER', 'OPERATING', 'SIMPLE', 'Template untuk jurnal manual. Pilih akun debit dan kredit saat membuat transaksi.', FALSE, TRUE);
+
+-- Template lines for Jurnal Manual - both accounts are selectable
+INSERT INTO journal_template_lines (id, id_journal_template, id_account, position, formula, line_order, description, account_hint) VALUES
+-- Debit line: user selects account
+('e0100000-0000-0000-0000-000000000001', 'e0000000-0000-0000-0000-000000000099', NULL, 'DEBIT', 'amount', 1, 'Akun yang didebit', 'Akun Debit'),
+-- Credit line: user selects account
+('e0100000-0000-0000-0000-000000000002', 'e0000000-0000-0000-0000-000000000099', NULL, 'CREDIT', 'amount', 2, 'Akun yang dikredit', 'Akun Kredit');
 
 -- ============================================
 -- SYSTEM TEMPLATE: Fiscal Year Closing

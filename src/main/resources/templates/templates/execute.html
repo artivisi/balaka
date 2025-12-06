@@ -54,6 +54,7 @@
 
                 <div class="p-6">
                     <input type="hidden" id="template-id" th:value="${template.id}">
+                    <input type="hidden" id="is-detailed" th:value="${isDetailedTemplate}">
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
@@ -64,7 +65,8 @@
                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
                         </div>
 
-                        <div>
+                        <!-- Amount field for SIMPLE templates -->
+                        <div th:if="${!isDetailedTemplate}">
                             <label for="amount" class="block text-sm font-medium text-gray-700 mb-1">
                                 Jumlah <span class="text-red-500">*</span>
                             </label>
@@ -84,6 +86,26 @@
                             <input type="text" id="description" name="description" x-model="form.description"
                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                                    placeholder="Masukkan keterangan transaksi">
+                        </div>
+                    </div>
+
+                    <!-- Variable inputs for DETAILED templates -->
+                    <div th:if="${isDetailedTemplate}" class="mt-6">
+                        <h3 class="text-sm font-semibold text-gray-700 mb-3">Saldo per Akun</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto p-1">
+                            <div th:each="fv : ${formulaVariables}" class="relative">
+                                <label th:for="${'var_' + fv.name()}" class="block text-xs font-medium text-gray-600 mb-1 truncate" th:text="${fv.label()}" th:title="${fv.label()}">Variable Label</label>
+                                <div class="relative">
+                                    <span class="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-xs">Rp</span>
+                                    <input type="text"
+                                           th:id="${'var_' + fv.name()}"
+                                           th:name="${'var_' + fv.name()}"
+                                           th:data-var-name="${fv.name()}"
+                                           class="var-input w-full pl-8 pr-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-primary-500 focus:border-primary-500 text-right font-mono"
+                                           placeholder="0"
+                                           @input="formatVariableInput($event)">
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -253,6 +275,7 @@
                     amountDisplay: '',
                     description: ''
                 },
+                isDetailed: document.getElementById('is-detailed')?.value === 'true',
                 preview: false,
                 previewData: {
                     entries: [],
@@ -271,18 +294,67 @@
                     this.form.amountDisplay = this.formatNumber(this.form.amount);
                 },
 
+                formatVariableInput(event) {
+                    let value = event.target.value.replace(/[^0-9]/g, '');
+                    let numValue = parseInt(value) || 0;
+                    event.target.value = this.formatNumber(numValue);
+                    event.target.dataset.numValue = numValue;
+                },
+
                 formatNumber(num) {
                     if (!num || num === 0) return '0';
                     return new Intl.NumberFormat('id-ID').format(num);
+                },
+
+                collectVariables() {
+                    const variables = {};
+                    document.querySelectorAll('.var-input').forEach(input => {
+                        const varName = input.dataset.varName;
+                        const numValue = parseInt(input.dataset.numValue) || parseInt(input.value.replace(/[^0-9]/g, '')) || 0;
+                        if (varName && numValue > 0) {
+                            variables[varName] = numValue;
+                        }
+                    });
+                    return variables;
+                },
+
+                validateForm() {
+                    if (!this.form.transactionDate || !this.form.description) {
+                        return 'Tanggal dan keterangan wajib diisi';
+                    }
+                    if (this.isDetailed) {
+                        const variables = this.collectVariables();
+                        if (Object.keys(variables).length === 0) {
+                            return 'Minimal satu akun harus memiliki nilai';
+                        }
+                    } else if (!this.form.amount) {
+                        return 'Jumlah wajib diisi';
+                    }
+                    return null;
+                },
+
+                buildRequestBody() {
+                    const body = {
+                        transactionDate: this.form.transactionDate,
+                        description: this.form.description
+                    };
+                    if (this.isDetailed) {
+                        body.variables = this.collectVariables();
+                        body.amount = 0;
+                    } else {
+                        body.amount = this.form.amount;
+                    }
+                    return body;
                 },
 
                 async previewExecution() {
                     this.error = false;
                     this.success = false;
 
-                    if (!this.form.transactionDate || !this.form.amount || !this.form.description) {
+                    const validationError = this.validateForm();
+                    if (validationError) {
                         this.error = true;
-                        this.errorMessage = 'Semua field wajib diisi';
+                        this.errorMessage = validationError;
                         return;
                     }
 
@@ -295,11 +367,7 @@
                             headers: {
                                 'Content-Type': 'application/json'
                             },
-                            body: JSON.stringify({
-                                transactionDate: this.form.transactionDate,
-                                amount: this.form.amount,
-                                description: this.form.description
-                            })
+                            body: JSON.stringify(this.buildRequestBody())
                         });
 
                         const data = await response.json();
@@ -333,11 +401,7 @@
                             headers: {
                                 'Content-Type': 'application/json'
                             },
-                            body: JSON.stringify({
-                                transactionDate: this.form.transactionDate,
-                                amount: this.form.amount,
-                                description: this.form.description
-                            })
+                            body: JSON.stringify(this.buildRequestBody())
                         });
 
                         const data = await response.json();
@@ -364,6 +428,11 @@
                         amountDisplay: '',
                         description: ''
                     };
+                    // Reset variable inputs
+                    document.querySelectorAll('.var-input').forEach(input => {
+                        input.value = '0';
+                        input.dataset.numValue = '0';
+                    });
                     this.preview = false;
                     this.previewData = { entries: [], totalDebit: 0, totalCredit: 0 };
                     this.success = false;
