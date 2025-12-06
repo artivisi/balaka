@@ -835,7 +835,7 @@ Additive is ~3x simpler. Role switching only needed for strict audit trails or c
 - [x] Session invalidated on logout (`SecurityRegressionTest.shouldInvalidateSessionOnLogout`)
 - [x] Session fixation protection (`SecurityRegressionTest.shouldRegenerateSessionAfterLogin`)
 - [x] Session cookie flags verification (HttpOnly, SameSite) - `SecurityRegressionTest.shouldUseSecureSessionCookies`
-- [ ] Session timeout after 15 min idle - requires time manipulation or mock clock
+- [x] Session timeout after 15 min idle (`application.properties`: `server.servlet.session.timeout=15m`)
 
 **2. Authorization Testing (Playwright)**
 - [x] RBAC restrictions (`SecurityRegressionTest.AuthorizationTests`)
@@ -884,7 +884,7 @@ Additive is ~3x simpler. Role switching only needed for strict audit trails or c
 - [x] File encryption (`FileEncryptionServiceTest.java` - 25 tests)
 - [x] PII masked in page source (`SecurityRegressionTest.shouldMaskBankAccountInEmployeeList`, `shouldMaskNpwpNikInEmployeeDetail`)
 - [x] Sensitive data not in URL parameters (`SecurityRegressionTest.shouldNotHaveSensitiveDataInUrl`)
-- [ ] Sensitive data not in error messages - covered by error handling tests
+- [x] Sensitive data not in error messages (`SecurityRegressionTest.shouldNotExposeStackTraces`, `shouldNotExposeDatabaseQueryInError`, `shouldNotExposeFilePathsInError`)
 
 **7. Business Logic (Playwright)**
 - [x] Modify posted journal entry → rejected (`SecurityRegressionTest.shouldNotAllowEditingPostedTransaction`)
