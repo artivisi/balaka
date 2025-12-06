@@ -26,7 +26,7 @@ import java.util.Base64;
  * Add @Convert(converter = EncryptedStringConverter.class) to entity fields.
  *
  * Configuration:
- * Set ENCRYPTION_KEY environment variable (32 bytes, Base64 encoded).
+ * Set app.encryption.key property or APP_ENCRYPTION_KEY env var (32 bytes, Base64 encoded).
  * Generate with: openssl rand -base64 32
  */
 @Converter
@@ -50,8 +50,8 @@ public class EncryptedStringConverter implements AttributeConverter<String, Stri
     @Value("${app.encryption.key:}")
     public void setEncryptionKey(String keyBase64) {
         if (keyBase64 == null || keyBase64.isBlank()) {
-            log.warn("ENCRYPTION_KEY not configured - PII fields will NOT be encrypted. " +
-                    "Set app.encryption.key or ENCRYPTION_KEY env var for production.");
+            log.warn("Encryption key not configured - PII fields will NOT be encrypted. " +
+                    "Set app.encryption.key property or APP_ENCRYPTION_KEY env var for production.");
             encryptionEnabled = false;
             return;
         }
@@ -59,14 +59,14 @@ public class EncryptedStringConverter implements AttributeConverter<String, Stri
         try {
             byte[] keyBytes = Base64.getDecoder().decode(keyBase64);
             if (keyBytes.length != 32) {
-                log.error("ENCRYPTION_KEY must be exactly 32 bytes (256 bits) for AES-256. Got {} bytes", keyBytes.length);
+                log.error("Encryption key must be exactly 32 bytes (256 bits) for AES-256. Got {} bytes", keyBytes.length);
                 throw new IllegalArgumentException("Invalid encryption key length");
             }
             secretKey = new SecretKeySpec(keyBytes, "AES");
             encryptionEnabled = true;
             log.info("PII field encryption enabled");
         } catch (IllegalArgumentException e) {
-            log.error("Invalid ENCRYPTION_KEY format (must be Base64): {}", e.getMessage());
+            log.error("Invalid encryption key format (must be Base64): {}", e.getMessage());
             throw new IllegalStateException("Failed to initialize encryption", e);
         }
     }

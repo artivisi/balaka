@@ -2,6 +2,9 @@ spring.application.name={{ app_name }}
 
 server.port={{ app_port }}
 
+# Forward headers from nginx proxy (for correct redirect URLs with HTTPS)
+server.forward-headers-strategy=native
+
 # Database connection with SSL
 # sslmode=require ensures encrypted connection (localhost PostgreSQL with SSL enabled)
 spring.datasource.url=jdbc:postgresql://localhost:5432/{{ db_name }}?sslmode={{ db_ssl_mode | default('require') }}

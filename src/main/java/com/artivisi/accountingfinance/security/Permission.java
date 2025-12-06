@@ -180,6 +180,7 @@ public final class Permission {
                 CALCULATOR_USE,
                 DATA_IMPORT,
                 SETTINGS_VIEW, SETTINGS_EDIT,
+                TELEGRAM_MANAGE,
                 AUDIT_LOG_VIEW,
                 DATA_SUBJECT_VIEW, DATA_SUBJECT_EXPORT, DATA_SUBJECT_ANONYMIZE,
                 USER_VIEW, USER_CREATE, USER_EDIT, USER_DELETE, USER_ASSIGN_ROLES,
@@ -209,6 +210,7 @@ public final class Permission {
                 CALCULATOR_USE,
                 DATA_IMPORT,
                 SETTINGS_VIEW, SETTINGS_EDIT,
+                TELEGRAM_MANAGE,
                 AUDIT_LOG_VIEW,
                 OWN_PAYSLIP_VIEW, OWN_PROFILE_VIEW, OWN_PROFILE_EDIT
             );
