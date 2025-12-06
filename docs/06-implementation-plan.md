@@ -872,7 +872,7 @@ Additive is ~3x simpler. Role switching only needed for strict audit trails or c
   - [x] Assert X-Frame-Options = DENY or SAMEORIGIN
   - [x] Assert Content-Security-Policy present with default-src
   - [x] Assert Referrer-Policy present
-  - [ ] Assert Strict-Transport-Security present (HTTPS only, can't test locally)
+  - [x] Assert Strict-Transport-Security present (`nginx-site-ssl.conf.j2:31`, `SecurityConfig.java:80` - HTTPS only)
 
 **5. CSRF Protection (Playwright)**
 - [x] CSRF token present in forms (`SecurityRegressionTest.shouldIncludeCsrfTokenInForms`)

@@ -7,6 +7,7 @@
     app_domain: akunting.artivisi.id
     ssl_email: admin@artivisi.com
     app_port: 10000
+    app_name: aplikasi-akunting
 
   tasks:
     - name: Install certbot and nginx plugin
@@ -22,19 +23,18 @@
         path: "/etc/letsencrypt/live/{{ app_domain }}/fullchain.pem"
       register: cert_file
 
-    - name: Obtain SSL certificate
+    - name: Obtain SSL certificate (certonly - does not modify nginx config)
       ansible.builtin.command:
         cmd: >
-          certbot --nginx -d {{ app_domain }}
+          certbot certonly --nginx -d {{ app_domain }}
           --non-interactive --agree-tos
           --email {{ ssl_email }}
       when: not cert_file.stat.exists
-      notify: reload nginx
 
     - name: Update nginx configuration for SSL
       ansible.builtin.template:
         src: roles/nginx/templates/nginx-site-ssl.conf.j2
-        dest: "/etc/nginx/sites-available/{{ app_name | default('accounting-finance') }}"
+        dest: "/etc/nginx/sites-available/{{ app_name }}"
         mode: "0644"
       notify: reload nginx
 

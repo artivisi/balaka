@@ -10,12 +10,22 @@
     state: absent
   notify: reload nginx
 
-- name: Create nginx site configuration
+# Always deploy HTTP config first (needed for certbot webroot validation)
+- name: Create nginx site configuration (HTTP for cert provisioning)
   ansible.builtin.template:
     src: nginx-site.conf.j2
     dest: "/etc/nginx/sites-available/{{ app_name }}"
     mode: "0644"
   notify: reload nginx
+  when: ssl_enabled | default(false)
+
+- name: Create nginx site configuration (HTTP only)
+  ansible.builtin.template:
+    src: nginx-site.conf.j2
+    dest: "/etc/nginx/sites-available/{{ app_name }}"
+    mode: "0644"
+  notify: reload nginx
+  when: not (ssl_enabled | default(false))
 
 - name: Enable nginx site
   ansible.builtin.file:
@@ -30,6 +40,11 @@
     state: started
     enabled: yes
 
+# Flush handlers to ensure nginx is running with HTTP config before certbot
+- name: Flush handlers (ensure nginx running for certbot)
+  ansible.builtin.meta: flush_handlers
+  when: ssl_enabled | default(false)
+
 - name: Install certbot (if SSL enabled)
   ansible.builtin.apt:
     name:
@@ -38,12 +53,21 @@
     state: present
   when: ssl_enabled | default(false)
 
+# Use certonly to just get cert, don't modify nginx config
 - name: Obtain SSL certificate
   ansible.builtin.command:
     cmd: >
-      certbot --nginx -d {{ app_domain }}
+      certbot certonly --nginx -d {{ app_domain }}
       --non-interactive --agree-tos
       --email {{ ssl_email }}
     creates: "/etc/letsencrypt/live/{{ app_domain }}/fullchain.pem"
   when: ssl_enabled | default(false)
+
+# Now deploy SSL config after cert is obtained
+- name: Create nginx site configuration (SSL)
+  ansible.builtin.template:
+    src: nginx-site-ssl.conf.j2
+    dest: "/etc/nginx/sites-available/{{ app_name }}"
+    mode: "0644"
   notify: reload nginx
+  when: ssl_enabled | default(false)
