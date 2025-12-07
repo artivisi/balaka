@@ -80,6 +80,14 @@ class DetailedTemplatePreviewTest extends PlaywrightTestBase {
         page.fill("[data-var-name='revenueAmount']", "15000000");
         page.fill("[data-var-name='cogsAmount']", "10000000");
 
+        // Select dynamic accounts for template lines with NULL account:
+        // Line 2 (lineOrder=2): HPP account - 50000000-0000-0000-0000-000000000131 (HPP Barang Dagangan)
+        // Line 3 (lineOrder=3): Revenue account - 40000000-0000-0000-0000-000000000104 (Pendapatan Penjualan Barang)
+        // Line 4 (lineOrder=4): Inventory account - 10000000-0000-0000-0000-000000000151 (Persediaan Barang Dagangan)
+        page.selectOption("#account_2", "50000000-0000-0000-0000-000000000131");
+        page.selectOption("#account_3", "40000000-0000-0000-0000-000000000104");
+        page.selectOption("#account_4", "10000000-0000-0000-0000-000000000151");
+
         // Click preview button
         page.click("#btn-preview");
 
