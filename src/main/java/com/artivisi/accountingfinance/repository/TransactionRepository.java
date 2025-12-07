@@ -30,7 +30,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
            "(:projectId IS NULL OR t.project.id = :projectId) AND " +
            "(:startDate IS NULL OR t.transactionDate >= :startDate) AND " +
            "(:endDate IS NULL OR t.transactionDate <= :endDate) " +
-           "ORDER BY t.transactionDate DESC, t.transactionNumber DESC")
+           "ORDER BY t.transactionDate DESC, t.createdAt DESC")
     Page<Transaction> findByFilters(
             @Param("status") TransactionStatus status,
             @Param("category") TemplateCategory category,
@@ -43,7 +43,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
            "(LOWER(t.transactionNumber) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
            "LOWER(t.description) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
            "LOWER(t.referenceNumber) LIKE LOWER(CONCAT('%', :search, '%'))) " +
-           "ORDER BY t.transactionDate DESC")
+           "ORDER BY t.transactionDate DESC, t.createdAt DESC")
     Page<Transaction> searchTransactions(@Param("search") String search, Pageable pageable);
 
     @Query("SELECT t FROM Transaction t LEFT JOIN FETCH t.journalEntries WHERE t.id = :id")
