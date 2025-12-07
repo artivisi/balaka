@@ -210,7 +210,7 @@ public class ScreenshotCapture {
                     "Daftar penyusutan aset dengan filter periode", "penyusutan-aset"),
 
             // Asset Categories
-            new PageDefinition("asset-categories-list", "Kategori Aset", "/asset-categories", true,
+            new PageDefinition("asset-categories-list", "Kategori Aset", "/assets/categories", true,
                     "Daftar kategori aset dengan pengaturan penyusutan default", "kelola-aset"),
 
             // Depreciation Report
