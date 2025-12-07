@@ -33,9 +33,11 @@ public class ScreenshotCapture {
             String section
     ) {}
 
-    // Seed data codes for detail pages (from V905__profitability_test_data.sql)
+    // Seed data IDs for detail pages
+    // Template from V004__app_seed_data.sql
     private static final String TEMPLATE_ID = "e0000000-0000-0000-0000-000000000001"; // Pendapatan Jasa Konsultasi
-    private static final String TRANSACTION_ID = "a0000000-0000-0000-0000-000000000002"; // TRX-TEST-0002
+    // Test data from V905__profitability_test_data.sql (loaded via SPRING_FLYWAY_LOCATIONS)
+    private static final String TRANSACTION_ID = "90500000-0000-0000-1000-000000000001"; // TRX-PRJ-T001-01
     private static final String CLIENT_CODE = "CLI-001"; // PT ABC Technology
     private static final String PROJECT_CODE = "PRJ-TEST-001"; // Website Development ABC
 

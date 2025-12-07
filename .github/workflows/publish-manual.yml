@@ -81,6 +81,7 @@ jobs:
           SPRING_DATASOURCE_USERNAME: akunting
           SPRING_DATASOURCE_PASSWORD: akunting
           SERVER_PORT: 8080
+          SPRING_FLYWAY_LOCATIONS: classpath:db/migration,classpath:db/testmigration
 
       - name: Capture screenshots
         if: ${{ github.event.inputs.skip_screenshots != 'true' }}
