@@ -72,7 +72,7 @@ jobs:
       - name: Start application for screenshots
         if: ${{ github.event.inputs.skip_screenshots != 'true' }}
         run: |
-          ./mvnw spring-boot:run &
+          ./mvnw spring-boot:run -Dspring-boot.run.useTestClasspath=true &
           echo "Waiting for application to start..."
           timeout 180 bash -c 'until curl -s http://localhost:8080/login > /dev/null; do sleep 2; done'
           echo "Application started!"
