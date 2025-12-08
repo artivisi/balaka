@@ -9,9 +9,9 @@ Name: PT Artivisi Intermedia
 NPWP: -
 
 ## Export Contents
-- Chart of Accounts: 92 records
+- Chart of Accounts: 97 records
 - Salary Components: 17 records
-- Journal Templates: 66 records
+- Journal Templates: 68 records
 - Asset Categories: 4 records
 - Journal Entries: 15 records
 - Transactions: 1 records
@@ -26,7 +26,7 @@ NPWP: -
 
 ## Notes
 This is a seed data export containing:
-- Chart of Accounts (Artivisi IT Services COA v3.0)
+- Chart of Accounts (Artivisi IT Services COA v3.1 with improved tax expense structure)
 - Salary Components (Indonesian payroll with BPJS and PPh 21)
 - Journal Templates (Artivisi templates v3.0)
 - Asset Categories (Fixed asset depreciation settings)

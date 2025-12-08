@@ -93,8 +93,12 @@ Setor PPh 4(2),1,2.1.22,,DEBIT,amount,Pelunasan Hutang PPh 4(2)
 Setor PPh 4(2),2,,BANK,CREDIT,amount,Bank
 Setor PPN,1,2.1.03,,DEBIT,amount,Pelunasan Hutang PPN
 Setor PPN,2,,BANK,CREDIT,amount,Bank
-Bayar PPh 25,1,5.1.13,,DEBIT,amount,Beban Pajak
+Bayar PPh 25,1,5.9.02,,DEBIT,amount,Beban PPh 25 (Angsuran Pajak Badan)
 Bayar PPh 25,2,,BANK,CREDIT,amount,Bank
+Bayar PPh 29,1,5.9.03,,DEBIT,amount,Beban PPh 29 (Pajak Badan Tahunan)
+Bayar PPh 29,2,,BANK,CREDIT,amount,Bank
+Bayar PBB,1,5.9.04,,DEBIT,amount,Beban PBB
+Bayar PBB,2,,BANK,CREDIT,amount,Bank
 Post Gaji Bulanan,1,5.1.01,,DEBIT,grossSalary,Beban gaji karyawan (gross)
 Post Gaji Bulanan,2,5.1.02,,DEBIT,companyBpjs * 0.8,Beban BPJS Kesehatan perusahaan
 Post Gaji Bulanan,3,5.1.03,,DEBIT,companyBpjs * 0.2,Beban BPJS Ketenagakerjaan perusahaan
