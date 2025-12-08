@@ -47,3 +47,5 @@ clients/artivisi/artivisi-seed-data.zip
 .env
 .env.local
 .env.*.local
+
+.DS_Store
