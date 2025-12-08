@@ -5,7 +5,6 @@ import com.artivisi.accountingfinance.entity.JournalEntry;
 import com.artivisi.accountingfinance.entity.JournalTemplate;
 import com.artivisi.accountingfinance.entity.Transaction;
 import com.artivisi.accountingfinance.entity.TransactionSequence;
-import com.artivisi.accountingfinance.enums.JournalEntryStatus;
 import com.artivisi.accountingfinance.enums.TransactionStatus;
 import com.artivisi.accountingfinance.repository.ChartOfAccountRepository;
 import com.artivisi.accountingfinance.repository.JournalEntryRepository;
