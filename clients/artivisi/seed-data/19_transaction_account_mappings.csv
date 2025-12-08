@@ -1,1 +1,16 @@
 transaction_number,template_name,line_order,account_code,amount
+TRX-2025-0001,Saldo Awal Tahun,1,1.1.01,5000000
+TRX-2025-0001,Saldo Awal Tahun,2,1.1.02,50000000
+TRX-2025-0001,Saldo Awal Tahun,3,1.1.03,10000000
+TRX-2025-0001,Saldo Awal Tahun,4,1.1.04,10000000
+TRX-2025-0001,Saldo Awal Tahun,5,1.1.05,25000000
+TRX-2025-0001,Saldo Awal Tahun,6,1.1.06,50000000
+TRX-2025-0001,Saldo Awal Tahun,7,1.1.07,10000000
+TRX-2025-0001,Saldo Awal Tahun,10,1.1.12,40000000
+TRX-2025-0001,Saldo Awal Tahun,12,1.1.15,50000000
+TRX-2025-0001,Saldo Awal Tahun,14,1.1.21,100000000
+TRX-2025-0001,Saldo Awal Tahun,18,1.2.01,100000000
+TRX-2025-0001,Saldo Awal Tahun,19,1.2.02,10000000
+TRX-2025-0001,Saldo Awal Tahun,22,1.2.05,60000000
+TRX-2025-0001,Saldo Awal Tahun,44,3.1.01,450000000
+TRX-2025-0001,Saldo Awal Tahun,45,3.2.01,50000000

@@ -7,6 +7,7 @@ account_code,account_name,account_type,parent_code,normal_balance,active,created
 1.1.04,Bank BNI - Escrow,ASSET,1.1,DEBIT,true,
 1.1.05,Bank BSI,ASSET,1.1,DEBIT,true,
 1.1.06,Bank CIMB,ASSET,1.1,DEBIT,true,
+1.1.07,Bank DKI,ASSET,1.1,DEBIT,true,
 1.1.10,Piutang Usaha,ASSET,1.1,DEBIT,true,
 1.1.11,Piutang Karyawan,ASSET,1.1,DEBIT,true,
 1.1.12,Piutang Lain-lain,ASSET,1.1,DEBIT,true,

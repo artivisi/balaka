@@ -1,13 +1,13 @@
 template_name,line_order,account_code,account_hint,position,formula,description
-Pendapatan Jasa Training,1,1.1.02,,DEBIT,amount,Bank BCA
+Pendapatan Jasa Training,1,,BANK,DEBIT,amount,Bank
 Pendapatan Jasa Training,2,4.1.01,,CREDIT,amount,Pendapatan Jasa Training
-Pendapatan Jasa Konsultasi,1,1.1.02,,DEBIT,amount,Bank BCA
+Pendapatan Jasa Konsultasi,1,,BANK,DEBIT,amount,Bank
 Pendapatan Jasa Konsultasi,2,4.1.02,,CREDIT,amount,Pendapatan Jasa Konsultasi
-Terima DP Proyek,1,1.1.02,,DEBIT,amount,Bank BCA
+Terima DP Proyek,1,,BANK,DEBIT,amount,Bank
 Terima DP Proyek,2,2.1.04,,CREDIT,amount,Pendapatan Diterima Dimuka
 Pengakuan Pendapatan Proyek,1,2.1.04,,DEBIT,amount,Pendapatan Diterima Dimuka
 Pengakuan Pendapatan Proyek,2,4.1.02,,CREDIT,amount,Pendapatan Jasa Konsultasi
-Terima Pelunasan Piutang,1,1.1.02,,DEBIT,amount,Bank BCA
+Terima Pelunasan Piutang,1,,BANK,DEBIT,amount,Bank
 Terima Pelunasan Piutang,2,1.1.10,,CREDIT,amount,Piutang Usaha
 Escrow: Terima Dana User,1,1.1.04,,DEBIT,amount,Bank BNI - Escrow
 Escrow: Terima Dana User,2,2.1.05,,CREDIT,amount,Kewajiban Dana Escrow
@@ -17,84 +17,84 @@ Escrow: Settlement ke Penerima,3,4.1.03,,CREDIT,fee,Pendapatan Fee Remittance
 Escrow: Transfer Fee ke Operasional,1,1.1.03,,DEBIT,amount,Bank BNI - Operasional
 Escrow: Transfer Fee ke Operasional,2,1.1.04,,CREDIT,amount,Bank BNI - Escrow
 Bayar Beban Gaji,1,5.1.01,,DEBIT,amount,Beban Gaji
-Bayar Beban Gaji,2,1.1.02,,CREDIT,amount,Bank BCA
+Bayar Beban Gaji,2,,BANK,CREDIT,amount,Bank
 Accrual Gaji Bulan Berjalan,1,5.1.01,,DEBIT,amount,Beban Gaji
 Accrual Gaji Bulan Berjalan,2,2.1.10,,CREDIT,amount,Hutang Gaji
 Bayar BPJS,1,5.1.02,,DEBIT,bpjsKesehatan,Beban BPJS Kesehatan
 Bayar BPJS,2,5.1.03,,DEBIT,bpjsKetenagakerjaan,Beban BPJS Ketenagakerjaan
-Bayar BPJS,3,1.1.02,,CREDIT,bpjsKesehatan + bpjsKetenagakerjaan,Bank BCA
+Bayar BPJS,3,,BANK,CREDIT,bpjsKesehatan + bpjsKetenagakerjaan,Bank
 Bayar Beban Cloud & Server,1,5.1.20,,DEBIT,amount,Beban Cloud & Server
-Bayar Beban Cloud & Server,2,1.1.02,,CREDIT,amount,Bank BCA
+Bayar Beban Cloud & Server,2,,BANK,CREDIT,amount,Bank
 Accrual Beban Cloud,1,5.1.20,,DEBIT,amount,Beban Cloud & Server
 Accrual Beban Cloud,2,2.1.15,,CREDIT,amount,Beban Yang Masih Harus Dibayar
 Bayar Cloud Klien (Reimbursable),1,1.1.13,,DEBIT,amount,Piutang Biaya Ditanggung Klien
-Bayar Cloud Klien (Reimbursable),2,1.1.02,,CREDIT,amount,Bank BCA
-Terima Reimbursement dari Klien,1,1.1.02,,DEBIT,amount,Bank BCA
+Bayar Cloud Klien (Reimbursable),2,,BANK,CREDIT,amount,Bank
+Terima Reimbursement dari Klien,1,,BANK,DEBIT,amount,Bank
 Terima Reimbursement dari Klien,2,1.1.13,,CREDIT,amount,Piutang Biaya Ditanggung Klien
 Bayar Beban Software & Lisensi,1,5.1.21,,DEBIT,amount,Beban Software & Lisensi
-Bayar Beban Software & Lisensi,2,1.1.02,,CREDIT,amount,Bank BCA
+Bayar Beban Software & Lisensi,2,,BANK,CREDIT,amount,Bank
 Bayar Beban Telekomunikasi,1,5.1.05,,DEBIT,amount,Beban Telekomunikasi
-Bayar Beban Telekomunikasi,2,1.1.02,,CREDIT,amount,Bank BCA
+Bayar Beban Telekomunikasi,2,,BANK,CREDIT,amount,Bank
 Bayar Beban Listrik,1,5.1.06,,DEBIT,amount,Beban Listrik
-Bayar Beban Listrik,2,1.1.02,,CREDIT,amount,Bank BCA
+Bayar Beban Listrik,2,,BANK,CREDIT,amount,Bank
 Bayar Beban Sewa,1,5.1.04,,DEBIT,amount,Beban Sewa
-Bayar Beban Sewa,2,1.1.02,,CREDIT,amount,Bank BCA
+Bayar Beban Sewa,2,,BANK,CREDIT,amount,Bank
 Karyawan Reimburse Pengeluaran,1,5.1.08,,DEBIT,amount,Beban Transportasi (atau sesuai jenis)
 Karyawan Reimburse Pengeluaran,2,2.1.11,,CREDIT,amount,Hutang Reimbursement Karyawan
 Bayar Reimbursement ke Karyawan,1,2.1.11,,DEBIT,amount,Hutang Reimbursement Karyawan
-Bayar Reimbursement ke Karyawan,2,1.1.02,,CREDIT,amount,Bank BCA
+Bayar Reimbursement ke Karyawan,2,,BANK,CREDIT,amount,Bank
 Bayar Tunjangan Kesehatan,1,5.1.14,,DEBIT,amount,Beban Tunjangan Kesehatan
-Bayar Tunjangan Kesehatan,2,1.1.02,,CREDIT,amount,Bank BCA
+Bayar Tunjangan Kesehatan,2,,BANK,CREDIT,amount,Bank
 Bayar Team Building / Outing,1,5.1.15,,DEBIT,amount,Beban Rekreasi Karyawan
-Bayar Team Building / Outing,2,1.1.02,,CREDIT,amount,Bank BCA
-Transfer Antar Bank,1,1.1.02,,DEBIT,amount,Bank tujuan
-Transfer Antar Bank,2,1.1.03,,CREDIT,amount,Bank asal
-Setoran Modal,1,1.1.02,,DEBIT,amount,Bank BCA
+Bayar Team Building / Outing,2,,BANK,CREDIT,amount,Bank
+Transfer Antar Bank,1,,BANK,DEBIT,amount,Bank tujuan
+Transfer Antar Bank,2,,BANK,CREDIT,amount,Bank asal
+Setoran Modal,1,,BANK,DEBIT,amount,Bank
 Setoran Modal,2,3.1.01,,CREDIT,amount,Modal Disetor
 Prive / Pengambilan Pribadi,1,3.2.01,,DEBIT,amount,Laba Ditahan
-Prive / Pengambilan Pribadi,2,1.1.02,,CREDIT,amount,Bank BCA
+Prive / Pengambilan Pribadi,2,,BANK,CREDIT,amount,Bank
 Beban Admin Bank,1,5.2.01,,DEBIT,amount,Beban Bank
-Beban Admin Bank,2,1.1.02,,CREDIT,amount,Bank BCA
-Terima Bunga Bank (Non-Halal),1,1.1.02,,DEBIT,amount,Bank BCA
+Beban Admin Bank,2,,BANK,CREDIT,amount,Bank
+Terima Bunga Bank (Non-Halal),1,,BANK,DEBIT,amount,Bank
 Terima Bunga Bank (Non-Halal),2,2.3.01,,CREDIT,amount,Dana Non-Halal
 Salurkan Dana Non-Halal,1,2.3.01,,DEBIT,amount,Dana Non-Halal
-Salurkan Dana Non-Halal,2,1.1.02,,CREDIT,amount,Bank BCA
+Salurkan Dana Non-Halal,2,,BANK,CREDIT,amount,Bank
 Penyusutan Peralatan,1,5.1.18,,DEBIT,amount,Beban Penyusutan
 Penyusutan Peralatan,2,1.2.02,,CREDIT,amount,Akum. Penyusutan Peralatan
 Amortisasi Aset Tak Berwujud,1,5.1.19,,DEBIT,amount,Beban Amortisasi
 Amortisasi Aset Tak Berwujud,2,1.3.02,,CREDIT,amount,Akum. Amortisasi
-Pendapatan Jasa Training dengan PPN,1,1.1.02,,DEBIT,amount,Bank BCA (total termasuk PPN)
+Pendapatan Jasa Training dengan PPN,1,,BANK,DEBIT,amount,Bank (total termasuk PPN)
 Pendapatan Jasa Training dengan PPN,2,4.1.01,,CREDIT,amount / 1.11,Pendapatan Jasa Training (DPP)
 Pendapatan Jasa Training dengan PPN,3,2.1.03,,CREDIT,amount - (amount / 1.11),Hutang PPN Keluaran 11%
-Pendapatan Jasa Konsultasi dengan PPN,1,1.1.02,,DEBIT,amount,Bank BCA (total termasuk PPN)
+Pendapatan Jasa Konsultasi dengan PPN,1,,BANK,DEBIT,amount,Bank (total termasuk PPN)
 Pendapatan Jasa Konsultasi dengan PPN,2,4.1.02,,CREDIT,amount / 1.11,Pendapatan Jasa Konsultasi (DPP)
 Pendapatan Jasa Konsultasi dengan PPN,3,2.1.03,,CREDIT,amount - (amount / 1.11),Hutang PPN Keluaran 11%
-Pendapatan Jasa dengan PPh 23,1,1.1.02,,DEBIT,amount * 0.98,Bank BCA (neto setelah potong PPh 23)
+Pendapatan Jasa dengan PPh 23,1,,BANK,DEBIT,amount * 0.98,Bank (neto setelah potong PPh 23)
 Pendapatan Jasa dengan PPh 23,2,1.1.26,,DEBIT,amount * 0.02,Kredit pajak PPh 23 (pengurang pajak terutang)
 Pendapatan Jasa dengan PPh 23,3,4.1.02,,CREDIT,amount,Pendapatan Jasa Konsultasi (bruto)
-Pendapatan Jasa dengan PPN dan PPh 23,1,1.1.02,,DEBIT,amount - ((amount / 1.11) * 0.02),Bank BCA (DPP+PPN dikurangi PPh 23)
+Pendapatan Jasa dengan PPN dan PPh 23,1,,BANK,DEBIT,amount - ((amount / 1.11) * 0.02),Bank (DPP+PPN dikurangi PPh 23)
 Pendapatan Jasa dengan PPN dan PPh 23,2,1.1.26,,DEBIT,(amount / 1.11) * 0.02,Kredit pajak PPh 23 (2% dari DPP)
 Pendapatan Jasa dengan PPN dan PPh 23,3,4.1.02,,CREDIT,amount / 1.11,Pendapatan Jasa Konsultasi (DPP)
 Pendapatan Jasa dengan PPN dan PPh 23,4,2.1.03,,CREDIT,amount - (amount / 1.11),Hutang PPN Keluaran 11%
 Pembelian dengan PPN,1,5.1.20,,DEBIT,amount / 1.11,Beban Cloud & Server (DPP)
 Pembelian dengan PPN,2,1.1.25,,DEBIT,amount - (amount / 1.11),PPN Masukan 11%
-Pembelian dengan PPN,3,1.1.02,,CREDIT,amount,Bank BCA
+Pembelian dengan PPN,3,,BANK,CREDIT,amount,Bank
 Pembayaran Jasa dengan PPh 23,1,5.1.20,,DEBIT,amount,Beban jasa (bruto)
-Pembayaran Jasa dengan PPh 23,2,1.1.02,,CREDIT,amount * 0.98,Bank BCA (neto setelah potong PPh 23)
+Pembayaran Jasa dengan PPh 23,2,,BANK,CREDIT,amount * 0.98,Bank (neto setelah potong PPh 23)
 Pembayaran Jasa dengan PPh 23,3,2.1.21,,CREDIT,amount * 0.02,Hutang PPh 23 yang harus disetor
 Pembayaran Sewa dengan PPh 4(2),1,5.1.04,,DEBIT,amount,Beban Sewa
-Pembayaran Sewa dengan PPh 4(2),2,1.1.02,,CREDIT,amount * 0.90,Bank BCA (neto setelah potong PPh 4(2))
+Pembayaran Sewa dengan PPh 4(2),2,,BANK,CREDIT,amount * 0.90,Bank (neto setelah potong PPh 4(2))
 Pembayaran Sewa dengan PPh 4(2),3,2.1.22,,CREDIT,amount * 0.10,Hutang PPh 4(2) yang harus disetor
 Setor PPh 21,1,2.1.20,,DEBIT,amount,Pelunasan Hutang PPh 21
-Setor PPh 21,2,1.1.02,,CREDIT,amount,Bank BCA
+Setor PPh 21,2,,BANK,CREDIT,amount,Bank
 Setor PPh 23,1,2.1.21,,DEBIT,amount,Pelunasan Hutang PPh 23
-Setor PPh 23,2,1.1.02,,CREDIT,amount,Bank BCA
+Setor PPh 23,2,,BANK,CREDIT,amount,Bank
 Setor PPh 4(2),1,2.1.22,,DEBIT,amount,Pelunasan Hutang PPh 4(2)
-Setor PPh 4(2),2,1.1.02,,CREDIT,amount,Bank BCA
+Setor PPh 4(2),2,,BANK,CREDIT,amount,Bank
 Setor PPN,1,2.1.03,,DEBIT,amount,Pelunasan Hutang PPN
-Setor PPN,2,1.1.02,,CREDIT,amount,Bank BCA
+Setor PPN,2,,BANK,CREDIT,amount,Bank
 Bayar PPh 25,1,5.1.13,,DEBIT,amount,Beban Pajak
-Bayar PPh 25,2,1.1.02,,CREDIT,amount,Bank BCA
+Bayar PPh 25,2,,BANK,CREDIT,amount,Bank
 Post Gaji Bulanan,1,5.1.01,,DEBIT,grossSalary,Beban gaji karyawan (gross)
 Post Gaji Bulanan,2,5.1.02,,DEBIT,companyBpjs * 0.8,Beban BPJS Kesehatan perusahaan
 Post Gaji Bulanan,3,5.1.03,,DEBIT,companyBpjs * 0.2,Beban BPJS Ketenagakerjaan perusahaan
@@ -102,49 +102,49 @@ Post Gaji Bulanan,4,2.1.10,,CREDIT,netPay,Hutang gaji karyawan (net pay)
 Post Gaji Bulanan,5,2.1.13,,CREDIT,totalBpjs,Hutang BPJS (perusahaan + karyawan)
 Post Gaji Bulanan,6,2.1.20,,CREDIT,pph21,Hutang PPh 21
 Bayar Hutang Gaji,1,2.1.10,,DEBIT,amount,Pelunasan hutang gaji
-Bayar Hutang Gaji,2,1.1.02,,CREDIT,amount,Bank BCA
+Bayar Hutang Gaji,2,,BANK,CREDIT,amount,Bank
 Bayar Hutang BPJS,1,2.1.13,,DEBIT,amount,Pelunasan hutang BPJS
-Bayar Hutang BPJS,2,1.1.02,,CREDIT,amount,Bank BCA
+Bayar Hutang BPJS,2,,BANK,CREDIT,amount,Bank
 Pembelian Peralatan,1,1.2.01,,DEBIT,amount,Peralatan
-Pembelian Peralatan,2,1.1.02,,CREDIT,amount,Bank BCA
-Penjualan Aset Tetap (Laba),1,1.1.02,,DEBIT,hargaJual,Bank BCA (hasil penjualan)
+Pembelian Peralatan,2,,BANK,CREDIT,amount,Bank
+Penjualan Aset Tetap (Laba),1,,BANK,DEBIT,hargaJual,Bank (hasil penjualan)
 Penjualan Aset Tetap (Laba),2,1.2.02,,DEBIT,akumPenyusutan,Akumulasi penyusutan (dihapus)
 Penjualan Aset Tetap (Laba),3,1.2.01,,CREDIT,nilaiPerolehan,Peralatan (nilai perolehan)
 Penjualan Aset Tetap (Laba),4,4.2.02,,CREDIT,hargaJual - (nilaiPerolehan - akumPenyusutan),Keuntungan penjualan aset
-Penjualan Aset Tetap (Rugi),1,1.1.02,,DEBIT,hargaJual,Bank BCA (hasil penjualan)
+Penjualan Aset Tetap (Rugi),1,,BANK,DEBIT,hargaJual,Bank (hasil penjualan)
 Penjualan Aset Tetap (Rugi),2,1.2.02,,DEBIT,akumPenyusutan,Akumulasi penyusutan (dihapus)
 Penjualan Aset Tetap (Rugi),3,5.2.02,,DEBIT,(nilaiPerolehan - akumPenyusutan) - hargaJual,Kerugian penjualan aset
 Penjualan Aset Tetap (Rugi),4,1.2.01,,CREDIT,nilaiPerolehan,Peralatan (nilai perolehan)
 Bayar Bonus Karyawan,1,2.1.12,,DEBIT,amount,Pelunasan Hutang Bonus
-Bayar Bonus Karyawan,2,1.1.02,,CREDIT,amount,Bank BCA
+Bayar Bonus Karyawan,2,,BANK,CREDIT,amount,Bank
 Accrual Bonus Karyawan,1,5.1.01,,DEBIT,amount,Beban Gaji (termasuk bonus)
 Accrual Bonus Karyawan,2,2.1.12,,CREDIT,amount,Hutang Bonus
 Beli Deposito,1,1.1.20,,DEBIT,amount,Deposito
-Beli Deposito,2,1.1.02,,CREDIT,amount,Bank BCA
-Cairkan Deposito,1,1.1.02,,DEBIT,pokok + bunga,Bank BCA (pokok + bunga)
+Beli Deposito,2,,BANK,CREDIT,amount,Bank
+Cairkan Deposito,1,,BANK,DEBIT,pokok + bunga,Bank (pokok + bunga)
 Cairkan Deposito,2,1.1.20,,CREDIT,pokok,Deposito (nilai pokok)
 Cairkan Deposito,3,2.3.01,,CREDIT,bunga,Dana Non-Halal (bunga)
 Beli Logam Mulia,1,1.1.21,,DEBIT,amount,Logam Mulia
-Beli Logam Mulia,2,1.1.02,,CREDIT,amount,Bank BCA
-Jual Logam Mulia (Laba),1,1.1.02,,DEBIT,hasilPenjualan,Bank BCA (hasil penjualan)
+Beli Logam Mulia,2,,BANK,CREDIT,amount,Bank
+Jual Logam Mulia (Laba),1,,BANK,DEBIT,hasilPenjualan,Bank (hasil penjualan)
 Jual Logam Mulia (Laba),2,1.1.21,,CREDIT,nilaiPerolehan,Logam Mulia (nilai perolehan)
 Jual Logam Mulia (Laba),3,4.2.02,,CREDIT,hasilPenjualan - nilaiPerolehan,Keuntungan penjualan logam mulia
-Jual Logam Mulia (Rugi),1,1.1.02,,DEBIT,hasilPenjualan,Bank BCA (hasil penjualan)
+Jual Logam Mulia (Rugi),1,,BANK,DEBIT,hasilPenjualan,Bank (hasil penjualan)
 Jual Logam Mulia (Rugi),2,5.2.02,,DEBIT,nilaiPerolehan - hasilPenjualan,Kerugian penjualan logam mulia
 Jual Logam Mulia (Rugi),3,1.1.21,,CREDIT,nilaiPerolehan,Logam Mulia (nilai perolehan)
 Beli Dinar/Dirham,1,1.1.22,,DEBIT,amount,Dinar/Dirham
-Beli Dinar/Dirham,2,1.1.02,,CREDIT,amount,Bank BCA
-Jual Dinar/Dirham (Laba),1,1.1.02,,DEBIT,hasilPenjualan,Bank BCA (hasil penjualan)
+Beli Dinar/Dirham,2,,BANK,CREDIT,amount,Bank
+Jual Dinar/Dirham (Laba),1,,BANK,DEBIT,hasilPenjualan,Bank (hasil penjualan)
 Jual Dinar/Dirham (Laba),2,1.1.22,,CREDIT,nilaiPerolehan,Dinar/Dirham (nilai perolehan)
 Jual Dinar/Dirham (Laba),3,4.2.02,,CREDIT,hasilPenjualan - nilaiPerolehan,Keuntungan penjualan dinar/dirham
-Jual Dinar/Dirham (Rugi),1,1.1.02,,DEBIT,hasilPenjualan,Bank BCA (hasil penjualan)
+Jual Dinar/Dirham (Rugi),1,,BANK,DEBIT,hasilPenjualan,Bank (hasil penjualan)
 Jual Dinar/Dirham (Rugi),2,5.2.02,,DEBIT,nilaiPerolehan - hasilPenjualan,Kerugian penjualan dinar/dirham
 Jual Dinar/Dirham (Rugi),3,1.1.22,,CREDIT,nilaiPerolehan,Dinar/Dirham (nilai perolehan)
 Pembelian Aset Tetap,1,,ASET_TETAP,DEBIT,assetCost,Aset tetap yang dibeli
-Pembelian Aset Tetap,2,1.1.02,,CREDIT,assetCost,Pembayaran dari bank
+Pembelian Aset Tetap,2,,BANK,CREDIT,assetCost,Pembayaran dari bank
 Penyusutan Aset Tetap,1,5.1.18,,DEBIT,depreciationAmount,Beban penyusutan
 Penyusutan Aset Tetap,2,,AKUM_PENYUSUTAN,CREDIT,depreciationAmount,Akumulasi penyusutan
-Pelepasan Aset Tetap,1,1.1.02,,DEBIT,disposalProceeds,Penerimaan dari penjualan
+Pelepasan Aset Tetap,1,,BANK,DEBIT,disposalProceeds,Penerimaan dari penjualan
 Pelepasan Aset Tetap,2,,AKUM_PENYUSUTAN,DEBIT,accumulatedDepreciation,Hapus akumulasi penyusutan
 Pelepasan Aset Tetap,3,5.2.02,,DEBIT,max(0 - gainLoss; 0),Rugi pelepasan aset (jika rugi)
 Pelepasan Aset Tetap,4,,ASET_TETAP,CREDIT,assetCost,Hapus nilai perolehan aset
@@ -152,50 +152,51 @@ Pelepasan Aset Tetap,5,4.2.02,,CREDIT,max(gainLoss; 0),Laba pelepasan aset (jika
 Isi BBM Kendaraan (Karyawan Bayar),1,5.1.08.1,,DEBIT,amount,Beban BBM Kendaraan
 Isi BBM Kendaraan (Karyawan Bayar),2,2.1.11,,CREDIT,amount,Hutang Reimbursement Karyawan
 Bayar Reimburse BBM ke Karyawan,1,2.1.11,,DEBIT,amount,Pelunasan hutang reimburse BBM
-Bayar Reimburse BBM ke Karyawan,2,1.1.02,,CREDIT,amount,Bank BCA
+Bayar Reimburse BBM ke Karyawan,2,,BANK,CREDIT,amount,Bank
 Bayar BBM Langsung,1,5.1.08.1,,DEBIT,amount,Beban BBM Kendaraan
-Bayar BBM Langsung,2,1.1.02,,CREDIT,amount,Bank BCA
+Bayar BBM Langsung,2,,BANK,CREDIT,amount,Bank
 Saldo Awal Tahun,1,1.1.01,,DEBIT,kas,Kas
 Saldo Awal Tahun,2,1.1.02,,DEBIT,bankBca,Bank BCA
 Saldo Awal Tahun,3,1.1.03,,DEBIT,bankBniOps,Bank BNI - Operasional
 Saldo Awal Tahun,4,1.1.04,,DEBIT,bankBniEscrow,Bank BNI - Escrow
 Saldo Awal Tahun,5,1.1.05,,DEBIT,bankBsi,Bank BSI
 Saldo Awal Tahun,6,1.1.06,,DEBIT,bankCimb,Bank CIMB
-Saldo Awal Tahun,7,1.1.10,,DEBIT,piutangUsaha,Piutang Usaha
-Saldo Awal Tahun,8,1.1.11,,DEBIT,piutangKaryawan,Piutang Karyawan
-Saldo Awal Tahun,9,1.1.12,,DEBIT,piutangLain,Piutang Lain-lain
-Saldo Awal Tahun,10,1.1.13,,DEBIT,piutangKlien,Piutang Biaya Ditanggung Klien
-Saldo Awal Tahun,11,1.1.15,,DEBIT,bebanDibayarDimuka,Beban Dibayar Dimuka
-Saldo Awal Tahun,12,1.1.20,,DEBIT,deposito,Deposito
-Saldo Awal Tahun,13,1.1.21,,DEBIT,logamMulia,Logam Mulia
-Saldo Awal Tahun,14,1.1.22,,DEBIT,dinarDirham,Dinar/Dirham
-Saldo Awal Tahun,15,1.1.25,,DEBIT,ppnMasukan,PPN Masukan
-Saldo Awal Tahun,16,1.1.26,,DEBIT,kreditPph23,Kredit Pajak PPh 23
-Saldo Awal Tahun,17,1.2.01,,DEBIT,peralatanKomputer,Peralatan Komputer
-Saldo Awal Tahun,18,1.2.02,,CREDIT,akumPenyusutanKomputer,Akum. Penyusutan Peralatan Komputer
-Saldo Awal Tahun,19,1.2.03,,DEBIT,kendaraan,Kendaraan
-Saldo Awal Tahun,20,1.2.04,,CREDIT,akumPenyusutanKendaraan,Akum. Penyusutan Kendaraan
-Saldo Awal Tahun,21,1.2.05,,DEBIT,peralatanKantor,Peralatan Kantor
-Saldo Awal Tahun,22,1.2.06,,CREDIT,akumPenyusutanKantor,Akum. Penyusutan Peralatan Kantor
-Saldo Awal Tahun,23,1.2.07,,DEBIT,mesin,Mesin
-Saldo Awal Tahun,24,1.2.08,,CREDIT,akumPenyusutanMesin,Akum. Penyusutan Mesin
-Saldo Awal Tahun,25,1.3.01,,DEBIT,software,Website & Software
-Saldo Awal Tahun,26,1.3.02,,CREDIT,akumAmortisasi,Akum. Amortisasi
-Saldo Awal Tahun,27,2.1.01,,CREDIT,hutangUsaha,Hutang Usaha
-Saldo Awal Tahun,28,2.1.02,,CREDIT,hutangPajak,Hutang Pajak
-Saldo Awal Tahun,29,2.1.03,,CREDIT,hutangPpn,Hutang PPN
-Saldo Awal Tahun,30,2.1.04,,CREDIT,pendapatanDitrimaDimuka,Pendapatan Diterima Dimuka
-Saldo Awal Tahun,31,2.1.05,,CREDIT,kewajibanEscrow,Kewajiban Dana Escrow
-Saldo Awal Tahun,32,2.1.10,,CREDIT,hutangGaji,Hutang Gaji
-Saldo Awal Tahun,33,2.1.11,,CREDIT,hutangReimburse,Hutang Reimbursement Karyawan
-Saldo Awal Tahun,34,2.1.12,,CREDIT,hutangBonus,Hutang Bonus
-Saldo Awal Tahun,35,2.1.13,,CREDIT,hutangBpjs,Hutang BPJS
-Saldo Awal Tahun,36,2.1.15,,CREDIT,bebanYmhDibayar,Beban Yang Masih Harus Dibayar
-Saldo Awal Tahun,37,2.1.20,,CREDIT,hutangPph21,Hutang PPh 21
-Saldo Awal Tahun,38,2.1.21,,CREDIT,hutangPph23,Hutang PPh 23
-Saldo Awal Tahun,39,2.1.22,,CREDIT,hutangPph42,Hutang PPh 4(2)
-Saldo Awal Tahun,40,2.1.23,,CREDIT,hutangPph25,Hutang PPh 25
-Saldo Awal Tahun,41,2.1.24,,CREDIT,hutangPph29,Hutang PPh 29
-Saldo Awal Tahun,42,2.3.01,,CREDIT,danaNonHalal,Dana Non-Halal
-Saldo Awal Tahun,43,3.1.01,,CREDIT,modalDisetor,Modal Disetor
-Saldo Awal Tahun,44,3.2.01,,CREDIT,labaDitahan,Laba Ditahan (termasuk laba tahun lalu)
+Saldo Awal Tahun,7,1.1.07,,DEBIT,bankDki,Bank DKI
+Saldo Awal Tahun,8,1.1.10,,DEBIT,piutangUsaha,Piutang Usaha
+Saldo Awal Tahun,9,1.1.11,,DEBIT,piutangKaryawan,Piutang Karyawan
+Saldo Awal Tahun,10,1.1.12,,DEBIT,piutangLain,Piutang Lain-lain
+Saldo Awal Tahun,11,1.1.13,,DEBIT,piutangKlien,Piutang Biaya Ditanggung Klien
+Saldo Awal Tahun,12,1.1.15,,DEBIT,bebanDibayarDimuka,Beban Dibayar Dimuka
+Saldo Awal Tahun,13,1.1.20,,DEBIT,deposito,Deposito
+Saldo Awal Tahun,14,1.1.21,,DEBIT,logamMulia,Logam Mulia
+Saldo Awal Tahun,15,1.1.22,,DEBIT,dinarDirham,Dinar/Dirham
+Saldo Awal Tahun,16,1.1.25,,DEBIT,ppnMasukan,PPN Masukan
+Saldo Awal Tahun,17,1.1.26,,DEBIT,kreditPph23,Kredit Pajak PPh 23
+Saldo Awal Tahun,18,1.2.01,,DEBIT,peralatanKomputer,Peralatan Komputer
+Saldo Awal Tahun,19,1.2.02,,CREDIT,akumPenyusutanKomputer,Akum. Penyusutan Peralatan Komputer
+Saldo Awal Tahun,20,1.2.03,,DEBIT,kendaraan,Kendaraan
+Saldo Awal Tahun,21,1.2.04,,CREDIT,akumPenyusutanKendaraan,Akum. Penyusutan Kendaraan
+Saldo Awal Tahun,22,1.2.05,,DEBIT,peralatanKantor,Peralatan Kantor
+Saldo Awal Tahun,23,1.2.06,,CREDIT,akumPenyusutanKantor,Akum. Penyusutan Peralatan Kantor
+Saldo Awal Tahun,24,1.2.07,,DEBIT,mesin,Mesin
+Saldo Awal Tahun,25,1.2.08,,CREDIT,akumPenyusutanMesin,Akum. Penyusutan Mesin
+Saldo Awal Tahun,26,1.3.01,,DEBIT,software,Website & Software
+Saldo Awal Tahun,27,1.3.02,,CREDIT,akumAmortisasi,Akum. Amortisasi
+Saldo Awal Tahun,28,2.1.01,,CREDIT,hutangUsaha,Hutang Usaha
+Saldo Awal Tahun,29,2.1.02,,CREDIT,hutangPajak,Hutang Pajak
+Saldo Awal Tahun,30,2.1.03,,CREDIT,hutangPpn,Hutang PPN
+Saldo Awal Tahun,31,2.1.04,,CREDIT,pendapatanDitrimaDimuka,Pendapatan Diterima Dimuka
+Saldo Awal Tahun,32,2.1.05,,CREDIT,kewajibanEscrow,Kewajiban Dana Escrow
+Saldo Awal Tahun,33,2.1.10,,CREDIT,hutangGaji,Hutang Gaji
+Saldo Awal Tahun,34,2.1.11,,CREDIT,hutangReimburse,Hutang Reimbursement Karyawan
+Saldo Awal Tahun,35,2.1.12,,CREDIT,hutangBonus,Hutang Bonus
+Saldo Awal Tahun,36,2.1.13,,CREDIT,hutangBpjs,Hutang BPJS
+Saldo Awal Tahun,37,2.1.15,,CREDIT,bebanYmhDibayar,Beban Yang Masih Harus Dibayar
+Saldo Awal Tahun,38,2.1.20,,CREDIT,hutangPph21,Hutang PPh 21
+Saldo Awal Tahun,39,2.1.21,,CREDIT,hutangPph23,Hutang PPh 23
+Saldo Awal Tahun,40,2.1.22,,CREDIT,hutangPph42,Hutang PPh 4(2)
+Saldo Awal Tahun,41,2.1.23,,CREDIT,hutangPph25,Hutang PPh 25
+Saldo Awal Tahun,42,2.1.24,,CREDIT,hutangPph29,Hutang PPh 29
+Saldo Awal Tahun,43,2.3.01,,CREDIT,danaNonHalal,Dana Non-Halal
+Saldo Awal Tahun,44,3.1.01,,CREDIT,modalDisetor,Modal Disetor
+Saldo Awal Tahun,45,3.2.01,,CREDIT,labaDitahan,Laba Ditahan (termasuk laba tahun lalu)

@@ -1,6 +1,6 @@
 # Data Export Manifest
 
-Export Date: 2024-12-03
+Export Date: 2025-01-01
 Application: Aplikasi Akunting
 Format Version: 2.0
 
@@ -9,12 +9,12 @@ Name: PT Artivisi Intermedia
 NPWP: -
 
 ## Export Contents
-- Chart of Accounts: 91 records
+- Chart of Accounts: 92 records
 - Salary Components: 17 records
 - Journal Templates: 66 records
 - Asset Categories: 4 records
-- Journal Entries: 0 records
-- Transactions: 0 records
+- Journal Entries: 15 records
+- Transactions: 1 records
 - Clients: 0 records
 - Projects: 0 records
 - Invoices: 0 records
@@ -30,6 +30,7 @@ This is a seed data export containing:
 - Salary Components (Indonesian payroll with BPJS and PPh 21)
 - Journal Templates (Artivisi templates v3.0)
 - Asset Categories (Fixed asset depreciation settings)
+- Initial Balance Transaction (Januari 2025)
 
 All other tables are empty placeholders.
 
@@ -40,3 +41,5 @@ All other tables are empty placeholders.
 - v3.0: Added fixed asset accounts, asset categories, depreciation templates, salary components
 - v3.1: Sharia compliance - Dana Non-Halal account, bunga masuk ke liability bukan revenue
 - v3.2: Fix Saldo Awal Tahun template category from ADJUSTMENT to TRANSFER (enum alignment)
+- v3.3: Added Bank DKI (1.1.07), initial balance transaction from Neraca Januari 2025
+- v3.4: Made bank account selection flexible in templates (BANK hint instead of hardcoded BCA)

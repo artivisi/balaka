@@ -1,1 +1,2 @@
 transaction_number,transaction_date,template_name,project_code,amount,description,reference_number,notes,status,void_reason,void_notes,voided_at,voided_by,posted_at,posted_by,created_at
+TRX-2025-0001,2025-01-01,Saldo Awal Tahun,,500000000,Saldo Awal Neraca Januari 2025,NERACA-JAN-2025,Contoh data saldo awal,POSTED,,,,,2025-01-01 00:00:00,admin,2025-01-01 00:00:00
