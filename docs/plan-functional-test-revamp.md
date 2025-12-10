@@ -497,6 +497,57 @@ void executeTransaction(TransactionRow tx) {
 3. **Readable test data** - business logic visible in spreadsheet format (readonly)
 4. **Template-agnostic** - same test code handles SIMPLE and DETAILED templates
 
+### Screenshot Capture for User Manual
+
+Tests capture screenshots at key steps to update user manual documentation.
+
+```java
+void executeTransaction(TransactionRow tx) {
+    // ... fill form ...
+
+    // Capture screenshot before submit
+    if (tx.captureScreenshot()) {
+        String filename = String.format("manual/%s/%02d-%s.png",
+            industry, tx.sequence(), slugify(tx.description()));
+        page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(filename)));
+    }
+
+    page.locator("#btn-simpan-posting").click();
+    page.waitForURL("**/transactions/*");
+
+    // Capture result screenshot
+    if (tx.captureScreenshot()) {
+        String filename = String.format("manual/%s/%02d-%s-result.png",
+            industry, tx.sequence(), slugify(tx.description()));
+        page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(filename)));
+    }
+}
+```
+
+**Screenshot Output:**
+```
+docs/user-manual/screenshots/
+├── service/
+│   ├── 01-konsultasi-jan-form.png
+│   ├── 01-konsultasi-jan-result.png
+│   ├── 02-bayar-gaji-form.png
+│   └── ...
+├── seller/
+│   ├── 01-pembelian-iphone-form.png
+│   └── ...
+├── coffee/
+│   └── ...
+└── campus/
+    └── ...
+```
+
+**CSV Column Addition:**
+```csv
+sequence,date,template,inputs,description,reference,project,notes,screenshot
+1,2024-01-05,Pendapatan Jasa + PPN,amount:50000000,Konsultasi Jan,INV-001,,,true
+2,2024-01-10,Bayar Gaji,amount:30000000,Gaji Jan,,,,false
+```
+
 ---
 
 ## Test Class Organization
