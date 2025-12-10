@@ -678,46 +678,55 @@ src/test/java/com/artivisi/accountingfinance/functional/
 
 ## ID Convention
 
-Hierarchical structure with industry prefix + entity type for self-documenting IDs.
+Hierarchical structure using **numeric hex prefixes** for valid PostgreSQL UUIDs.
 
-**Industry Prefixes (position 1):**
+**IMPORTANT**: PostgreSQL UUIDs only accept hex characters (0-9, a-f). Letters like 's', 'c', 'u' are invalid.
+
+**Industry Prefixes (first 2 digits):**
 ```
-s = Service (IT Services / PKP)
-e = E-commerce (Online Seller)
-c = Coffee Shop (Manufacturing)
-u = University/Campus (Education)
-b = Base/Common
+51 = Service (IT Services / PKP)
+52 = Seller (E-commerce / Online Seller)
+53 = Coffee (Manufacturing)
+54 = Campus (University/Education)
+00 = Base/Common (used by V800)
 ```
 
-**Entity Type (position 2):**
+**Entity Type (digits 3-4):**
 ```
-c = Client
-p = Project
-e = Employee
-t = Transaction
-r = Product (raw material / finished good)
-o = Production Order
-m = Template
-a = Account (COA)
-s = Student (campus only)
+10 = Client
+20 = Project
+21 = Project Milestone
+30 = Employee
+31 = Employee Salary Component
+40 = Transaction
+50 = Fiscal Period
+60 = User
+61 = User Role
+70 = Journal Entry
+71 = Journal Entry Line
+80 = Payroll Run
+81 = Payroll Detail
+90 = Tax Completion
 ```
+
+**Format**: `{industry}{entity}{seq}-0000-0000-0000-000000000001`
 
 **Examples:**
 ```
-sc000001-0000-0000-0000-000000000001  → Service Client #1 (PT Bank Mandiri)
-sp000001-0000-0000-0000-000000000001  → Service Project #1
-st000001-0000-0000-0000-000000000001  → Service Transaction #1
+51100001-0000-0000-0000-000000000001  → Service Client #1 (PT Bank Mandiri)
+51200001-0000-0000-0000-000000000001  → Service Project #1
+51300001-0000-0000-0000-000000000001  → Service Employee #1 (Budi Santoso)
+51400001-0000-0000-0000-000000000001  → Service Transaction #1
+51700001-0000-0000-0000-000000000001  → Service Journal Entry #1
 
-er000001-0000-0000-0000-000000000001  → Seller Product #1 (iPhone 15 Pro)
-et000001-0000-0000-0000-000000000001  → Seller Transaction #1
+52100001-0000-0000-0000-000000000001  → Seller Client #1
+52400001-0000-0000-0000-000000000001  → Seller Transaction #1
 
-cr000001-0000-0000-0000-000000000001  → Coffee Raw Material #1 (Biji Kopi)
-co000001-0000-0000-0000-000000000001  → Coffee Production Order #1
+53100001-0000-0000-0000-000000000001  → Coffee Supplier #1
+53400001-0000-0000-0000-000000000001  → Coffee Transaction #1
 
-us000001-0000-0000-0000-000000000001  → Campus Student #1 (Ahmad Fauzi)
-ut000001-0000-0000-0000-000000000001  → Campus Transaction #1 (SPP payment)
-
-be000001-0000-0000-0000-000000000001  → Base Employee (test operator user)
+54100001-0000-0000-0000-000000000001  → Campus Student #1
+54400001-0000-0000-0000-000000000001  → Campus Transaction #1 (SPP payment)
 ```
 
 ---
