@@ -828,7 +828,357 @@ sequence,date,templateName,inputs,description,...,expectedDebitAccount,expectedC
 1,2024-01-01,Setoran Modal,amount:500000000,Setoran Modal,...,1.1.01,3.1.01,500.000.000
 ```
 
+---
+
+## Test Independence and CSV-Driven Architecture
+
+**CRITICAL PRINCIPLE**: Report tests MUST NOT depend on transaction execution tests. Both must load from the SAME CSV files to ensure data consistency.
+
+### Correct Pattern: CSV-Driven Test Data
+
+All tests load transaction data from CSV files. This ensures:
+1. **Data Consistency** - Same data used for UI execution and report verification
+2. **Test Independence** - Report tests don't need transaction tests to run first
+3. **Maintainability** - Test data changes only need to be made in one place
+
+### Implementation Pattern
+
+#### Transaction Execution Tests (via UI)
+
+Execute transactions through Playwright UI interactions. Uses `@TestFactory` for dynamic tests from CSV.
+
+**Service Industry Example:**
+```java
+@TestFactory
+@Order(1)
+@DisplayName("Execute transactions from CSV")
+Stream<DynamicTest> executeTransactionsFromCsv() {
+    // Load from CSV
+    List<TransactionRow> transactions = CsvLoader.loadTransactions("service/transactions.csv");
+
+    return transactions.stream()
+        .sorted(Comparator.comparing(TransactionRow::sequence))
+        .map(tx -> DynamicTest.dynamicTest(
+            "Tx " + tx.sequence() + ": " + tx.description(),
+            () -> executeTransaction(tx)  // Execute via Playwright
+        ));
+}
+
+private void executeTransaction(TransactionRow tx) {
+    loginAsAdmin();
+
+    // Find template by name from CSV
+    UUID templateId = templateRepository.findByTemplateName(tx.templateName()).get().getId();
+
+    // Fill form via Playwright
+    transactionFormPage.navigateWithTemplate(templateId)
+        .fillDate(tx.date())
+        .fillInputs(tx.inputs())
+        .fillDescription(tx.description())
+        .fillReferenceNumber(tx.reference())
+        .saveAndPost();
+
+    // Verify journal entries match CSV expectations
+    transactionDetailPage.verifyJournalEntryAccountCode(0, tx.expectedDebitAccount())
+        .verifyJournalEntryDebit(0, tx.expectedAmount())
+        .verifyJournalEntryAccountCode(1, tx.expectedCreditAccount())
+        .verifyJournalEntryCredit(1, tx.expectedAmount());
+}
+```
+
+**Seller Inventory Example:**
+```java
+@TestFactory
+@Order(4)
+@DisplayName("Execute inventory transactions from CSV")
+Stream<DynamicTest> executeInventoryTransactionsFromCsv() {
+    // Load from CSV
+    List<InventoryTransactionRow> transactions =
+        CsvLoader.loadInventoryTransactions("seller/transactions.csv");
+
+    return transactions.stream()
+        .map(tx -> DynamicTest.dynamicTest(
+            "Tx " + tx.sequence() + ": " + tx.transactionType() + " " + tx.productCode(),
+            () -> executeInventoryTransaction(tx)  // Execute via Playwright
+        ));
+}
+
+private void executeInventoryTransaction(InventoryTransactionRow tx) {
+    loginAsAdmin();
+
+    // Get product from repository
+    Product product = productRepository.findByCode(tx.productCode()).orElseThrow();
+
+    // Navigate to correct form
+    navigateTo(getFormUrl(tx.transactionType()));
+
+    // Fill form via Playwright
+    page.locator("#productId").selectOption(product.getId().toString());
+    page.locator("#transactionDate").fill(tx.date());
+    page.locator("#quantity").fill(String.valueOf(tx.quantity()));
+
+    if (tx.transactionType().equals("PURCHASE")) {
+        page.locator("#unitCost").fill(String.valueOf(tx.unitCost()));
+    }
+
+    page.locator("#btn-submit").click();
+    page.waitForURL("**/inventory/transactions");
+}
+```
+
+#### Report Tests (Programmatic Data Loading)
+
+Load SAME CSV and create transactions programmatically using services/repositories. Uses `@BeforeAll` and `@TestInstance(PER_CLASS)`.
+
+**Service Industry Example:**
+```java
+@DisplayName("Service Industry - Financial Reports")
+@Import(ServiceTestDataInitializer.class)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+public class ServiceReportsTest extends PlaywrightTestBase {
+
+    @Autowired
+    private TransactionRepository transactionRepository;
+    @Autowired
+    private JournalEntryRepository journalEntryRepository;
+    @Autowired
+    private ChartOfAccountRepository accountRepository;
+    @Autowired
+    private JournalTemplateRepository templateRepository;
+
+    @BeforeAll
+    public void setupTestTransactions() {
+        // Load SAME CSV as transaction execution test
+        List<TransactionRow> transactions = CsvLoader.loadTransactions("service/transactions.csv");
+
+        // Create transactions programmatically using CSV data
+        for (TransactionRow txRow : transactions) {
+            // Get template by name from CSV
+            JournalTemplate template = templateRepository.findByName(txRow.templateName())
+                .orElseThrow(() -> new RuntimeException("Template not found: " + txRow.templateName()));
+
+            // Parse amount from inputs
+            BigDecimal amount = parseAmount(txRow.inputs());
+
+            // Create transaction entity
+            Transaction tx = createTransaction(template, LocalDate.parse(txRow.date()),
+                txRow.description(), txRow.reference(), amount);
+
+            // Get accounts from CSV expected values
+            ChartOfAccount debitAccount = accountRepository.findByAccountCode(txRow.expectedDebitAccount())
+                .orElseThrow(() -> new RuntimeException("Account not found: " + txRow.expectedDebitAccount()));
+            ChartOfAccount creditAccount = accountRepository.findByAccountCode(txRow.expectedCreditAccount())
+                .orElseThrow(() -> new RuntimeException("Account not found: " + txRow.expectedCreditAccount()));
+
+            // Create journal entries
+            createJournalEntry(tx, debitAccount, amount, BigDecimal.ZERO);
+            createJournalEntry(tx, creditAccount, BigDecimal.ZERO, amount);
+        }
+    }
+
+    private BigDecimal parseAmount(String inputs) {
+        // Parse "amount:500000000" format
+        String[] parts = inputs.split(":");
+        if (parts.length == 2 && parts[0].equals("amount")) {
+            return new BigDecimal(parts[1]);
+        }
+        throw new RuntimeException("Cannot parse amount from inputs: " + inputs);
+    }
+
+    private Transaction createTransaction(JournalTemplate template, LocalDate date,
+                                         String description, String reference, BigDecimal amount) {
+        Transaction tx = new Transaction();
+        tx.setTransactionDate(date);
+        tx.setDescription(description);
+        tx.setReferenceNumber(reference);
+        tx.setAmount(amount);
+        tx.setJournalTemplate(template);
+        tx.setStatus(TransactionStatus.POSTED);
+        tx.setPostedAt(LocalDateTime.now());
+        tx.setPostedBy("admin");
+        tx.setCreatedBy("admin");
+        return transactionRepository.save(tx);
+    }
+
+    private void createJournalEntry(Transaction transaction, ChartOfAccount account,
+                                   BigDecimal debit, BigDecimal credit) {
+        JournalEntry entry = new JournalEntry();
+        entry.setTransaction(transaction);
+        entry.setAccount(account);
+        entry.setDebitAmount(debit);
+        entry.setCreditAmount(credit);
+        entry.setPostedAt(transaction.getPostedAt());
+        entry.setCreatedBy("admin");
+        journalEntryRepository.save(entry);
+    }
+
+    @Test
+    @DisplayName("Should display Income Statement with correct calculations")
+    void shouldDisplayIncomeStatement() {
+        loginAsAdmin();
+        initPageObjects();
+
+        // Verify report shows data from CSV
+        incomeStatementPage.navigate("2024-01-01", "2024-02-28")
+            .verifyTotalRevenue("359.700.000")  // Sum from CSV
+            .verifyTotalExpense("8.880.000")
+            .verifyNetIncome("350.820.000");
+
+        takeManualScreenshot("service/report-income-statement");
+    }
+}
+```
+
+**Seller Inventory Example:**
+```java
+@DisplayName("Online Seller - Reports")
+@Import(SellerTestDataInitializer.class)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+public class SellerReportsTest extends PlaywrightTestBase {
+
+    @Autowired
+    private InventoryService inventoryService;
+    @Autowired
+    private ProductRepository productRepository;
+
+    @BeforeAll
+    public void setupTestInventoryTransactions() {
+        // Load SAME CSV as transaction execution test
+        List<InventoryTransactionRow> transactions =
+            CsvLoader.loadInventoryTransactions("seller/transactions.csv");
+
+        // Create inventory transactions programmatically using CSV data
+        for (InventoryTransactionRow txRow : transactions) {
+            // Get product by code from CSV
+            Product product = productRepository.findByCode(txRow.productCode())
+                .orElseThrow(() -> new RuntimeException("Product not found: " + txRow.productCode()));
+
+            LocalDate date = LocalDate.parse(txRow.date());
+            BigDecimal quantity = BigDecimal.valueOf(txRow.quantity());
+
+            // Create transaction using InventoryService based on type from CSV
+            switch (txRow.transactionType()) {
+                case "PURCHASE" ->
+                    inventoryService.recordPurchase(product.getId(), date, quantity,
+                        txRow.unitCost(), txRow.reference(), txRow.notes());
+                case "SALE" ->
+                    inventoryService.recordSale(product.getId(), date, quantity,
+                        txRow.unitPrice(), txRow.reference(), txRow.notes());
+                case "ADJUSTMENT_IN" ->
+                    inventoryService.recordAdjustmentIn(product.getId(), date, quantity,
+                        txRow.unitCost(), txRow.reference(), txRow.notes());
+                case "ADJUSTMENT_OUT" ->
+                    inventoryService.recordAdjustmentOut(product.getId(), date, quantity,
+                        txRow.reference(), txRow.notes());
+                default ->
+                    throw new RuntimeException("Unknown transaction type: " + txRow.transactionType());
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("Should display inventory stock balance report with 4 products")
+    void shouldDisplayStockBalanceReport() {
+        loginAsAdmin();
+        initPageObjects();
+
+        // Verify report shows stock calculated from CSV transactions
+        // CSV: 4 purchases + 4 sales + 1 adjustment = 4 products with stock
+        inventoryReportPage.navigateStockBalance()
+            .verifyPageTitle("Saldo Stok")
+            .verifyReportTableVisible()
+            .verifyProductCount(4);  // Calculated from CSV
+
+        takeManualScreenshot("seller/report-stock-balance");
+    }
+}
+```
+
+### Key Differences Between Test Types
+
+| Aspect | Transaction Execution Tests | Report Tests |
+|--------|---------------------------|-------------|
+| **Purpose** | Validate UI interactions | Validate report calculations |
+| **Execution** | Via Playwright (page.locator, click, fill) | Via services/repositories |
+| **Data Source** | Load CSV, execute via UI | Load SAME CSV, create programmatically |
+| **Dependencies** | None | None (independent!) |
+| **Test Method** | `@TestFactory` with dynamic tests | Regular `@Test` methods |
+| **Setup** | None needed | `@BeforeAll` creates test data |
+| **Lifecycle** | Per-method (default) | `@TestInstance(PER_CLASS)` for shared context |
+
+### Template Requirements for Tests
+
+All HTML templates used by tests MUST have test IDs for reliable locators:
+
+**Form Elements:**
+```html
+<input type="text" id="transactionDate" ...>
+<input type="text" id="description" ...>
+<input type="text" id="referenceNumber" ...>
+<button type="submit" id="btn-submit" ...>
+```
+
+**Report Elements:**
+```html
+<h1 layout:fragment="page-title" th:id="page-title">Report Title</h1>
+<table th:id="report-table" class="...">
+  <tbody>
+    <tr th:each="item : ${items}">...</tr>
+  </tbody>
+</table>
+
+<!-- Summary values -->
+<div th:id="total-revenue">Rp 359.700.000</div>
+<div th:id="total-expense">Rp 8.880.000</div>
+```
+
+### CSV File Locations
+
+```
+src/test/resources/testdata/
+├── service/
+│   └── transactions.csv          # Used by ServiceTransactionExecutionTest + ServiceReportsTest
+├── seller/
+│   └── transactions.csv          # Used by SellerTransactionExecutionTest + SellerReportsTest
+├── manufacturing/
+│   └── transactions.csv          # (Future: CoffeeTransactionExecutionTest + CoffeeReportsTest)
+└── campus/
+    └── transactions.csv          # (Future: CampusTransactionExecutionTest + CampusReportsTest)
+```
+
+### Benefits of This Architecture
+
+1. **Single Source of Truth** - CSV is the definitive test data
+2. **Consistency** - UI execution and reports use identical data
+3. **Independence** - Tests can run in any order
+4. **Maintainability** - Change CSV once, affects both test types
+5. **Readability** - CSV format is human-readable
+6. **Verification** - Expected values documented in CSV columns
+
 ### Anti-Patterns to Avoid
+
+❌ **DO NOT** hardcode transaction data in test classes:
+```java
+// BAD - hardcoded values, not CSV-driven
+@BeforeAll
+public void setupTestTransactions() {
+    Transaction tx1 = createTransaction(template, LocalDate.of(2024, 1, 1),
+        "Setoran Modal Awal 2024", "CAP-2024-001", BigDecimal.valueOf(500000000));
+    createJournalEntry(tx1, cash, BigDecimal.valueOf(500000000), BigDecimal.ZERO);
+    createJournalEntry(tx1, capital, BigDecimal.ZERO, BigDecimal.valueOf(500000000));
+    // ... more hardcoded transactions
+}
+```
+
+❌ **DO NOT** make report tests depend on transaction execution tests:
+```java
+// BAD - test execution order dependency
+@DisplayName("Online Seller - Reports")
+public class SellerReportsTest extends PlaywrightTestBase {
+    // Expected Data (after SellerTransactionExecutionTest runs):  ❌ WRONG!
+    // This creates test coupling - reports fail if transaction tests don't run first
+}
+```
 
 ❌ **DO NOT** only verify page title or visibility:
 ```java
@@ -840,6 +1190,18 @@ incomeStatementPage.navigate().verifyPageTitle();
 ```java
 // BAD - doesn't verify expected count
 assertThat(page.locator("#client-table tbody tr")).not().hasCount(0);
+```
+
+✅ **DO** load same CSV for both execution and report tests:
+```java
+// GOOD - both tests use same CSV, ensures consistency
+// ServiceTransactionExecutionTest.java
+List<TransactionRow> transactions = CsvLoader.loadTransactions("service/transactions.csv");
+executeTransaction(tx);  // Via Playwright
+
+// ServiceReportsTest.java
+List<TransactionRow> transactions = CsvLoader.loadTransactions("service/transactions.csv");
+createTransaction(tx);  // Via repository/service
 ```
 
 ✅ **DO** verify specific expected values:
