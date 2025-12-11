@@ -60,99 +60,124 @@ public class UserManualGenerator {
     ) {}
 
     public static List<SectionGroup> getSectionGroups() {
-        // Ordered from basic/simple to advanced/intricate features
-        // 1. Introduction - understand concepts first
-        // 2. Setup & Configuration - set up the system before using it
-        // 3. Daily Operations - basic transactions
-        // 4. Reporting - view results of transactions
-        // 5. Taxation - compliance features
-        // 6. Project Management - project-based tracking
-        // 7. Payroll - employee management
-        // 8. Inventory - stock management
-        // 9. Administration - user management and security
-        // 10. Appendix - reference materials
+        // New 12-section structure per user-manual-creation-guidelines.md
+        // 1. Setup Awal - sysadmin audience
+        // 2. Tutorial Akuntansi - crown jewel, business owner audience
+        // 3. Aset Tetap - depreciation
+        // 4. Perpajakan - tax compliance
+        // 5. Penggajian - payroll & employee
+        // 6. Pengantar Industri - industry overview
+        // 7-10. Industry-specific sections
+        // 11. Keamanan - security & compliance
+        // 12. Lampiran - appendix
         return List.of(
-            // 1. INTRODUCTION - Start here to understand the basics
-            new SectionGroup("pengantar", "Pengantar", "M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253", List.of(
-                new Section("pendahuluan", "Pendahuluan", "00-pendahuluan.md", List.of("login", "dashboard")),
-                new Section("konsep-dasar", "Konsep Dasar Akuntansi", "01-konsep-dasar.md", List.of())
+            // 1. SETUP AWAL & ADMINISTRASI
+            new SectionGroup("setup-awal", "Setup Awal & Administrasi", "M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z", List.of(
+                new Section("setup-awal", "Setup Awal", "01-setup-awal.md", List.of("login", "dashboard", "accounts-list", "accounts-form")),
+                new Section("import-seed", "Import Seed Data", "01-setup-awal.md", List.of()),
+                new Section("user-management", "User Management", "01-setup-awal.md", List.of("users-list", "users-form")),
+                new Section("telegram-setup", "Telegram Integration", "01-setup-awal.md", List.of())
             )),
 
-            // 2. SETUP & CONFIGURATION - Set up the system BEFORE using it
-            new SectionGroup("konfigurasi", "Setup & Konfigurasi", "M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z", List.of(
-                new Section("setup-awal", "Setup Awal", "50-setup-awal.md", List.of("accounts-list", "accounts-form")),
-                new Section("kelola-periode-fiskal", "Kelola Periode Fiskal", "54-kelola-periode-fiskal.md", List.of("fiscal-periods-list")),
-                new Section("kelola-template", "Kelola Template", "51-kelola-template.md", List.of("templates-list", "templates-detail", "templates-form")),
-                new Section("kelola-klien", "Kelola Klien", "52-kelola-klien.md", List.of("clients-list", "clients-detail", "clients-form")),
-                new Section("jadwal-amortisasi", "Jadwal Amortisasi", "53-jadwal-amortisasi.md", List.of("amortization-list", "amortization-form")),
-                new Section("setup-telegram", "Setup Telegram Bot", "55-setup-telegram.md", List.of())
+            // 2. TUTORIAL DASAR AKUNTANSI - Crown Jewel
+            new SectionGroup("tutorial-akuntansi", "Tutorial Dasar Akuntansi", "M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253", List.of(
+                new Section("konsep-dasar", "Konsep Dasar Akuntansi", "02-tutorial-akuntansi.md", List.of()),
+                new Section("siklus-akuntansi", "Siklus Akuntansi", "02-tutorial-akuntansi.md", List.of()),
+                new Section("transaksi-harian", "Transaksi Harian", "02-tutorial-akuntansi.md", List.of("transactions-form", "transactions-detail", "transactions-list")),
+                new Section("jurnal-buku-besar", "Jurnal & Buku Besar", "02-tutorial-akuntansi.md", List.of("journals-list")),
+                new Section("penyesuaian", "Penyesuaian", "02-tutorial-akuntansi.md", List.of("amortization-list", "amortization-form")),
+                new Section("laporan-keuangan", "Laporan Keuangan", "02-tutorial-akuntansi.md", List.of("reports-trial-balance", "reports-balance-sheet", "reports-income-statement")),
+                new Section("tutup-buku", "Tutup Buku", "02-tutorial-akuntansi.md", List.of("reports-fiscal-closing"))
             )),
 
-            // 3. DAILY OPERATIONS - Basic transaction recording
-            new SectionGroup("operasi-harian", "Operasi Harian", "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01", List.of(
-                new Section("mencatat-pendapatan", "Mencatat Pendapatan", "10-mencatat-pendapatan.md", List.of("transactions-form", "transactions-detail")),
-                new Section("mencatat-pengeluaran", "Mencatat Pengeluaran", "11-mencatat-pengeluaran.md", List.of("transactions-list", "transactions-form")),
-                new Section("transfer-antar-akun", "Transfer Antar Akun", "12-transfer-antar-akun.md", List.of("transactions-form")),
-                new Section("telegram-receipt", "Telegram Receipt", "13-telegram-receipt.md", List.of())
+            // 3. ASET TETAP
+            new SectionGroup("aset-tetap", "Aset Tetap", "M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4", List.of(
+                new Section("konsep-depresiasi", "Konsep Depresiasi", "03-aset-tetap.md", List.of()),
+                new Section("kategori-aset", "Kategori Aset", "03-aset-tetap.md", List.of("asset-categories-list")),
+                new Section("pencatatan-aset", "Pencatatan Aset", "03-aset-tetap.md", List.of("assets-list", "assets-form")),
+                new Section("jadwal-depresiasi", "Jadwal Depresiasi", "03-aset-tetap.md", List.of("assets-depreciation", "reports-depreciation"))
             )),
 
-            // 4. REPORTING - View results of transactions
-            new SectionGroup("pelaporan", "Pelaporan", "M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z", List.of(
-                new Section("laporan-harian", "Laporan Harian", "20-laporan-harian.md", List.of("dashboard", "transactions-list", "journals-list")),
-                new Section("laporan-bulanan", "Laporan Bulanan", "21-laporan-bulanan.md", List.of("reports-trial-balance", "reports-balance-sheet", "reports-income-statement")),
-                new Section("laporan-tahunan", "Laporan Tahunan", "22-laporan-tahunan.md", List.of("reports-income-statement", "reports-balance-sheet")),
-                new Section("laporan-penyusutan", "Laporan Penyusutan", "23-laporan-penyusutan.md", List.of("reports-depreciation")),
-                new Section("penutupan-tahun-buku", "Penutupan Tahun Buku", "24-penutupan-tahun-buku.md", List.of("reports-fiscal-closing"))
-            )),
-
-            // 5. TAXATION - Tax compliance features
+            // 4. PERPAJAKAN
             new SectionGroup("perpajakan", "Perpajakan", "M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z", List.of(
-                new Section("transaksi-ppn", "Transaksi PPN", "30-transaksi-ppn.md", List.of("transactions-form", "reports-ppn-summary")),
-                new Section("transaksi-pph", "Transaksi PPh", "31-transaksi-pph.md", List.of("transactions-form", "reports-pph23-withholding")),
-                new Section("laporan-pajak", "Laporan Pajak", "32-laporan-pajak.md", List.of("reports-ppn-summary", "reports-pph23-withholding", "reports-tax-summary")),
-                new Section("kalender-pajak", "Kalender Pajak", "33-kalender-pajak.md", List.of("tax-calendar", "tax-calendar-yearly"))
+                new Section("jenis-pajak", "Jenis Pajak di Indonesia", "04-perpajakan.md", List.of()),
+                new Section("transaksi-ppn", "Transaksi PPN", "04-perpajakan.md", List.of("transactions-form", "reports-ppn-summary")),
+                new Section("transaksi-pph", "Transaksi PPh", "04-perpajakan.md", List.of("reports-pph23-withholding", "reports-tax-summary")),
+                new Section("periode-fiskal", "Periode Fiskal", "04-perpajakan.md", List.of("fiscal-periods-list")),
+                new Section("kalender-pajak", "Kalender Pajak", "04-perpajakan.md", List.of("tax-calendar", "tax-calendar-yearly"))
             )),
 
-            // 6. PROJECT MANAGEMENT - Project-based tracking
-            new SectionGroup("manajemen-proyek", "Manajemen Proyek", "M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10", List.of(
-                new Section("setup-proyek", "Setup Proyek", "40-setup-proyek.md", List.of("projects-form", "clients-list")),
-                new Section("tracking-proyek", "Tracking Proyek", "41-tracking-proyek.md", List.of("projects-detail", "projects-list")),
-                new Section("invoice-penagihan", "Invoice & Penagihan", "42-invoice-penagihan.md", List.of("invoices-list")),
-                new Section("analisis-profitabilitas", "Analisis Profitabilitas", "43-analisis-profitabilitas.md", List.of("reports-project-profitability", "reports-client-profitability"))
-            )),
-
-            // 7. PAYROLL - Employee management and payroll processing
+            // 5. PENGGAJIAN
             new SectionGroup("penggajian", "Penggajian", "M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z", List.of(
-                new Section("kelola-karyawan", "Kelola Karyawan", "60-kelola-karyawan.md", List.of("employees-list", "employees-form")),
-                new Section("komponen-gaji", "Komponen Gaji", "61-komponen-gaji.md", List.of("salary-components-list", "salary-components-form")),
-                new Section("kalkulator-bpjs", "Kalkulator BPJS", "62-kalkulator-bpjs.md", List.of("bpjs-calculator")),
-                new Section("kalkulator-pph21", "Kalkulator PPh 21", "63-kalkulator-pph21.md", List.of("pph21-calculator")),
-                new Section("payroll-processing", "Proses Penggajian", "64-payroll-processing.md", List.of("payroll-list", "payroll-detail", "payroll-form"))
+                new Section("setup-komponen-gaji", "Setup Komponen Gaji", "05-penggajian.md", List.of("salary-components-list", "salary-components-form")),
+                new Section("kelola-karyawan", "Kelola Karyawan", "05-penggajian.md", List.of("employees-list", "employees-form")),
+                new Section("bpjs", "BPJS", "05-penggajian.md", List.of("bpjs-calculator")),
+                new Section("pph21-karyawan", "PPh 21 Karyawan", "05-penggajian.md", List.of("pph21-calculator")),
+                new Section("proses-penggajian", "Proses Penggajian", "05-penggajian.md", List.of("payroll-list", "payroll-form", "payroll-detail")),
+                new Section("layanan-mandiri", "Layanan Mandiri Karyawan", "05-penggajian.md", List.of("self-service-payslips", "self-service-bukti-potong", "self-service-profile"))
             )),
 
-            // 8. INVENTORY & PRODUCTION - Stock management (advanced feature)
-            new SectionGroup("inventori", "Inventori & Produksi", "M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4", List.of(
-                new Section("kelola-produk", "Kelola Produk", "75-kelola-produk.md", List.of("products-list", "products-form", "product-categories-list")),
-                new Section("transaksi-inventori", "Transaksi Inventori", "76-transaksi-inventori.md", List.of("inventory-transactions", "inventory-purchase", "inventory-sale", "inventory-adjustment")),
-                new Section("kartu-stok", "Kartu Stok", "77-kartu-stok.md", List.of("stock-list", "inventory-reports", "inventory-stock-balance", "inventory-stock-movement")),
-                new Section("produksi-bom", "Produksi & BOM", "78-produksi-bom.md", List.of("bom-list", "bom-form", "production-list", "production-form")),
-                new Section("analisis-profitabilitas-produk", "Profitabilitas Produk", "79-analisis-profitabilitas-produk.md", List.of("inventory-reports-profitability"))
+            // 6. PENGANTAR INDUSTRI
+            new SectionGroup("pengantar-industri", "Pengantar Industri", "M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9", List.of(
+                new Section("jenis-industri", "Jenis Industri", "06-pengantar-industri.md", List.of()),
+                new Section("industri-didukung", "Industri yang Didukung", "06-pengantar-industri.md", List.of()),
+                new Section("perbedaan-praktik", "Perbedaan Praktik Akuntansi", "06-pengantar-industri.md", List.of())
             )),
 
-            // 9. ADMINISTRATION & SECURITY - Admin functions
-            new SectionGroup("administrasi", "Administrasi & Keamanan", "M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z", List.of(
-                new Section("kelola-pengguna", "Kelola Pengguna", "70-kelola-pengguna.md", List.of("users-list", "users-form", "users-detail")),
-                new Section("layanan-mandiri", "Layanan Mandiri", "71-layanan-mandiri.md", List.of("self-service-payslips", "self-service-bukti-potong", "self-service-profile")),
-                new Section("kebijakan-data", "Kebijakan Data", "80-kebijakan-data.md", List.of("settings-data-subjects", "settings-privacy")),
-                new Section("ekspor-data", "Ekspor Data", "81-ekspor-data.md", List.of()),
-                new Section("keamanan", "Fitur Keamanan", "82-keamanan.md", List.of("settings-audit-logs"))
+            // 7. INDUSTRI JASA (SERVICE)
+            new SectionGroup("industri-jasa", "Industri Jasa", "M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z", List.of(
+                new Section("karakteristik-jasa", "Karakteristik Industri Jasa", "07-industri-jasa.md", List.of()),
+                new Section("client-management", "Client Management", "07-industri-jasa.md", List.of("clients-list", "clients-detail", "clients-form")),
+                new Section("project-management", "Project Management", "07-industri-jasa.md", List.of("projects-list", "projects-detail", "projects-form")),
+                new Section("template-jasa", "Template Transaksi Jasa", "07-industri-jasa.md", List.of("templates-list", "templates-detail")),
+                new Section("invoice-penagihan", "Invoice & Penagihan", "07-industri-jasa.md", List.of("invoices-list")),
+                new Section("profitabilitas-proyek", "Profitabilitas Proyek", "07-industri-jasa.md", List.of("reports-project-profitability", "reports-client-profitability"))
             )),
 
-            // 10. APPENDIX - Reference materials
+            // 8. INDUSTRI DAGANG (TRADING/SELLER)
+            new SectionGroup("industri-dagang", "Industri Dagang", "M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z", List.of(
+                new Section("karakteristik-dagang", "Karakteristik Industri Dagang", "08-industri-dagang.md", List.of()),
+                new Section("manajemen-produk", "Manajemen Produk", "08-industri-dagang.md", List.of("products-list", "products-form", "product-categories-list")),
+                new Section("metode-persediaan", "Metode Penilaian Persediaan", "08-industri-dagang.md", List.of()),
+                new Section("transaksi-pembelian", "Transaksi Pembelian", "08-industri-dagang.md", List.of("inventory-purchase")),
+                new Section("transaksi-penjualan", "Transaksi Penjualan", "08-industri-dagang.md", List.of("inventory-sale")),
+                new Section("laporan-persediaan", "Laporan Persediaan", "08-industri-dagang.md", List.of("stock-list", "inventory-transactions", "inventory-stock-balance", "inventory-stock-movement")),
+                new Section("profitabilitas-produk", "Profitabilitas Produk", "08-industri-dagang.md", List.of("inventory-reports-profitability"))
+            )),
+
+            // 9. INDUSTRI MANUFAKTUR [TBD]
+            new SectionGroup("industri-manufaktur", "Industri Manufaktur", "M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z", List.of(
+                new Section("karakteristik-manufaktur", "Karakteristik Manufaktur", "09-industri-manufaktur.md", List.of()),
+                new Section("bill-of-materials", "Bill of Materials (BOM)", "09-industri-manufaktur.md", List.of("bom-list", "bom-form")),
+                new Section("production-order", "Production Order", "09-industri-manufaktur.md", List.of("production-list", "production-form")),
+                new Section("kalkulasi-biaya", "Kalkulasi Biaya Produksi", "09-industri-manufaktur.md", List.of()),
+                new Section("laporan-produksi", "Laporan Produksi", "09-industri-manufaktur.md", List.of("inventory-reports"))
+            )),
+
+            // 10. INDUSTRI PENDIDIKAN [TBD]
+            new SectionGroup("industri-pendidikan", "Industri Pendidikan", "M12 14l9-5-9-5-9 5 9 5z M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222", List.of(
+                new Section("karakteristik-pendidikan", "Karakteristik Institusi Pendidikan", "10-industri-pendidikan.md", List.of()),
+                new Section("manajemen-mahasiswa", "Manajemen Mahasiswa", "10-industri-pendidikan.md", List.of()),
+                new Section("tagihan-spp", "Tagihan SPP", "10-industri-pendidikan.md", List.of()),
+                new Section("pembayaran-cicilan", "Pembayaran & Cicilan", "10-industri-pendidikan.md", List.of()),
+                new Section("beasiswa", "Beasiswa & Potongan", "10-industri-pendidikan.md", List.of()),
+                new Section("laporan-pendidikan", "Laporan Pendidikan", "10-industri-pendidikan.md", List.of())
+            )),
+
+            // 11. KEAMANAN & KEPATUHAN DATA
+            new SectionGroup("keamanan", "Keamanan & Kepatuhan Data", "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z", List.of(
+                new Section("enkripsi-data", "Enkripsi Dokumen & PII", "11-keamanan-kepatuhan.md", List.of()),
+                new Section("audit-log", "Audit Log Keamanan", "11-keamanan-kepatuhan.md", List.of("settings-audit-logs")),
+                new Section("kebijakan-data", "Kebijakan Data (GDPR/UU PDP)", "11-keamanan-kepatuhan.md", List.of("settings-data-subjects", "settings-privacy")),
+                new Section("ekspor-data", "Ekspor Data Subjek (DSAR)", "11-keamanan-kepatuhan.md", List.of())
+            )),
+
+            // 12. LAMPIRAN
             new SectionGroup("lampiran", "Lampiran", "M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4", List.of(
-                new Section("glosarium", "Glosarium", "90-glosarium.md", List.of()),
-                new Section("referensi-akun", "Referensi Akun", "91-referensi-akun.md", List.of("accounts-list")),
-                new Section("referensi-template", "Referensi Template", "92-referensi-template.md", List.of("templates-list"))
+                new Section("glosarium", "Glosarium", "12-lampiran-glosarium.md", List.of()),
+                new Section("referensi-template", "Referensi Template", "12-lampiran-template.md", List.of("templates-list")),
+                new Section("referensi-amortisasi", "Referensi Amortisasi & Depresiasi", "12-lampiran-amortisasi.md", List.of()),
+                new Section("referensi-akun", "Referensi Akun", "12-lampiran-akun.md", List.of("accounts-list"))
             ))
         );
     }
