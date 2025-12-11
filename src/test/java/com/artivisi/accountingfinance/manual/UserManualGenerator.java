@@ -264,9 +264,10 @@ public class UserManualGenerator {
                         </li>
                     """, section.id(), sectionNumber, section.title()));
 
-                // Parse markdown content
-                String markdownContent = readMarkdownFile(section.markdownFile());
-                String contentHtml = convertMarkdownToHtml(markdownContent);
+                // Parse markdown content - extract only this specific section
+                String fullMarkdown = readMarkdownFile(section.markdownFile());
+                String sectionContent = extractSectionContent(fullMarkdown, section.title());
+                String contentHtml = convertMarkdownToHtml(sectionContent);
 
                 // Build screenshots HTML
                 String screenshotsHtml = buildScreenshotsHtml(section.screenshots());
@@ -313,10 +314,154 @@ public class UserManualGenerator {
     }
 
     private String convertMarkdownToHtml(String markdown) {
-        // Remove the first H1 heading (title) as it's already in the section header
-        String content = markdown.replaceFirst("^#\\s+[^\\n]+\\n*", "");
-        Node document = parser.parse(content);
+        // Parse and render the markdown content directly
+        // (H1 heading already removed in extractSectionContent)
+        Node document = parser.parse(markdown);
         return renderer.render(document);
+    }
+    
+    /**
+     * Extract a specific H2 section from the markdown content.
+     * Special handling for sections that should aggregate multiple H2 sections.
+     * If sectionTitle matches the file's H1 title exactly, returns content before first H2.
+     * Otherwise, returns the content between the specified H2 heading and the next H2 heading (or end of file).
+     * If no H2 match is found, tries to find content from H1 to a specific H2 (for aggregate sections).
+     */
+    private String extractSectionContent(String markdown, String sectionTitle) {
+        if (sectionTitle == null || sectionTitle.isEmpty()) {
+            // If no specific section title provided, return full content
+            return markdown;
+        }
+        
+        // Get the H1 title
+        Pattern h1Pattern = Pattern.compile("^#\\s+([^\\n]+)", Pattern.MULTILINE);
+        Matcher h1Matcher = h1Pattern.matcher(markdown);
+        String h1Title = "";
+        if (h1Matcher.find()) {
+            h1Title = h1Matcher.group(1).trim();
+        }
+        
+        // Split by H2 headings to get all sections
+        String[] sections = markdown.split("(?m)^## ");
+        
+        // First, try to find exact H2 match
+        for (int i = 1; i < sections.length; i++) {
+            String section = sections[i];
+            String firstLine = section.split("\n", 2)[0].trim();
+            
+            // Match the section title using flexible matching
+            if (titlesMatch(sectionTitle, firstLine)) {
+                // Return content after the heading, including subsections (###)
+                String[] parts = section.split("\n", 2);
+                return parts.length > 1 ? parts[1].trim() : "";
+            }
+        }
+        
+        // Check if section title exactly matches H1 title - if so, return content before first H2
+        if (sectionTitle.equalsIgnoreCase(h1Title.trim())) {
+            // Extract content from after H1 until first H2
+            String[] parts = markdown.split("(?m)^## ", 2);
+            if (parts.length > 0) {
+                // Remove H1 from the content
+                String content = parts[0].replaceFirst("^#\\s+[^\\n]+\\n*", "").trim();
+                return content;
+            }
+            return "";
+        }
+        
+        // For sections like "Konsep Dasar Akuntansi" that should aggregate content
+        // from the start until a specific H2, try to find the stopping point
+        // by looking for an H2 that matches part of the next expected section
+        if (sections.length > 1) {
+            // Return content from after H1 until the first H2
+            // This handles cases where a section should include intro content plus first few H2s
+            String[] parts = markdown.split("(?m)^## ", 2);
+            if (parts.length > 1) {
+                // Get intro content (after H1, before first H2)
+                String intro = parts[0].replaceFirst("^#\\s+[^\\n]+\\n*", "").trim();
+                
+                // Add the first few H2 sections until we hit a section that should be separate
+                StringBuilder aggregated = new StringBuilder(intro);
+                
+                for (int i = 1; i < sections.length; i++) {
+                    String section = sections[i];
+                    String h2Title = section.split("\n", 2)[0].trim();
+                    
+                    // Stop aggregating if we find a section that should be standalone
+                    // (like "Siklus Akuntansi", "Transaksi Harian", etc.)
+                    if (h2Title.contains("Siklus") || h2Title.contains("Transaksi") || 
+                        h2Title.contains("Jurnal") || h2Title.contains("Penyesuaian") || 
+                        h2Title.contains("Laporan") || h2Title.contains("Tutup Buku")) {
+                        break;
+                    }
+                    
+                    // Include this H2 section in the aggregate
+                    aggregated.append("\n\n---\n\n## ").append(section);
+                }
+                
+                return aggregated.toString();
+            }
+        }
+        
+        // Section not found - return empty
+        return "";
+    }
+    
+    /**
+     * Check if two titles match using flexible matching rules:
+     * 1. Exact match (case-insensitive)
+     * 2. Contains match (either contains the other)
+     * 3. Keyword overlap match (ALL significant words from shorter title must be in longer title)
+     */
+    private boolean titlesMatch(String title1, String title2) {
+        if (title1 == null || title2 == null) {
+            return false;
+        }
+        
+        String t1 = title1.toLowerCase().trim();
+        String t2 = title2.toLowerCase().trim();
+        
+        // Exact match
+        if (t1.equals(t2)) {
+            return true;
+        }
+        
+        // Contains match (whole word boundary)
+        if (t1.contains(t2) || t2.contains(t1)) {
+            return true;
+        }
+        
+        // Extract significant words (length >= 4) from both titles
+        String[] words1 = t1.split("\\s+");
+        String[] words2 = t2.split("\\s+");
+        
+        Set<String> significantWords1 = new HashSet<>();
+        Set<String> significantWords2 = new HashSet<>();
+        
+        for (String word : words1) {
+            if (word.length() >= 4) {
+                significantWords1.add(word);
+            }
+        }
+        
+        for (String word : words2) {
+            if (word.length() >= 4) {
+                significantWords2.add(word);
+            }
+        }
+        
+        // Find the shorter and longer sets
+        Set<String> shorter = significantWords1.size() <= significantWords2.size() ? significantWords1 : significantWords2;
+        Set<String> longer = significantWords1.size() > significantWords2.size() ? significantWords1 : significantWords2;
+        
+        // ALL significant words from shorter title must be present in longer title
+        // This ensures "Siklus Akuntansi" doesn't match "Persamaan Dasar Akuntansi"
+        // but "Import Seed Data" still matches "Import Industry Seed Data"
+        if (shorter.isEmpty()) {
+            return false;
+        }
+        
+        return longer.containsAll(shorter);
     }
 
     private String buildScreenshotsHtml(List<String> screenshotIds) {
