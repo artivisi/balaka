@@ -49,7 +49,7 @@ Four industry packs:
 industry-seed/
 ├── it-service/seed-data/       # 75 COA, 37 templates, 17 salary, 8 tax
 ├── online-seller/seed-data/    # 87 COA, 37 templates, 17 salary, 8 tax
-└── coffee-shop/seed-data/      # NEW - to be created
+└── coffee-shop/seed-data/      # ✅ Complete (17 CSV files)
 ```
 
 ---
@@ -334,7 +334,7 @@ Inventory Transactions (Jan-Mar 2024):
 #### Manufacturing Test Data
 
 **Master Data (loaded by CoffeeTestDataInitializer)**
-- Industry seed: `industry-seed/coffee-shop/seed-data/` (NEW - COA with raw materials/WIP/finished goods accounts, templates for production/COGS/sales, product categories, products, BOMs)
+- Industry seed: `industry-seed/coffee-shop/seed-data/` (✅ Complete - COA with raw materials/WIP/finished goods accounts, templates for production/COGS/sales, product categories, products, BOMs, production orders, inventory transactions)
 - Test data: `testdata/coffee/` (company config, fiscal periods, employees)
 
 **Products & BOM (loaded from industry seed pack)**
@@ -673,20 +673,22 @@ src/test/java/com/artivisi/accountingfinance/functional/
 - ✅ 5+ test files in `seller/` package
 - ✅ Test CSV files in `testdata/seller/`
 
-### Phase 3: Manufacturing Tests (🔄 IN PROGRESS)
-1. 🔄 Extend `DataImportService` to support manufacturing entities (ProductCategory, Product, BOM, ProductionOrder, InventoryTransaction)
-2. ⏳ Create `industry-seed/coffee-shop/seed-data/` (COA, templates, product categories, products, BOMs)
-3. ⏳ Create `CoffeeTestDataInitializer.java`
-4. ⏳ Create testdata/coffee/ CSV files (company-config, fiscal-periods, employees)
-5. ⏳ Update manufacturing test classes with data verification
-6. ⏳ Implement CSV-driven production order tests
+### Phase 3: Manufacturing Tests ✅ COMPLETE
+1. ✅ Extend `DataImportService` to support manufacturing entities (ProductCategory, Product, BOM, ProductionOrder, InventoryTransaction)
+2. ✅ Create `industry-seed/coffee-shop/seed-data/` (17 CSV files: COA, templates, product categories, products, BOMs, production orders, inventory transactions)
+3. ✅ Create `CoffeeTestDataInitializer.java`
+4. ✅ Create testdata/coffee/ CSV files (company-config, fiscal-periods, employees)
+5. ✅ Update manufacturing test classes with data-testid (eliminated all text/CSS/positional locators)
+6. ✅ Implement CSV-driven production order tests
 
 **Deliverables**:
-- ⏳ DataImportService methods for manufacturing entities (35_product_categories.csv, 36_products.csv, 37_bill_of_materials.csv, 38_bom_lines.csv, 39_production_orders.csv, 40_inventory_transactions.csv)
-- ⏳ Coffee shop seed pack
-- ⏳ CoffeeTestDataInitializer.java
-- ⏳ Test CSV files in `testdata/coffee/`
-- ⏳ 5+ test files in `manufacturing/` package with real data verification
+- ✅ DataImportService methods for manufacturing entities (35_product_categories.csv, 36_products.csv, 37_bill_of_materials.csv, 38_bom_lines.csv, 39_production_orders.csv, 40_inventory_transactions.csv, 41_inventory_balances.csv)
+- ✅ Coffee shop seed pack (17 CSV files + MANIFEST.md)
+- ✅ CoffeeTestDataInitializer.java
+- ✅ Test CSV files in `testdata/coffee/`
+- ✅ 6 test files in `manufacturing/` package: MfgBomTest, MfgProductionTest, MfgCostingTest, MfgMaterialsTest, MfgCsvDrivenTest, MfgTransactionExecutionTest
+- ✅ 44 Playwright tests passing, all using data-testid locators (zero fragile locators)
+- ✅ Ready for user manual documentation (screenshots can be generated)
 
 ### Phase 4: Campus Tests (⏳ NOT STARTED)
 1. ⏳ Create `industry-seed/campus/seed-data/` (COA, templates)

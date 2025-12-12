@@ -78,7 +78,7 @@ Indonesian accounting application for small businesses. Spring Boot 4.0 + Thymel
 - Test data:
   - Functional tests: NO migrations - all data loaded via `@TestConfiguration` initializers from industry-seed/ packs
   - Integration tests: V900-V912 (preloaded data for unit/service/security tests)
-- Industry seed packs: `industry-seed/{it-service,online-seller}/seed-data/` (COA, templates, products, etc.)
+- Industry seed packs: `industry-seed/{it-service,online-seller,coffee-shop}/seed-data/` (COA, templates, products, BOMs, etc.)
 
 ## Architecture
 
@@ -100,7 +100,9 @@ Phase 5 highlights (complete):
 - Production orders with component consumption and finished goods receipt
 - Auto-COGS calculation on sales with margin analysis
 - Product profitability reports
-- Playwright functional tests (73+ tests)
+- Coffee shop industry seed pack (17 CSV files: products, BOMs, production orders, inventory)
+- Playwright functional tests (44 manufacturing tests, all using data-testid)
+- DataImportService supports manufacturing/inventory data import
 
 Phase 6 highlights (in progress):
 - Field-level encryption (AES-256-GCM) for PII fields
@@ -123,11 +125,16 @@ User Manual (12-section structure complete):
 - 06-pengantar-industri.md: Industry Overview
 - 07-industri-jasa.md: Service Industry
 - 08-industri-dagang.md: Trading Industry
-- 09-industri-manufaktur.md: Manufacturing [TBD - pending tests]
+- 09-industri-manufaktur.md: Manufacturing [Ready for documentation - tests complete]
 - 10-industri-pendidikan.md: Education [TBD - pending tests]
 - 11-keamanan-kepatuhan.md: Security & Compliance
 - 12-lampiran-*.md: Appendices (glosarium, template, amortisasi, akun)
 
-Next: Phase 4 Manufacturing Tests (V830-V831) + coffee-shop seed
+Manufacturing Tests Status:
+- Coffee shop seed pack: ✅ Complete (industry-seed/coffee-shop/)
+- Functional tests: ✅ 44 tests passing (MfgBomTest, MfgProductionTest, MfgCostingTest, etc.)
+- Test pattern: All using data-testid locators (zero text/CSS/positional locators)
+- Test data initializer: CoffeeTestDataInitializer loads seed pack
+- Ready for: User manual screenshots and documentation
 
 See `docs/06-implementation-plan.md` for full plan

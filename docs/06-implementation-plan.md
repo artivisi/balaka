@@ -535,7 +535,11 @@ Additive is ~3x simpler. Role switching only needed for strict audit trails or c
 - [x] Production order UI (list, form, detail with workflow actions)
 - [x] Cost calculation on completion (total cost, unit cost)
 - [x] Inventory integration (PRODUCTION_IN/PRODUCTION_OUT transaction types)
-- [x] Functional tests (6 Playwright tests)
+- [x] Coffee shop industry seed pack (17 CSV files: COA, products, BOMs, production orders, inventory)
+- [x] DataImportService support for manufacturing data (products, categories, BOMs, production orders, transactions)
+- [x] Test data initializer (CoffeeTestDataInitializer)
+- [x] Functional tests (44 Playwright tests: MfgBomTest, MfgProductionTest, MfgCostingTest, MfgMaterialsTest, MfgCsvDrivenTest, MfgTransactionExecutionTest)
+- [x] Test pattern: All tests using data-testid locators (zero text/CSS/positional locators)
 - [x] User manual (80-produksi-bom.md)
 
 ### 5.5 Integration with Sales ✅
@@ -547,7 +551,7 @@ Additive is ~3x simpler. Role switching only needed for strict audit trails or c
 - [x] Functional tests (10 Playwright tests: SalesIntegrationTest)
 - [x] User manual (79-analisis-profitabilitas-produk.md)
 
-**Phase 5 Deliverable:** Inventory management with FIFO/weighted average costing, simple BOM-based production, and automatic COGS calculation.
+**Phase 5 Deliverable:** Inventory management with FIFO/weighted average costing, simple BOM-based production, automatic COGS calculation, coffee shop industry seed pack with complete manufacturing data, and 44 manufacturing functional tests using robust data-testid locators.
 
 ---
 
