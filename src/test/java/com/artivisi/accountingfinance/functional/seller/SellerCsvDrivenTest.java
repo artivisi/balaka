@@ -195,27 +195,9 @@ public class SellerCsvDrivenTest extends PlaywrightTestBase {
         }
     }
 
-    @TestFactory
-    @DisplayName("Verify expected inventory levels")
-    Stream<DynamicTest> verifyExpectedInventoryLevelsFromCsv() {
-        List<ExpectedInventoryRow> inventory = CsvLoader.loadExpectedInventory("seller/expected-inventory.csv");
-
-        return inventory.stream()
-            .map(item -> DynamicTest.dynamicTest(
-                "Stock: " + item.productCode() + " = " + item.expectedQuantity().intValue(),
-                () -> verifyInventoryLevel(item)
-            ));
-    }
-
-    private void verifyInventoryLevel(ExpectedInventoryRow expected) {
-        loginAsAdmin();
-        initPageObjects();
-
-        stockPage.navigate()
-            .verifyPageTitle()
-            .verifyTableVisible()
-            .verifyProductStockExists(expected.productCode());
-    }
+    // NOTE: Inventory level verification removed from CSV-driven test
+    // Stock balances only exist after transactions are executed
+    // See SellerTransactionExecutionTest for actual inventory verification after transaction execution
 
     @Test
     @DisplayName("Verify 4 products exist")

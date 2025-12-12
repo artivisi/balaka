@@ -48,12 +48,7 @@ public class ProductCategoryListPage {
      * Verify category exists by code.
      */
     public ProductCategoryListPage verifyCategoryExists(String categoryCode) {
-        String rowSelector = "#category-row-" + categoryCode;
-        int count = page.locator(rowSelector).count();
-        if (count == 0) {
-            // Fallback: check if category code text is visible in table
-            assertThat(page.locator(CATEGORY_TABLE + " td:has-text('" + categoryCode + "')").first()).isVisible();
-        }
+        assertThat(page.locator("[data-testid='category-row-" + categoryCode + "']")).isVisible();
         return this;
     }
 

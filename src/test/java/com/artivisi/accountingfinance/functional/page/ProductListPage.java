@@ -58,12 +58,7 @@ public class ProductListPage {
      * Verify product exists by code using ID-based row locator.
      */
     public ProductListPage verifyProductExists(String productCode) {
-        String rowSelector = "#product-row-" + productCode;
-        int count = page.locator(rowSelector).count();
-        if (count == 0) {
-            // Fallback: check if product code text is visible in table
-            assertThat(page.locator(PRODUCT_TABLE + " td:has-text('" + productCode + "')").first()).isVisible();
-        }
+        assertThat(page.locator("[data-testid='product-row-" + productCode + "']")).isVisible();
         return this;
     }
 
@@ -74,7 +69,7 @@ public class ProductListPage {
     }
 
     public ProductListPage clickProduct(String productCode) {
-        page.locator(PRODUCT_TABLE + " tr:has-text('" + productCode + "')").first().click();
+        page.locator("[data-testid='product-row-" + productCode + "']").click();
         page.waitForLoadState();
         return this;
     }

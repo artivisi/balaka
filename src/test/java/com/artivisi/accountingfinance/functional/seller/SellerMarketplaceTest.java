@@ -45,9 +45,9 @@ public class SellerMarketplaceTest extends PlaywrightTestBase {
             .verifyPageTitle()
             .verifyTableVisible();
 
-        // Verify marketplace clients exist using table search
-        assertThat(page.locator("#client-table tr:has-text('Tokopedia')").first()).isVisible();
-        assertThat(page.locator("#client-table tr:has-text('Shopee')").first()).isVisible();
+        // Verify marketplace clients exist using data-testid
+        assertThat(page.locator("[data-testid='client-row-TOKPED']")).isVisible();
+        assertThat(page.locator("[data-testid='client-row-SHOPEE']")).isVisible();
     }
 
     @Test
@@ -60,9 +60,9 @@ public class SellerMarketplaceTest extends PlaywrightTestBase {
             .verifyPageTitle()
             .verifyTableVisible();
 
-        // Verify supplier clients exist using table search
-        assertThat(page.locator("#client-table tr:has-text('Erajaya')").first()).isVisible();
-        assertThat(page.locator("#client-table tr:has-text('Samsung')").first()).isVisible();
+        // Verify supplier clients exist using data-testid
+        assertThat(page.locator("[data-testid='client-row-ERAJAYA']")).isVisible();
+        assertThat(page.locator("[data-testid='client-row-SAMSUNG']")).isVisible();
     }
 
     @Test

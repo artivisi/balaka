@@ -175,9 +175,9 @@ public class SellerTransactionExecutionTest extends PlaywrightTestBase {
         // Verify product count (4 products from @BeforeAll)
         assertThat(page.locator("#product-table tbody tr")).hasCount(4);
 
-        // Verify specific products exist by code
-        assertThat(page.locator("#product-table tr:has-text('IP15PRO')").first()).isVisible();
-        assertThat(page.locator("#product-table tr:has-text('SGS24')").first()).isVisible();
+        // Verify specific products exist by code using data-testid
+        assertThat(page.locator("[data-testid='product-row-IP15PRO']")).isVisible();
+        assertThat(page.locator("[data-testid='product-row-SGS24']")).isVisible();
     }
 
     /**
@@ -302,13 +302,12 @@ public class SellerTransactionExecutionTest extends PlaywrightTestBase {
         // Verify page title using ID
         assertThat(page.locator("#page-title")).containsText("Stok");
 
-        // Verify product stock exists and quantity matches
-        // Look for product code in stock table
-        String stockRow = "#stock-table tr:has-text('" + expected.productCode() + "')";
-        assertThat(page.locator(stockRow).first()).isVisible();
+        // Verify product stock exists and quantity matches using data-testid
+        assertThat(page.locator("[data-testid='stock-row-" + expected.productCode() + "']")).isVisible();
 
         // Verify expected quantity
-        assertThat(page.locator(stockRow).first()).containsText(String.valueOf(expected.expectedQuantity().intValue()));
+        assertThat(page.locator("[data-testid='stock-quantity-" + expected.productCode() + "']"))
+            .containsText(String.valueOf(expected.expectedQuantity().intValue()));
     }
 
     /**

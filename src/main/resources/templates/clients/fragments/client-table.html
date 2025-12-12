@@ -14,12 +14,12 @@
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
-                <tr th:each="client : ${clients}" th:data-id="${client.id}" class="hover:bg-gray-50">
+                <tr th:each="client : ${clients}" th:data-id="${client.id}" th:data-testid="'client-row-' + ${client.code}" class="hover:bg-gray-50">
                     <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="text-sm font-mono text-gray-900" th:text="${client.code}">CLT-001</span>
+                        <span class="text-sm font-mono text-gray-900" th:text="${client.code}" th:data-testid="'client-code-' + ${client.code}">CLT-001</span>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
-                        <a th:href="@{/clients/{code}(code=${client.code})}" class="text-sm font-medium text-primary-600 hover:text-primary-900" th:text="${client.name}">PT ABC</a>
+                        <a th:href="@{/clients/{code}(code=${client.code})}" class="text-sm font-medium text-primary-600 hover:text-primary-900" th:text="${client.name}" th:data-testid="'client-name-' + ${client.code}">PT ABC</a>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
                         <span class="text-sm text-gray-600" th:text="${client.contactPerson} ?: '-'">John Doe</span>

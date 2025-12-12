@@ -49,12 +49,7 @@ public class InventoryStockPage {
      * Verify product stock exists by product code.
      */
     public InventoryStockPage verifyProductStockExists(String productCode) {
-        String rowSelector = "#stock-row-" + productCode;
-        int count = page.locator(rowSelector).count();
-        if (count == 0) {
-            // Fallback: check if product code text is visible in table
-            assertThat(page.locator(STOCK_TABLE + " td:has-text('" + productCode + "')").first()).isVisible();
-        }
+        assertThat(page.locator("[data-testid='stock-row-" + productCode + "']")).isVisible();
         return this;
     }
 
@@ -64,15 +59,7 @@ public class InventoryStockPage {
      * @param expectedQuantity expected quantity as string (e.g., "5")
      */
     public InventoryStockPage verifyStockQuantity(String productCode, String expectedQuantity) {
-        String quantitySelector = "#stock-qty-" + productCode;
-        int count = page.locator(quantitySelector).count();
-        if (count > 0) {
-            assertThat(page.locator(quantitySelector)).containsText(expectedQuantity);
-        } else {
-            // Fallback: find row and check quantity column
-            String row = STOCK_TABLE + " tr:has-text('" + productCode + "')";
-            assertThat(page.locator(row).first()).containsText(expectedQuantity);
-        }
+        assertThat(page.locator("[data-testid='stock-quantity-" + productCode + "']")).containsText(expectedQuantity);
         return this;
     }
 
