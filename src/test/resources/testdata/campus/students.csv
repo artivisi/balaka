@@ -1,0 +1,7 @@
+student_id,nim,name,program_code,semester,enrollment_year,email,phone,address,status,scholarship_type,scholarship_percentage
+STD-001,2201010001,Ahmad Fauzi,TI,3,2022,ahmad.fauzi@student.stmiktazkia.ac.id,081234567001,Jakarta Selatan,ACTIVE,NONE,0
+STD-002,2401010001,Siti Aminah,SI,1,2024,siti.aminah@student.stmiktazkia.ac.id,081234567002,Bogor,ACTIVE,NONE,0
+STD-003,2201020001,Budi Hartono,MI,5,2022,budi.hartono@student.stmiktazkia.ac.id,081234567003,Depok,ACTIVE,PRESTASI,50
+STD-004,2301010002,Dewi Lestari,TI,5,2023,dewi.lestari@student.stmiktazkia.ac.id,081234567004,Jakarta Pusat,ACTIVE,NONE,0
+STD-005,2301010003,Agus Wijaya,SI,3,2023,agus.wijaya@student.stmiktazkia.ac.id,081234567005,Tangerang,ACTIVE,TIDAK_MAMPU,75
+STD-006,2401020002,Rina Wulandari,MI,1,2024,rina.wulandari@student.stmiktazkia.ac.id,081234567006,Bekasi,ACTIVE,NONE,0

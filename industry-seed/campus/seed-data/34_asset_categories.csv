@@ -1,0 +1,6 @@
+code,name,description,depreciation_method,useful_life_months,depreciation_rate,asset_account_code,accumulated_depreciation_account_code,depreciation_expense_account_code,active
+GEDUNG,Gedung Kampus,Bangunan gedung kampus dengan masa manfaat 20 tahun,STRAIGHT_LINE,240,,1.2.02,1.2.03,5.2.20,true
+LAB,Peralatan Laboratorium,Alat-alat laboratorium komputer dan praktikum dengan masa manfaat 4 tahun,STRAIGHT_LINE,48,,1.2.05,1.2.06,5.2.20,true
+KOMPUTER,Komputer & IT,Komputer laptop printer dan perangkat IT dengan masa manfaat 4 tahun,STRAIGHT_LINE,48,,1.2.07,1.2.08,5.2.20,true
+KANTOR,Peralatan Kantor,Meja kursi lemari AC dan furnitur kantor dengan masa manfaat 8 tahun,STRAIGHT_LINE,96,,1.2.09,1.2.10,5.2.20,true
+KENDARAAN,Kendaraan,Mobil dan kendaraan dinas dengan masa manfaat 8 tahun,STRAIGHT_LINE,96,,1.2.11,1.2.12,5.2.20,true

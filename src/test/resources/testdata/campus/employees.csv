@@ -1,0 +1,7 @@
+employee_id,name,email,nik_ktp,npwp,ptkp_status,job_title,department,employment_type,hire_date,resign_date,bank_name,bank_account,bpjs_kesehatan_number,bpjs_ketenagakerjaan_number,employment_status,username
+EMP-D001,Dr. Siti Nurjanah M.Kom,siti.nurjanah@stmiktazkia.ac.id,3201012345670001,12.345.678.9-111.000,K_2,Dosen Tetap,Teknik Informatika,PERMANENT,2015-08-01,,BCA,1234567001,0001234560001,BPU1234560001,ACTIVE,
+EMP-D002,Agus Budiman S.Kom M.T,agus.budiman@stmiktazkia.ac.id,3201012345670002,12.345.678.9-112.000,K_1,Dosen Tetap,Sistem Informasi,PERMANENT,2017-02-01,,BCA,1234567002,0001234560002,BPU1234560002,ACTIVE,
+EMP-D003,Rina Wulandari S.Kom M.Kom,rina.wulandari@stmiktazkia.ac.id,3201012345670003,12.345.678.9-113.000,K_0,Dosen Tetap,Manajemen Informatika,PERMANENT,2018-09-01,,Mandiri,1234567003,0001234560003,BPU1234560003,ACTIVE,
+EMP-K001,Budi Hartono S.E,budi.hartono@stmiktazkia.ac.id,3201012345670004,12.345.678.9-114.000,K_2,Kepala Administrasi,Administrasi,PERMANENT,2016-03-01,,BCA,1234567004,0001234560004,BPU1234560004,ACTIVE,
+EMP-K002,Dewi Rahmawati S.E,dewi.rahmawati@stmiktazkia.ac.id,3201012345670005,12.345.678.9-115.000,TK_0,Staff Keuangan,Keuangan,PERMANENT,2019-06-01,,BCA,1234567005,0001234560005,BPU1234560005,ACTIVE,
+EMP-K003,Hadi Santoso,hadi.santoso@stmiktazkia.ac.id,3201012345670006,12.345.678.9-116.000,K_1,Staff Akademik,Akademik,PERMANENT,2020-01-15,,Mandiri,1234567006,0001234560006,BPU1234560006,ACTIVE,

@@ -1,0 +1,4 @@
+program_code,program_name,program_level,department,tuition_per_semester,enrollment_fee,active
+TI,Teknik Informatika,S1,Komputer,7500000,5000000,true
+SI,Sistem Informasi,S1,Komputer,7500000,5000000,true
+MI,Manajemen Informatika,D3,Komputer,6000000,4000000,true

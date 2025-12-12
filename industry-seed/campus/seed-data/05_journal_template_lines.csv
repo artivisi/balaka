@@ -1,0 +1,65 @@
+template_name,line_order,account_code,account_hint,position,formula,description
+Tagihan SPP Mahasiswa,1,1.1.10,,DEBIT,amount,Piutang SPP Mahasiswa
+Tagihan SPP Mahasiswa,2,4.1.01,,CREDIT,amount,Pendapatan SPP
+Pembayaran SPP,1,,BANK,DEBIT,amount,Penerimaan kas/bank
+Pembayaran SPP,2,1.1.10,,CREDIT,amount,Piutang SPP Mahasiswa
+Tagihan Uang Pangkal,1,1.1.11,,DEBIT,amount,Piutang Uang Pangkal
+Tagihan Uang Pangkal,2,4.1.02,,CREDIT,amount,Pendapatan Uang Pangkal
+Pembayaran Uang Pangkal,1,,BANK,DEBIT,amount,Penerimaan kas/bank
+Pembayaran Uang Pangkal,2,1.1.11,,CREDIT,amount,Piutang Uang Pangkal
+Tagihan Biaya Praktikum,1,1.1.12,,DEBIT,amount,Piutang Biaya Praktikum
+Tagihan Biaya Praktikum,2,4.1.03,,CREDIT,amount,Pendapatan Biaya Praktikum
+Pembayaran Biaya Praktikum,1,,BANK,DEBIT,amount,Penerimaan kas/bank
+Pembayaran Biaya Praktikum,2,1.1.12,,CREDIT,amount,Piutang Biaya Praktikum
+Tagihan Wisuda,1,1.1.13,,DEBIT,amount,Piutang Wisuda
+Tagihan Wisuda,2,4.1.04,,CREDIT,amount,Pendapatan Wisuda
+Pembayaran Wisuda,1,,BANK,DEBIT,amount,Penerimaan kas/bank
+Pembayaran Wisuda,2,1.1.13,,CREDIT,amount,Piutang Wisuda
+Beasiswa Prestasi,1,5.3.01,,DEBIT,amount,Beban Beasiswa Prestasi
+Beasiswa Prestasi,2,1.1.10,,CREDIT,amount,Mengurangi Piutang SPP
+Beasiswa Tidak Mampu,1,5.3.02,,DEBIT,amount,Beban Beasiswa Tidak Mampu
+Beasiswa Tidak Mampu,2,1.1.10,,CREDIT,amount,Mengurangi Piutang SPP
+Gaji Dosen Tetap,1,5.1.01,,DEBIT,amount,Beban Gaji Dosen Tetap
+Gaji Dosen Tetap,2,,BANK,CREDIT,amount,Pembayaran dari bank
+Honorarium Dosen Tidak Tetap,1,5.1.02,,DEBIT,amount,Beban Honorarium Dosen Tidak Tetap
+Honorarium Dosen Tidak Tetap,2,,BANK,CREDIT,amount,Pembayaran dari bank
+Gaji Karyawan,1,5.2.01,,DEBIT,amount,Beban Gaji Karyawan
+Gaji Karyawan,2,,BANK,CREDIT,amount,Pembayaran dari bank
+Bayar BPJS Dosen,1,5.1.04,,DEBIT,bpjsKesehatan,Beban BPJS Kesehatan Dosen
+Bayar BPJS Dosen,2,5.1.04,,DEBIT,bpjsTenagakerja,Beban BPJS Ketenagakerjaan Dosen
+Bayar BPJS Dosen,3,,BANK,CREDIT,bpjsKesehatan + bpjsTenagakerja,Pembayaran dari bank
+Bayar BPJS Karyawan,1,5.2.03,,DEBIT,bpjsKesehatan,Beban BPJS Kesehatan Karyawan
+Bayar BPJS Karyawan,2,5.2.03,,DEBIT,bpjsTenagakerja,Beban BPJS Ketenagakerjaan Karyawan
+Bayar BPJS Karyawan,3,,BANK,CREDIT,bpjsKesehatan + bpjsTenagakerja,Pembayaran dari bank
+Setor PPh 21,1,2.1.03,,DEBIT,amount,Hutang PPh 21
+Setor PPh 21,2,,BANK,CREDIT,amount,Pembayaran dari bank
+Terima Hibah,1,,BANK,DEBIT,amount,Penerimaan kas/bank
+Terima Hibah,2,4.2.01,,CREDIT,amount,Pendapatan Hibah
+Terima Donasi,1,,BANK,DEBIT,amount,Penerimaan kas/bank
+Terima Donasi,2,4.2.02,,CREDIT,amount,Pendapatan Donasi
+Bayar Listrik Kampus,1,5.2.11,,DEBIT,amount,Beban Listrik
+Bayar Listrik Kampus,2,,BANK,CREDIT,amount,Pembayaran dari bank
+Bayar Air Kampus,1,5.2.12,,DEBIT,amount,Beban Air
+Bayar Air Kampus,2,,BANK,CREDIT,amount,Pembayaran dari bank
+Bayar Internet & Telepon,1,5.2.13,,DEBIT,amount,Beban Telepon & Internet
+Bayar Internet & Telepon,2,,BANK,CREDIT,amount,Pembayaran dari bank
+Bayar ATK,1,5.2.10,,DEBIT,amount,Beban ATK
+Bayar ATK,2,,BANK,CREDIT,amount,Pembayaran dari bank
+Bayar Bahan Praktikum,1,5.1.10,,DEBIT,amount,Beban Bahan Praktikum
+Bayar Bahan Praktikum,2,,BANK,CREDIT,amount,Pembayaran dari bank
+Pemeliharaan Lab,1,5.1.11,,DEBIT,amount,Beban Pemeliharaan Lab
+Pemeliharaan Lab,2,,BANK,CREDIT,amount,Pembayaran dari bank
+Pemeliharaan Gedung,1,5.2.21,,DEBIT,amount,Beban Pemeliharaan Gedung
+Pemeliharaan Gedung,2,,BANK,CREDIT,amount,Pembayaran dari bank
+Pemeliharaan Kendaraan,1,5.2.22,,DEBIT,amount,Beban Pemeliharaan Kendaraan
+Pemeliharaan Kendaraan,2,,BANK,CREDIT,amount,Pembayaran dari bank
+Beban Keamanan,1,5.2.15,,DEBIT,amount,Beban Keamanan
+Beban Keamanan,2,,BANK,CREDIT,amount,Pembayaran dari bank
+Beban Kebersihan,1,5.2.14,,DEBIT,amount,Beban Kebersihan
+Beban Kebersihan,2,,BANK,CREDIT,amount,Pembayaran dari bank
+Transfer Antar Bank,1,,BANK,DEBIT,amount,Penerimaan di bank tujuan
+Transfer Antar Bank,2,,BANK,CREDIT,amount,Pengeluaran dari bank asal
+Setoran Modal Yayasan,1,,BANK,DEBIT,amount,Penerimaan kas/bank
+Setoran Modal Yayasan,2,3.1.01,,CREDIT,amount,Modal Yayasan
+Beban Admin Bank,1,5.4.01,,DEBIT,amount,Beban Admin Bank
+Beban Admin Bank,2,,BANK,CREDIT,amount,Potongan dari bank
