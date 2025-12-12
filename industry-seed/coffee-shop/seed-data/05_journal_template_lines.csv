@@ -1,0 +1,19 @@
+template_name,line_order,account_code,account_hint,position,formula,description
+Setoran Modal,1,1.1.01,,DEBIT,amount,Penerimaan kas
+Setoran Modal,2,3.1.01,,CREDIT,amount,Modal pemilik
+Pembelian Bahan Baku - Tunai,1,1.1.20,,DEBIT,amount,Persediaan bahan baku
+Pembelian Bahan Baku - Tunai,2,1.1.01,,CREDIT,amount,Pembayaran kas
+Pembelian Bahan Baku - Kredit,1,1.1.20,,DEBIT,amount,Persediaan bahan baku
+Pembelian Bahan Baku - Kredit,2,2.1.02,,CREDIT,amount,Hutang usaha
+Produksi Barang Jadi,1,1.1.21,,DEBIT,amount,Persediaan barang jadi
+Produksi Barang Jadi,2,1.1.20,,CREDIT,amount,Persediaan bahan baku
+Penjualan Tunai + COGS,1,1.1.01,,DEBIT,amount,Penerimaan kas penjualan
+Penjualan Tunai + COGS,2,4.1.01,,CREDIT,amount,Pendapatan penjualan
+Penjualan Tunai + COGS,3,5.1.01,,DEBIT,cogs,Harga Pokok Penjualan
+Penjualan Tunai + COGS,4,1.1.21,,CREDIT,cogs,Persediaan barang jadi
+Bayar Gaji,1,6.1.01,,DEBIT,amount,Beban gaji
+Bayar Gaji,2,1.1.01,,CREDIT,amount,Pembayaran kas
+Bayar Sewa,1,6.2.01,,DEBIT,amount,Beban sewa
+Bayar Sewa,2,1.1.01,,CREDIT,amount,Pembayaran kas
+Bayar Listrik,1,6.2.02,,DEBIT,amount,Beban listrik
+Bayar Listrik,2,1.1.01,,CREDIT,amount,Pembayaran kas

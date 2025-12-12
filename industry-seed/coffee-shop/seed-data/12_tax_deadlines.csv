@@ -1,0 +1,9 @@
+deadline_type,name,description,due_day,use_last_day_of_month,reminder_days_before,active
+PPH_21_PAYMENT,Setor PPh 21,Pembayaran PPh Pasal 21 atas gaji karyawan. Jatuh tempo tanggal 10 bulan berikutnya.,10,false,7,true
+PPH_23_PAYMENT,Setor PPh 23,Pembayaran PPh Pasal 23 atas jasa dividen bunga royalti. Jatuh tempo tanggal 10 bulan berikutnya.,10,false,7,true
+PPH_42_PAYMENT,Setor PPh 4(2),Pembayaran PPh Pasal 4 ayat 2 (final) atas sewa tanah/bangunan dll. Jatuh tempo tanggal 10 bulan berikutnya.,10,false,7,true
+PPH_25_PAYMENT,Setor PPh 25,Pembayaran angsuran PPh Pasal 25. Jatuh tempo tanggal 15 bulan berikutnya.,15,false,7,true
+PPN_PAYMENT,Setor PPN,Pembayaran PPN terutang. Jatuh tempo akhir bulan berikutnya.,31,true,7,true
+SPT_PPH_21,Lapor SPT PPh 21,Pelaporan SPT Masa PPh 21. Jatuh tempo tanggal 20 bulan berikutnya.,20,false,7,true
+SPT_PPH_23,Lapor SPT PPh 23,Pelaporan SPT Masa PPh 23 (e-Bupot Unifikasi). Jatuh tempo tanggal 20 bulan berikutnya.,20,false,7,true
+SPT_PPN,Lapor SPT PPN,Pelaporan SPT Masa PPN (e-Faktur). Jatuh tempo akhir bulan berikutnya.,31,true,7,true

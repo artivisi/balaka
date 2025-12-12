@@ -1,0 +1,4 @@
+employee_id,name,email,nik_ktp,npwp,ptkp_status,job_title,department,employment_type,hire_date,resign_date,bank_name,bank_account_number,bpjs_kesehatan_number,bpjs_ketenagakerjaan_number,employment_status,username
+EMP-001,Andi Barista,andi@kopinusantara.com,3174011234567801,,TK_0,Barista,Produksi,PERMANENT,2023-01-15,,BCA,1234567801,,,ACTIVE,
+EMP-002,Budi Baker,budi@kopinusantara.com,3174011234567802,,TK_0,Baker,Produksi,PERMANENT,2023-02-01,,BCA,1234567802,,,ACTIVE,
+EMP-003,Citra Kasir,citra@kopinusantara.com,3174011234567803,,TK_0,Kasir,Penjualan,PERMANENT,2023-03-01,,BCA,1234567803,,,ACTIVE,

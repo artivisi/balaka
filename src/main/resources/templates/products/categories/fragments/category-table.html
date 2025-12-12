@@ -14,12 +14,12 @@
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
-                <tr th:each="category : ${categories}" class="hover:bg-gray-50">
+                <tr th:each="category : ${categories}" class="hover:bg-gray-50" th:data-testid="'category-row-' + ${category.code}">
                     <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="text-sm font-medium text-gray-900" th:text="${category.code}">CAT001</span>
+                        <span class="text-sm font-medium text-gray-900" th:text="${category.code}" th:data-testid="'category-code-' + ${category.code}">CAT001</span>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="text-sm text-gray-900" th:text="${category.name}">Kategori</span>
+                        <span class="text-sm text-gray-900" th:text="${category.name}" th:data-testid="'category-name-' + ${category.code}">Kategori</span>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
                         <span class="text-sm text-gray-500" th:text="${category.parent?.name ?: '-'}">-</span>

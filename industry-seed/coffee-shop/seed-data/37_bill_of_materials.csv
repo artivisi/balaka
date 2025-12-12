@@ -1,0 +1,3 @@
+code,name,description,product_code,output_quantity,active
+BOM-CRS,BOM Croissant,Resep produksi croissant batch 24 pcs,CROISSANT,24,true
+BOM-RBC,BOM Roti Bakar Coklat,Resep produksi roti bakar coklat batch 20 pcs,ROTI-COKLAT,20,true

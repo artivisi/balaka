@@ -16,12 +16,12 @@
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
-                <tr th:each="product : ${products}" class="hover:bg-gray-50">
+                <tr th:each="product : ${products}" class="hover:bg-gray-50" th:data-testid="'product-row-' + ${product.code}">
                     <td class="px-6 py-4 whitespace-nowrap">
-                        <a th:href="@{/products/{id}(id=${product.id})}" class="text-sm font-medium text-primary-600 hover:text-primary-900" th:text="${product.code}">PRD001</a>
+                        <a th:href="@{/products/{id}(id=${product.id})}" class="text-sm font-medium text-primary-600 hover:text-primary-900" th:text="${product.code}" th:data-testid="'product-code-' + ${product.code}">PRD001</a>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="text-sm text-gray-900" th:text="${product.name}">Produk</span>
+                        <span class="text-sm text-gray-900" th:text="${product.name}" th:data-testid="'product-name-' + ${product.code}">Produk</span>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
                         <span class="text-sm text-gray-500" th:text="${product.category?.name ?: '-'}">-</span>

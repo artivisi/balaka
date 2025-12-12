@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
 import org.junit.jupiter.api.TestMethodOrder;
+import org.springframework.context.annotation.Import;
 
 import java.util.List;
 import java.util.stream.Stream;
@@ -23,15 +24,19 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * CSV-Driven Manufacturing Tests for Coffee Shop.
  *
  * This test suite:
- * 1. Reads production order scenarios from CSV file
- * 2. Verifies pre-loaded BOM and production data from V830/V831 migrations
- * 3. Takes screenshots for user manual
- * 4. Verifies inventory and costing reports
+ * 1. Loads coffee shop seed data via CoffeeTestDataInitializer
+ * 2. Reads production order scenarios from CSV file
+ * 3. Verifies pre-loaded BOM and production data
+ * 4. Takes screenshots for user manual
+ * 5. Verifies inventory and costing reports
  *
- * Data from: src/test/resources/testdata/coffee/
+ * Data from:
+ * - Seed: industry-seed/coffee-shop/seed-data/
+ * - Test: src/test/resources/testdata/coffee/
  */
 @DisplayName("Manufacturing - Production Execution")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+@Import(CoffeeTestDataInitializer.class)
 public class MfgTransactionExecutionTest extends PlaywrightTestBase {
 
     @Test
@@ -62,7 +67,7 @@ public class MfgTransactionExecutionTest extends PlaywrightTestBase {
      */
     @Test
     @Order(3)
-    @DisplayName("Verify BOMs from V830 exist")
+    @DisplayName("Verify BOMs from seed data exist")
     void verifyBomsFromMigration() {
         loginAsAdmin();
         navigateTo("/inventory/bom");
@@ -71,9 +76,9 @@ public class MfgTransactionExecutionTest extends PlaywrightTestBase {
         // Take screenshot for user manual
         takeManualScreenshot("coffee/bom-list");
 
-        // Verify BOMs from V830
-        assertThat(page.locator("text=Kopi Susu Gula Aren").first()).isVisible();
-        assertThat(page.locator("text=Croissant").first()).isVisible();
+        // Verify BOMs from coffee shop seed data using data-testid
+        assertThat(page.locator("[data-testid='bom-product-BOM-CRS']")).containsText("Croissant");
+        assertThat(page.locator("[data-testid='bom-product-BOM-RBC']")).containsText("Roti Bakar Coklat");
     }
 
     /**
@@ -97,9 +102,9 @@ public class MfgTransactionExecutionTest extends PlaywrightTestBase {
         navigateTo("/inventory/production");
         waitForPageLoad();
 
-        // Verify production order list shows orders from V831
+        // Verify production order list shows orders from V831 using data-testid
         String orderNumber = "PROD-00" + order.sequence();
-        assertThat(page.locator("text=" + orderNumber).or(page.locator("text=PROD-")).first()).isVisible();
+        assertThat(page.locator("[data-testid='production-order-row-" + orderNumber + "']")).isVisible();
 
         if (order.screenshot()) {
             takeManualScreenshot("coffee/production-" + order.bomCode().toLowerCase());
@@ -129,8 +134,8 @@ public class MfgTransactionExecutionTest extends PlaywrightTestBase {
         navigateTo("/inventory/stock");
         waitForPageLoad();
 
-        // Verify product is visible in stock list
-        assertThat(page.locator("text=" + expected.productName()).first()).isVisible();
+        // Verify product is visible in stock list using data-testid
+        assertThat(page.locator("[data-testid='stock-product-name-" + expected.productCode() + "']")).containsText(expected.productName());
     }
 
     /**

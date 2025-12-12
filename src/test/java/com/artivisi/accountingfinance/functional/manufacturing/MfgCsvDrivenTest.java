@@ -8,6 +8,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
+import org.springframework.context.annotation.Import;
 
 import java.util.List;
 import java.util.stream.Stream;
@@ -18,10 +19,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * CSV-Driven Manufacturing Tests
- * Loads test scenarios from CSV files and executes them as dynamic tests.
+ * Loads coffee shop seed data via CoffeeTestDataInitializer.
+ * Executes test scenarios from CSV files as dynamic tests.
  * Validates production orders and inventory levels against expected values.
  */
 @DisplayName("Manufacturing - CSV-Driven Tests")
+@Import(CoffeeTestDataInitializer.class)
 public class MfgCsvDrivenTest extends PlaywrightTestBase {
 
     @Test
@@ -62,15 +65,15 @@ public class MfgCsvDrivenTest extends PlaywrightTestBase {
         navigateTo("/inventory/production");
         waitForPageLoad();
 
-        // Find and click on the production order
+        // Find and click on the production order using data-testid
         String orderNumber = "PROD-00" + order.sequence();
-        page.locator("a:has-text('" + orderNumber + "')").first().click();
+        page.locator("[data-testid='order-detail-link-" + orderNumber + "']").click();
         waitForPageLoad();
 
-        // Verify order details match CSV
-        assertThat(page.locator("body")).containsText(order.bomCode().replace("BOM-", ""));
-        assertThat(page.locator("body")).containsText(String.valueOf(order.quantity()));
-        assertThat(page.locator("text=COMPLETED")).isVisible();
+        // Verify order details match CSV using data-testid
+        assertThat(page.locator("[data-testid='order-number']")).containsText(orderNumber);
+        assertThat(page.locator("[data-testid='order-quantity']")).containsText(String.valueOf(order.quantity()));
+        assertThat(page.locator("[data-testid='order-status-completed']")).isVisible();
 
         if (order.screenshot()) {
             takeManualScreenshot("coffee/production-" + order.bomCode().toLowerCase());
@@ -96,8 +99,8 @@ public class MfgCsvDrivenTest extends PlaywrightTestBase {
         navigateTo("/inventory/stock");
         waitForPageLoad();
 
-        // Verify product is visible in stock list
-        assertThat(page.locator("text=" + expected.productName())).isVisible();
+        // Verify product is visible in stock list using data-testid
+        assertThat(page.locator("[data-testid='stock-product-name-" + expected.productCode() + "']")).containsText(expected.productName());
     }
 
     @Test
@@ -108,10 +111,12 @@ public class MfgCsvDrivenTest extends PlaywrightTestBase {
         waitForPageLoad();
 
         // Croissant: 24 produced - 15 sold = 9 remaining
-        assertThat(page.locator("text=Croissant")).isVisible();
+        assertThat(page.locator("[data-testid='stock-product-name-CROISSANT']")).containsText("Croissant");
+        assertThat(page.locator("[data-testid='stock-quantity-CROISSANT']")).containsText("9");
 
         // Roti Bakar Coklat: 20 produced - 12 sold = 8 remaining
-        assertThat(page.locator("text=Roti Bakar Coklat")).isVisible();
+        assertThat(page.locator("[data-testid='stock-product-name-ROTI-COKLAT']")).containsText("Roti Bakar Coklat");
+        assertThat(page.locator("[data-testid='stock-quantity-ROTI-COKLAT']")).containsText("8");
     }
 
     @Test
@@ -121,7 +126,7 @@ public class MfgCsvDrivenTest extends PlaywrightTestBase {
         navigateTo("/inventory/transactions");
         waitForPageLoad();
 
-        // Verify PRODUCTION_OUT transactions exist for components
-        assertThat(page.locator("text=PRODUCTION_OUT").first()).isVisible();
+        // Verify PRODUCTION_OUT transactions exist for components using data-testid
+        assertThat(page.locator("[data-testid='transaction-type-PRODUCTION_OUT']").first()).isVisible();
     }
 }

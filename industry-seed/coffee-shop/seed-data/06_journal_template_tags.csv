@@ -1,0 +1,9 @@
+template_name,tag_name
+Setoran Modal,MODAL
+Pembelian Bahan Baku - Tunai,PEMBELIAN
+Pembelian Bahan Baku - Kredit,PEMBELIAN
+Produksi Barang Jadi,PRODUKSI
+Penjualan Tunai + COGS,PENJUALAN
+Bayar Gaji,GAJI
+Bayar Sewa,BEBAN
+Bayar Listrik,BEBAN

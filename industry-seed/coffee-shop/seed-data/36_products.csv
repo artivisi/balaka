@@ -1,0 +1,13 @@
+code,name,description,unit,category_code,costing_method,track_inventory,minimum_stock,selling_price,inventory_account_code,cogs_account_code,sales_account_code,active
+KOPI-ARABICA,Biji Kopi Arabica,Biji kopi arabica premium,kg,CAT-BAHAN-KOPI,WEIGHTED_AVERAGE,true,5,0,1.1.20,5.1.01,4.1.01,true
+SUSU-SEGAR,Susu Segar,Susu segar full cream,liter,CAT-BAHAN-KOPI,WEIGHTED_AVERAGE,true,10,0,1.1.20,5.1.01,4.1.01,true
+GULA-AREN,Gula Aren Cair,Gula aren cair premium,liter,CAT-BAHAN-KOPI,WEIGHTED_AVERAGE,true,5,0,1.1.20,5.1.01,4.1.01,true
+ES-BATU,Es Batu,Es batu balok,kg,CAT-BAHAN-KOPI,WEIGHTED_AVERAGE,true,20,0,1.1.20,5.1.01,4.1.01,true
+TEPUNG-TERIGU,Tepung Terigu,Tepung terigu protein tinggi,kg,CAT-BAHAN-ROTI,WEIGHTED_AVERAGE,true,10,0,1.1.20,5.2.01,4.1.02,true
+BUTTER,Butter,Butter unsalted premium,kg,CAT-BAHAN-ROTI,WEIGHTED_AVERAGE,true,5,0,1.1.20,5.2.01,4.1.02,true
+TELUR,Telur Ayam,Telur ayam segar,butir,CAT-BAHAN-ROTI,WEIGHTED_AVERAGE,true,100,0,1.1.20,5.2.01,4.1.02,true
+RAGI,Ragi Instan,Ragi instant untuk roti,gram,CAT-BAHAN-ROTI,WEIGHTED_AVERAGE,true,500,0,1.1.20,5.2.01,4.1.02,true
+GARAM,Garam,Garam halus,gram,CAT-BAHAN-ROTI,WEIGHTED_AVERAGE,true,1000,0,1.1.20,5.2.01,4.1.02,true
+COKLAT,Coklat Blok,Coklat blok dark chocolate,kg,CAT-BAHAN-ROTI,WEIGHTED_AVERAGE,true,3,0,1.1.20,5.2.01,4.1.02,true
+CROISSANT,Croissant,Croissant butter premium,pcs,CAT-ROTI,WEIGHTED_AVERAGE,true,0,25000,1.1.21,5.2.01,4.1.02,true
+ROTI-COKLAT,Roti Bakar Coklat,Roti bakar isi coklat,pcs,CAT-ROTI,WEIGHTED_AVERAGE,true,0,20000,1.1.21,5.2.02,4.1.02,true

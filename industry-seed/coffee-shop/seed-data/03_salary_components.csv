@@ -1,0 +1,18 @@
+code,name,description,component_type,is_percentage,default_rate,default_amount,is_system,display_order,active,is_taxable,bpjs_category
+GAPOK,Gaji Pokok,Gaji pokok bulanan karyawan,EARNING,false,,,true,10,true,true,
+TJ-TRANS,Tunjangan Transportasi,Tunjangan transportasi bulanan,EARNING,false,,500000,false,20,true,true,
+TJ-MAKAN,Tunjangan Makan,Tunjangan makan bulanan,EARNING,false,,500000,false,30,true,true,
+TJ-POSISI,Tunjangan Jabatan,Tunjangan berdasarkan posisi/jabatan,EARNING,false,,,false,40,true,true,
+LEMBUR,Uang Lembur,Pembayaran lembur sesuai perhitungan,EARNING,false,,,false,50,true,true,
+BONUS,Bonus,Bonus kinerja atau prestasi,EARNING,false,,,false,60,true,true,
+THR,Tunjangan Hari Raya,THR sesuai ketentuan pemerintah,EARNING,false,,,false,70,true,true,
+BPJS-KES-P,BPJS Kesehatan (Perusahaan),Iuran BPJS Kesehatan ditanggung perusahaan (4%),COMPANY_CONTRIBUTION,true,4.0,,true,110,true,false,KESEHATAN
+BPJS-JHT-P,BPJS JHT (Perusahaan),Iuran BPJS Jaminan Hari Tua ditanggung perusahaan (3.7%),COMPANY_CONTRIBUTION,true,3.7,,true,120,true,false,JHT
+BPJS-JKK,BPJS JKK,Iuran BPJS Jaminan Kecelakaan Kerja (0.24% - risk level I),COMPANY_CONTRIBUTION,true,0.24,,true,130,true,false,JKK
+BPJS-JKM,BPJS JKM,Iuran BPJS Jaminan Kematian (0.3%),COMPANY_CONTRIBUTION,true,0.3,,true,140,true,false,JKM
+BPJS-JP-P,BPJS JP (Perusahaan),Iuran BPJS Jaminan Pensiun ditanggung perusahaan (2%),COMPANY_CONTRIBUTION,true,2.0,,true,150,true,false,JP
+BPJS-KES-K,BPJS Kesehatan (Karyawan),Iuran BPJS Kesehatan ditanggung karyawan (1%),DEDUCTION,true,1.0,,true,210,true,false,KESEHATAN
+BPJS-JHT-K,BPJS JHT (Karyawan),Iuran BPJS Jaminan Hari Tua ditanggung karyawan (2%),DEDUCTION,true,2.0,,true,220,true,false,JHT
+BPJS-JP-K,BPJS JP (Karyawan),Iuran BPJS Jaminan Pensiun ditanggung karyawan (1%),DEDUCTION,true,1.0,,true,230,true,false,JP
+PPH21,PPh Pasal 21,Pajak Penghasilan Pasal 21,DEDUCTION,false,,,true,240,true,false,
+POT-LAIN,Potongan Lain-lain,Potongan lainnya (pinjaman dll),DEDUCTION,false,,,false,250,true,false,

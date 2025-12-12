@@ -31,7 +31,7 @@
                 <dl class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <dt class="text-sm font-medium text-gray-500">Kode BOM</dt>
-                        <dd class="mt-1 text-sm text-gray-900" th:text="${bom.code}">BOM-001</dd>
+                        <dd class="mt-1 text-sm text-gray-900" th:text="${bom.code}" data-testid="bom-code">BOM-001</dd>
                     </div>
                     <div>
                         <dt class="text-sm font-medium text-gray-500">Nama BOM</dt>
@@ -39,11 +39,11 @@
                     </div>
                     <div>
                         <dt class="text-sm font-medium text-gray-500">Produk Jadi</dt>
-                        <dd class="mt-1 text-sm text-gray-900" th:text="${bom.product.code + ' - ' + bom.product.name}">PRD-001 - Produk A</dd>
+                        <dd class="mt-1 text-sm text-gray-900" th:text="${bom.product.code + ' - ' + bom.product.name}" data-testid="bom-product">PRD-001 - Produk A</dd>
                     </div>
                     <div>
                         <dt class="text-sm font-medium text-gray-500">Jumlah Output</dt>
-                        <dd class="mt-1 text-sm text-gray-900" th:text="${#numbers.formatDecimal(bom.outputQuantity, 0, 'COMMA', 2, 'POINT')} + ' ' + ${bom.product.unit}">1 pcs</dd>
+                        <dd class="mt-1 text-sm text-gray-900" th:text="${#numbers.formatDecimal(bom.outputQuantity, 0, 'COMMA', 2, 'POINT')} + ' ' + ${bom.product.unit}" data-testid="bom-output-quantity">1 pcs</dd>
                     </div>
                     <div class="md:col-span-2" th:if="${bom.description}">
                         <dt class="text-sm font-medium text-gray-500">Deskripsi</dt>
@@ -68,10 +68,10 @@
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
-                            <tr th:each="line, stat : ${bom.lines}">
+                            <tr th:each="line, stat : ${bom.lines}" th:data-testid="'bom-component-row-' + ${line.component.code}">
                                 <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500" th:text="${stat.index + 1}">1</td>
                                 <td class="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900" th:text="${line.component.code}">CMP-001</td>
-                                <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900" th:text="${line.component.name}">Komponen A</td>
+                                <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900" th:text="${line.component.name}" th:data-testid="'component-name-' + ${line.component.code}">Komponen A</td>
                                 <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900 text-right" th:text="${#numbers.formatDecimal(line.quantity, 0, 'COMMA', 2, 'POINT')}">10</td>
                                 <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500" th:text="${line.component.unit}">pcs</td>
                                 <td class="px-4 py-2 text-sm text-gray-500" th:text="${line.notes ?: '-'}">-</td>

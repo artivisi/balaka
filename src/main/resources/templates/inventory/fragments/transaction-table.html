@@ -21,17 +21,17 @@
                     Tidak ada transaksi
                 </td>
             </tr>
-            <tr th:each="tx : ${transactions}" class="hover:bg-gray-50">
+            <tr th:each="tx : ${transactions}" class="hover:bg-gray-50" th:data-testid="'transaction-row-' + ${tx.id}">
                 <td class="px-6 py-4 whitespace-nowrap" th:text="${#temporals.format(tx.transactionDate, 'dd/MM/yyyy')}">01/01/2024</td>
                 <td class="px-6 py-4 whitespace-nowrap">
                     <span class="px-2 py-1 text-xs rounded-full"
                           th:classappend="${tx.inbound} ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'"
-                          th:text="${tx.transactionType.displayName}">Pembelian</span>
+                          th:text="${tx.transactionType.displayName}" th:data-testid="'transaction-type-' + ${tx.transactionType.name()}">Pembelian</span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                     <a th:href="@{/inventory/stock/{id}(id=${tx.product.id})}"
                        class="text-primary-600 hover:text-primary-800"
-                       th:text="${tx.product.code + ' - ' + tx.product.name}">PRD001 - Produk A</a>
+                       th:text="${tx.product.code + ' - ' + tx.product.name}" th:data-testid="'transaction-product-' + ${tx.product.code}">PRD001 - Produk A</a>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-right">
                     <span th:classappend="${tx.inbound} ? 'text-green-600' : 'text-red-600'"

@@ -21,16 +21,16 @@
                     Tidak ada data stok
                 </td>
             </tr>
-            <tr th:each="balance : ${balances}" class="hover:bg-gray-50">
+            <tr th:each="balance : ${balances}" class="hover:bg-gray-50" th:data-testid="'stock-row-' + ${balance.product.code}">
                 <td class="px-6 py-4 whitespace-nowrap">
                     <a th:href="@{/inventory/stock/{id}(id=${balance.product.id})}"
                        class="text-primary-600 hover:text-primary-800 font-medium"
-                       th:text="${balance.product.code}">PRD001</a>
+                       th:text="${balance.product.code}" th:data-testid="'stock-product-code-' + ${balance.product.code}">PRD001</a>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap" th:text="${balance.product.name}">Produk A</td>
+                <td class="px-6 py-4 whitespace-nowrap" th:text="${balance.product.name}" th:data-testid="'stock-product-name-' + ${balance.product.code}">Produk A</td>
                 <td class="px-6 py-4 whitespace-nowrap text-gray-500" th:text="${balance.product.category?.name ?: '-'}">Kategori</td>
                 <td class="px-6 py-4 whitespace-nowrap text-right">
-                    <span th:text="${#numbers.formatDecimal(balance.quantity, 0, 'COMMA', 2, 'POINT')}">100</span>
+                    <span th:text="${#numbers.formatDecimal(balance.quantity, 0, 'COMMA', 2, 'POINT')}" th:data-testid="'stock-quantity-' + ${balance.product.code}">100</span>
                     <span class="text-gray-500" th:text="${balance.product.unit}">pcs</span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-right" th:text="${#numbers.formatDecimal(balance.averageCost, 0, 'COMMA', 2, 'POINT')}">10,000</td>

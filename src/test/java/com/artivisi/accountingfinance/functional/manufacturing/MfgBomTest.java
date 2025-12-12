@@ -3,15 +3,17 @@ package com.artivisi.accountingfinance.functional.manufacturing;
 import com.artivisi.accountingfinance.ui.PlaywrightTestBase;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.annotation.Import;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 
 /**
  * Manufacturing BOM Tests
  * Tests Bill of Materials viewing and management.
- * Data from V830: BOM-KSGA (Kopi Susu Gula Aren), BOM-CRS (Croissant), etc.
+ * Loads coffee shop seed data via CoffeeTestDataInitializer.
  */
 @DisplayName("Manufacturing - Bill of Materials")
+@Import(CoffeeTestDataInitializer.class)
 public class MfgBomTest extends PlaywrightTestBase {
 
     @Test
@@ -23,19 +25,9 @@ public class MfgBomTest extends PlaywrightTestBase {
 
         // Verify BOM list page loads
         assertThat(page.locator("h1")).containsText("Bill of Materials");
-    }
 
-    @Test
-    @DisplayName("Should display drink BOMs")
-    void shouldDisplayDrinkBoms() {
-        loginAsAdmin();
-        navigateTo("/inventory/bom");
-        waitForPageLoad();
-
-        // Verify drink BOMs from V830
-        assertThat(page.locator("text=Kopi Susu Gula Aren")).isVisible();
-        assertThat(page.locator("text=Es Kopi Susu")).isVisible();
-        assertThat(page.locator("text=Americano")).isVisible();
+        // Take screenshot for user manual
+        takeManualScreenshot("coffee/bom-list");
     }
 
     @Test
@@ -45,26 +37,26 @@ public class MfgBomTest extends PlaywrightTestBase {
         navigateTo("/inventory/bom");
         waitForPageLoad();
 
-        // Verify pastry BOMs from V830
-        assertThat(page.locator("text=Croissant")).isVisible();
-        assertThat(page.locator("text=Roti Bakar Coklat")).isVisible();
+        // Verify pastry BOMs using data-testid
+        assertThat(page.locator("[data-testid='bom-product-BOM-CRS']")).containsText("Croissant");
+        assertThat(page.locator("[data-testid='bom-product-BOM-RBC']")).containsText("Roti Bakar Coklat");
     }
 
     @Test
-    @DisplayName("Should display BOM detail with components - Kopi Susu Gula Aren")
-    void shouldDisplayBomDetailKopiSusu() {
+    @DisplayName("Should display BOM detail with components - Roti Bakar Coklat")
+    void shouldDisplayBomDetailRotiCoklat() {
         loginAsAdmin();
         navigateTo("/inventory/bom");
         waitForPageLoad();
 
-        // Click on Kopi Susu Gula Aren BOM
-        page.locator("a:has-text('Kopi Susu Gula Aren')").first().click();
+        // Click on Roti Bakar Coklat BOM using data-testid
+        page.locator("[data-testid='bom-detail-link-BOM-RBC']").click();
         waitForPageLoad();
 
-        // Verify BOM detail page shows components
-        assertThat(page.locator("text=Biji Kopi Arabica")).isVisible();
-        assertThat(page.locator("text=Susu Segar")).isVisible();
-        assertThat(page.locator("text=Gula Aren")).isVisible();
+        // Verify BOM detail page shows components using data-testid
+        assertThat(page.locator("[data-testid='component-name-TEPUNG-TERIGU']")).isVisible();
+        assertThat(page.locator("[data-testid='component-name-BUTTER']")).isVisible();
+        assertThat(page.locator("[data-testid='component-name-COKLAT']")).isVisible();
     }
 
     @Test
@@ -74,14 +66,17 @@ public class MfgBomTest extends PlaywrightTestBase {
         navigateTo("/inventory/bom");
         waitForPageLoad();
 
-        // Click on Croissant BOM
-        page.locator("a:has-text('Croissant')").first().click();
+        // Click on Croissant BOM using data-testid
+        page.locator("[data-testid='bom-detail-link-BOM-CRS']").click();
         waitForPageLoad();
 
-        // Verify BOM detail page shows components
-        assertThat(page.locator("text=Tepung Terigu")).isVisible();
-        assertThat(page.locator("text=Butter")).isVisible();
-        assertThat(page.locator("text=Telur")).isVisible();
+        // Take screenshot for user manual
+        takeManualScreenshot("coffee/bom-detail-croissant");
+
+        // Verify BOM detail page shows components using data-testid
+        assertThat(page.locator("[data-testid='component-name-TEPUNG-TERIGU']")).isVisible();
+        assertThat(page.locator("[data-testid='component-name-BUTTER']")).isVisible();
+        assertThat(page.locator("[data-testid='component-name-TELUR']")).isVisible();
     }
 
     @Test
@@ -91,11 +86,11 @@ public class MfgBomTest extends PlaywrightTestBase {
         navigateTo("/inventory/bom");
         waitForPageLoad();
 
-        // Click on Croissant BOM (batch of 12)
-        page.locator("a:has-text('Croissant')").first().click();
+        // Click on Croissant BOM using data-testid
+        page.locator("[data-testid='bom-detail-link-BOM-CRS']").click();
         waitForPageLoad();
 
-        // Verify output quantity is shown (12 for croissant batch)
-        assertThat(page.locator("text=12")).isVisible();
+        // Verify output quantity is shown (24 for croissant batch) using data-testid
+        assertThat(page.locator("[data-testid='bom-output-quantity']")).containsText("24");
     }
 }

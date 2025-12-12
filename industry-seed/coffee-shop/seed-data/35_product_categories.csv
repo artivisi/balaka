@@ -1,0 +1,6 @@
+code,name,description,parent_code,active
+CAT-BAHAN-KOPI,Bahan Baku Kopi,Biji kopi susu gula dan bahan minuman,,true
+CAT-BAHAN-ROTI,Bahan Baku Roti,Tepung butter telur dan bahan kue,,true
+CAT-BARANG-JADI,Barang Jadi,Produk siap jual,,true
+CAT-MINUMAN,Minuman,Minuman kopi dan non-kopi,CAT-BARANG-JADI,true
+CAT-ROTI,Roti & Kue,Roti kue dan pastry,CAT-BARANG-JADI,true

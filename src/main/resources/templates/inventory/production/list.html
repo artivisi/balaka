@@ -53,19 +53,19 @@
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
-                            <tr th:each="order : ${orders}">
-                                <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900" th:text="${order.orderNumber}">PO-2025-0001</td>
+                            <tr th:each="order : ${orders}" th:data-testid="'production-order-row-' + ${order.orderNumber}">
+                                <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900" th:text="${order.orderNumber}" th:data-testid="'order-number-' + ${order.orderNumber}">PO-2025-0001</td>
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500" th:text="${#temporals.format(order.orderDate, 'dd MMM yyyy')}">01 Jan 2025</td>
                                 <td class="px-4 py-3 text-sm text-gray-900">
                                     <div th:text="${order.billOfMaterial.code}">BOM-001</div>
                                     <div class="text-xs text-gray-500" th:text="${order.billOfMaterial.product.name}">Produk A</div>
                                 </td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-right" th:text="${#numbers.formatDecimal(order.quantity, 0, 'COMMA', 2, 'POINT')} + ' ' + ${order.billOfMaterial.product.unit}">10 pcs</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-right" th:text="${#numbers.formatDecimal(order.quantity, 0, 'COMMA', 2, 'POINT')} + ' ' + ${order.billOfMaterial.product.unit}" th:data-testid="'order-quantity-' + ${order.orderNumber}">10 pcs</td>
                                 <td class="px-4 py-3 whitespace-nowrap text-center">
                                     <span th:switch="${order.status.name()}">
                                         <span th:case="'DRAFT'" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">Draft</span>
                                         <span th:case="'IN_PROGRESS'" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">Sedang Diproses</span>
-                                        <span th:case="'COMPLETED'" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Selesai</span>
+                                        <span th:case="'COMPLETED'" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800" th:data-testid="'order-status-' + ${order.orderNumber}">Selesai</span>
                                         <span th:case="'CANCELLED'" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Dibatalkan</span>
                                     </span>
                                 </td>
@@ -74,7 +74,7 @@
                                     <span th:unless="${order.status.name() == 'COMPLETED'}" class="text-gray-400">-</span>
                                 </td>
                                 <td class="px-4 py-3 whitespace-nowrap text-center text-sm">
-                                    <a th:href="@{/inventory/production/{id}(id=${order.id})}" class="text-primary-600 hover:text-primary-900">Detail</a>
+                                    <a th:href="@{/inventory/production/{id}(id=${order.id})}" th:data-testid="'order-detail-link-' + ${order.orderNumber}" class="text-primary-600 hover:text-primary-900">Detail</a>
                                 </td>
                             </tr>
                             <tr th:if="${#lists.isEmpty(orders)}">

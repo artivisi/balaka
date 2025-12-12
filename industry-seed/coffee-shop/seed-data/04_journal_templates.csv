@@ -1,0 +1,9 @@
+template_name,category,cash_flow_category,template_type,description,is_system,active,version,usage_count,last_used_at
+Setoran Modal,RECEIPT,FINANCING,SIMPLE,Setoran modal dari pemilik,false,true,1,0,
+Pembelian Bahan Baku - Tunai,EXPENSE,OPERATING,SIMPLE,Pembelian bahan baku dengan pembayaran tunai,false,true,1,0,
+Pembelian Bahan Baku - Kredit,EXPENSE,OPERATING,SIMPLE,Pembelian bahan baku dengan hutang ke supplier,false,true,1,0,
+Produksi Barang Jadi,TRANSFER,OPERATING,SIMPLE,Mencatat hasil produksi dari bahan baku ke barang jadi,false,true,1,0,
+Penjualan Tunai + COGS,INCOME,OPERATING,DETAILED,Penjualan tunai dengan perhitungan HPP otomatis,false,true,1,0,
+Bayar Gaji,EXPENSE,OPERATING,SIMPLE,Pembayaran gaji karyawan bulanan,false,true,1,0,
+Bayar Sewa,EXPENSE,OPERATING,SIMPLE,Pembayaran sewa tempat usaha,false,true,1,0,
+Bayar Listrik,EXPENSE,OPERATING,SIMPLE,Pembayaran listrik bulanan,false,true,1,0,

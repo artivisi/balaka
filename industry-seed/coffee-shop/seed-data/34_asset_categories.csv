@@ -1,0 +1,5 @@
+code,name,description,depreciation_method,useful_life_months,depreciation_rate,asset_account_code,accumulated_depreciation_account_code,depreciation_expense_account_code,active
+CAT-COFFEE,Peralatan Kopi,Mesin kopi dan peralatan brewing,STRAIGHT_LINE,60,,1.2.01,1.2.02,6.3.01,true
+CAT-BAKERY,Peralatan Bakery,Oven mixer dan peralatan roti,STRAIGHT_LINE,60,,1.2.03,1.2.04,6.3.01,true
+CAT-COMPUTER,Komputer & POS,Komputer dan sistem POS,STRAIGHT_LINE,48,,1.2.05,1.2.06,6.3.01,true
+CAT-FURNITURE,Furniture,Meja kursi dan perlengkapan toko,STRAIGHT_LINE,120,,1.2.07,1.2.08,6.3.02,true

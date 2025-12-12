@@ -1,0 +1,3 @@
+order_number,bom_code,quantity,order_date,planned_completion_date,actual_completion_date,status,total_cost,unit_cost,notes
+PROD-001,BOM-CRS,24,2024-01-08,2024-01-08,2024-01-08,COMPLETED,106920,4455,Produksi croissant batch pertama
+PROD-002,BOM-RBC,20,2024-01-08,2024-01-08,2024-01-08,COMPLETED,87760,4388,Produksi roti bakar coklat batch pertama

@@ -73,6 +73,14 @@ public class DataImportService {
     private final TransactionSequenceRepository transactionSequenceRepository;
     private final AssetCategoryRepository assetCategoryRepository;
 
+    // Manufacturing/Inventory repositories
+    private final ProductCategoryRepository productCategoryRepository;
+    private final ProductRepository productRepository;
+    private final BillOfMaterialRepository billOfMaterialRepository;
+    private final ProductionOrderRepository productionOrderRepository;
+    private final InventoryTransactionRepository inventoryTransactionRepository;
+    private final InventoryBalanceRepository inventoryBalanceRepository;
+
     private static final DateTimeFormatter DATETIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
@@ -89,6 +97,9 @@ public class DataImportService {
     private Map<String, AmortizationSchedule> amortizationScheduleMap;
     private Map<TaxDeadlineType, TaxDeadline> taxDeadlineMap;
     private Map<String, ProjectMilestone> milestoneMap;
+    private Map<String, ProductCategory> productCategoryMap;
+    private Map<String, Product> productMap;
+    private Map<String, BillOfMaterial> billOfMaterialMap;
 
     /**
      * Import data from a ZIP archive.
@@ -385,6 +396,13 @@ public class DataImportService {
                 case "32_audit_logs.csv" -> importAuditLogs(content);
                 case "33_transaction_sequences.csv" -> importTransactionSequences(content);
                 case "34_asset_categories.csv" -> importAssetCategories(content);
+                case "35_product_categories.csv" -> importProductCategories(content);
+                case "36_products.csv" -> importProducts(content);
+                case "37_bill_of_materials.csv" -> importBillOfMaterials(content);
+                case "38_bom_lines.csv" -> importBomLines(content);
+                case "39_production_orders.csv" -> importProductionOrders(content);
+                case "40_inventory_transactions.csv" -> importInventoryTransactions(content);
+                case "41_inventory_balances.csv" -> importInventoryBalances(content);
                 case "documents/index.csv" -> 0; // Handled separately
                 default -> {
                     if (!filename.equals("MANIFEST.md")) {
@@ -1453,6 +1471,305 @@ public class DataImportService {
             ac.setActive(parseBoolean(getField(row, 9)));
 
             assetCategoryRepository.save(ac);
+        }
+        return rows.size();
+    }
+
+    private int importProductCategories(String content) {
+        List<String[]> rows = parseCsv(content);
+        // CSV columns: code,name,description,parent_code,active
+        for (String[] row : rows) {
+            ProductCategory pc = new ProductCategory();
+            pc.setCode(getField(row, 0));
+            pc.setName(getField(row, 1));
+            pc.setDescription(getField(row, 2));
+
+            String parentCode = getField(row, 3);
+            if (!parentCode.isEmpty() && productCategoryMap != null) {
+                pc.setParent(productCategoryMap.get(parentCode));
+            }
+
+            pc.setActive(parseBoolean(getField(row, 4)));
+
+            ProductCategory saved = productCategoryRepository.save(pc);
+
+            // Build map for parent references
+            if (productCategoryMap == null) {
+                productCategoryMap = new HashMap<>();
+            }
+            productCategoryMap.put(saved.getCode(), saved);
+        }
+        return rows.size();
+    }
+
+    private int importProducts(String content) {
+        List<String[]> rows = parseCsv(content);
+        // CSV columns: code,name,description,unit,category_code,costing_method,track_inventory,minimum_stock,
+        //              selling_price,inventory_account_code,cogs_account_code,sales_account_code,active
+        for (String[] row : rows) {
+            Product p = new Product();
+            p.setCode(getField(row, 0));
+            p.setName(getField(row, 1));
+            p.setDescription(getField(row, 2));
+            p.setUnit(getField(row, 3));
+
+            String categoryCode = getField(row, 4);
+            if (!categoryCode.isEmpty() && productCategoryMap != null) {
+                p.setCategory(productCategoryMap.get(categoryCode));
+            }
+
+            String costingMethod = getField(row, 5);
+            if (!costingMethod.isEmpty()) {
+                p.setCostingMethod(CostingMethod.valueOf(costingMethod));
+            }
+
+            p.setTrackInventory(parseBoolean(getField(row, 6)));
+
+            String minStock = getField(row, 7);
+            if (!minStock.isEmpty()) {
+                p.setMinimumStock(new BigDecimal(minStock));
+            }
+
+            String sellingPrice = getField(row, 8);
+            if (!sellingPrice.isEmpty()) {
+                p.setSellingPrice(new BigDecimal(sellingPrice));
+            }
+
+            String invAcctCode = getField(row, 9);
+            if (!invAcctCode.isEmpty()) {
+                p.setInventoryAccount(accountMap.get(invAcctCode));
+            }
+
+            String cogsAcctCode = getField(row, 10);
+            if (!cogsAcctCode.isEmpty()) {
+                p.setCogsAccount(accountMap.get(cogsAcctCode));
+            }
+
+            String salesAcctCode = getField(row, 11);
+            if (!salesAcctCode.isEmpty()) {
+                p.setSalesAccount(accountMap.get(salesAcctCode));
+            }
+
+            p.setActive(parseBoolean(getField(row, 12)));
+
+            Product saved = productRepository.save(p);
+
+            // Build map for BOM references
+            if (productMap == null) {
+                productMap = new HashMap<>();
+            }
+            productMap.put(saved.getCode(), saved);
+        }
+        return rows.size();
+    }
+
+    private int importBillOfMaterials(String content) {
+        List<String[]> rows = parseCsv(content);
+        // CSV columns: code,name,description,product_code,output_quantity,active
+        for (String[] row : rows) {
+            BillOfMaterial bom = new BillOfMaterial();
+            bom.setCode(getField(row, 0));
+            bom.setName(getField(row, 1));
+            bom.setDescription(getField(row, 2));
+
+            String productCode = getField(row, 3);
+            if (!productCode.isEmpty() && productMap != null) {
+                bom.setProduct(productMap.get(productCode));
+            }
+
+            String outputQty = getField(row, 4);
+            if (!outputQty.isEmpty()) {
+                bom.setOutputQuantity(new BigDecimal(outputQty));
+            }
+
+            bom.setActive(parseBoolean(getField(row, 5)));
+
+            BillOfMaterial saved = billOfMaterialRepository.save(bom);
+
+            // Build map for production order references
+            if (billOfMaterialMap == null) {
+                billOfMaterialMap = new HashMap<>();
+            }
+            billOfMaterialMap.put(saved.getCode(), saved);
+        }
+        return rows.size();
+    }
+
+    private int importBomLines(String content) {
+        List<String[]> rows = parseCsv(content);
+        // CSV columns: bom_code,component_product_code,quantity,line_order
+        for (String[] row : rows) {
+            String bomCode = getField(row, 0);
+            BillOfMaterial bom = billOfMaterialMap != null ? billOfMaterialMap.get(bomCode) : null;
+
+            if (bom != null) {
+                BillOfMaterialLine line = new BillOfMaterialLine();
+                line.setBillOfMaterial(bom);
+
+                String componentCode = getField(row, 1);
+                if (!componentCode.isEmpty() && productMap != null) {
+                    line.setComponent(productMap.get(componentCode));
+                }
+
+                String qty = getField(row, 2);
+                if (!qty.isEmpty()) {
+                    line.setQuantity(new BigDecimal(qty));
+                }
+
+                String lineOrder = getField(row, 3);
+                if (!lineOrder.isEmpty()) {
+                    line.setLineOrder(parseInteger(lineOrder));
+                }
+
+                bom.addLine(line);
+            }
+        }
+        // Lines are saved via cascade from BOM
+        return rows.size();
+    }
+
+    private int importProductionOrders(String content) {
+        List<String[]> rows = parseCsv(content);
+        // CSV columns: order_number,bom_code,quantity,order_date,planned_completion_date,actual_completion_date,
+        //              status,total_cost,unit_cost,notes
+        for (String[] row : rows) {
+            ProductionOrder po = new ProductionOrder();
+            po.setOrderNumber(getField(row, 0));
+
+            String bomCode = getField(row, 1);
+            if (!bomCode.isEmpty() && billOfMaterialMap != null) {
+                po.setBillOfMaterial(billOfMaterialMap.get(bomCode));
+            }
+
+            String qty = getField(row, 2);
+            if (!qty.isEmpty()) {
+                po.setQuantity(new BigDecimal(qty));
+            }
+
+            String orderDate = getField(row, 3);
+            if (!orderDate.isEmpty()) {
+                po.setOrderDate(LocalDate.parse(orderDate, DATE_FORMATTER));
+            }
+
+            String plannedDate = getField(row, 4);
+            if (!plannedDate.isEmpty()) {
+                po.setPlannedCompletionDate(LocalDate.parse(plannedDate, DATE_FORMATTER));
+            }
+
+            String actualDate = getField(row, 5);
+            if (!actualDate.isEmpty()) {
+                po.setActualCompletionDate(LocalDate.parse(actualDate, DATE_FORMATTER));
+            }
+
+            String status = getField(row, 6);
+            if (!status.isEmpty()) {
+                po.setStatus(ProductionOrderStatus.valueOf(status));
+            }
+
+            String totalCost = getField(row, 7);
+            if (!totalCost.isEmpty()) {
+                po.setTotalComponentCost(new BigDecimal(totalCost));
+            }
+
+            String unitCost = getField(row, 8);
+            if (!unitCost.isEmpty()) {
+                po.setUnitCost(new BigDecimal(unitCost));
+            }
+
+            po.setNotes(getField(row, 9));
+
+            productionOrderRepository.save(po);
+        }
+        return rows.size();
+    }
+
+    private int importInventoryTransactions(String content) {
+        List<String[]> rows = parseCsv(content);
+        // CSV columns: product_code,transaction_date,transaction_type,quantity,unit_cost,total_cost,
+        //              balance_after,total_cost_after,unit_price,reference_number,notes
+        for (String[] row : rows) {
+            InventoryTransaction it = new InventoryTransaction();
+
+            String productCode = getField(row, 0);
+            if (!productCode.isEmpty() && productMap != null) {
+                it.setProduct(productMap.get(productCode));
+            }
+
+            String txDate = getField(row, 1);
+            if (!txDate.isEmpty()) {
+                it.setTransactionDate(LocalDate.parse(txDate, DATE_FORMATTER));
+            }
+
+            String txType = getField(row, 2);
+            if (!txType.isEmpty()) {
+                it.setTransactionType(InventoryTransactionType.valueOf(txType));
+            }
+
+            String qty = getField(row, 3);
+            if (!qty.isEmpty()) {
+                it.setQuantity(new BigDecimal(qty));
+            }
+
+            String unitCost = getField(row, 4);
+            if (!unitCost.isEmpty()) {
+                it.setUnitCost(new BigDecimal(unitCost));
+            }
+
+            String totalCost = getField(row, 5);
+            if (!totalCost.isEmpty()) {
+                it.setTotalCost(new BigDecimal(totalCost));
+            }
+
+            String balAfter = getField(row, 6);
+            if (!balAfter.isEmpty()) {
+                it.setBalanceAfter(new BigDecimal(balAfter));
+            }
+
+            String costAfter = getField(row, 7);
+            if (!costAfter.isEmpty()) {
+                it.setTotalCostAfter(new BigDecimal(costAfter));
+            }
+
+            String unitPrice = getField(row, 8);
+            if (!unitPrice.isEmpty()) {
+                it.setUnitPrice(new BigDecimal(unitPrice));
+            }
+
+            it.setReferenceNumber(getField(row, 9));
+            it.setNotes(getField(row, 10));
+
+            inventoryTransactionRepository.save(it);
+        }
+        return rows.size();
+    }
+
+    private int importInventoryBalances(String content) {
+        List<String[]> rows = parseCsv(content);
+        // CSV columns: product_code,quantity,total_cost,average_cost
+        for (String[] row : rows) {
+            InventoryBalance ib = new InventoryBalance();
+
+            String productCode = getField(row, 0);
+            if (!productCode.isEmpty() && productMap != null) {
+                ib.setProduct(productMap.get(productCode));
+            }
+
+            String qty = getField(row, 1);
+            if (!qty.isEmpty()) {
+                ib.setQuantity(new BigDecimal(qty));
+            }
+
+            String totalCost = getField(row, 2);
+            if (!totalCost.isEmpty()) {
+                ib.setTotalCost(new BigDecimal(totalCost));
+            }
+
+            String avgCost = getField(row, 3);
+            if (!avgCost.isEmpty()) {
+                ib.setAverageCost(new BigDecimal(avgCost));
+            }
+
+            inventoryBalanceRepository.save(ib);
         }
         return rows.size();
     }

@@ -50,17 +50,17 @@
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
-                            <tr th:each="bom : ${boms}">
-                                <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900" th:text="${bom.code}">BOM-001</td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900" th:text="${bom.name}">Resep Produk A</td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500" th:text="${bom.product.name}">Produk A</td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-right" th:text="${#numbers.formatDecimal(bom.outputQuantity, 0, 'COMMA', 2, 'POINT')} + ' ' + ${bom.product.unit}">1 pcs</td>
+                            <tr th:each="bom : ${boms}" th:data-testid="'bom-row-' + ${bom.code}">
+                                <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900" th:text="${bom.code}" th:data-testid="'bom-code-' + ${bom.code}">BOM-001</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900" th:text="${bom.name}" th:data-testid="'bom-name-' + ${bom.code}">Resep Produk A</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500" th:text="${bom.product.name}" th:data-testid="'bom-product-' + ${bom.code}">Produk A</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-right" th:text="${#numbers.formatDecimal(bom.outputQuantity, 0, 'COMMA', 2, 'POINT')} + ' ' + ${bom.product.unit}" th:data-testid="'bom-output-' + ${bom.code}">1 pcs</td>
                                 <td class="px-4 py-3 whitespace-nowrap text-center">
                                     <span th:if="${bom.active}" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Aktif</span>
                                     <span th:unless="${bom.active}" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">Nonaktif</span>
                                 </td>
                                 <td class="px-4 py-3 whitespace-nowrap text-center text-sm">
-                                    <a th:href="@{/inventory/bom/{id}(id=${bom.id})}" class="text-primary-600 hover:text-primary-900 mr-3">Detail</a>
+                                    <a th:href="@{/inventory/bom/{id}(id=${bom.id})}" th:data-testid="'bom-detail-link-' + ${bom.code}" class="text-primary-600 hover:text-primary-900 mr-3">Detail</a>
                                     <a th:if="${bom.active}" th:href="@{/inventory/bom/{id}/edit(id=${bom.id})}" class="text-yellow-600 hover:text-yellow-900">Edit</a>
                                 </td>
                             </tr>

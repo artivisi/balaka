@@ -3,15 +3,17 @@ package com.artivisi.accountingfinance.functional.manufacturing;
 import com.artivisi.accountingfinance.ui.PlaywrightTestBase;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.annotation.Import;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 
 /**
  * Manufacturing Materials Tests
  * Tests raw material management for coffee shop.
- * Data from V830: Biji Kopi Arabica, Susu Segar, Gula Aren, Tepung, Butter, etc.
+ * Loads coffee shop seed data via CoffeeTestDataInitializer.
  */
 @DisplayName("Manufacturing - Raw Materials")
+@Import(CoffeeTestDataInitializer.class)
 public class MfgMaterialsTest extends PlaywrightTestBase {
 
     @Test
@@ -24,9 +26,12 @@ public class MfgMaterialsTest extends PlaywrightTestBase {
         // Verify products page loads
         assertThat(page.locator("h1")).containsText("Produk");
 
-        // Verify coffee raw materials from V830
-        assertThat(page.locator("text=Biji Kopi Arabica")).isVisible();
-        assertThat(page.locator("text=Susu Segar")).isVisible();
+        // Take screenshot for user manual
+        takeManualScreenshot("coffee/product-list");
+
+        // Verify coffee raw materials using data-testid
+        assertThat(page.locator("[data-testid='product-name-KOPI-ARABICA']")).containsText("Biji Kopi Arabica");
+        assertThat(page.locator("[data-testid='product-name-SUSU-SEGAR']")).containsText("Susu Segar");
     }
 
     @Test
@@ -39,22 +44,28 @@ public class MfgMaterialsTest extends PlaywrightTestBase {
         // Verify categories page loads
         assertThat(page.locator("h1")).containsText("Kategori");
 
-        // Verify coffee shop categories from V830
-        assertThat(page.locator("text=Bahan Baku Kopi")).isVisible();
-        assertThat(page.locator("text=Bahan Baku Roti")).isVisible();
+        // Take screenshot for user manual
+        takeManualScreenshot("coffee/product-category-list");
+
+        // Verify coffee shop categories using data-testid
+        assertThat(page.locator("[data-testid='category-name-CAT-BAHAN-KOPI']")).containsText("Bahan Baku Kopi");
+        assertThat(page.locator("[data-testid='category-name-CAT-BAHAN-ROTI']")).containsText("Bahan Baku Roti");
     }
 
     @Test
-    @DisplayName("Should display finished goods - drinks")
-    void shouldDisplayFinishedGoodsDrinks() {
+    @DisplayName("Should display all coffee shop raw materials")
+    void shouldDisplayAllRawMaterials() {
         loginAsAdmin();
         navigateTo("/products");
         waitForPageLoad();
 
-        // Verify finished goods drinks from V830
-        assertThat(page.locator("text=Kopi Susu Gula Aren")).isVisible();
-        assertThat(page.locator("text=Es Kopi Susu")).isVisible();
-        assertThat(page.locator("text=Americano")).isVisible();
+        // Verify all raw material categories are visible
+        // Coffee raw materials
+        assertThat(page.locator("[data-testid='product-name-KOPI-ARABICA']")).containsText("Biji Kopi Arabica");
+        assertThat(page.locator("[data-testid='product-name-SUSU-SEGAR']")).containsText("Susu Segar");
+        // Pastry raw materials
+        assertThat(page.locator("[data-testid='product-name-TEPUNG-TERIGU']")).containsText("Tepung Terigu");
+        assertThat(page.locator("[data-testid='product-name-BUTTER']")).containsText("Butter");
     }
 
     @Test
@@ -64,9 +75,9 @@ public class MfgMaterialsTest extends PlaywrightTestBase {
         navigateTo("/products");
         waitForPageLoad();
 
-        // Verify finished goods pastries from V830
-        assertThat(page.locator("text=Croissant")).isVisible();
-        assertThat(page.locator("text=Roti Bakar Coklat")).isVisible();
+        // Verify finished goods pastries using data-testid
+        assertThat(page.locator("[data-testid='product-name-CROISSANT']")).containsText("Croissant");
+        assertThat(page.locator("[data-testid='product-name-ROTI-COKLAT']")).containsText("Roti Bakar Coklat");
     }
 
     @Test
@@ -79,8 +90,10 @@ public class MfgMaterialsTest extends PlaywrightTestBase {
         // Verify stock page loads
         assertThat(page.locator("h1")).containsText("Stok Barang");
 
-        // Verify raw materials have stock from V831 purchases
-        // Kopi Arabica: purchased 10kg, used some for production
-        assertThat(page.locator("text=Biji Kopi Arabica")).isVisible();
+        // Take screenshot for user manual
+        takeManualScreenshot("coffee/inventory-stock-list");
+
+        // Verify raw materials have stock from purchases using data-testid
+        assertThat(page.locator("[data-testid='stock-product-name-KOPI-ARABICA']")).containsText("Biji Kopi Arabica");
     }
 }

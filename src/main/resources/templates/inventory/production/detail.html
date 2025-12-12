@@ -26,14 +26,14 @@
                     <span th:switch="${order.status.name()}">
                         <span th:case="'DRAFT'" class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">Draft</span>
                         <span th:case="'IN_PROGRESS'" class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">Sedang Diproses</span>
-                        <span th:case="'COMPLETED'" class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">Selesai</span>
+                        <span th:case="'COMPLETED'" class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800" data-testid="order-status-completed">Selesai</span>
                         <span th:case="'CANCELLED'" class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">Dibatalkan</span>
                     </span>
                 </div>
                 <dl class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <dt class="text-sm font-medium text-gray-500">No. Order</dt>
-                        <dd class="mt-1 text-sm text-gray-900" th:text="${order.orderNumber}">PO-2025-0001</dd>
+                        <dd class="mt-1 text-sm text-gray-900" th:text="${order.orderNumber}" data-testid="order-number">PO-2025-0001</dd>
                     </div>
                     <div>
                         <dt class="text-sm font-medium text-gray-500">Tanggal Order</dt>
@@ -45,7 +45,7 @@
                     </div>
                     <div>
                         <dt class="text-sm font-medium text-gray-500">Produk Jadi</dt>
-                        <dd class="mt-1 text-sm text-gray-900" th:text="${order.billOfMaterial.product.code + ' - ' + order.billOfMaterial.product.name}">Produk A</dd>
+                        <dd class="mt-1 text-sm text-gray-900" th:text="${order.billOfMaterial.product.code + ' - ' + order.billOfMaterial.product.name}" data-testid="product-name">Produk A</dd>
                     </div>
                     <div>
                         <dt class="text-sm font-medium text-gray-500">Jumlah Produksi</dt>
@@ -72,15 +72,15 @@
                 <dl class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div class="bg-gray-50 rounded-lg p-4">
                         <dt class="text-sm font-medium text-gray-500">Total Biaya Komponen</dt>
-                        <dd class="mt-1 text-2xl font-semibold text-gray-900" th:text="'Rp ' + ${#numbers.formatDecimal(order.totalComponentCost, 0, 'COMMA', 0, 'POINT')}">Rp 1.000.000</dd>
+                        <dd class="mt-1 text-2xl font-semibold text-gray-900" th:text="'Rp ' + ${#numbers.formatDecimal(order.totalComponentCost, 0, 'COMMA', 0, 'POINT')}" data-testid="order-total-cost">Rp 1.000.000</dd>
                     </div>
                     <div class="bg-gray-50 rounded-lg p-4">
                         <dt class="text-sm font-medium text-gray-500">Jumlah Produksi</dt>
-                        <dd class="mt-1 text-2xl font-semibold text-gray-900" th:text="${#numbers.formatDecimal(order.quantity, 0, 'COMMA', 2, 'POINT')} + ' ' + ${order.billOfMaterial.product.unit}">10 pcs</dd>
+                        <dd class="mt-1 text-2xl font-semibold text-gray-900" th:text="${#numbers.formatDecimal(order.quantity, 0, 'COMMA', 2, 'POINT')} + ' ' + ${order.billOfMaterial.product.unit}" data-testid="order-quantity">10 pcs</dd>
                     </div>
                     <div class="bg-primary-50 rounded-lg p-4">
                         <dt class="text-sm font-medium text-primary-700">Harga Pokok per Unit</dt>
-                        <dd class="mt-1 text-2xl font-semibold text-primary-900" th:text="'Rp ' + ${#numbers.formatDecimal(order.unitCost, 0, 'COMMA', 2, 'POINT')}">Rp 100.000</dd>
+                        <dd class="mt-1 text-2xl font-semibold text-primary-900" th:text="'Rp ' + ${#numbers.formatDecimal(order.unitCost, 0, 'COMMA', 2, 'POINT')}" data-testid="order-unit-cost">Rp 100.000</dd>
                     </div>
                 </dl>
             </div>
