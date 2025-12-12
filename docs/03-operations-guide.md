@@ -194,25 +194,21 @@ git push origin 2025.12-RELEASE
 # Check: https://github.com/<username>/<repo>/releases
 ```
 
-#### 7. Create GitHub Release (Optional)
+**Note:** GitHub Actions will automatically create the release when the tag is pushed.
 
-Using GitHub CLI:
+The `.github/workflows/release.yml` workflow will:
+1. Trigger on any `*-RELEASE` tag
+2. Build the JAR (`./mvnw package -DskipTests`)
+3. Read release notes from `docs/releases/<TAG>.md`
+4. Create GitHub Release with the JAR attached
+
+Wait ~2 minutes for the workflow to complete, then verify at:
 ```bash
-gh release create 2025.12-RELEASE \
-  --title "Release 2025.12" \
-  --notes-file docs/releases/2025.12-RELEASE.md \
-  target/accounting-finance-2025.12-RELEASE.jar
+gh run list --workflow=release.yml --limit 1
+gh release view 2025.12-RELEASE
 ```
 
-Or manually via GitHub web UI:
-1. Go to repository → Releases → Draft a new release
-2. Choose tag: `2025.12-RELEASE`
-3. Release title: `Release 2025.12`
-4. Copy-paste from `docs/releases/2025.12-RELEASE.md`
-5. Attach JAR file from `target/`
-6. Publish release
-
-#### 8. Prepare Next Development Iteration
+#### 7. Prepare Next Development Iteration
 
 ```bash
 # Update pom.xml to next SNAPSHOT version
@@ -237,7 +233,7 @@ Use this checklist for each release:
 - [ ] Release files committed
 - [ ] Git tag created
 - [ ] Changes pushed to GitHub
-- [ ] GitHub Release created (optional)
+- [ ] GitHub Actions workflow completed (auto-creates release)
 - [ ] Next SNAPSHOT version prepared
 
 ### GitHub Actions (Optional)
