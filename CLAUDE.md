@@ -60,14 +60,17 @@ Indonesian accounting application for small businesses. Spring Boot 4.0 + Thymel
 ## Running the App
 
 ```bash
+# First-time setup on Ubuntu (install Playwright browsers)
+./setup-ubuntu.sh
+
 # Run tests
 ./mvnw test
 
 # Run specific functional test
-./mvnw test -Dtest=ChartOfAccountSeedDataTest
+./mvnw test -Dtest=MfgBomTest
 
 # Run with visible browser (debugging)
-./mvnw test -Dtest=ChartOfAccountSeedDataTest -Dplaywright.headless=false -Dplaywright.slowmo=100
+./mvnw test -Dtest=MfgBomTest -Dplaywright.headless=false -Dplaywright.slowmo=100
 ```
 
 ## Database
