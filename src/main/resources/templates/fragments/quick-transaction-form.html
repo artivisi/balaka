@@ -20,30 +20,29 @@
 
         <!-- Form -->
         <form data-testid="quick-transaction-form"
-              hx-post="/transactions/api"
-              hx-on::after-success="document.dispatchEvent(new CustomEvent('transactionsUpdated')); htmx.find('#quick-transaction-modal').close();"
-              hx-indicator="#quick-save-indicator">
+              @submit.prevent="submitQuickTransaction"
+              x-data="quickTransactionForm()">
 
             <!-- Hidden fields -->
-            <input type="hidden" name="templateId" th:value="${selectedTemplate.id}">
+            <input type="hidden" name="templateId" th:value="${selectedTemplate.id}" id="quick-template-id">
 
             <!-- Amount -->
             <div class="mb-4">
-                <label for="quick-amount" class="block text-sm font-medium text-gray-700 mb-1">
+                <label for="quick-amount-display" class="block text-sm font-medium text-gray-700 mb-1">
                     Jumlah <span class="text-red-500">*</span>
                 </label>
                 <div class="relative">
                     <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">Rp</span>
                     <input type="text"
-                           id="quick-amount"
+                           id="quick-amount-display"
                            data-testid="quick-amount"
-                           name="amount"
                            inputmode="numeric"
-                           @input="$el.value = $el.value.replace(/[^\d]/g, '').replace(/\B(?=(\d{3})+(?!\d))/g, '.'); $dispatch('amount-changed')"
+                           @input="amount = $event.target.value.replace(/[^\d]/g, ''); $event.target.value = formatAmount(amount)"
                            class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                            placeholder="0"
                            required
                            autofocus>
+                    <input type="hidden" name="amount" :value="amount" id="quick-amount">
                 </div>
             </div>
 
@@ -101,19 +100,20 @@
             <!-- DETAILED Template Variables -->
             <th:block th:if="${selectedTemplate.templateType?.name() == 'DETAILED' and formulaVariables != null}">
                 <div th:each="variable : ${formulaVariables}" class="mb-4">
-                    <label th:for="${'quick-var_' + variable.name()}"
+                    <label th:for="${'quick-var-display_' + variable.name()}"
                            class="block text-sm font-medium text-gray-700 mb-1">
                         <span th:text="${variable.label()}">Variable Label</span>
                         <span class="text-red-500">*</span>
                     </label>
                     <input type="text"
-                           th:id="${'quick-var_' + variable.name()}"
-                           th:name="${'var_' + variable.name()}"
+                           th:id="${'quick-var-display_' + variable.name()}"
+                           th:data-var-name="${variable.name()}"
+                           class="var-input"
                            inputmode="numeric"
-                           @input="$el.value = $el.value.replace(/[^\d]/g, '').replace(/\B(?=(\d{3})+(?!\d))/g, '.'); $dispatch('var-changed')"
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                           @input="updateVariable($event)"
                            placeholder="0"
                            required>
+                    <input type="hidden" th:name="${'var_' + variable.name()}" class="var-value">
                 </div>
             </th:block>
 
@@ -146,19 +146,19 @@
                 <button type="button"
                         data-testid="quick-cancel-button"
                         onclick="document.getElementById('quick-transaction-modal').close()"
-                        class="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium">
+                        class="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
+                        :disabled="submitting">
                     Batal
                 </button>
                 <button type="submit"
                         data-testid="quick-submit-button"
-                        class="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium flex items-center justify-center">
-                    <span id="quick-save-indicator" class="htmx-indicator mr-2">
-                        <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                    </span>
-                    Simpan & Posting
+                        class="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                        :disabled="submitting">
+                    <svg x-show="submitting" class="animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span x-text="submitting ? 'Menyimpan...' : 'Simpan & Posting'">Simpan & Posting</span>
                 </button>
             </div>
         </form>

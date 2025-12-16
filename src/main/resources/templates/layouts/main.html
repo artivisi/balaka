@@ -587,7 +587,7 @@
         <!-- FAB Button -->
         <button id="quick-transaction-fab"
                 data-testid="quick-transaction-fab"
-                onclick="document.getElementById('quick-transaction-modal').showModal()"
+                onclick="openQuickTransactionModal()"
                 class="fixed bottom-6 right-6 w-14 h-14 bg-primary-600 hover:bg-primary-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all flex items-center justify-center z-50 group"
                 title="Transaksi Cepat">
             <svg class="w-6 h-6 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -613,10 +613,7 @@
 
                 <!-- Modal Content (Scrollable) -->
                 <div id="quick-transaction-content"
-                     class="flex-1 overflow-y-auto"
-                     hx-get="/transactions/quick/templates"
-                     hx-trigger="dialogOpen from:#quick-transaction-modal"
-                     hx-swap="innerHTML">
+                     class="flex-1 overflow-y-auto">
                     <!-- Loading state -->
                     <div class="p-6 animate-pulse">
                         <div class="space-y-3">
@@ -633,16 +630,106 @@
             </div>
         </dialog>
 
-        <!-- Dialog trigger listener -->
+        <!-- Quick Transaction Scripts -->
         <script>
-            document.addEventListener('DOMContentLoaded', function() {
+            function openQuickTransactionModal() {
                 const modal = document.getElementById('quick-transaction-modal');
-                if (modal) {
-                    modal.addEventListener('show', function() {
-                        htmx.trigger(this, 'dialogOpen');
-                    });
-                }
-            });
+                const content = document.getElementById('quick-transaction-content');
+
+                // Show modal
+                modal.showModal();
+
+                // Load templates via HTMX
+                htmx.ajax('GET', '/transactions/quick/templates', {
+                    target: '#quick-transaction-content',
+                    swap: 'innerHTML'
+                });
+            }
+
+            // Alpine.js component for quick transaction form
+            function quickTransactionForm() {
+                return {
+                    amount: 0,
+                    submitting: false,
+
+                    formatAmount(value) {
+                        if (!value) return '';
+                        return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+                    },
+
+                    updateVariable(event) {
+                        const input = event.target;
+                        const rawValue = input.value.replace(/[^\d]/g, '');
+                        const hiddenInput = input.nextElementSibling;
+                        if (hiddenInput && hiddenInput.classList.contains('var-value')) {
+                            hiddenInput.value = rawValue;
+                        }
+                        input.value = this.formatAmount(rawValue);
+                    },
+
+                    async submitQuickTransaction() {
+                        this.submitting = true;
+
+                        try {
+                            // Collect account mappings
+                            const accountMappings = {};
+                            document.querySelectorAll('select[name^="accountMapping"]').forEach(select => {
+                                const match = select.name.match(/accountMapping\[([^\]]+)\]/);
+                                if (match && select.value) {
+                                    accountMappings[match[1]] = select.value;
+                                }
+                            });
+
+                            // Collect variables
+                            const variables = {};
+                            document.querySelectorAll('input[name^="var_"]').forEach(input => {
+                                const match = input.name.match(/var_(.+)/);
+                                if (match && input.value) {
+                                    variables[match[1]] = parseInt(input.value);
+                                }
+                            });
+
+                            // Build payload
+                            const payload = {
+                                templateId: document.getElementById('quick-template-id').value,
+                                transactionDate: document.getElementById('quick-date').value,
+                                amount: parseInt(this.amount) || 0,
+                                description: document.getElementById('quick-description').value,
+                                referenceNumber: document.getElementById('quick-reference')?.value || '',
+                                notes: document.getElementById('quick-notes')?.value || '',
+                                accountMappings: Object.keys(accountMappings).length > 0 ? accountMappings : null,
+                                variables: Object.keys(variables).length > 0 ? variables : null
+                            };
+
+                            // Submit
+                            const response = await fetch('/transactions/api', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': document.querySelector('meta[name="_csrf"]')?.content || ''
+                                },
+                                body: JSON.stringify(payload)
+                            });
+
+                            if (response.ok) {
+                                // Dispatch event for transaction list refresh
+                                document.dispatchEvent(new CustomEvent('transactionsUpdated'));
+                                // Close modal
+                                document.getElementById('quick-transaction-modal').close();
+                            } else {
+                                const error = await response.text();
+                                console.error('Failed to create transaction:', error);
+                                alert('Gagal menyimpan transaksi: ' + error);
+                            }
+                        } catch (error) {
+                            console.error('Error submitting transaction:', error);
+                            alert('Terjadi kesalahan: ' + error.message);
+                        } finally {
+                            this.submitting = false;
+                        }
+                    }
+                };
+            }
         </script>
     </div>
 

@@ -23,6 +23,8 @@ public class QuickTransactionModal {
         page.getByTestId("quick-transaction-fab").click();
         // Wait for modal to be visible
         page.getByTestId("quick-transaction-modal").waitFor();
+        // Wait for templates to load (HTMX request completes)
+        page.waitForTimeout(500);
     }
 
     /**
@@ -67,9 +69,11 @@ public class QuickTransactionModal {
     }
 
     /**
-     * Fill the amount field.
+     * Fill the amount field (fills the display input which has the test id).
      */
     public void fillAmount(String amount) {
+        // The test id is on the display input, fill it with the raw number
+        // Alpine.js will format it automatically
         page.getByTestId("quick-amount").fill(amount);
     }
 
