@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="id">
+<body>
+    <!-- Quick Transaction Form Fragment -->
+    <div th:fragment="form" class="p-6">
+        <!-- Back Button + Template Name -->
+        <div class="mb-6">
+            <button hx-get="/transactions/quick/templates"
+                    hx-target="#quick-transaction-content"
+                    hx-swap="innerHTML"
+                    class="flex items-center text-sm text-gray-600 hover:text-gray-900 mb-2">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+                Kembali
+            </button>
+            <h3 class="text-lg font-semibold text-gray-900" th:text="${selectedTemplate.templateName}">Template Name</h3>
+            <p class="text-sm text-gray-500" th:text="${selectedTemplate.description}">Template Description</p>
+        </div>
+
+        <!-- Form -->
+        <form data-testid="quick-transaction-form"
+              hx-post="/transactions/api"
+              hx-on::after-success="document.dispatchEvent(new CustomEvent('transactionsUpdated')); htmx.find('#quick-transaction-modal').close();"
+              hx-indicator="#quick-save-indicator">
+
+            <!-- Hidden fields -->
+            <input type="hidden" name="templateId" th:value="${selectedTemplate.id}">
+
+            <!-- Amount -->
+            <div class="mb-4">
+                <label for="quick-amount" class="block text-sm font-medium text-gray-700 mb-1">
+                    Jumlah <span class="text-red-500">*</span>
+                </label>
+                <div class="relative">
+                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">Rp</span>
+                    <input type="text"
+                           id="quick-amount"
+                           data-testid="quick-amount"
+                           name="amount"
+                           inputmode="numeric"
+                           @input="$el.value = $el.value.replace(/[^\d]/g, '').replace(/\B(?=(\d{3})+(?!\d))/g, '.'); $dispatch('amount-changed')"
+                           class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                           placeholder="0"
+                           required
+                           autofocus>
+                </div>
+            </div>
+
+            <!-- Description -->
+            <div class="mb-4">
+                <label for="quick-description" class="block text-sm font-medium text-gray-700 mb-1">
+                    Keterangan <span class="text-red-500">*</span>
+                </label>
+                <input type="text"
+                       id="quick-description"
+                       data-testid="quick-description"
+                       name="description"
+                       th:value="${selectedTemplate.templateName}"
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                       required>
+            </div>
+
+            <!-- Date -->
+            <div class="mb-4">
+                <label for="quick-date" class="block text-sm font-medium text-gray-700 mb-1">
+                    Tanggal
+                </label>
+                <input type="date"
+                       id="quick-date"
+                       name="transactionDate"
+                       th:value="${#temporals.format(#temporals.createNow(), 'yyyy-MM-dd')}"
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+            </div>
+
+            <!-- Dynamic Account Selection (for template lines with null accounts) -->
+            <th:block th:if="${selectedTemplate != null and selectedTemplate.lines != null}">
+                <th:block th:each="line, lineStat : ${selectedTemplate.lines}">
+                    <div th:if="${line.account == null}" class="mb-4">
+                        <label th:for="${'quick-accountMapping_' + line.id}"
+                               class="block text-sm font-medium text-gray-700 mb-1">
+                            <span th:text="${line.accountHint != null and !#strings.isEmpty(line.accountHint)} ? ${line.accountHint} : 'Akun ' + (${line.position.name() == 'DEBIT'} ? 'Debit' : 'Kredit')">
+                                Akun
+                            </span>
+                            <span class="text-red-500">*</span>
+                        </label>
+                        <select th:id="${'quick-accountMapping_' + line.id}"
+                                th:name="${'accountMapping[' + line.id + ']'}"
+                                @change="$dispatch('account-changed')"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                                required>
+                            <option value="">Pilih akun</option>
+                            <option th:each="acc : ${accounts}"
+                                    th:value="${acc.id}"
+                                    th:text="${acc.accountCode + ' - ' + acc.accountName}">Account</option>
+                        </select>
+                    </div>
+                </th:block>
+            </th:block>
+
+            <!-- DETAILED Template Variables -->
+            <th:block th:if="${selectedTemplate.templateType?.name() == 'DETAILED' and formulaVariables != null}">
+                <div th:each="variable : ${formulaVariables}" class="mb-4">
+                    <label th:for="${'quick-var_' + variable.name()}"
+                           class="block text-sm font-medium text-gray-700 mb-1">
+                        <span th:text="${variable.label()}">Variable Label</span>
+                        <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text"
+                           th:id="${'quick-var_' + variable.name()}"
+                           th:name="${'var_' + variable.name()}"
+                           inputmode="numeric"
+                           @input="$el.value = $el.value.replace(/[^\d]/g, '').replace(/\B(?=(\d{3})+(?!\d))/g, '.'); $dispatch('var-changed')"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                           placeholder="0"
+                           required>
+                </div>
+            </th:block>
+
+            <!-- Reference Number (optional) -->
+            <div class="mb-4">
+                <label for="quick-reference" class="block text-sm font-medium text-gray-700 mb-1">
+                    No. Referensi <span class="text-xs text-gray-500">(opsional)</span>
+                </label>
+                <input type="text"
+                       id="quick-reference"
+                       name="referenceNumber"
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                       placeholder="INV-2025-001, PO-001">
+            </div>
+
+            <!-- Notes (optional) -->
+            <div class="mb-6">
+                <label for="quick-notes" class="block text-sm font-medium text-gray-700 mb-1">
+                    Catatan <span class="text-xs text-gray-500">(opsional)</span>
+                </label>
+                <textarea id="quick-notes"
+                          name="notes"
+                          rows="2"
+                          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                          placeholder="Catatan tambahan"></textarea>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex gap-3">
+                <button type="button"
+                        data-testid="quick-cancel-button"
+                        onclick="document.getElementById('quick-transaction-modal').close()"
+                        class="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium">
+                    Batal
+                </button>
+                <button type="submit"
+                        data-testid="quick-submit-button"
+                        class="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium flex items-center justify-center">
+                    <span id="quick-save-indicator" class="htmx-indicator mr-2">
+                        <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </span>
+                    Simpan & Posting
+                </button>
+            </div>
+        </form>
+    </div>
+</body>
+</html>

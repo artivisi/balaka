@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="id">
+<body>
+    <!-- Template Picker Fragment -->
+    <div th:fragment="templates" class="p-6">
+        <!-- Frequent Templates -->
+        <div th:if="${!frequentTemplates.isEmpty()}" class="mb-6">
+            <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                🌟 Template Favorit
+            </h3>
+            <div class="grid grid-cols-2 gap-3">
+                <button th:each="template : ${frequentTemplates}"
+                        th:data-testid="${'template-frequent-' + template.id()}"
+                        hx-get="/transactions/quick/form"
+                        th:hx-vals="${'{&quot;templateId&quot;: &quot;' + template.id() + '&quot;}'}"
+                        hx-target="#quick-transaction-content"
+                        hx-swap="innerHTML"
+                        class="flex items-center justify-between p-3 bg-white border-2 border-gray-200 rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-all group">
+                    <div class="flex items-center min-w-0">
+                        <div th:if="${template.category().name() == 'INCOME'}"
+                             class="w-8 h-8 bg-accent-100 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-accent-200">
+                            <svg class="w-4 h-4 text-accent-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                            </svg>
+                        </div>
+                        <div th:unless="${template.category().name() == 'INCOME'}"
+                             class="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-red-200">
+                            <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>
+                            </svg>
+                        </div>
+                        <div class="ml-3 text-left min-w-0">
+                            <p class="text-sm font-medium text-gray-900 truncate" th:text="${template.name()}">Template Name</p>
+                            <p class="text-xs text-gray-500" th:text="${template.usageCount() + 'x'}">10x</p>
+                        </div>
+                    </div>
+                    <svg class="w-4 h-4 text-gray-400 group-hover:text-primary-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Recent Templates -->
+        <div th:if="${!recentTemplates.isEmpty()}" class="mb-6">
+            <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                🕐 Template Terbaru
+            </h3>
+            <div class="space-y-2">
+                <button th:each="template : ${recentTemplates}"
+                        th:data-testid="${'template-recent-' + template.id()}"
+                        hx-get="/transactions/quick/form"
+                        th:hx-vals="${'{&quot;templateId&quot;: &quot;' + template.id() + '&quot;}'}"
+                        hx-target="#quick-transaction-content"
+                        hx-swap="innerHTML"
+                        class="w-full flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-all group">
+                    <div class="flex items-center min-w-0">
+                        <div th:if="${template.category().name() == 'INCOME'}"
+                             class="w-8 h-8 bg-accent-100 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-accent-200">
+                            <svg class="w-4 h-4 text-accent-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                            </svg>
+                        </div>
+                        <div th:unless="${template.category().name() == 'INCOME'}"
+                             class="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-red-200">
+                            <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>
+                            </svg>
+                        </div>
+                        <div class="ml-3 text-left min-w-0">
+                            <p class="text-sm font-medium text-gray-900 truncate" th:text="${template.name()}">Template Name</p>
+                            <p class="text-xs text-gray-500"
+                               th:text="${#temporals.format(template.lastUsedAt(), 'd MMM HH:mm')}">1 Nov 10:30</p>
+                        </div>
+                    </div>
+                    <svg class="w-4 h-4 text-gray-400 group-hover:text-primary-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Empty State -->
+        <div th:if="${frequentTemplates.isEmpty() and recentTemplates.isEmpty()}" class="text-center py-12">
+            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            <p class="mt-2 text-sm text-gray-500">Belum ada template yang digunakan</p>
+        </div>
+
+        <!-- View All Link -->
+        <div class="mt-6 pt-4 border-t border-gray-200">
+            <a th:href="@{/transactions/new}"
+               class="flex items-center justify-center text-sm text-primary-600 hover:text-primary-700 font-medium">
+                Lihat Semua Template
+                <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+            </a>
+        </div>
+    </div>
+</body>
+</html>

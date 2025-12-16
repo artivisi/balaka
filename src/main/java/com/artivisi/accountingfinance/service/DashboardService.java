@@ -7,6 +7,7 @@ import com.artivisi.accountingfinance.enums.NormalBalance;
 import com.artivisi.accountingfinance.repository.AmortizationEntryRepository;
 import com.artivisi.accountingfinance.repository.ChartOfAccountRepository;
 import com.artivisi.accountingfinance.repository.JournalEntryRepository;
+import com.artivisi.accountingfinance.repository.JournalTemplateRepository;
 import com.artivisi.accountingfinance.repository.TransactionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -28,6 +29,7 @@ public class DashboardService {
     private final JournalEntryRepository journalEntryRepository;
     private final TransactionRepository transactionRepository;
     private final AmortizationEntryRepository amortizationEntryRepository;
+    private final JournalTemplateRepository journalTemplateRepository;
 
     // Account codes for specific KPIs
     private static final String PIUTANG_USAHA_CODE = "1.1.04";
@@ -293,5 +295,51 @@ public class DashboardService {
             LocalDate dueDate,
             BigDecimal amount,
             boolean isOverdue
+    ) {}
+
+    /**
+     * Get frequently used templates for quick transaction entry.
+     * Returns top N templates sorted by usage count.
+     */
+    public List<QuickTemplate> getFrequentTemplates(int limit) {
+        return journalTemplateRepository.findByActiveOrderByUsageCountDesc(true)
+                .stream()
+                .filter(t -> t.getUsageCount() != null && t.getUsageCount() > 0)
+                .limit(limit)
+                .map(t -> new QuickTemplate(
+                        t.getId(),
+                        t.getTemplateName(),
+                        t.getCategory(),
+                        t.getUsageCount(),
+                        t.getLastUsedAt()
+                ))
+                .toList();
+    }
+
+    /**
+     * Get recently used templates for quick transaction entry.
+     * Returns top N templates sorted by last used date.
+     */
+    public List<QuickTemplate> getRecentTemplates(int limit) {
+        return journalTemplateRepository.findByActiveOrderByLastUsedAtDesc(true)
+                .stream()
+                .filter(t -> t.getLastUsedAt() != null)
+                .limit(limit)
+                .map(t -> new QuickTemplate(
+                        t.getId(),
+                        t.getTemplateName(),
+                        t.getCategory(),
+                        t.getUsageCount(),
+                        t.getLastUsedAt()
+                ))
+                .toList();
+    }
+
+    public record QuickTemplate(
+            java.util.UUID id,
+            String name,
+            com.artivisi.accountingfinance.enums.TemplateCategory category,
+            Integer usageCount,
+            java.time.LocalDateTime lastUsedAt
     ) {}
 }

@@ -60,6 +60,7 @@ public class TransactionController {
     private final ProjectService projectService;
     private final InvoiceService invoiceService;
     private final TemplateExecutionEngine templateExecutionEngine;
+    private final com.artivisi.accountingfinance.service.DashboardService dashboardService;
 
     @GetMapping
     public String list(
@@ -496,4 +497,41 @@ public class TransactionController {
     }
 
     public record FormulaVariable(String name, String label) {}
+
+    // ========== Quick Transaction Endpoints ==========
+
+    /**
+     * Get template picker for quick transaction modal.
+     * Returns frequent and recent templates.
+     */
+    @GetMapping("/quick/templates")
+    @PreAuthorize("hasAuthority('" + Permission.TRANSACTION_CREATE + "')")
+    public String quickTemplates(Model model) {
+        var frequentTemplates = dashboardService.getFrequentTemplates(6);
+        var recentTemplates = dashboardService.getRecentTemplates(5);
+
+        model.addAttribute("frequentTemplates", frequentTemplates);
+        model.addAttribute("recentTemplates", recentTemplates);
+
+        return "fragments/quick-transaction-templates :: templates";
+    }
+
+    /**
+     * Get quick transaction form for selected template.
+     * Loads a minimal form with the most common fields.
+     */
+    @GetMapping("/quick/form")
+    @PreAuthorize("hasAuthority('" + Permission.TRANSACTION_CREATE + "')")
+    public String quickForm(@RequestParam UUID templateId, Model model) {
+        JournalTemplate template = journalTemplateService.findByIdWithLines(templateId);
+
+        model.addAttribute("selectedTemplate", template);
+        model.addAttribute("accounts", chartOfAccountService.findTransactableAccounts());
+        model.addAttribute("projects", projectService.findActiveProjects());
+
+        // Add DETAILED template support
+        addDetailedTemplateAttributes(template, model);
+
+        return "fragments/quick-transaction-form :: form";
+    }
 }

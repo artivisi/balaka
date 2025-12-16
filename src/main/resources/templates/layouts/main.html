@@ -582,6 +582,70 @@
         </div>
     </div>
 
+    <!-- Quick Transaction FAB + Modal -->
+    <div sec:authorize="hasAuthority('TRANSACTION_CREATE')">
+        <!-- FAB Button -->
+        <button id="quick-transaction-fab"
+                data-testid="quick-transaction-fab"
+                onclick="document.getElementById('quick-transaction-modal').showModal()"
+                class="fixed bottom-6 right-6 w-14 h-14 bg-primary-600 hover:bg-primary-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all flex items-center justify-center z-50 group"
+                title="Transaksi Cepat">
+            <svg class="w-6 h-6 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+        </button>
+
+        <!-- Modal -->
+        <dialog id="quick-transaction-modal"
+                data-testid="quick-transaction-modal"
+                class="backdrop:bg-black backdrop:bg-opacity-50 rounded-lg shadow-xl p-0 max-w-md w-full">
+            <div class="bg-white rounded-lg max-h-[90vh] flex flex-col">
+                <!-- Modal Header -->
+                <div class="flex items-center justify-between p-4 border-b border-gray-200 flex-shrink-0">
+                    <h2 class="text-lg font-semibold text-gray-900">Transaksi Cepat</h2>
+                    <button onclick="this.closest('dialog').close()"
+                            class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Modal Content (Scrollable) -->
+                <div id="quick-transaction-content"
+                     class="flex-1 overflow-y-auto"
+                     hx-get="/transactions/quick/templates"
+                     hx-trigger="dialogOpen from:#quick-transaction-modal"
+                     hx-swap="innerHTML">
+                    <!-- Loading state -->
+                    <div class="p-6 animate-pulse">
+                        <div class="space-y-3">
+                            <div class="h-4 bg-gray-200 rounded w-32"></div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="h-16 bg-gray-200 rounded"></div>
+                                <div class="h-16 bg-gray-200 rounded"></div>
+                                <div class="h-16 bg-gray-200 rounded"></div>
+                                <div class="h-16 bg-gray-200 rounded"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </dialog>
+
+        <!-- Dialog trigger listener -->
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const modal = document.getElementById('quick-transaction-modal');
+                if (modal) {
+                    modal.addEventListener('show', function() {
+                        htmx.trigger(this, 'dialogOpen');
+                    });
+                }
+            });
+        </script>
+    </div>
+
     <!-- Page-specific scripts -->
     <th:block layout:fragment="scripts"></th:block>
 </body>
