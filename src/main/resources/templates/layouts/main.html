@@ -673,10 +673,10 @@
                         try {
                             // Collect account mappings
                             const accountMappings = {};
-                            document.querySelectorAll('select[name^="accountMapping"]').forEach(select => {
-                                const match = select.name.match(/accountMapping\[([^\]]+)\]/);
-                                if (match && select.value) {
-                                    accountMappings[match[1]] = select.value;
+                            document.querySelectorAll('select[name^="accountMapping"]').forEach(dropdown => {
+                                const match = dropdown.name.match(/accountMapping\[([^\]]+)\]/);
+                                if (match && dropdown.value) {
+                                    accountMappings[match[1]] = dropdown.value;
                                 }
                             });
 
