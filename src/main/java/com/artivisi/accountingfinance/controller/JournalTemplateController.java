@@ -386,8 +386,8 @@ public class JournalTemplateController {
 
                 // Only set account if accountId is provided (nullable for dynamic selection)
                 if (lineDto.accountId() != null) {
-                    ChartOfAccount account = new ChartOfAccount();
-                    account.setId(lineDto.accountId());
+                    // Load account from database to avoid detached entity with null version
+                    ChartOfAccount account = chartOfAccountService.findById(lineDto.accountId());
                     line.setAccount(account);
                 }
 

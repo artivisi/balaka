@@ -119,11 +119,17 @@ public class JournalTemplateService {
 
         for (JournalTemplateLine sourceLine : source.getLines()) {
             JournalTemplateLine newLine = new JournalTemplateLine();
-            newLine.setAccount(sourceLine.getAccount());
+            // Reload account from database to avoid detached entity with null version
+            if (sourceLine.getAccount() != null && sourceLine.getAccount().getId() != null) {
+                ChartOfAccount managedAccount = chartOfAccountRepository.findById(sourceLine.getAccount().getId())
+                        .orElseThrow(() -> new EntityNotFoundException("Account not found"));
+                newLine.setAccount(managedAccount);
+            }
             newLine.setPosition(sourceLine.getPosition());
             newLine.setFormula(sourceLine.getFormula());
             newLine.setLineOrder(sourceLine.getLineOrder());
             newLine.setDescription(sourceLine.getDescription());
+            newLine.setAccountHint(sourceLine.getAccountHint());
             duplicate.addLine(newLine);
         }
 
