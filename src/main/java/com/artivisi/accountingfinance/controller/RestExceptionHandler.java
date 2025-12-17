@@ -3,6 +3,7 @@ package com.artivisi.accountingfinance.controller;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -140,6 +141,18 @@ public class RestExceptionHandler {
         // Client disconnected (browser closed, navigation, etc.) - expected behavior
         log.debug("Client aborted connection: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.OK).build();
+    }
+
+    @ExceptionHandler(OptimisticLockingFailureException.class)
+    public ResponseEntity<ErrorResponse> handleOptimisticLockingFailure(OptimisticLockingFailureException ex) {
+        log.warn("Optimistic locking conflict detected: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse(
+                        HttpStatus.CONFLICT.value(),
+                        "Concurrent Update Detected",
+                        "Data telah diubah oleh pengguna lain. Silakan refresh halaman dan coba lagi.",
+                        LocalDateTime.now()
+                ));
     }
 
     @ExceptionHandler(Exception.class)

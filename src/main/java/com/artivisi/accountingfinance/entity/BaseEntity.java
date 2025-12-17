@@ -7,6 +7,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.MappedSuperclass;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Version;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.FilterDef;
@@ -25,6 +26,10 @@ public abstract class BaseEntity {
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", updatable = false, nullable = false)
     private UUID id;
+
+    @Version
+    @Column(name = "row_version", nullable = false)
+    private Long rowVersion;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

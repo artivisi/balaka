@@ -7,6 +7,7 @@
 
 CREATE TABLE company_config (
     id UUID PRIMARY KEY,
+    row_version BIGINT NOT NULL DEFAULT 0,
     company_name VARCHAR(255) NOT NULL,
     company_address TEXT,
     company_phone VARCHAR(50),
@@ -49,6 +50,7 @@ CREATE INDEX idx_company_bank_default ON company_bank_accounts(is_default);
 
 CREATE TABLE chart_of_accounts (
     id UUID PRIMARY KEY,
+    row_version BIGINT NOT NULL DEFAULT 0,
     account_code VARCHAR(20) NOT NULL UNIQUE,
     account_name VARCHAR(255) NOT NULL,
     account_type VARCHAR(20) NOT NULL,
@@ -80,6 +82,7 @@ CREATE INDEX idx_coa_active ON chart_of_accounts(active);
 
 CREATE TABLE journal_templates (
     id UUID PRIMARY KEY,
+    row_version BIGINT NOT NULL DEFAULT 0,
     template_name VARCHAR(255) NOT NULL,
     category VARCHAR(20) NOT NULL,
     cash_flow_category VARCHAR(20) NOT NULL,
@@ -250,6 +253,7 @@ CREATE INDEX idx_milestones_status ON project_milestones(status);
 
 CREATE TABLE transactions (
     id UUID PRIMARY KEY,
+    row_version BIGINT NOT NULL DEFAULT 0,
     transaction_number VARCHAR(50) UNIQUE,  -- Generated when posting, null for drafts
     transaction_date DATE NOT NULL,
     id_journal_template UUID NOT NULL REFERENCES journal_templates(id),
@@ -346,6 +350,7 @@ CREATE INDEX idx_tv_transaction ON transaction_variables(id_transaction);
 
 CREATE TABLE journal_entries (
     id UUID PRIMARY KEY,
+    row_version BIGINT NOT NULL DEFAULT 0,
     journal_number VARCHAR(50),
     posted_at TIMESTAMP,
     voided_at TIMESTAMP,
@@ -408,6 +413,7 @@ CREATE INDEX idx_invoices_due_date ON invoices(due_date);
 
 CREATE TABLE amortization_schedules (
     id UUID PRIMARY KEY,
+    row_version BIGINT NOT NULL DEFAULT 0,
     code VARCHAR(50) NOT NULL UNIQUE,
     name VARCHAR(255) NOT NULL,
     description TEXT,
