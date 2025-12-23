@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>com.artivisi</groupId>
 	<artifactId>accounting-finance</artifactId>
-	<version>2025.12.5-RELEASE</version>
+	<version>2025.12-SNAPSHOT</version>
 	<name>accounting-finance</name>
 	<description>Indonesian accounting application for small businesses</description>
 	<url/>
