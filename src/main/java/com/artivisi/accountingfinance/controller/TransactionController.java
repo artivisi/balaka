@@ -534,4 +534,36 @@ public class TransactionController {
 
         return "fragments/quick-transaction-form :: form";
     }
+
+    /**
+     * Search templates for autocomplete.
+     * Returns matching templates as HTML fragment.
+     */
+    @GetMapping("/templates/search")
+    @PreAuthorize("hasAuthority('" + Permission.TRANSACTION_CREATE + "')")
+    public String searchTemplates(
+            @RequestParam(required = false, defaultValue = "") String q,
+            Model model) {
+
+        String query = q.trim().toLowerCase();
+
+        // If query is empty, return recent/frequent templates
+        if (query.isEmpty()) {
+            var recentTemplates = dashboardService.getRecentTemplates(8);
+            model.addAttribute("templates", recentTemplates);
+            model.addAttribute("showRecent", true);
+        } else {
+            // Search templates by name
+            List<JournalTemplate> allTemplates = journalTemplateService.findAll();
+            List<JournalTemplate> matchingTemplates = allTemplates.stream()
+                    .filter(t -> t.getTemplateName().toLowerCase().contains(query))
+                    .limit(8)
+                    .collect(Collectors.toList());
+
+            model.addAttribute("templates", matchingTemplates);
+            model.addAttribute("showRecent", false);
+        }
+
+        return "fragments/template-search-results :: results";
+    }
 }
