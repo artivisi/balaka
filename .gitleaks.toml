@@ -57,12 +57,8 @@ regex = '''postgres(ql)?://[^:]+:[^@]+@[^/]+/[^\s]+'''
 keywords = ["postgres", "jdbc"]
 tags = ["database"]
 
-[[rules]]
-id = "spring-datasource-password"
-description = "Spring Datasource Password"
-regex = '''(?i)spring\.datasource\.password\s*[=:]\s*[^\s]+'''
-keywords = ["datasource", "password"]
-tags = ["database", "spring"]
+# Note: Removed spring-datasource-password rule - too many false positives
+# from Spring ${...} placeholders and Ansible {{ }} templates
 
 # Allowlist - files and patterns to ignore
 [allowlist]
@@ -70,6 +66,7 @@ description = "Allowlist for false positives"
 
 paths = [
     '''\.github/workflows/.*\.yml$''',  # GitHub Actions (uses secrets)
+    '''deploy/ansible/.*\.j2$''',        # Ansible Jinja2 templates (use variables)
     '''src/test/.*''',                   # Test files
     '''.*Test\.java$''',                 # Test classes
     '''.*\.md$''',                       # Documentation
