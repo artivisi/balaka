@@ -39,10 +39,10 @@ public class EncryptedStringConverter implements AttributeConverter<String, Stri
     private static final int GCM_IV_LENGTH = 12;
     private static final int GCM_TAG_LENGTH = 128;
     private static final String PREFIX = "ENC:";
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
-    private static SecretKey secretKey;
-    private static boolean encryptionEnabled = false;
-    private static final SecureRandom secureRandom = new SecureRandom();
+    private SecretKey secretKey;
+    private boolean encryptionEnabled = false;
 
     /**
      * Initialize encryption key from environment variable.
@@ -85,7 +85,7 @@ public class EncryptedStringConverter implements AttributeConverter<String, Stri
         try {
             // Generate random IV
             byte[] iv = new byte[GCM_IV_LENGTH];
-            secureRandom.nextBytes(iv);
+            SECURE_RANDOM.nextBytes(iv);
 
             // Initialize cipher
             Cipher cipher = Cipher.getInstance(ALGORITHM);
@@ -154,7 +154,7 @@ public class EncryptedStringConverter implements AttributeConverter<String, Stri
     /**
      * Check if encryption is enabled.
      */
-    public static boolean isEncryptionEnabled() {
+    public boolean isEncryptionEnabled() {
         return encryptionEnabled;
     }
 }
