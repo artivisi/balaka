@@ -38,6 +38,7 @@ Indonesian accounting application for small businesses. Spring Boot 4.0 + Thymel
 | Implementation Plan | `docs/06-implementation-plan.md` |
 | ADRs | `docs/adr/` |
 | User Manual | `docs/user-manual/*.md` (15 files, 12-section structure) |
+| Security Exclusions | `spotbugs-exclude.xml` (SpotBugs false positives with justifications) |
 | Entities | `src/main/java/.../entity/` |
 | Services | `src/main/java/.../service/` |
 | Controllers | `src/main/java/.../controller/` |
@@ -56,6 +57,7 @@ Indonesian accounting application for small businesses. Spring Boot 4.0 + Thymel
 3. **Technical language:** No marketing speak, strictly technical documentation
 4. **Test-driven:** Write functional tests for new features
 5. **Migration strategy:** Modify existing migrations instead of creating new ones (pre-production)
+6. **Code quality:** Maintain SpotBugs 0-issue status. Any new exclusions in `spotbugs-exclude.xml` must have comprehensive justifications with mitigation details
 
 ## Running the App
 
@@ -71,6 +73,10 @@ Indonesian accounting application for small businesses. Spring Boot 4.0 + Thymel
 
 # Run with visible browser (debugging)
 ./mvnw test -Dtest=MfgBomTest -Dplaywright.headless=false -Dplaywright.slowmo=100
+
+# Run SpotBugs security analysis
+./mvnw spotbugs:spotbugs
+# Results: target/spotbugsXml.xml or target/site/spotbugs.html
 ```
 
 ## Database
@@ -117,6 +123,7 @@ Phase 6 highlights (in progress):
 - GDPR/UU PDP compliance (DSAR export, anonymization)
 - DevSecOps: CodeQL, SonarCloud, OWASP Dependency-Check, ZAP DAST
 - Security regression tests (Playwright + JUnit)
+- SpotBugs/FindSecBugs audit: ✅ 0 issues (164→0, fixed 33 real vulnerabilities, documented 140 Spring DI false positives)
 
 User Manual (12-section structure complete):
 - 01-setup-awal.md: Setup & Administration
