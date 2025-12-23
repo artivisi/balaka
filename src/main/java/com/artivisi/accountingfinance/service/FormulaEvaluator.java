@@ -1,6 +1,7 @@
 package com.artivisi.accountingfinance.service;
 
 import com.artivisi.accountingfinance.dto.FormulaContext;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.springframework.expression.Expression;
 import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.PropertyAccessor;
@@ -48,6 +49,15 @@ public class FormulaEvaluator {
      * @return the calculated result, scaled to 2 decimal places
      * @throws IllegalArgumentException if the formula is invalid
      */
+    @SuppressFBWarnings(
+        value = "SPEL_INJECTION",
+        justification = "SpEL injection is mitigated via multiple security controls: " +
+                        "(1) Uses SimpleEvaluationContext (secure sandbox) instead of StandardEvaluationContext " +
+                        "which blocks bean references, type references, constructors, and reflection. " +
+                        "(2) Custom read-only PropertyAccessor prevents modifications. " +
+                        "(3) Formulas are created by administrators in journal templates, not direct user input. " +
+                        "(4) Per ADR #13, this is the recommended secure pattern for SpEL evaluation."
+    )
     public BigDecimal evaluate(String formula, FormulaContext context) {
         if (formula == null || formula.isBlank()) {
             return context.amount();
@@ -155,6 +165,11 @@ public class FormulaEvaluator {
      * @param formula the formula expression to validate
      * @return list of error messages (empty if valid)
      */
+    @SuppressFBWarnings(
+        value = "SPEL_INJECTION",
+        justification = "SpEL injection is mitigated - see evaluate() method for full justification. " +
+                        "This validation method only parses syntax and does not execute untrusted code."
+    )
     public List<String> validate(String formula) {
         List<String> errors = new ArrayList<>();
 

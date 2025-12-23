@@ -12,6 +12,7 @@ import com.artivisi.accountingfinance.repository.EmployeeRepository;
 import com.artivisi.accountingfinance.repository.JournalTemplateRepository;
 import com.artivisi.accountingfinance.repository.PayrollDetailRepository;
 import com.artivisi.accountingfinance.repository.PayrollRunRepository;
+import com.artivisi.accountingfinance.security.LogSanitizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -180,9 +181,8 @@ public class PayrollService {
         payrollRun.setCancelledAt(LocalDateTime.now());
         payrollRun.setCancelReason(reason);
 
-        // Sanitize reason for log injection prevention
-        String sanitizedReason = reason != null ? reason.replaceAll("[\\r\\n]", " ") : "";
-        log.info("Cancelled payroll for period {}, reason: {}", payrollRun.getPayrollPeriod(), sanitizedReason);
+        log.info("Cancelled payroll for period {}, reason: {}",
+                payrollRun.getPayrollPeriod(), LogSanitizer.sanitize(reason));
 
         return payrollRunRepository.save(payrollRun);
     }

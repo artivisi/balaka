@@ -5,6 +5,7 @@ import com.artivisi.accountingfinance.entity.User;
 import com.artivisi.accountingfinance.enums.AuditEventType;
 import com.artivisi.accountingfinance.repository.EmployeeRepository;
 import com.artivisi.accountingfinance.repository.UserRepository;
+import com.artivisi.accountingfinance.security.LogSanitizer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -113,7 +114,8 @@ public class DataSubjectService {
         securityAuditService.log(AuditEventType.USER_DELETE,
                 "Employee data anonymized (right to erasure): " + originalName + " -> ANONYMIZED. Reason: " + reason);
 
-        log.info("Employee data anonymized: {} ({})", originalName, employeeId);
+        log.info("Employee data anonymized: {} ({})",
+                LogSanitizer.sanitize(originalName), employeeId);
     }
 
     /**

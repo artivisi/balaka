@@ -16,6 +16,7 @@ import com.artivisi.accountingfinance.repository.AssetCategoryRepository;
 import com.artivisi.accountingfinance.repository.ChartOfAccountRepository;
 import com.artivisi.accountingfinance.repository.DepreciationEntryRepository;
 import com.artivisi.accountingfinance.repository.FixedAssetRepository;
+import com.artivisi.accountingfinance.security.LogSanitizer;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -253,7 +254,8 @@ public class FixedAssetService {
         for (FixedAsset asset : assets) {
             // Check if entry already exists for this period
             if (depreciationEntryRepository.findByAssetIdAndPeriodEnd(asset.getId(), periodEnd).isPresent()) {
-                log.debug("Depreciation entry already exists for asset {} in period {}", asset.getAssetCode(), period);
+                log.debug("Depreciation entry already exists for asset {} in period {}",
+                        LogSanitizer.sanitize(asset.getAssetCode()), period);
                 continue;
             }
 
@@ -396,7 +398,7 @@ public class FixedAssetService {
         depreciationEntryRepository.save(entry);
 
         log.info("Skipped depreciation entry {} for asset {}",
-                entry.getId(), entry.getFixedAsset().getAssetCode());
+                entry.getId(), LogSanitizer.sanitize(entry.getFixedAsset().getAssetCode()));
     }
 
     // ============================================
@@ -464,7 +466,7 @@ public class FixedAssetService {
 
         FixedAsset savedAsset = fixedAssetRepository.save(asset);
         log.info("Disposed asset {}: type={}, proceeds={}, gainLoss={}",
-                asset.getAssetCode(), type, safeProceeds, asset.getGainLossOnDisposal());
+                LogSanitizer.sanitize(asset.getAssetCode()), type, safeProceeds, asset.getGainLossOnDisposal());
 
         return savedAsset;
     }

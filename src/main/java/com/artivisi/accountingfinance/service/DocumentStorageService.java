@@ -2,6 +2,7 @@ package com.artivisi.accountingfinance.service;
 
 import com.artivisi.accountingfinance.security.FileEncryptionService;
 import com.artivisi.accountingfinance.security.FileValidationService;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -43,6 +44,13 @@ public class DocumentStorageService {
     private List<String> allowedContentTypes;
 
     @PostConstruct
+    @SuppressFBWarnings(
+        value = "PATH_TRAVERSAL_IN",
+        justification = "Storage path is configured by system administrator in application.properties " +
+                        "(app.storage.documents.path). Path is normalized and validated. All file operations " +
+                        "(store, loadAsResource, delete) have path traversal protection via startsWith(rootLocation) checks. " +
+                        "This is intentional design to allow flexible storage location configuration."
+    )
     public void init() {
         this.rootLocation = Paths.get(storagePath).toAbsolutePath().normalize();
         this.allowedContentTypes = Arrays.asList(allowedTypes.split(","));

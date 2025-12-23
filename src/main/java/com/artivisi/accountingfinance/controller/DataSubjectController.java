@@ -2,6 +2,7 @@ package com.artivisi.accountingfinance.controller;
 
 import com.artivisi.accountingfinance.entity.Employee;
 import com.artivisi.accountingfinance.repository.EmployeeRepository;
+import com.artivisi.accountingfinance.security.LogSanitizer;
 import com.artivisi.accountingfinance.security.Permission;
 import com.artivisi.accountingfinance.service.DataSubjectService;
 import com.artivisi.accountingfinance.service.DataSubjectService.DataRetentionStatus;
@@ -147,7 +148,8 @@ public class DataSubjectController {
         String originalName = employee.getName();
         dataSubjectService.anonymizeEmployee(id, reason.trim());
 
-        log.info("Employee data anonymized via UI: {} ({})", originalName, id);
+        log.info("Employee data anonymized via UI: {} ({})",
+                LogSanitizer.sanitize(originalName), id);
         redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE,
                 "Data karyawan " + originalName + " berhasil dianonimisasi sesuai permintaan hak hapus data (GDPR Art. 17)");
 

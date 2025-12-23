@@ -1,5 +1,6 @@
 package com.artivisi.accountingfinance.controller;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -7,6 +8,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -30,6 +32,11 @@ public class AboutController {
         return "about";
     }
 
+    @SuppressFBWarnings(
+        value = "PATH_TRAVERSAL_IN",
+        justification = "Paths are hardcoded constants ('.git/HEAD', '.git/*') for reading project metadata. " +
+                        "No user input is involved. This is safe for displaying application version information."
+    )
     private String getGitCommitId() {
         try {
             // Try to read from .git/HEAD
@@ -65,7 +72,7 @@ public class AboutController {
             boolean completed = process.waitFor(5, java.util.concurrent.TimeUnit.SECONDS);
 
             if (completed && process.exitValue() == 0) {
-                return new String(process.getInputStream().readAllBytes()).trim();
+                return new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8).trim();
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();

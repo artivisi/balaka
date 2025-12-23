@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+FindSecBugs custom configuration to register LogSanitizer as a safe sanitization method.
+This tells FindSecBugs that our LogSanitizer methods properly sanitize input for logging.
+-->
+<CustomSanitizers>
+    <!-- Register LogSanitizer.sanitize() as a sanitization method for log injection -->
+    <Sanitizer>
+        <MethodSignature>
+            com.artivisi.accountingfinance.security.LogSanitizer.sanitize(Ljava/lang/String;)Ljava/lang/String;
+        </MethodSignature>
+        <Type>LOG_INJECTION</Type>
+    </Sanitizer>
+
+    <!-- Register LogSanitizer.username() for username sanitization -->
+    <Sanitizer>
+        <MethodSignature>
+            com.artivisi.accountingfinance.security.LogSanitizer.username(Ljava/lang/String;)Ljava/lang/String;
+        </MethodSignature>
+        <Type>LOG_INJECTION</Type>
+    </Sanitizer>
+
+    <!-- Register LogSanitizer.filename() for filename sanitization -->
+    <Sanitizer>
+        <MethodSignature>
+            com.artivisi.accountingfinance.security.LogSanitizer.filename(Ljava/lang/String;)Ljava/lang/String;
+        </MethodSignature>
+        <Type>LOG_INJECTION</Type>
+    </Sanitizer>
+
+    <!-- Register LogSanitizer.ipAddress() for IP address sanitization -->
+    <Sanitizer>
+        <MethodSignature>
+            com.artivisi.accountingfinance.security.LogSanitizer.ipAddress(Ljava/lang/String;)Ljava/lang/String;
+        </MethodSignature>
+        <Type>LOG_INJECTION</Type>
+    </Sanitizer>
+</CustomSanitizers>

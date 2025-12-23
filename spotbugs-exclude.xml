@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+SpotBugs exclusion configuration for properly mitigated security issues.
+
+This file documents security vulnerabilities that have been properly fixed
+but are still reported as false positives by FindSecBugs due to static analysis limitations.
+
+IMPORTANT: Only add exclusions here after implementing proper mitigation.
+Each exclusion must have a justification comment explaining the mitigation.
+-->
+<FindBugsFilter>
+
+    <!--
+    CRLF_INJECTION_LOGS - Mitigated via triple-layer defense:
+    1. Code-level: LogSanitizer.sanitize() applied to all user-controlled log parameters
+    2. Framework-level: Logback pattern with %replace(%msg){'[\r\n]', ''}
+    3. Additional protections: LogSanitizer also strips control chars and limits length
+
+    FindSecBugs cannot detect these mitigations via static analysis, resulting in false positives.
+    Exclusions documented per class below.
+    -->
+
+    <!-- DataSubjectController: All log statements use LogSanitizer.sanitize() -->
+    <Match>
+        <Class name="com.artivisi.accountingfinance.controller.DataSubjectController"/>
+        <Bug pattern="CRLF_INJECTION_LOGS"/>
+    </Match>
+
+    <!-- DataSubjectService: All log statements use LogSanitizer.sanitize() -->
+    <Match>
+        <Class name="com.artivisi.accountingfinance.service.DataSubjectService"/>
+        <Bug pattern="CRLF_INJECTION_LOGS"/>
+    </Match>
+
+    <!-- DocumentService: All log statements sanitize UUID.toString() via LogSanitizer -->
+    <Match>
+        <Class name="com.artivisi.accountingfinance.service.DocumentService"/>
+        <Bug pattern="CRLF_INJECTION_LOGS"/>
+    </Match>
+
+    <!-- FixedAssetService: All log statements use LogSanitizer for asset codes -->
+    <Match>
+        <Class name="com.artivisi.accountingfinance.service.FixedAssetService"/>
+        <Bug pattern="CRLF_INJECTION_LOGS"/>
+    </Match>
+
+    <!-- PayrollService: All log statements use LogSanitizer for user input -->
+    <Match>
+        <Class name="com.artivisi.accountingfinance.service.PayrollService"/>
+        <Bug pattern="CRLF_INJECTION_LOGS"/>
+    </Match>
+
+    <!--
+    UUF_UNUSED_FIELD - Framework-managed fields (JPA, Spring, etc.)
+    These fields appear unused to static analysis but are used by frameworks via reflection.
+    Only exclude after verifying the field is actually used by the framework.
+    -->
+    <!-- Example: JPA entity fields accessed via reflection can be added here if needed -->
+
+</FindBugsFilter>

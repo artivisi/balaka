@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!--
+    Logback configuration for security hardening.
+    Implements CRLF injection protection at the logging framework level.
+    -->
+
+    <!-- Console appender with CRLF protection -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <!--
+            Security: Strip CRLF characters from log messages to prevent log injection attacks.
+            This is a defense-in-depth measure alongside LogSanitizer in application code.
+            Pattern explanation:
+            - %d{yyyy-MM-dd HH:mm:ss.SSS}: Timestamp
+            - %-5level: Log level (left-aligned, 5 chars)
+            - %logger{36}: Logger name (max 36 chars)
+            - %replace(%msg){'[\r\n]', ''}: Message with CRLF stripped
+            - %n: Platform-specific newline
+            -->
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level %logger{36} - %replace(%msg){'[\r\n]', ''}%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- File appender for production logs with CRLF protection -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/application.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- Daily rollover -->
+            <fileNamePattern>logs/application.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <!-- Keep 30 days of logs -->
+            <maxHistory>30</maxHistory>
+            <!-- Max total size: 1GB -->
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level %logger{36} - %replace(%msg){'[\r\n]', ''}%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Security audit log appender with CRLF protection -->
+    <appender name="SECURITY_AUDIT" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/security-audit.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>logs/security-audit.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <!-- Keep security logs for 1 year (compliance requirement) -->
+            <maxHistory>365</maxHistory>
+            <totalSizeCap>5GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level %logger{36} - %replace(%msg){'[\r\n]', ''}%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Security audit logger -->
+    <logger name="com.artivisi.accountingfinance.service.SecurityAuditService" level="INFO" additivity="false">
+        <appender-ref ref="SECURITY_AUDIT"/>
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+
+    <!-- Root logger configuration -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </root>
+
+    <!-- Development profile: more verbose logging, console only -->
+    <springProfile name="dev">
+        <root level="DEBUG">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+    </springProfile>
+
+    <!-- Production profile: optimized logging -->
+    <springProfile name="prod">
+        <root level="INFO">
+            <appender-ref ref="FILE"/>
+        </root>
+        <!-- Reduce noise from Spring framework in production -->
+        <logger name="org.springframework" level="WARN"/>
+        <logger name="org.hibernate" level="WARN"/>
+    </springProfile>
+</configuration>

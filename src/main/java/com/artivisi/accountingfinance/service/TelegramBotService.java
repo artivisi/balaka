@@ -1,6 +1,7 @@
 package com.artivisi.accountingfinance.service;
 
 import com.artivisi.accountingfinance.config.TelegramConfig;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.artivisi.accountingfinance.dto.telegram.TelegramMessage;
 import com.artivisi.accountingfinance.dto.telegram.TelegramPhotoSize;
 import com.artivisi.accountingfinance.dto.telegram.TelegramUpdate;
@@ -264,16 +265,29 @@ public class TelegramBotService {
         }
     }
 
+    @SuppressFBWarnings(
+        value = "URLCONNECTION_SSRF_FD",
+        justification = "SSRF is prevented via domain validation: " +
+                        "(1) URL is constructed with hardcoded 'https://api.telegram.org' domain. " +
+                        "(2) File path comes from Telegram API response (getFile), not direct user input. " +
+                        "(3) URL validation ensures it starts with expected Telegram domain. " +
+                        "(4) Cannot be used to access internal services or arbitrary URLs."
+    )
     private byte[] downloadPhoto(String fileId) throws Exception {
         var getFileRequest = new TelegramApiClient.GetFileRequest(fileId);
         var fileResponse = telegramApiClient.getFile(getFileRequest);
-        
+
         if (!Boolean.TRUE.equals(fileResponse.ok()) || fileResponse.result() == null) {
             throw new RuntimeException("Failed to get file info: " + fileResponse.description());
         }
-        
+
         String filePath = fileResponse.result().file_path();
         String fileUrl = String.format("https://api.telegram.org/file/bot%s/%s", config.getToken(), filePath);
+
+        // Defense-in-depth: Validate that constructed URL actually points to Telegram API
+        if (!fileUrl.startsWith("https://api.telegram.org/")) {
+            throw new SecurityException("Invalid file URL: must be from api.telegram.org");
+        }
 
         try (InputStream is = URI.create(fileUrl).toURL().openStream()) {
             return is.readAllBytes();

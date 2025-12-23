@@ -8,6 +8,7 @@ import com.artivisi.accountingfinance.repository.DocumentRepository;
 import com.artivisi.accountingfinance.repository.InvoiceRepository;
 import com.artivisi.accountingfinance.repository.JournalEntryRepository;
 import com.artivisi.accountingfinance.repository.TransactionRepository;
+import com.artivisi.accountingfinance.security.LogSanitizer;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -62,7 +63,9 @@ public class DocumentService {
         document.setTransaction(transaction);
 
         Document saved = documentRepository.save(document);
-        log.info("Uploaded document {} for transaction {}", saved.getId(), transactionId);
+        log.info("Uploaded document {} for transaction {}",
+                LogSanitizer.sanitize(saved.getId().toString()),
+                LogSanitizer.sanitize(transactionId.toString()));
         return saved;
     }
 
@@ -75,7 +78,9 @@ public class DocumentService {
         document.setJournalEntry(journalEntry);
 
         Document saved = documentRepository.save(document);
-        log.info("Uploaded document {} for journal entry {}", saved.getId(), journalEntryId);
+        log.info("Uploaded document {} for journal entry {}",
+                LogSanitizer.sanitize(saved.getId().toString()),
+                LogSanitizer.sanitize(journalEntryId.toString()));
         return saved;
     }
 
@@ -88,7 +93,9 @@ public class DocumentService {
         document.setInvoice(invoice);
 
         Document saved = documentRepository.save(document);
-        log.info("Uploaded document {} for invoice {}", saved.getId(), invoiceId);
+        log.info("Uploaded document {} for invoice {}",
+                LogSanitizer.sanitize(saved.getId().toString()),
+                LogSanitizer.sanitize(invoiceId.toString()));
         return saved;
     }
 
@@ -103,7 +110,7 @@ public class DocumentService {
         document.softDelete();
         documentRepository.save(document);
 
-        log.info("Deleted document {}", id);
+        log.info("Deleted document {}", LogSanitizer.sanitize(id.toString()));
     }
 
     public Resource loadAsResource(UUID id) {

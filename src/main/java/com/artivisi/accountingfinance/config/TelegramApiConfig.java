@@ -15,16 +15,11 @@ import org.springframework.web.service.invoker.HttpServiceProxyFactory;
 @ConditionalOnProperty(prefix = "telegram.bot", name = "enabled", havingValue = "true", matchIfMissing = false)
 public class TelegramApiConfig {
 
-    private final TelegramConfig telegramConfig;
-
-    public TelegramApiConfig(TelegramConfig telegramConfig) {
-        this.telegramConfig = telegramConfig;
-    }
-
     @Bean
-    public RestClient telegramRestClient() {
+    public RestClient telegramRestClient(TelegramConfig telegramConfig) {
+        // Use method parameter injection to avoid storing mutable object reference
         String baseUrl = String.format("https://api.telegram.org/bot%s", telegramConfig.getToken());
-        
+
         return RestClient.builder()
                 .baseUrl(baseUrl)
                 .build();
