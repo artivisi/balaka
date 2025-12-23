@@ -14,6 +14,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.Base64;
 
@@ -37,7 +38,7 @@ public class FileEncryptionService {
     private static final String ALGORITHM = "AES/GCM/NoPadding";
     private static final int GCM_IV_LENGTH = 12;
     private static final int GCM_TAG_LENGTH = 128;
-    private static final byte[] MAGIC_HEADER = "ENCF".getBytes(); // Encrypted File marker
+    private static final byte[] MAGIC_HEADER = "ENCF".getBytes(StandardCharsets.UTF_8); // Encrypted File marker
     private static final int VERSION = 1;
 
     private SecretKey secretKey;

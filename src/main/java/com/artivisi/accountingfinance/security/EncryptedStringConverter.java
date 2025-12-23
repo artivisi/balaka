@@ -11,6 +11,7 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.Base64;
 
@@ -92,7 +93,7 @@ public class EncryptedStringConverter implements AttributeConverter<String, Stri
             cipher.init(Cipher.ENCRYPT_MODE, secretKey, parameterSpec);
 
             // Encrypt
-            byte[] ciphertext = cipher.doFinal(attribute.getBytes());
+            byte[] ciphertext = cipher.doFinal(attribute.getBytes(StandardCharsets.UTF_8));
 
             // Combine IV + ciphertext
             ByteBuffer byteBuffer = ByteBuffer.allocate(iv.length + ciphertext.length);
@@ -143,7 +144,7 @@ public class EncryptedStringConverter implements AttributeConverter<String, Stri
 
             // Decrypt
             byte[] plaintext = cipher.doFinal(ciphertext);
-            return new String(plaintext);
+            return new String(plaintext, StandardCharsets.UTF_8);
         } catch (Exception e) {
             log.error("Decryption failed: {}", e.getMessage());
             throw new IllegalStateException("Failed to decrypt data", e);
