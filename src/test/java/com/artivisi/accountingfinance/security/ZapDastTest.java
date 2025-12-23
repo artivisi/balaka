@@ -373,23 +373,6 @@ class ZapDastTest {
         }
     }
 
-    private void spiderAsUser(String url, String contextName, String userId) throws Exception {
-        log.info("Starting authenticated spider on {}", url);
-
-        Spider spider = new Spider(zapClient);
-        ApiResponse response = spider.scanAsUser(contextName, userId, url, null, null, null);
-        String scanId = ((ApiResponseElement) response).getValue();
-
-        int progress = 0;
-        while (progress < 100) {
-            Thread.sleep(1000);
-            progress = Integer.parseInt(((ApiResponseElement) spider.status(scanId)).getValue());
-            log.debug("Authenticated spider progress: {}%", progress);
-        }
-
-        log.info("Authenticated spider completed");
-    }
-
     private void waitForPassiveScan() throws Exception {
         log.info("Waiting for passive scan to complete...");
 

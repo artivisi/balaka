@@ -9,6 +9,30 @@ This document provides a checklist for manual security testing of the applicatio
 - [ ] Prepare intercepting proxy (Burp Suite, OWASP ZAP)
 - [ ] Review application architecture and data flow
 
+## Automated DAST Testing
+
+Run OWASP ZAP integration tests before manual testing:
+
+```bash
+# Run DAST only (requires Docker)
+./mvnw test -Dtest=ZapDastTest -Ddast.enabled=true
+
+# Run full test suite including DAST
+./mvnw test -Ddast.enabled=true
+
+# Results saved to:
+# - target/security-reports/zap-baseline-report.html
+# - target/security-reports/zap-authenticated-report.html
+```
+
+The ZapDastTest performs:
+- Baseline scan (login page, public pages)
+- Authenticated scan (dashboard, transactions, reports, etc.)
+- Passive vulnerability scanning
+- Thresholds: 0 HIGH, max 5 MEDIUM alerts allowed
+
+Note: DAST is automatically run in CI (GitHub Actions). Local runs require Docker.
+
 ## 1. Authentication Testing
 
 ### 1.1 Login Functionality

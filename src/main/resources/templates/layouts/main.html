@@ -20,9 +20,9 @@
             evt.detail.headers[csrfHeader] = csrfToken;
         });
     </script>
-    <script defer th:src="@{/js/alpine-persist-3.14.8.min.js}"></script>
-    <script defer th:src="@{/js/alpine-collapse-3.14.8.min.js}"></script>
     <script defer th:src="@{/js/alpine-csp-3.14.8.min.js}"></script>
+    <script defer th:src="@{/js/alpine-collapse-3.14.8.min.js}"></script>
+    <script defer th:src="@{/js/alpine-persist-csp-3.14.8.min.js}"></script>
     <script defer th:src="@{/js/alpine-components.js}"></script>
 </head>
 <body class="bg-gray-50 min-h-screen">
@@ -588,7 +588,6 @@
         <!-- FAB Button -->
         <button id="quick-transaction-fab"
                 data-testid="quick-transaction-fab"
-                onclick="openQuickTransactionModal()"
                 class="fixed bottom-6 right-6 w-14 h-14 bg-primary-600 hover:bg-primary-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all flex items-center justify-center z-50 group"
                 title="Transaksi Cepat">
             <svg class="w-6 h-6 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -604,7 +603,7 @@
                 <!-- Modal Header -->
                 <div class="flex items-center justify-between p-4 border-b border-gray-200 flex-shrink-0">
                     <h2 class="text-lg font-semibold text-gray-900">Transaksi Cepat</h2>
-                    <button onclick="this.closest('dialog').close()"
+                    <button id="quick-transaction-modal-close"
                             class="text-gray-400 hover:text-gray-600">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -647,29 +646,41 @@
                 });
             }
 
-            // Alpine.js component for quick transaction form
-            function quickTransactionForm() {
-                return {
-                    amount: 0,
-                    submitting: false,
+            // Attach event listeners
+            document.addEventListener('DOMContentLoaded', function() {
+                const fab = document.getElementById('quick-transaction-fab');
+                if (fab) {
+                    fab.addEventListener('click', openQuickTransactionModal);
+                }
 
-                    formatAmount(value) {
-                        if (!value) return '';
-                        return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-                    },
+                const modalClose = document.getElementById('quick-transaction-modal-close');
+                if (modalClose) {
+                    modalClose.addEventListener('click', function() {
+                        document.getElementById('quick-transaction-modal').close();
+                    });
+                }
 
-                    updateVariable(event) {
-                        const input = event.target;
-                        const rawValue = input.value.replace(/[^\d]/g, '');
-                        const hiddenInput = input.nextElementSibling;
-                        if (hiddenInput && hiddenInput.classList.contains('var-value')) {
-                            hiddenInput.value = rawValue;
-                        }
-                        input.value = this.formatAmount(rawValue);
-                    },
+                // Event delegation for quick transaction cancel button (loaded via HTMX)
+                document.addEventListener('click', function(e) {
+                    if (e.target.closest('#quick-cancel-btn') || e.target.closest('[data-testid="quick-cancel-button"]')) {
+                        document.getElementById('quick-transaction-modal').close();
+                    }
+                });
 
-                    async submitQuickTransaction() {
-                        this.submitting = true;
+                // Event delegation for quick transaction form submit
+                document.addEventListener('submit', function(e) {
+                    const form = e.target.closest('#quick-transaction-form');
+                    if (form) {
+                        e.preventDefault();
+                        submitQuickTransaction(form);
+                    }
+                });
+            });
+
+            // Quick transaction submit function
+            async function submitQuickTransaction(formElement) {
+                const alpineData = Alpine.$data(formElement);
+                alpineData.submitting = true;
 
                         try {
                             // Collect account mappings
@@ -690,11 +701,15 @@
                                 }
                             });
 
+                            // Parse amount from display input (handles formatted numbers like "1.000.000")
+                            const amountDisplay = document.getElementById('quick-amount-display');
+                            const rawAmount = amountDisplay ? parseInt(amountDisplay.value.replace(/[^\d]/g, '')) || 0 : 0;
+
                             // Build payload
                             const payload = {
                                 templateId: document.getElementById('quick-template-id').value,
                                 transactionDate: document.getElementById('quick-date').value,
-                                amount: parseInt(this.amount) || 0,
+                                amount: rawAmount,
                                 description: document.getElementById('quick-description').value,
                                 referenceNumber: document.getElementById('quick-reference')?.value || '',
                                 notes: document.getElementById('quick-notes')?.value || '',
@@ -713,10 +728,10 @@
                             });
 
                             if (response.ok) {
-                                // Dispatch event for transaction list refresh
-                                document.dispatchEvent(new CustomEvent('transactionsUpdated'));
-                                // Close modal
+                                const result = await response.json();
+                                // Close modal and redirect to transaction detail
                                 document.getElementById('quick-transaction-modal').close();
+                                window.location.href = '/transactions/' + result.id;
                             } else {
                                 const error = await response.text();
                                 console.error('Failed to create transaction:', error);
@@ -726,10 +741,8 @@
                             console.error('Error submitting transaction:', error);
                             alert('Terjadi kesalahan: ' + error.message);
                         } finally {
-                            this.submitting = false;
+                            alpineData.submitting = false;
                         }
-                    }
-                };
             }
         </script>
     </div>

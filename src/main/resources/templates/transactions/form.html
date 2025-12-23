@@ -103,18 +103,7 @@
                 <form id="form-transaksi" th:action="@{/transactions}" method="post"
                       th:data-amount="${prefillAmount != null ? prefillAmount : (initialAmount != null ? initialAmount : 0)}"
                       th:data-description="${prefillDescription != null ? prefillDescription : (initialDescription != null ? initialDescription : '')}"
-                      x-data="{
-                          amount: parseInt($el.dataset.amount) || 0,
-                          description: $el.dataset.description || '',
-                          submitting: false,
-                          formatCurrency(value) {
-                              return new Intl.NumberFormat('id-ID').format(value);
-                          },
-                          parseCurrency(str) {
-                              return parseInt(str.replace(/\D/g, '')) || 0;
-                          }
-                      }"
-                      x-init="console.log('Alpine initialized - amount:', amount, 'description:', description)">
+                      x-data="transactionForm">
                     <!-- Hidden fields -->
                     <input type="hidden" name="templateId" th:value="${selectedTemplate?.id ?: transaction?.journalTemplate?.id}">
                     <input type="hidden" name="id" th:if="${isEdit}" th:value="${transaction?.id}">
@@ -156,9 +145,8 @@
                                 <div class="relative">
                                     <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">Rp</span>
                                     <input type="text" id="amount" name="amountDisplay"
-                                           x-model="amount"
-                                           :value="formatCurrency(amount)"
-                                           @input="amount = parseCurrency($event.target.value); $dispatch('amount-changed')"
+                                           :value="formattedAmount"
+                                           @input="updateAmount"
                                            class="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm text-right font-mono"
                                            placeholder="0"
                                            required>
@@ -180,7 +168,7 @@
                                                    th:data-var-name="${fv.name()}"
                                                    class="var-input w-full pl-8 pr-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-primary-500 focus:border-primary-500 text-right font-mono"
                                                    placeholder="0"
-                                                   @input="$dispatch('var-changed')">
+                                                   @input="dispatchVarChanged">
                                         </div>
                                     </div>
                                 </div>
@@ -203,7 +191,7 @@
                                         </label>
                                         <select th:id="${'accountMapping_' + line.id}"
                                                 th:name="${'accountMapping[' + line.id + ']'}"
-                                                @change="$dispatch('account-changed')"
+                                                @change="dispatchAccountChanged"
                                                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
                                                 required>
                                             <option value="">Pilih akun</option>
@@ -225,7 +213,8 @@
                                     Keterangan <span class="text-red-500">*</span>
                                 </label>
                                 <input type="text" id="description" name="description"
-                                       x-model="description"
+                                       :value="description"
+                                       @input="updateDescription"
                                        placeholder="Contoh: Jasa Konsultasi PT. ABC - Invoice INV-2025-001"
                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
                                        required>
@@ -450,10 +439,14 @@
                         }
                     });
 
+                    // Parse amount from display input (handles formatted numbers like "1.000.000")
+                    const amountDisplay = document.getElementById('amount');
+                    const rawAmount = amountDisplay ? parseInt(amountDisplay.value.replace(/[^\d]/g, '')) || 0 : 0;
+
                     const data = {
                         templateId: templateId,
                         transactionDate: document.getElementById('transactionDate').value,
-                        amount: parseInt(document.querySelector('input[name="amount"]').value) || 0,
+                        amount: rawAmount,
                         description: document.getElementById('description').value,
                         referenceNumber: document.getElementById('referenceNumber')?.value || '',
                         notes: document.getElementById('notes')?.value || '',

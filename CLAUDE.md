@@ -65,7 +65,7 @@ Indonesian accounting application for small businesses. Spring Boot 4.0 + Thymel
 # First-time setup on Ubuntu (install Playwright browsers)
 ./setup-ubuntu.sh
 
-# Run tests
+# Run tests (excludes DAST by default)
 ./mvnw test
 
 # Run specific functional test
@@ -77,6 +77,13 @@ Indonesian accounting application for small businesses. Spring Boot 4.0 + Thymel
 # Run SpotBugs security analysis
 ./mvnw spotbugs:spotbugs
 # Results: target/spotbugsXml.xml or target/site/spotbugs.html
+
+# Run OWASP ZAP DAST security scan (requires Docker)
+./mvnw test -Dtest=ZapDastTest -Ddast.enabled=true
+# Results: target/security-reports/zap-*.html
+
+# Run full test suite INCLUDING DAST (requires Docker, adds ~2+ min)
+./mvnw test -Ddast.enabled=true
 ```
 
 ## Database
