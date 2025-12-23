@@ -83,11 +83,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: GitLeaks Scan
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        continue-on-error: false
+      - name: Install Gitleaks
+        run: |
+          curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.21.2/gitleaks_8.21.2_linux_x64.tar.gz | tar xz
+          sudo mv gitleaks /usr/local/bin/
+
+      - name: Run Gitleaks Scan
+        run: gitleaks detect --source . --verbose --redact --exit-code 1
 
       - name: TruffleHog Scan
         uses: trufflesecurity/trufflehog@main
