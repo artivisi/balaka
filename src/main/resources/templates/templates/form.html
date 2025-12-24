@@ -37,8 +37,9 @@
 
             <!-- Main Form -->
             <form th:action="${isEdit} ? @{/templates/{id}(id=${template.id})} : @{/templates}" method="post"
-                  x-data="templateForm()"
-                  x-init="init()">
+                  x-data="templateForm"
+                  x-init="init()"
+                  data-testid="template-form">
 
                 <!-- Template Info Section -->
                 <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
@@ -158,6 +159,7 @@
                         <div class="flex items-center justify-between mb-4">
                             <h2 class="text-lg font-semibold text-gray-900">Konfigurasi Jurnal</h2>
                             <button type="button" @click="addLine()"
+                                    data-testid="btn-add-line"
                                     class="px-3 py-1.5 text-xs font-medium text-primary-700 bg-primary-50 rounded-lg hover:bg-primary-100 transition-colors">
                                 <span class="flex items-center">
                                     <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -204,9 +206,9 @@
                                     <!-- Account Selection -->
                                     <div class="col-span-3">
                                         <select x-model="line.accountId"
-                                                :id="'line-account-' + index"
-                                                :name="'lines[' + index + '].accountId'"
-                                                @change="line.isDynamic = (line.accountId === '')"
+                                                data-testid="line-account-0"
+                                                :name="lineName(index, 'accountId')"
+                                                @change="setDynamic(line)"
                                                 class="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
                                             <option value="">[ Pilih saat transaksi ]</option>
                                             <option th:each="account : ${accounts}"
@@ -214,30 +216,32 @@
                                                     th:text="${account.accountCode + ' - ' + account.accountName}">Account</option>
                                         </select>
                                         <!-- Account Hint (shown when account is not selected) -->
-                                        <input :class="{ 'hidden': line.accountId && line.accountId !== '' }"
+                                        <input :class="{ 'hidden': hasAccountId(line) }"
                                                type="text"
                                                x-model="line.accountHint"
-                                               :name="'lines[' + index + '].accountHint'"
+                                               :name="lineName(index, 'accountHint')"
                                                placeholder="Hint: Bank/Kas, Akun Beban, dll"
                                                class="w-full px-2 py-1 text-xs border border-blue-300 rounded mt-1 bg-blue-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                        <input type="hidden" :name="'lines[' + index + '].lineOrder'" :value="index + 1">
+                                        <input type="hidden" :name="lineName(index, 'lineOrder')" :value="lineOrder(index)">
                                     </div>
 
                                     <!-- Position (Debit/Credit) -->
                                     <div class="col-span-2 flex justify-center">
-                                        <input type="hidden" :name="'lines[' + index + '].position'" :value="line.position">
+                                        <input type="hidden" :name="lineName(index, 'position')" x-model="line.position">
                                         <div class="inline-flex rounded-lg border border-gray-300 overflow-hidden">
                                             <button type="button"
-                                                    :id="'btn-debit-' + index"
-                                                    @click="line.position = 'DEBIT'"
-                                                    :class="line.position === 'DEBIT' ? 'bg-primary-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'"
+                                                    :id="lineDebitBtnId(index)"
+                                                    :data-testid="lineDebitBtnId(index)"
+                                                    @click="setPositionDebit(line)"
+                                                    :class="debitBtnClass(line)"
                                                     class="px-2 py-1 text-xs font-medium transition-colors">
                                                 D
                                             </button>
                                             <button type="button"
-                                                    :id="'btn-credit-' + index"
-                                                    @click="line.position = 'CREDIT'"
-                                                    :class="line.position === 'CREDIT' ? 'bg-primary-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'"
+                                                    :id="lineCreditBtnId(index)"
+                                                    :data-testid="lineCreditBtnId(index)"
+                                                    @click="setPositionCredit(line)"
+                                                    :class="creditBtnClass(line)"
                                                     class="px-2 py-1 text-xs font-medium border-l border-gray-300 transition-colors">
                                                 K
                                             </button>
@@ -248,30 +252,30 @@
                                     <div class="col-span-2">
                                         <input type="text" x-model="line.formula"
                                                @input="updateLinePreview(index)"
-                                               :name="'lines[' + index + '].formula'"
+                                               :name="lineName(index, 'formula')"
                                                placeholder="amount"
                                                class="w-full px-2 py-1.5 text-xs font-mono border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
                                     </div>
 
                                     <!-- Preview Result -->
                                     <div class="col-span-2 text-right">
-                                        <template x-if="line.previewLoading">
+                                        <template x-if="showPreviewLoading(line)">
                                             <span class="text-xs text-gray-400">...</span>
                                         </template>
-                                        <template x-if="!line.previewLoading && line.previewError">
+                                        <template x-if="showPreviewError(line)">
                                             <span class="text-xs text-red-500" :title="line.previewError">Error</span>
                                         </template>
-                                        <template x-if="!line.previewLoading && !line.previewError && line.previewResult">
+                                        <template x-if="showPreviewResult(line)">
                                             <span class="text-xs font-mono text-gray-700" x-text="line.previewResult"></span>
                                         </template>
-                                        <template x-if="!line.previewLoading && !line.previewError && !line.previewResult">
+                                        <template x-if="showPreviewEmpty(line)">
                                             <span class="text-xs text-gray-400">-</span>
                                         </template>
                                     </div>
 
                                     <!-- Dynamic Indicator -->
                                     <div class="col-span-1 flex justify-center">
-                                        <span :class="{ 'hidden': line.accountId && line.accountId !== '' }"
+                                        <span :class="{ 'hidden': hasAccountId(line) }"
                                               class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-700 font-bold text-xs"
                                               title="Akun dipilih saat input transaksi">
                                             ?
@@ -281,26 +285,26 @@
                                     <!-- Actions -->
                                     <div class="col-span-2 flex justify-center space-x-2">
                                         <button type="button"
-                                                @click="if (index > 0) { const temp = journalLines[index]; journalLines[index] = journalLines[index-1]; journalLines[index-1] = temp; }"
+                                                @click="moveUp(index)"
                                                 :disabled="index === 0"
-                                                :class="index === 0 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:text-gray-700'"
+                                                :class="moveUpBtnClass(index)"
                                                 class="p-1 transition-colors">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/>
                                             </svg>
                                         </button>
                                         <button type="button"
-                                                @click="if (index < journalLines.length - 1) { const temp = journalLines[index]; journalLines[index] = journalLines[index+1]; journalLines[index+1] = temp; }"
-                                                :disabled="index === journalLines.length - 1"
-                                                :class="index === journalLines.length - 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:text-gray-700'"
+                                                @click="moveDown(index)"
+                                                :disabled="isLastLine(index)"
+                                                :class="moveDownBtnClass(index)"
                                                 class="p-1 transition-colors">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                                             </svg>
                                         </button>
                                         <button type="button" @click="removeLine(line.id)"
-                                                :disabled="journalLines.length <= 2"
-                                                :class="journalLines.length <= 2 ? 'text-gray-300 cursor-not-allowed' : 'text-red-500 hover:text-red-700'"
+                                                :disabled="!canRemoveLine"
+                                                :class="removeBtnClass()"
                                                 class="p-1 transition-colors">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
@@ -314,13 +318,13 @@
                             <div class="px-4 py-3 bg-gray-50 border-t border-gray-200">
                                 <div class="flex items-center justify-between text-sm">
                                     <div class="flex items-center space-x-4">
-                                        <span class="text-gray-600">Total baris: <span class="font-medium text-gray-900" x-text="journalLines.length"></span></span>
+                                        <span class="text-gray-600">Total baris: <span class="font-medium text-gray-900" x-text="lineCount"></span></span>
                                         <span class="text-gray-400">|</span>
-                                        <span class="text-gray-600">Debit: <span class="font-medium text-gray-900" x-text="journalLines.filter(l => l.position === 'DEBIT').length"></span></span>
-                                        <span class="text-gray-600">Kredit: <span class="font-medium text-gray-900" x-text="journalLines.filter(l => l.position === 'CREDIT').length"></span></span>
+                                        <span class="text-gray-600">Debit: <span class="font-medium text-gray-900" x-text="debitCount"></span></span>
+                                        <span class="text-gray-600">Kredit: <span class="font-medium text-gray-900" x-text="creditCount"></span></span>
                                     </div>
                                     <div class="flex items-center text-xs">
-                                        <template x-if="journalLines.filter(l => l.position === 'DEBIT').length > 0 && journalLines.filter(l => l.position === 'CREDIT').length > 0">
+                                        <template x-if="hasDebitAndCredit">
                                             <span class="flex items-center text-accent-700">
                                                 <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
@@ -328,7 +332,7 @@
                                                 Struktur valid
                                             </span>
                                         </template>
-                                        <template x-if="journalLines.filter(l => l.position === 'DEBIT').length === 0 || journalLines.filter(l => l.position === 'CREDIT').length === 0">
+                                        <template x-if="!hasDebitAndCredit">
                                             <span class="flex items-center text-amber-600">
                                                 <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
@@ -376,7 +380,7 @@
                             <!-- Preview Button -->
                             <button type="button" id="btn-preview" @click="showPreview()"
                                     :disabled="!isValidForPreview()"
-                                    :class="!isValidForPreview() ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'"
+                                    :class="previewBtnClass()"
                                     class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg transition-colors">
                                 <span class="flex items-center">
                                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -418,6 +422,111 @@
                 nextLineId: 1,
                 previewAmount: '10.000.000',
                 previewDebounceTimers: {},
+
+                // CSP-safe getters to replace inline expressions
+                get lineCount() {
+                    return this.journalLines ? this.journalLines.length : 0;
+                },
+                get debitCount() {
+                    return this.journalLines ? this.journalLines.filter(l => l.position === 'DEBIT').length : 0;
+                },
+                get creditCount() {
+                    return this.journalLines ? this.journalLines.filter(l => l.position === 'CREDIT').length : 0;
+                },
+                get hasDebitAndCredit() {
+                    return this.debitCount > 0 && this.creditCount > 0;
+                },
+                get canRemoveLine() {
+                    return this.lineCount > 2;
+                },
+                isLastLine(index) {
+                    return index === this.lineCount - 1;
+                },
+                canMoveDown(index) {
+                    return index < this.lineCount - 1;
+                },
+
+                moveUp(index) {
+                    if (index > 0) {
+                        const temp = this.journalLines[index];
+                        this.journalLines[index] = this.journalLines[index - 1];
+                        this.journalLines[index - 1] = temp;
+                    }
+                },
+
+                moveDown(index) {
+                    if (this.canMoveDown(index)) {
+                        const temp = this.journalLines[index];
+                        this.journalLines[index] = this.journalLines[index + 1];
+                        this.journalLines[index + 1] = temp;
+                    }
+                },
+
+                // CSP-safe methods for field name generation
+                lineName(index, field) {
+                    return 'lines[' + index + '].' + field;
+                },
+                lineDebitBtnId(index) {
+                    return 'btn-debit-' + index;
+                },
+                lineCreditBtnId(index) {
+                    return 'btn-credit-' + index;
+                },
+                lineOrder(index) {
+                    return index + 1;
+                },
+
+                // CSP-safe methods for line operations
+                setDynamic(line) {
+                    if (line) line.isDynamic = (line.accountId === '');
+                },
+                setPositionDebit(line) {
+                    if (line) line.position = 'DEBIT';
+                },
+                setPositionCredit(line) {
+                    if (line) line.position = 'CREDIT';
+                },
+                isDebit(line) {
+                    return line && line.position === 'DEBIT';
+                },
+                isCredit(line) {
+                    return line && line.position === 'CREDIT';
+                },
+                debitBtnClass(line) {
+                    return this.isDebit(line) ? 'bg-primary-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50';
+                },
+                creditBtnClass(line) {
+                    return this.isCredit(line) ? 'bg-primary-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50';
+                },
+                moveUpBtnClass(index) {
+                    return index === 0 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:text-gray-700';
+                },
+                moveDownBtnClass(index) {
+                    return this.isLastLine(index) ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:text-gray-700';
+                },
+                removeBtnClass() {
+                    return !this.canRemoveLine ? 'text-gray-300 cursor-not-allowed' : 'text-red-500 hover:text-red-700';
+                },
+                previewBtnClass() {
+                    return !this.isValidForPreview() ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50';
+                },
+
+                // CSP-safe methods for complex expressions
+                hasAccountId(line) {
+                    return line && line.accountId && line.accountId !== '';
+                },
+                showPreviewLoading(line) {
+                    return line && line.previewLoading;
+                },
+                showPreviewError(line) {
+                    return line && !line.previewLoading && line.previewError;
+                },
+                showPreviewResult(line) {
+                    return line && !line.previewLoading && !line.previewError && line.previewResult;
+                },
+                showPreviewEmpty(line) {
+                    return line && !line.previewLoading && !line.previewError && !line.previewResult;
+                },
 
                 formatPreviewAmount() {
                     let value = this.previewAmount.replace(/\D/g, '');
@@ -807,6 +916,11 @@
                 }
             };
         }
+
+        // Register the component for CSP compatibility
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('templateForm', templateForm);
+        });
     </script>
     </th:block>
 </body>

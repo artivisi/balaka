@@ -12,22 +12,10 @@
 // Reinitialize Alpine.js components after HTMX settles
 // See: https://github.com/alpinejs/alpine/discussions/4478
 document.addEventListener('htmx:afterSettle', (event) => {
-    console.log('htmx:afterSettle triggered', event.detail.target)
     // Destroy and reinitialize Alpine components in the swapped content
     if (window.Alpine && event.detail.target) {
-        console.log('Reinitializing Alpine for:', event.detail.target.id || event.detail.target.tagName)
-        // Check if there are Alpine components in the content
-        const alpineElements = event.detail.target.querySelectorAll('[x-data]')
-        console.log('Found x-data elements:', alpineElements.length)
-        alpineElements.forEach(el => console.log('  x-data:', el.getAttribute('x-data')))
-
         Alpine.destroyTree(event.detail.target)
         Alpine.initTree(event.detail.target)
-
-        // Verify initialization
-        alpineElements.forEach(el => {
-            console.log('  Initialized?', el._x_dataStack ? 'yes' : 'no')
-        })
     }
 });
 
@@ -53,6 +41,15 @@ function registerAlpineComponents() {
         hasQuery: false,
         toggle() {
             this.open = !this.open
+        },
+        openDropdown() {
+            this.open = true
+        },
+        closeDropdown() {
+            this.open = false
+        },
+        updateHasQuery(event) {
+            this.hasQuery = event.target.value.length > 0
         }
     }))
 
@@ -91,7 +88,13 @@ function registerAlpineComponents() {
 
     // ID type selector
     Alpine.data('idTypeSelector', () => ({
-        idType: ''
+        idType: '',
+        initFromElement(el) {
+            this.idType = el.value || ''
+        },
+        updateFromEvent(event) {
+            this.idType = event.target.value
+        }
     }))
 
     // Void transaction form
@@ -101,8 +104,19 @@ function registerAlpineComponents() {
     }))
 
     // Percentage toggle for salary components
-    Alpine.data('percentageToggle', (initialValue = false) => ({
-        isPercentage: initialValue
+    Alpine.data('percentageToggle', () => ({
+        isPercentage: false,
+        init() {
+            // Initialize from data attribute
+            const initial = this.$el.dataset.initialPercentage
+            this.isPercentage = initial === 'true'
+        },
+        setFixed() {
+            this.isPercentage = false
+        },
+        setPercentage() {
+            this.isPercentage = true
+        }
     }))
 
     // Persistent navigation state for accounting section
@@ -192,6 +206,20 @@ function registerAlpineComponents() {
         // CSP-compatible getters (operators not supported in CSP build)
         get notSubmitting() {
             return !this.submitting
+        },
+
+        getSubmitButtonText() {
+            if (this.submitting) {
+                return 'Menyimpan...'
+            }
+            return 'Simpan Draft'
+        },
+
+        getSubmitPostButtonText() {
+            if (this.submitting) {
+                return 'Memproses...'
+            }
+            return 'Simpan & Posting'
         },
 
         // Getter - accessed as property in :value="formattedAmount"

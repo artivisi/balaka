@@ -9,7 +9,9 @@
 <body>
     <h1 id="page-title" layout:fragment="page-title" th:text="${component.id != null} ? 'Edit Komponen Gaji' : 'Komponen Gaji Baru'">Komponen Gaji</h1>
 
-    <div layout:fragment="content" class="max-w-2xl" th:attr="x-data=|{ isPercentage: ${component.isPercentage} }|">
+    <div layout:fragment="content" class="max-w-2xl"
+         x-data="percentageToggle"
+         th:data-initial-percentage="${component.isPercentage}">
         <div class="bg-white rounded-lg shadow p-6">
             <form th:action="${component.id != null} ? @{/salary-components/{id}(id=${component.id})} : @{/salary-components/new}"
                   th:object="${component}"
@@ -74,21 +76,23 @@
                     <div class="flex gap-4">
                         <label class="flex items-center gap-2 cursor-pointer">
                             <input type="radio" th:field="*{isPercentage}" value="false"
+                                   data-testid="radio-fixed"
                                    class="text-primary-600 focus:ring-primary-500"
-                                   x-on:change="isPercentage = false">
+                                   @change="setFixed">
                             <span class="text-sm text-gray-700">Nominal Tetap</span>
                         </label>
                         <label class="flex items-center gap-2 cursor-pointer">
                             <input type="radio" th:field="*{isPercentage}" value="true"
+                                   data-testid="radio-percentage"
                                    class="text-primary-600 focus:ring-primary-500"
-                                   x-on:change="isPercentage = true">
+                                   @change="setPercentage">
                             <span class="text-sm text-gray-700">Persentase</span>
                         </label>
                     </div>
                 </div>
 
                 <!-- Default Amount -->
-                <div :class="{ 'hidden': isPercentage }" x-cloak>
+                <div :class="{ 'hidden': isPercentage }" x-cloak data-testid="amount-input-container">
                     <label for="defaultAmount" class="block text-sm font-medium text-gray-700 mb-1">Nilai Default (Rp)</label>
                     <input type="number" id="defaultAmount" th:field="*{defaultAmount}"
                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
@@ -97,7 +101,7 @@
                 </div>
 
                 <!-- Default Rate (stored as percentage, e.g., 4.0 for 4%) -->
-                <div :class="{ 'hidden': !isPercentage }" x-cloak>
+                <div :class="{ 'hidden': !isPercentage }" x-cloak data-testid="percentage-input-container">
                     <label for="defaultRate" class="block text-sm font-medium text-gray-700 mb-1">Persentase Default (%)</label>
                     <input type="number" id="defaultRate" th:field="*{defaultRate}"
                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"

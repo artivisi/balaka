@@ -119,7 +119,8 @@
             </div>
 
             <!-- Children (recursive) -->
-            <div :class="{ 'hidden': !expanded }" x-cloak th:if="${!#lists.isEmpty(account.children)}">
+            <div :class="{ 'hidden': !expanded }" x-cloak th:if="${!#lists.isEmpty(account.children)}"
+                 th:data-testid="'account-children-' + ${#strings.replace(account.accountCode, '.', '-')}">
                 <th:block th:each="child : ${account.children}">
                     <div th:replace="~{accounts/fragments :: accountRow(account=${child}, level=${level + 1})}"></div>
                 </th:block>

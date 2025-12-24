@@ -20,11 +20,12 @@
             evt.detail.headers[csrfHeader] = csrfToken;
         });
     </script>
-    <!-- Alpine.js CSP build for components that need JS logic -->
-    <!-- Note: persist plugin doesn't need CSP build - it doesn't use eval -->
-    <script defer th:src="@{/js/alpine-persist-3.14.8.min.js}"></script>
-    <script defer th:src="@{/js/alpine-csp-3.14.8.min.js}"></script>
+    <!-- Alpine.js CSP build v3.15.3 - includes expression parser for operators/ternary -->
+    <!-- IMPORTANT: alpine-components.js must load BEFORE alpine-csp.js so the alpine:init
+         listener is attached before Alpine fires it and processes the DOM -->
+    <script defer th:src="@{/js/alpine-persist-3.15.3.min.js}"></script>
     <script defer th:src="@{/js/alpine-components.js}"></script>
+    <script defer th:src="@{/js/alpine-csp-3.15.3.min.js}"></script>
     <style th:attr="nonce=${cspNonce}">
         /* Style details/summary for sidebar navigation */
         nav details > summary {

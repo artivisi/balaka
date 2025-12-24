@@ -337,7 +337,7 @@ public class DashboardService {
 
     public record QuickTemplate(
             java.util.UUID id,
-            String name,
+            String templateName,
             com.artivisi.accountingfinance.enums.TemplateCategory category,
             Integer usageCount,
             java.time.LocalDateTime lastUsedAt

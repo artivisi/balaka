@@ -152,6 +152,7 @@
                                     </svg>
                                 </a>
                                 <a th:href="@{/transactions/new(templateId=${template.id})}"
+                                   th:id="'btn-use-' + ${template.id}"
                                    class="p-1.5 text-white bg-primary-600 hover:bg-primary-700 rounded transition-colors"
                                    title="Gunakan">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -2,8 +2,9 @@
 <html xmlns:th="http://www.thymeleaf.org" lang="id">
 <body>
     <!-- Formula Help Panel - Include with th:replace="fragments/formula-help :: formula-help" -->
-    <div th:fragment="formula-help" x-data="formulaHelp()" class="mt-4">
+    <div th:fragment="formula-help" x-data="formulaHelp" class="mt-4">
         <button @click="toggle" type="button"
+                data-testid="btn-formula-help-toggle"
                 class="flex items-center text-sm text-primary-600 hover:text-primary-800 transition-colors">
             <svg class="w-4 h-4 mr-2" :class="{ 'rotate-90': open }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
@@ -11,7 +12,7 @@
             Bantuan Formula
         </button>
 
-        <div :class="{ 'hidden': !open }" class="mt-3 bg-blue-50 rounded-lg border border-blue-200 overflow-hidden">
+        <div :class="{ 'hidden': !open }" data-testid="formula-help-content" class="mt-3 bg-blue-50 rounded-lg border border-blue-200 overflow-hidden">
             <!-- Tab Navigation -->
             <div class="flex border-b border-blue-200 bg-blue-100">
                 <button @click="setTabTry" type="button"
@@ -427,6 +428,11 @@
                 }
             };
         }
+
+        // Register the component for CSP compatibility
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('formulaHelp', formulaHelp);
+        });
     </script>
 </body>
 </html>

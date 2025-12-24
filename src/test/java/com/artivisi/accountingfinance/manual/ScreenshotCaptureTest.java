@@ -1,9 +1,11 @@
 package com.artivisi.accountingfinance.manual;
 
+import com.artivisi.accountingfinance.functional.service.ServiceTestDataInitializer;
 import com.artivisi.accountingfinance.ui.PlaywrightTestBase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.nio.file.Files;
@@ -14,6 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("User Manual Screenshot Capture")
 @ActiveProfiles("screenshot")
+@Import(ServiceTestDataInitializer.class)
 class ScreenshotCaptureTest extends PlaywrightTestBase {
 
     private static final Path SCREENSHOTS_DIR = Paths.get("target", "user-manual", "screenshots");

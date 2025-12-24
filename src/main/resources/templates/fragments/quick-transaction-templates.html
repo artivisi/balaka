@@ -11,7 +11,7 @@
             <div class="space-y-2">
                 <button th:each="template : ${frequentTemplates}"
                         th:data-testid="${'template-frequent-' + template.id()}"
-                        th:title="${template.name()}"
+                        th:title="${template.templateName()}"
                         hx-get="/transactions/quick/form"
                         th:hx-vals="${'{&quot;templateId&quot;: &quot;' + template.id() + '&quot;}'}"
                         hx-target="#quick-transaction-content"
@@ -31,7 +31,7 @@
                             </svg>
                         </div>
                         <div class="ml-3 text-left min-w-0 flex-1">
-                            <p class="text-sm font-medium text-gray-900 truncate" th:text="${template.name()}">Template Name</p>
+                            <p class="text-sm font-medium text-gray-900 truncate" th:text="${template.templateName()}">Template Name</p>
                             <p class="text-xs text-gray-500" th:text="${template.usageCount() + 'x'}">10x</p>
                         </div>
                     </div>
@@ -50,7 +50,7 @@
             <div class="space-y-2">
                 <button th:each="template : ${recentTemplates}"
                         th:data-testid="${'template-recent-' + template.id()}"
-                        th:title="${template.name()}"
+                        th:title="${template.templateName()}"
                         hx-get="/transactions/quick/form"
                         th:hx-vals="${'{&quot;templateId&quot;: &quot;' + template.id() + '&quot;}'}"
                         hx-target="#quick-transaction-content"
@@ -70,7 +70,7 @@
                             </svg>
                         </div>
                         <div class="ml-3 text-left min-w-0 flex-1">
-                            <p class="text-sm font-medium text-gray-900 truncate" th:text="${template.name()}">Template Name</p>
+                            <p class="text-sm font-medium text-gray-900 truncate" th:text="${template.templateName()}">Template Name</p>
                             <p class="text-xs text-gray-500"
                                th:text="${#temporals.format(template.lastUsedAt(), 'd MMM HH:mm')}">1 Nov 10:30</p>
                         </div>

@@ -86,15 +86,16 @@
             <!-- Template Search Autocomplete -->
             <div sec:authorize="hasAuthority('TRANSACTION_CREATE')"
                  x-data="searchFilterState"
-                 @click.outside="open = false"
+                 @click.outside="closeDropdown"
                  class="relative w-full lg:w-80">
                 <div class="relative">
                     <input id="template-search"
                            type="search"
+                           data-testid="search-input"
                            placeholder="Cari template transaksi..."
                            autocomplete="off"
-                           @focus="open = true"
-                           @input="hasQuery = $event.target.value.length > 0"
+                           @focus="openDropdown"
+                           @input="updateHasQuery"
                            hx-get="/transactions/templates/search"
                            hx-trigger="keyup changed delay:300ms, focus"
                            hx-target="#template-search-results"
@@ -107,7 +108,8 @@
                 </div>
 
                 <!-- Results dropdown (populated by HTMX) -->
-                <div :class="{ 'hidden': !open }">
+                <div x-show="open" x-cloak data-testid="search-dropdown"
+                     class="absolute z-50 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 max-h-64 overflow-y-auto">
                     <div id="template-search-results">
                         <!-- HTMX will populate this -->
                     </div>
