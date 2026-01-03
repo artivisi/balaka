@@ -94,9 +94,9 @@ public class DocumentStorageService {
         Files.write(targetPath, contentToStore);
 
         if (fileEncryptionService.isEncryptionEnabled()) {
-            log.debug("Stored encrypted file: {} -> {}", LogSanitizer.filename(originalFilename), targetPath);
+            log.debug("Stored encrypted file: {} -> {}", LogSanitizer.filename(originalFilename), LogSanitizer.sanitize(targetPath.toString()));
         } else {
-            log.debug("Stored file (unencrypted): {} -> {}", LogSanitizer.filename(originalFilename), targetPath);
+            log.debug("Stored file (unencrypted): {} -> {}", LogSanitizer.filename(originalFilename), LogSanitizer.sanitize(targetPath.toString()));
         }
 
         // Return relative path from root

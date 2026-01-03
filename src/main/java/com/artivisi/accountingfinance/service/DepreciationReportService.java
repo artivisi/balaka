@@ -28,7 +28,6 @@ public class DepreciationReportService {
      * This is used as attachment for SPT Tahunan Badan (Lampiran Khusus 1A).
      */
     public DepreciationReport generateReport(int year) {
-        LocalDate yearStart = LocalDate.of(year, 1, 1);
         LocalDate yearEnd = LocalDate.of(year, 12, 31);
 
         List<FixedAsset> assets = fixedAssetRepository.findAll()
