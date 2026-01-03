@@ -194,7 +194,7 @@ public class PayrollController {
             RedirectAttributes redirectAttributes
     ) {
         try {
-            PayrollRun payrollRun = payrollService.calculatePayroll(id, baseSalary, jkkRiskClass);
+            payrollService.calculatePayroll(id, baseSalary, jkkRiskClass);
             redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE,
                 "Payroll berhasil dikalkulasi ulang");
         } catch (Exception e) {

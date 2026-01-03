@@ -19,12 +19,14 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 @Entity
@@ -83,14 +85,24 @@ public class JournalTemplate extends BaseEntity {
     private LocalDateTime lastUsedAt;
 
     @JsonIgnore
+    @Getter(AccessLevel.NONE)
     @OneToMany(mappedBy = "journalTemplate", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @OrderBy("lineOrder ASC")
     private List<JournalTemplateLine> lines = new ArrayList<>();
 
     @JsonIgnore
+    @Getter(AccessLevel.NONE)
     @OneToMany(mappedBy = "journalTemplate", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @OrderBy("tag ASC")
     private List<JournalTemplateTag> tags = new ArrayList<>();
+
+    public List<JournalTemplateLine> getLines() {
+        return Collections.unmodifiableList(lines);
+    }
+
+    public List<JournalTemplateTag> getTags() {
+        return Collections.unmodifiableList(tags);
+    }
 
     public void addLine(JournalTemplateLine line) {
         lines.add(line);

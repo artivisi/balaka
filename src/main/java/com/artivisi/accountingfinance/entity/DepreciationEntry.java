@@ -123,7 +123,7 @@ public class DepreciationEntry {
      * Get period display name (e.g., "Januari 2025").
      */
     public String getPeriodDisplayName() {
-        return periodEnd.getMonth().getDisplayName(java.time.format.TextStyle.FULL, new java.util.Locale("id"))
+        return periodEnd.getMonth().getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.of("id"))
                 + " " + periodEnd.getYear();
     }
 }

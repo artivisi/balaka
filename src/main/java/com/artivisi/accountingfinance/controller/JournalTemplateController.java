@@ -286,7 +286,7 @@ public class JournalTemplateController {
     }
 
     private String formatCurrency(java.math.BigDecimal amount) {
-        java.text.NumberFormat formatter = java.text.NumberFormat.getInstance(new java.util.Locale("id", "ID"));
+        java.text.NumberFormat formatter = java.text.NumberFormat.getInstance(java.util.Locale.of("id", "ID"));
         return formatter.format(amount.longValue());
     }
 

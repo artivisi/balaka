@@ -95,7 +95,7 @@ public class TransactionService {
 
     @Transactional
     public Transaction create(Transaction transaction, Map<UUID, UUID> accountMappings) {
-        return create(transaction, accountMappings, null, null);
+        return create(transaction, accountMappings, null);
     }
 
     /**
@@ -105,11 +105,10 @@ public class TransactionService {
      * @param transaction the transaction entity
      * @param accountMappings map of template line ID to account ID for dynamic account selection
      * @param variables map of variable name to value for DETAILED templates (can be null)
-     * @param stringAccountMappings unused, kept for API compatibility
      */
     @Transactional
     public Transaction create(Transaction transaction, Map<UUID, UUID> accountMappings,
-                              Map<String, BigDecimal> variables, Map<String, String> stringAccountMappings) {
+                              Map<String, BigDecimal> variables) {
         // Transaction number is NOT generated here - it will be generated when posting
         // This avoids gaps in numbering when drafts are deleted
         transaction.setTransactionNumber(null);

@@ -83,7 +83,7 @@ public class AssetCategoryController {
         }
 
         try {
-            AssetCategory saved = assetCategoryService.create(category);
+            assetCategoryService.create(category);
             redirectAttributes.addFlashAttribute("successMessage", "Kategori aset berhasil ditambahkan");
             return "redirect:/assets/categories";
         } catch (IllegalArgumentException e) {

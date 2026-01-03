@@ -39,7 +39,7 @@ public class DepreciationReportService {
                 .toList();
 
         List<DepreciationReportItem> items = assets.stream()
-                .map(asset -> createReportItem(asset, year, yearStart, yearEnd))
+                .map(asset -> createReportItem(asset, year))
                 .toList();
 
         BigDecimal totalPurchaseCost = items.stream()
@@ -68,8 +68,7 @@ public class DepreciationReportService {
         );
     }
 
-    private DepreciationReportItem createReportItem(FixedAsset asset, int year,
-            LocalDate yearStart, LocalDate yearEnd) {
+    private DepreciationReportItem createReportItem(FixedAsset asset, int year) {
         // Calculate depreciation for this year
         BigDecimal depreciationThisYear = calculateYearlyDepreciation(asset, year);
 

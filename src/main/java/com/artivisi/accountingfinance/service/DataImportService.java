@@ -491,17 +491,29 @@ public class DataImportService {
 
     private BigDecimal parseBigDecimal(String value) {
         if (value == null || value.isEmpty()) return null;
-        return new BigDecimal(value);
+        try {
+            return new BigDecimal(value);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Invalid decimal value: " + LogSanitizer.sanitize(value), e);
+        }
     }
 
     private Integer parseInteger(String value) {
         if (value == null || value.isEmpty()) return null;
-        return Integer.parseInt(value);
+        try {
+            return Integer.parseInt(value);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Invalid integer value: " + LogSanitizer.sanitize(value), e);
+        }
     }
 
     private Long parseLong(String value) {
         if (value == null || value.isEmpty()) return null;
-        return Long.parseLong(value);
+        try {
+            return Long.parseLong(value);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Invalid long value: " + LogSanitizer.sanitize(value), e);
+        }
     }
 
     private Boolean parseBoolean(String value) {
@@ -511,17 +523,29 @@ public class DataImportService {
 
     private LocalDate parseDate(String value) {
         if (value == null || value.isEmpty()) return null;
-        return LocalDate.parse(value, DATE_FORMATTER);
+        try {
+            return LocalDate.parse(value, DATE_FORMATTER);
+        } catch (java.time.format.DateTimeParseException e) {
+            throw new IllegalArgumentException("Invalid date value: " + LogSanitizer.sanitize(value) + " (expected format: yyyy-MM-dd)", e);
+        }
     }
 
     private LocalDateTime parseDateTime(String value) {
         if (value == null || value.isEmpty()) return null;
-        return LocalDateTime.parse(value, DATETIME_FORMATTER);
+        try {
+            return LocalDateTime.parse(value, DATETIME_FORMATTER);
+        } catch (java.time.format.DateTimeParseException e) {
+            throw new IllegalArgumentException("Invalid datetime value: " + LogSanitizer.sanitize(value) + " (expected format: yyyy-MM-dd HH:mm:ss)", e);
+        }
     }
 
     private Double parseDouble(String value) {
         if (value == null || value.isEmpty()) return null;
-        return Double.parseDouble(value);
+        try {
+            return Double.parseDouble(value);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Invalid double value: " + LogSanitizer.sanitize(value), e);
+        }
     }
 
     // ============================================

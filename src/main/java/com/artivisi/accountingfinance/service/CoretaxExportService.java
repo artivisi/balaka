@@ -44,7 +44,7 @@ public class CoretaxExportService {
         CompanyConfig config = getCompanyConfig();
 
         try (Workbook workbook = new XSSFWorkbook()) {
-            createEFakturSheet(workbook, details, config, "Faktur Keluaran");
+            createEFakturSheet(workbook, details, config);
             createEFakturReferenceSheet(workbook);
 
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -61,7 +61,7 @@ public class CoretaxExportService {
         CompanyConfig config = getCompanyConfig();
 
         try (Workbook workbook = new XSSFWorkbook()) {
-            createEFakturSheet(workbook, details, config, "Faktur Masukan");
+            createEFakturSheet(workbook, details, config);
             createEFakturReferenceSheet(workbook);
 
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -106,7 +106,7 @@ public class CoretaxExportService {
         );
     }
 
-    private void createEFakturSheet(Workbook workbook, List<TaxTransactionDetail> details, CompanyConfig config, String sheetName) {
+    private void createEFakturSheet(Workbook workbook, List<TaxTransactionDetail> details, CompanyConfig config) {
         Sheet sheet = workbook.createSheet("DATA");
         CellStyle headerStyle = createHeaderStyle(workbook);
         CellStyle numberStyle = createNumberStyle(workbook);

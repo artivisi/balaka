@@ -18,6 +18,7 @@ import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -27,6 +28,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -97,8 +99,13 @@ public class PayrollRun {
     @Column(name = "cancel_reason", length = 500)
     private String cancelReason;
 
+    @Getter(AccessLevel.NONE)
     @OneToMany(mappedBy = "payrollRun", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PayrollDetail> details = new ArrayList<>();
+
+    public List<PayrollDetail> getDetails() {
+        return Collections.unmodifiableList(details);
+    }
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -139,7 +146,7 @@ public class PayrollRun {
      */
     public String getPeriodDisplayName() {
         YearMonth ym = getPeriod();
-        return ym.getMonth().getDisplayName(java.time.format.TextStyle.FULL, new java.util.Locale("id"))
+        return ym.getMonth().getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.of("id"))
             + " " + ym.getYear();
     }
 

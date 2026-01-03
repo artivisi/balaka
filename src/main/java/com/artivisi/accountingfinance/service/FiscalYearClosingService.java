@@ -167,7 +167,7 @@ public class FiscalYearClosingService {
                     username
             );
 
-            String journalNumber = generateJournalNumber(yearEnd, "01");
+            String journalNumber = generateJournalNumber(yearEnd);
             int lineIndex = 0;
 
             // Debit each revenue account (to zero it out)
@@ -210,7 +210,7 @@ public class FiscalYearClosingService {
                     username
             );
 
-            String journalNumber = generateJournalNumber(yearEnd, "02");
+            String journalNumber = generateJournalNumber(yearEnd);
             int lineIndex = 0;
 
             // Credit each expense account (to zero it out)
@@ -258,7 +258,7 @@ public class FiscalYearClosingService {
                     username
             );
 
-            String journalNumber = generateJournalNumber(yearEnd, "03");
+            String journalNumber = generateJournalNumber(yearEnd);
 
             if (netIncome.compareTo(BigDecimal.ZERO) > 0) {
                 // Profit: Debit Laba Berjalan, Credit Laba Ditahan
@@ -368,7 +368,7 @@ public class FiscalYearClosingService {
         return String.format("FC-%d-%04d", year, sequence.getLastNumber());
     }
 
-    private String generateJournalNumber(LocalDate date, String suffix) {
+    private String generateJournalNumber(LocalDate date) {
         // Format: JV-YYYYMMDD-XXXX where XXXX is sequence
         String prefix = "JV-" + date.format(DateTimeFormatter.ofPattern("yyyyMMdd")) + "-";
         Integer maxSeq = journalEntryRepository.findMaxSequenceByPrefix(prefix + "%");

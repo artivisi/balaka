@@ -49,10 +49,10 @@ public class ReportExportService {
     private static final String PDF_GENERATION_ERROR = "Failed to generate PDF: ";
     private static final String EXCEL_GENERATION_ERROR = "Failed to generate Excel: ";
     private static final DecimalFormat NUMBER_FORMAT;
-    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("d MMMM yyyy", new Locale("id", "ID"));
+    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("d MMMM yyyy", Locale.of("id", "ID"));
 
     static {
-        DecimalFormatSymbols symbols = new DecimalFormatSymbols(new Locale("id", "ID"));
+        DecimalFormatSymbols symbols = new DecimalFormatSymbols(Locale.of("id", "ID"));
         symbols.setGroupingSeparator('.');
         symbols.setDecimalSeparator(',');
         NUMBER_FORMAT = new DecimalFormat("#,##0", symbols);

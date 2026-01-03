@@ -17,6 +17,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -25,6 +26,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 @Entity
@@ -99,16 +101,31 @@ public class Transaction extends BaseEntity {
     private String postedBy;
 
     @JsonIgnore
+    @Getter(AccessLevel.NONE)
     @OneToMany(mappedBy = "transaction", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<TransactionAccountMapping> accountMappings = new ArrayList<>();
 
     @JsonIgnore
+    @Getter(AccessLevel.NONE)
     @OneToMany(mappedBy = "transaction", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<TransactionVariable> variables = new ArrayList<>();
 
     @JsonIgnore
+    @Getter(AccessLevel.NONE)
     @OneToMany(mappedBy = "transaction", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<JournalEntry> journalEntries = new ArrayList<>();
+
+    public List<TransactionAccountMapping> getAccountMappings() {
+        return Collections.unmodifiableList(accountMappings);
+    }
+
+    public List<TransactionVariable> getVariables() {
+        return Collections.unmodifiableList(variables);
+    }
+
+    public List<JournalEntry> getJournalEntries() {
+        return Collections.unmodifiableList(journalEntries);
+    }
 
     public void addAccountMapping(TransactionAccountMapping mapping) {
         accountMappings.add(mapping);

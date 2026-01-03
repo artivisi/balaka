@@ -365,16 +365,7 @@ public class TransactionController {
     public ResponseEntity<Transaction> apiCreate(@Valid @RequestBody TransactionDto dto) {
         Transaction transaction = mapDtoToEntity(dto);
 
-        // Convert UUID-keyed accountMappings to String-keyed for TemplateExecutionEngine
-        java.util.Map<String, String> stringAccountMappings = null;
-        if (dto.accountMappings() != null && !dto.accountMappings().isEmpty()) {
-            stringAccountMappings = new java.util.HashMap<>();
-            for (var entry : dto.accountMappings().entrySet()) {
-                stringAccountMappings.put(entry.getKey().toString(), entry.getValue().toString());
-            }
-        }
-
-        Transaction saved = transactionService.create(transaction, dto.accountMappings(), dto.variables(), stringAccountMappings);
+        Transaction saved = transactionService.create(transaction, dto.accountMappings(), dto.variables());
 
         // If this is an invoice payment, link transaction to invoice and mark as paid
         if (dto.invoiceId() != null) {
@@ -573,7 +564,7 @@ public class TransactionController {
             }
         }
 
-        Transaction saved = transactionService.create(transaction, accountMappings, null, null);
+        Transaction saved = transactionService.create(transaction, accountMappings, null);
 
         redirectAttributes.addFlashAttribute("successMessage", "Transaksi berhasil dibuat");
         return "redirect:/transactions/" + saved.getId();

@@ -107,7 +107,7 @@ public class TelegramBotService {
             }
         } else if (message.hasPhoto()) {
             log.info("Processing photo message with {} photos", message.getPhoto().size());
-            handlePhotoMessage(chatId, userId, username, message.getPhoto(), message.getMessageId(), linkOpt);
+            handlePhotoMessage(chatId, message.getPhoto(), message.getMessageId(), linkOpt);
         } else {
             log.info("Ignoring message - no text or photo");
         }
@@ -220,9 +220,8 @@ public class TelegramBotService {
                 """, true); // Use Markdown for formatted help
     }
 
-    private void handlePhotoMessage(Long chatId, Long userId, String username,
-                                     List<TelegramPhotoSize> photos, Long messageId,
-                                     Optional<TelegramUserLink> linkOpt) {
+    private void handlePhotoMessage(Long chatId, List<TelegramPhotoSize> photos,
+                                     Long messageId, Optional<TelegramUserLink> linkOpt) {
         if (linkOpt.isEmpty()) {
             sendMessage(chatId, "Akun belum terhubung. Ketik /start untuk mulai.");
             return;
