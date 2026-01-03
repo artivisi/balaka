@@ -3,6 +3,7 @@ package com.artivisi.accountingfinance.service;
 import com.artivisi.accountingfinance.entity.User;
 import com.artivisi.accountingfinance.enums.Role;
 import com.artivisi.accountingfinance.repository.UserRepository;
+import com.artivisi.accountingfinance.security.LogSanitizer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -69,7 +70,7 @@ public class UserService {
         user.setRoles(roles, currentUser);
 
         User savedUser = userRepository.save(user);
-        log.info("Created user: {} with roles: {}", savedUser.getUsername(), roles);
+        log.info("Created user: {} with roles: {}", LogSanitizer.username(savedUser.getUsername()), roles);
         return savedUser;
     }
 
@@ -102,7 +103,7 @@ public class UserService {
         user.setRoles(roles, currentUser);
 
         User savedUser = userRepository.save(user);
-        log.info("Updated user: {} with roles: {}", savedUser.getUsername(), roles);
+        log.info("Updated user: {} with roles: {}", LogSanitizer.username(savedUser.getUsername()), roles);
         return savedUser;
     }
 
@@ -113,7 +114,7 @@ public class UserService {
 
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
-        log.info("Changed password for user: {}", user.getUsername());
+        log.info("Changed password for user: {}", LogSanitizer.username(user.getUsername()));
     }
 
     @Transactional
@@ -123,7 +124,7 @@ public class UserService {
 
         user.setActive(!user.getActive());
         userRepository.save(user);
-        log.info("Toggled active status for user: {} to {}", user.getUsername(), user.getActive());
+        log.info("Toggled active status for user: {} to {}", LogSanitizer.username(user.getUsername()), user.getActive());
     }
 
     @Transactional
@@ -138,7 +139,7 @@ public class UserService {
         }
 
         userRepository.delete(user);
-        log.info("Deleted user: {}", user.getUsername());
+        log.info("Deleted user: {}", LogSanitizer.username(user.getUsername()));
     }
 
     @Transactional(readOnly = true)

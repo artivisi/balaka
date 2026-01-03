@@ -3,6 +3,7 @@ package com.artivisi.accountingfinance.service;
 import com.artivisi.accountingfinance.entity.AssetCategory;
 import com.artivisi.accountingfinance.entity.ChartOfAccount;
 import com.artivisi.accountingfinance.repository.AssetCategoryRepository;
+import com.artivisi.accountingfinance.security.LogSanitizer;
 import com.artivisi.accountingfinance.repository.ChartOfAccountRepository;
 import com.artivisi.accountingfinance.repository.FixedAssetRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -58,7 +59,7 @@ public class AssetCategoryService {
         validateCategory(category, null);
         loadAccounts(category);
         AssetCategory saved = assetCategoryRepository.save(category);
-        log.info("Created asset category: {}", saved.getCode());
+        log.info("Created asset category: {}", LogSanitizer.sanitize(saved.getCode()));
         return saved;
     }
 
@@ -80,7 +81,7 @@ public class AssetCategoryService {
         existing.setDepreciationExpenseAccount(loadAccount(categoryData.getDepreciationExpenseAccount().getId()));
 
         AssetCategory saved = assetCategoryRepository.save(existing);
-        log.info("Updated asset category: {}", saved.getCode());
+        log.info("Updated asset category: {}", LogSanitizer.sanitize(saved.getCode()));
         return saved;
     }
 

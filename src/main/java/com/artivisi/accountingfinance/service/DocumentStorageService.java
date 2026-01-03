@@ -2,6 +2,7 @@ package com.artivisi.accountingfinance.service;
 
 import com.artivisi.accountingfinance.security.FileEncryptionService;
 import com.artivisi.accountingfinance.security.FileValidationService;
+import com.artivisi.accountingfinance.security.LogSanitizer;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -93,9 +94,9 @@ public class DocumentStorageService {
         Files.write(targetPath, contentToStore);
 
         if (fileEncryptionService.isEncryptionEnabled()) {
-            log.debug("Stored encrypted file: {} -> {}", originalFilename, targetPath);
+            log.debug("Stored encrypted file: {} -> {}", LogSanitizer.filename(originalFilename), targetPath);
         } else {
-            log.debug("Stored file (unencrypted): {} -> {}", originalFilename, targetPath);
+            log.debug("Stored file (unencrypted): {} -> {}", LogSanitizer.filename(originalFilename), targetPath);
         }
 
         // Return relative path from root
@@ -151,7 +152,7 @@ public class DocumentStorageService {
         }
 
         Files.deleteIfExists(filePath);
-        log.debug("Deleted file: {}", filePath);
+        log.debug("Deleted file: {}", LogSanitizer.filename(filePath.toString()));
     }
 
     /**
@@ -304,9 +305,9 @@ public class DocumentStorageService {
         Files.write(targetPath, contentToStore);
 
         if (fileEncryptionService.isEncryptionEnabled()) {
-            log.debug("Stored encrypted file from bytes: {} -> {}", filename, targetPath);
+            log.debug("Stored encrypted file from bytes: {} -> {}", LogSanitizer.filename(filename), targetPath);
         } else {
-            log.debug("Stored file from bytes (unencrypted): {} -> {}", filename, targetPath);
+            log.debug("Stored file from bytes (unencrypted): {} -> {}", LogSanitizer.filename(filename), targetPath);
         }
 
         return subPath + "/" + storedFilename;

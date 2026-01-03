@@ -111,7 +111,7 @@ public class FixedAssetService {
         }
 
         FixedAsset saved = fixedAssetRepository.save(asset);
-        log.info("Created fixed asset: {} - {}", saved.getAssetCode(), saved.getName());
+        log.info("Created fixed asset: {} - {}", LogSanitizer.sanitize(saved.getAssetCode()), LogSanitizer.sanitize(saved.getName()));
         return saved;
     }
 
@@ -177,7 +177,7 @@ public class FixedAssetService {
         }
 
         FixedAsset saved = fixedAssetRepository.save(existing);
-        log.info("Updated fixed asset: {}", saved.getAssetCode());
+        log.info("Updated fixed asset: {}", LogSanitizer.sanitize(saved.getAssetCode()));
         return saved;
     }
 
@@ -195,7 +195,7 @@ public class FixedAssetService {
 
         depreciationEntryRepository.deleteByFixedAsset(asset);
         fixedAssetRepository.delete(asset);
-        log.info("Deleted fixed asset: {}", asset.getAssetCode());
+        log.info("Deleted fixed asset: {}", LogSanitizer.sanitize(asset.getAssetCode()));
     }
 
     public boolean existsByAssetCode(String assetCode) {

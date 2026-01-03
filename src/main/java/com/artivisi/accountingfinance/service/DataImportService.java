@@ -3,6 +3,7 @@ package com.artivisi.accountingfinance.service;
 import com.artivisi.accountingfinance.entity.*;
 import com.artivisi.accountingfinance.enums.*;
 import com.artivisi.accountingfinance.repository.*;
+import com.artivisi.accountingfinance.security.LogSanitizer;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -138,7 +139,7 @@ public class DataImportService {
             String content = csvFiles.get(filename);
             int count = importCsvFile(filename, content);
             totalRecords += count;
-            log.info("Imported {} records from {}", count, filename);
+            log.info("Imported {} records from {}", count, LogSanitizer.filename(filename));
         }
 
         // Import document files
@@ -177,7 +178,7 @@ public class DataImportService {
 
                 // Zip slip protection: reject entries with path traversal
                 if (name.contains("..") || name.startsWith("/") || name.startsWith("\\")) {
-                    log.warn("Rejected potentially malicious zip entry: {}", name);
+                    log.warn("Rejected potentially malicious zip entry: {}", LogSanitizer.filename(name));
                     zis.closeEntry();
                     continue;
                 }
@@ -406,13 +407,13 @@ public class DataImportService {
                 case "documents/index.csv" -> 0; // Handled separately
                 default -> {
                     if (!filename.equals("MANIFEST.md")) {
-                        log.warn("Unknown file in import: {}", filename);
+                        log.warn("Unknown file in import: {}", LogSanitizer.filename(filename));
                     }
                     yield 0;
                 }
             };
         } catch (Exception e) {
-            log.error("Error importing file {}: {}", filename, e.getMessage(), e);
+            log.error("Error importing file {}: {}", LogSanitizer.filename(filename), e.getMessage(), e);
             throw new RuntimeException("Failed to import " + filename + ": " + e.getMessage(), e);
         }
     }
@@ -1340,7 +1341,7 @@ public class DataImportService {
 
             userRepository.save(u);
             userMap.put(u.getUsername(), u);
-            log.info("Imported user '{}' - password reset required", u.getUsername());
+            log.info("Imported user '{}' - password reset required", LogSanitizer.username(u.getUsername()));
         }
         return rows.size();
     }
@@ -1803,7 +1804,7 @@ public class DataImportService {
             if (key.startsWith("company_logo:")) {
                 // Company logo file - strip the prefix
                 storagePath = key.substring("company_logo:".length());
-                log.info("Importing company logo: {}", storagePath);
+                log.info("Importing company logo: {}", LogSanitizer.filename(storagePath));
             } else {
                 // Regular document file
                 storagePath = key;

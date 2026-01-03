@@ -4,6 +4,7 @@ import com.artivisi.accountingfinance.entity.BillOfMaterial;
 import com.artivisi.accountingfinance.entity.BillOfMaterialLine;
 import com.artivisi.accountingfinance.entity.Product;
 import com.artivisi.accountingfinance.repository.BillOfMaterialRepository;
+import com.artivisi.accountingfinance.security.LogSanitizer;
 import com.artivisi.accountingfinance.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -86,7 +87,7 @@ public class BillOfMaterialService {
             line.setBillOfMaterial(bom);
         }
 
-        log.info("Creating BOM {} for product {}", bom.getCode(), product.getCode());
+        log.info("Creating BOM {} for product {}", LogSanitizer.sanitize(bom.getCode()), LogSanitizer.sanitize(product.getCode()));
         return bomRepository.save(bom);
     }
 
@@ -136,7 +137,7 @@ public class BillOfMaterialService {
             existing.addLine(newLine);
         }
 
-        log.info("Updating BOM {} for product {}", existing.getCode(), product.getCode());
+        log.info("Updating BOM {} for product {}", LogSanitizer.sanitize(existing.getCode()), LogSanitizer.sanitize(product.getCode()));
         return bomRepository.save(existing);
     }
 

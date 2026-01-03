@@ -4,6 +4,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import static com.artivisi.accountingfinance.security.LogSanitizer.filename;
+import static com.artivisi.accountingfinance.security.LogSanitizer.sanitize;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -79,7 +82,7 @@ public class FileValidationService {
         if (validSignatures == null) {
             // No magic byte validation defined for this type
             // Allow but log warning
-            log.warn("No magic byte validation for content type: {}", sanitizeForLog(contentType));
+            log.warn("No magic byte validation for content type: {}", sanitize(contentType));
             return true;
         }
 
@@ -92,8 +95,8 @@ public class FileValidationService {
         }
 
         log.warn("Magic byte validation failed for file '{}' with declared type '{}'",
-                sanitizeForLog(file.getOriginalFilename()),
-                sanitizeForLog(contentType));
+                filename(file.getOriginalFilename()),
+                sanitize(contentType));
         return false;
     }
 
@@ -111,7 +114,7 @@ public class FileValidationService {
 
         Set<byte[]> validSignatures = MAGIC_BYTES.get(contentType);
         if (validSignatures == null) {
-            log.warn("No magic byte validation for content type: {}", sanitizeForLog(contentType));
+            log.warn("No magic byte validation for content type: {}", sanitize(contentType));
             return true;
         }
 
@@ -124,7 +127,7 @@ public class FileValidationService {
         }
 
         log.warn("Magic byte validation failed for content with declared type '{}'",
-                sanitizeForLog(contentType));
+                sanitize(contentType));
         return false;
     }
 
@@ -157,21 +160,4 @@ public class FileValidationService {
         return true;
     }
 
-    /**
-     * Sanitizes input for safe logging (prevents log injection).
-     * Removes newlines, control characters, and limits length.
-     */
-    public static String sanitizeForLog(String input) {
-        if (input == null) {
-            return "null";
-        }
-        // Remove newlines and control characters to prevent log injection
-        String sanitized = input.replaceAll("[\\r\\n\\t]", "_")
-                .replaceAll("[\\x00-\\x1f\\x7f]", "?");
-        // Limit length to prevent log flooding
-        if (sanitized.length() > 200) {
-            sanitized = sanitized.substring(0, 200) + "...[truncated]";
-        }
-        return sanitized;
-    }
 }
