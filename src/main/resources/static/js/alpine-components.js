@@ -297,18 +297,54 @@ function registerAlpineComponents() {
             if (dialog) dialog.close()
         },
 
+        // Helper - collect account mappings from form data
+        collectAccountMappings(formData) {
+            const mappings = {}
+            for (const [key, value] of formData.entries()) {
+                const match = key.match(/accountMapping\[([^\]]+)\]/)
+                if (match && value) {
+                    mappings[match[1]] = value
+                }
+            }
+            return mappings
+        },
+
+        // Helper - collect variable values for DETAILED templates
+        collectVariables(formData) {
+            const variables = {}
+            for (const [key, value] of formData.entries()) {
+                if (key.startsWith('var_') && value) {
+                    const cleanValue = value.replace(/[^0-9]/g, '')
+                    if (cleanValue) {
+                        variables[key.substring(4)] = parseInt(cleanValue)
+                    }
+                }
+            }
+            return variables
+        },
+
+        // Helper - build headers with CSRF token
+        buildHeaders() {
+            const csrfToken = document.querySelector('meta[name="_csrf"]')?.content
+            const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.content
+            const headers = { 'Content-Type': 'application/json' }
+            if (csrfToken && csrfHeader) {
+                headers[csrfHeader] = csrfToken
+            }
+            return headers
+        },
+
         // Method - submit the quick transaction form
         async submitForm(e) {
-            console.log('submitForm called', e)
-            if (e && e.preventDefault) e.preventDefault()
+            if (e?.preventDefault) e.preventDefault()
             if (this.submitting) return
 
             this.submitting = true
             const form = document.getElementById('quick-transaction-form')
-            console.log('form found:', form)
 
             try {
                 const formData = new FormData(form)
+                const variables = this.collectVariables(formData)
                 const data = {
                     templateId: formData.get('templateId'),
                     amount: parseInt(formData.get('amount')) || 0,
@@ -316,61 +352,25 @@ function registerAlpineComponents() {
                     transactionDate: formData.get('transactionDate'),
                     referenceNumber: formData.get('referenceNumber') || '',
                     notes: formData.get('notes') || '',
-                    accountMappings: {}
-                }
-
-                // Collect account mappings
-                for (const [key, value] of formData.entries()) {
-                    const match = key.match(/accountMapping\[([^\]]+)\]/)
-                    if (match && value) {
-                        data.accountMappings[match[1]] = value
-                    }
-                }
-
-                // Collect variable values for DETAILED templates
-                const variables = {}
-                for (const [key, value] of formData.entries()) {
-                    if (key.startsWith('var_') && value) {
-                        const varName = key.substring(4)
-                        const cleanValue = value.replace(/[^0-9]/g, '')
-                        if (cleanValue) {
-                            variables[varName] = parseInt(cleanValue)
-                        }
-                    }
-                }
-                if (Object.keys(variables).length > 0) {
-                    data.variables = variables
-                }
-
-                // Get CSRF token from meta tags
-                const csrfToken = document.querySelector('meta[name="_csrf"]')?.content
-                const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.content
-
-                const headers = { 'Content-Type': 'application/json' }
-                if (csrfToken && csrfHeader) {
-                    headers[csrfHeader] = csrfToken
+                    accountMappings: this.collectAccountMappings(formData),
+                    ...(Object.keys(variables).length > 0 && { variables })
                 }
 
                 const response = await fetch('/transactions/api', {
                     method: 'POST',
-                    headers: headers,
+                    headers: this.buildHeaders(),
                     body: JSON.stringify(data)
                 })
 
-                console.log('Response status:', response.status)
                 if (response.ok) {
                     const result = await response.json()
-                    console.log('Transaction created:', result)
-                    const dialog = document.getElementById('quick-transaction-modal')
-                    if (dialog) dialog.close()
-                    window.location.href = '/transactions/' + result.id
+                    document.getElementById('quick-transaction-modal')?.close()
+                    globalThis.location.href = '/transactions/' + result.id
                 } else {
                     const errorText = await response.text()
-                    console.error('Quick transaction error:', response.status, errorText)
                     alert('Gagal menyimpan: ' + errorText)
                 }
             } catch (err) {
-                console.error('Quick transaction exception:', err)
                 alert('Gagal menyimpan: ' + err.message)
             } finally {
                 this.submitting = false

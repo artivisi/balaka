@@ -93,7 +93,7 @@ public class ServiceReportsTest extends PlaywrightTestBase {
         // Create transactions programmatically using CSV data
         for (TransactionRow txRow : transactions) {
             // Get template by name
-            JournalTemplate template = templateRepository.findByTemplateName(txRow.templateName())
+            JournalTemplate template = templateRepository.findByTemplateNameAndIsCurrentVersionTrue(txRow.templateName())
                 .orElseThrow(() -> new RuntimeException("Template not found: " + txRow.templateName()));
 
             // Parse amount from inputs (e.g., "amount:500000000")

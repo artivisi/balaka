@@ -130,10 +130,10 @@ public class TaxProfileController {
             sb.append(years).append(" tahun");
         }
         if (months > 0) {
-            if (sb.length() > 0) sb.append(" ");
+            if (!sb.isEmpty()) sb.append(" ");
             sb.append(months).append(" bulan");
         }
-        if (sb.length() == 0) {
+        if (sb.isEmpty()) {
             return "< 1 bulan";
         }
         return sb.toString();

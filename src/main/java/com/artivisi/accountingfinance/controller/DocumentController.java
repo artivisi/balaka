@@ -35,6 +35,9 @@ import java.util.UUID;
 @Slf4j
 public class DocumentController {
 
+    private static final String MSG_UPLOAD_FAILED = "Gagal mengunggah dokumen: ";
+    private static final String MSG_DELETE_FAILED = "Gagal menghapus dokumen: ";
+
     private final DocumentService documentService;
     private final SecurityAuditService securityAuditService;
 
@@ -59,7 +62,7 @@ public class DocumentController {
         } catch (IOException e) {
             log.error("Failed to upload document for transaction {}: {}", transactionId, e.getMessage());
             model.addAttribute("success", false);
-            model.addAttribute("message", "Gagal mengunggah dokumen: " + HtmlUtils.htmlEscape(e.getMessage()));
+            model.addAttribute("message", MSG_UPLOAD_FAILED + HtmlUtils.htmlEscape(e.getMessage()));
         } catch (IllegalArgumentException e) {
             model.addAttribute("success", false);
             model.addAttribute("message", HtmlUtils.htmlEscape(e.getMessage()));
@@ -93,7 +96,7 @@ public class DocumentController {
         } catch (IOException e) {
             log.error("Failed to upload document for journal entry {}: {}", journalEntryId, e.getMessage());
             model.addAttribute("success", false);
-            model.addAttribute("message", "Gagal mengunggah dokumen: " + HtmlUtils.htmlEscape(e.getMessage()));
+            model.addAttribute("message", MSG_UPLOAD_FAILED + HtmlUtils.htmlEscape(e.getMessage()));
         } catch (IllegalArgumentException e) {
             model.addAttribute("success", false);
             model.addAttribute("message", HtmlUtils.htmlEscape(e.getMessage()));
@@ -126,7 +129,7 @@ public class DocumentController {
         } catch (IOException e) {
             log.error("Failed to upload document for invoice {}: {}", invoiceId, e.getMessage());
             model.addAttribute("success", false);
-            model.addAttribute("message", "Gagal mengunggah dokumen: " + HtmlUtils.htmlEscape(e.getMessage()));
+            model.addAttribute("message", MSG_UPLOAD_FAILED + HtmlUtils.htmlEscape(e.getMessage()));
         } catch (IllegalArgumentException e) {
             model.addAttribute("success", false);
             model.addAttribute("message", HtmlUtils.htmlEscape(e.getMessage()));
@@ -224,7 +227,7 @@ public class DocumentController {
         } catch (IOException e) {
             log.error("Failed to delete document {}: {}", id, e.getMessage());
             model.addAttribute("success", false);
-            model.addAttribute("message", "Gagal menghapus dokumen: " + HtmlUtils.htmlEscape(e.getMessage()));
+            model.addAttribute("message", MSG_DELETE_FAILED + HtmlUtils.htmlEscape(e.getMessage()));
         }
 
         // Return updated document list based on context

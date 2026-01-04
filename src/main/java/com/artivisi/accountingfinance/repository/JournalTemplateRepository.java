@@ -58,13 +58,4 @@ public interface JournalTemplateRepository extends JpaRepository<JournalTemplate
     @Query("SELECT COUNT(t) > 0 FROM Transaction t WHERE t.journalTemplate.id = :templateId")
     boolean isTemplateInUse(@Param("templateId") UUID templateId);
 
-    // Legacy methods (kept for backward compatibility with existing code)
-    // These methods still filter by current version to ensure consistent behavior
-    @Deprecated
-    @Query("SELECT t FROM JournalTemplate t WHERE t.active = :active AND t.isCurrentVersion = true ORDER BY t.templateName ASC")
-    List<JournalTemplate> findByActiveOrderByTemplateNameAsc(@Param("active") Boolean active);
-
-    @Deprecated
-    @Query("SELECT t FROM JournalTemplate t WHERE t.templateName = :name AND t.isCurrentVersion = true")
-    java.util.Optional<JournalTemplate> findByTemplateName(@Param("name") String templateName);
 }

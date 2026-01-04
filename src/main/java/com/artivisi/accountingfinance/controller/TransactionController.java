@@ -55,6 +55,8 @@ import java.util.stream.Collectors;
 @PreAuthorize("hasAuthority('" + Permission.TRANSACTION_VIEW + "')")
 public class TransactionController {
 
+    private static final String REDIRECT_TRANSACTIONS = "redirect:/transactions/";
+
     private final TransactionService transactionService;
     private final JournalTemplateService journalTemplateService;
     private final ChartOfAccountService chartOfAccountService;
@@ -194,7 +196,7 @@ public class TransactionController {
     public String edit(@PathVariable UUID id, Model model) {
         Transaction transaction = transactionService.findByIdWithMappingsAndVariables(id);
         if (!transaction.isDraft()) {
-            return "redirect:/transactions/" + id;
+            return REDIRECT_TRANSACTIONS + id;
         }
 
         // Load the template with lines for preview
@@ -223,7 +225,7 @@ public class TransactionController {
     public String voidForm(@PathVariable UUID id, Model model) {
         Transaction transaction = transactionService.findByIdWithJournalEntries(id);
         if (!transaction.isPosted()) {
-            return "redirect:/transactions/" + id;
+            return REDIRECT_TRANSACTIONS + id;
         }
 
         model.addAttribute("currentPage", "transactions");
@@ -567,7 +569,7 @@ public class TransactionController {
         Transaction saved = transactionService.create(transaction, accountMappings, null);
 
         redirectAttributes.addFlashAttribute("successMessage", "Transaksi berhasil dibuat");
-        return "redirect:/transactions/" + saved.getId();
+        return REDIRECT_TRANSACTIONS + saved.getId();
     }
 
     /**

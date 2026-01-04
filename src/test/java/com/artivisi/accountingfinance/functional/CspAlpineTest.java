@@ -249,8 +249,22 @@ public class CspAlpineTest extends PlaywrightTestBase {
                 System.out.println("\n=== CONSOLE ERRORS ===");
                 consoleErrors.forEach(e -> System.out.println("  " + e));
             }
+
+            // Assert that form loaded without CSP errors
+            List<String> cspErrors = consoleErrors.stream()
+                    .filter(e -> e.toLowerCase().contains("csp") ||
+                                e.toLowerCase().contains("content security policy"))
+                    .toList();
+            assertThat(cspErrors)
+                    .as("Quick transaction form should load without CSP errors")
+                    .isEmpty();
         } else {
-            System.out.println("No templates available for testing");
+            // No templates - verify modal at least opened without errors
+            assertThat(consoleErrors.stream()
+                    .filter(e -> e.toLowerCase().contains("alpine"))
+                    .toList())
+                    .as("Modal should open without Alpine.js errors")
+                    .isEmpty();
         }
     }
 }

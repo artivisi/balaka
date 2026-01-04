@@ -413,16 +413,16 @@ abstract class ZapDastTestBase {
                 scanName + " scan found " + results.mediumCount + " MEDIUM severity vulnerabilities (max: " + MAX_MEDIUM_ALERTS + ")");
     }
 
-    protected void generateHtmlReport(String filename, String url) {
+    protected void generateHtmlReport(String filename) {
         try {
             // Use core.htmlreport() which is more stable across ZAP versions
             byte[] reportBytes = zapClient.core.htmlreport();
             Path reportPath = REPORTS_DIR.resolve(filename);
             Files.write(reportPath, reportBytes);
             log.info("Report generated: {}", reportPath);
-        } catch (Exception e) {
+        } catch (Exception ex) {
             // Report generation failure should not fail the test
-            log.warn("Failed to generate HTML report {}: {}", filename, e.getMessage());
+            log.warn("Failed to generate HTML report {}: {}", filename, ex.getMessage());
         }
     }
 

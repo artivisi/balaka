@@ -86,7 +86,7 @@ public class ServiceTransactionExecutionTest extends PlaywrightTestBase {
         initPageObjects();
 
         // Find template ID by name
-        var template = templateRepository.findByTemplateName(tx.templateName());
+        var template = templateRepository.findByTemplateNameAndIsCurrentVersionTrue(tx.templateName());
         if (template.isEmpty()) {
             System.out.println("Template not found: " + tx.templateName() + " - skipping transaction");
             return;

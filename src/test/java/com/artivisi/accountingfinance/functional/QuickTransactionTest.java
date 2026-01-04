@@ -58,7 +58,7 @@ public class QuickTransactionTest extends PlaywrightTestBase {
      */
     private void setupTemplateUsageData() {
         List<com.artivisi.accountingfinance.entity.JournalTemplate> templates =
-            templateRepository.findByActiveOrderByTemplateNameAsc(true);
+            templateRepository.findByActiveAndIsCurrentVersionTrueOrderByTemplateNameAsc(true);
 
         if (templates.size() >= 3) {
             // Make first 3 templates "frequently used"

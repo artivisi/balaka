@@ -50,7 +50,7 @@ public class TransactionHelper {
 
     private void executeTransaction(TransactionRow tx) {
         // Find template
-        JournalTemplate template = templateRepository.findByTemplateName(tx.templateName())
+        JournalTemplate template = templateRepository.findByTemplateNameAndIsCurrentVersionTrue(tx.templateName())
             .orElseThrow(() -> new RuntimeException("Template not found: " + tx.templateName()));
 
         // Parse inputs

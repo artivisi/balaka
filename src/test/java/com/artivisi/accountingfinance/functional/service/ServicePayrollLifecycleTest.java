@@ -90,7 +90,7 @@ public class ServicePayrollLifecycleTest extends PlaywrightTestBase {
         // Take screenshot for user manual
         takeManualScreenshot("payroll-lifecycle-bayar-gaji-form");
 
-        var detailPage = transactionFormPage.saveAndPost();
+        transactionFormPage.saveAndPost();
 
         // Verify transaction posted (status-posted data-testid is visible when POSTED)
         assertThat(page.getByTestId("status-posted")).isVisible();
@@ -110,7 +110,7 @@ public class ServicePayrollLifecycleTest extends PlaywrightTestBase {
         // Take screenshot for user manual
         takeManualScreenshot("payroll-lifecycle-bayar-bpjs-form");
 
-        detailPage = transactionFormPage.saveAndPost();
+        transactionFormPage.saveAndPost();
 
         // Verify transaction posted
         assertThat(page.getByTestId("status-posted")).isVisible();
@@ -130,7 +130,7 @@ public class ServicePayrollLifecycleTest extends PlaywrightTestBase {
         // Take screenshot for user manual
         takeManualScreenshot("payroll-lifecycle-setor-pph21-form");
 
-        detailPage = transactionFormPage.saveAndPost();
+        transactionFormPage.saveAndPost();
 
         // Verify transaction posted
         assertThat(page.getByTestId("status-posted")).isVisible();
@@ -164,7 +164,7 @@ public class ServicePayrollLifecycleTest extends PlaywrightTestBase {
         // Take screenshot for user manual (simple vs payroll comparison)
         takeManualScreenshot("simple-salary-payment-form");
 
-        var detailPage = transactionFormPage.saveAndPost();
+        transactionFormPage.saveAndPost();
 
         // Verify transaction posted
         assertThat(page.getByTestId("status-posted")).isVisible();
@@ -227,7 +227,7 @@ public class ServicePayrollLifecycleTest extends PlaywrightTestBase {
      * Helper method to get template ID by name.
      */
     private UUID getTemplateIdByName(String templateName) {
-        return templateRepository.findByTemplateName(templateName)
+        return templateRepository.findByTemplateNameAndIsCurrentVersionTrue(templateName)
             .orElseThrow(() -> new IllegalStateException("Template '" + templateName + "' tidak ditemukan"))
             .getId();
     }

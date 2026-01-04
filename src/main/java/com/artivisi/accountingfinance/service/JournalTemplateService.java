@@ -28,6 +28,8 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 public class JournalTemplateService {
 
+    private static final String MSG_ACCOUNT_NOT_FOUND = "Account not found";
+
     private final JournalTemplateRepository journalTemplateRepository;
     private final JournalTemplateLineRepository journalTemplateLineRepository;
     private final JournalTemplateTagRepository journalTemplateTagRepository;
@@ -111,7 +113,7 @@ public class JournalTemplateService {
             ChartOfAccount account = null;
             if (line.getAccount() != null && line.getAccount().getId() != null) {
                 account = chartOfAccountRepository.findById(line.getAccount().getId())
-                        .orElseThrow(() -> new EntityNotFoundException("Account not found"));
+                        .orElseThrow(() -> new EntityNotFoundException(MSG_ACCOUNT_NOT_FOUND));
             }
             JournalTemplateLine newLine = new JournalTemplateLine();
             newLine.setAccount(account);
@@ -161,7 +163,7 @@ public class JournalTemplateService {
             ChartOfAccount account = null;
             if (line.getAccount() != null && line.getAccount().getId() != null) {
                 account = chartOfAccountRepository.findById(line.getAccount().getId())
-                        .orElseThrow(() -> new EntityNotFoundException("Account not found"));
+                        .orElseThrow(() -> new EntityNotFoundException(MSG_ACCOUNT_NOT_FOUND));
             }
             JournalTemplateLine newLine = new JournalTemplateLine();
             newLine.setAccount(account);
@@ -200,7 +202,7 @@ public class JournalTemplateService {
             // Reload account from database to avoid detached entity with null version
             if (sourceLine.getAccount() != null && sourceLine.getAccount().getId() != null) {
                 ChartOfAccount managedAccount = chartOfAccountRepository.findById(sourceLine.getAccount().getId())
-                        .orElseThrow(() -> new EntityNotFoundException("Account not found"));
+                        .orElseThrow(() -> new EntityNotFoundException(MSG_ACCOUNT_NOT_FOUND));
                 newLine.setAccount(managedAccount);
             }
             newLine.setPosition(sourceLine.getPosition());

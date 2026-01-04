@@ -253,7 +253,7 @@ class ZapDastTest extends ZapDastTestBase {
         }
 
         ScanResults results = analyzeAlerts("SQLInjection");
-        generateHtmlReport("zap-sqli-report.html", targetUrl);
+        generateHtmlReport("zap-sqli-report.html");
 
         assertSecurityThresholds(results, "SQLInjection");
     }
@@ -321,7 +321,7 @@ class ZapDastTest extends ZapDastTestBase {
         }
 
         ScanResults results = analyzeAlerts("XSS");
-        generateHtmlReport("zap-xss-report.html", targetUrl);
+        generateHtmlReport("zap-xss-report.html");
 
         assertSecurityThresholds(results, "XSS");
     }
@@ -385,7 +385,7 @@ class ZapDastTest extends ZapDastTestBase {
         }
 
         ScanResults results = analyzeAlerts("Authentication");
-        generateHtmlReport("zap-auth-report.html", targetUrl);
+        generateHtmlReport("zap-auth-report.html");
 
         assertSecurityThresholds(results, "Authentication");
     }
@@ -470,7 +470,7 @@ class ZapDastTest extends ZapDastTestBase {
         }
 
         ScanResults results = analyzeAlerts("PathTraversalAndAPI");
-        generateHtmlReport("zap-path-traversal-api-report.html", targetUrl);
+        generateHtmlReport("zap-path-traversal-api-report.html");
 
         assertSecurityThresholds(results, "PathTraversalAndAPI");
     }

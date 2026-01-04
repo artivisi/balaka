@@ -47,7 +47,7 @@ public class OptimisticLockingTest {
     @Transactional
     void shouldPreventDoubleSubmissionOnCreate() {
         // Given: A valid transaction
-        var template = templateRepository.findByTemplateName("Pendapatan Jasa Konsultasi")
+        var template = templateRepository.findByTemplateNameAndIsCurrentVersionTrue("Pendapatan Jasa Konsultasi")
                 .orElseThrow(() -> new IllegalStateException("Test template not found"));
 
         Transaction tx1 = new Transaction();
@@ -87,7 +87,7 @@ public class OptimisticLockingTest {
     @DisplayName("Should prevent concurrent updates from different sessions")
     void shouldPreventConcurrentUpdates() {
         // Given: Create a test transaction
-        var template = templateRepository.findByTemplateName("Pendapatan Jasa Konsultasi").orElseThrow();
+        var template = templateRepository.findByTemplateNameAndIsCurrentVersionTrue("Pendapatan Jasa Konsultasi").orElseThrow();
 
         Transaction newTx = new Transaction();
         newTx.setJournalTemplate(template);
@@ -135,7 +135,7 @@ public class OptimisticLockingTest {
     @Transactional
     void shouldIncrementVersionOnUpdate() {
         // Given: A new transaction
-        var template = templateRepository.findByTemplateName("Pendapatan Jasa Konsultasi").orElseThrow();
+        var template = templateRepository.findByTemplateNameAndIsCurrentVersionTrue("Pendapatan Jasa Konsultasi").orElseThrow();
 
         Transaction tx = new Transaction();
         tx.setJournalTemplate(template);
