@@ -38,9 +38,13 @@ public class PayrollController {
     private static final String ATTR_CURRENT_PAGE = "currentPage";
     private static final String ATTR_SUCCESS_MESSAGE = "successMessage";
     private static final String ATTR_ERROR_MESSAGE = "errorMessage";
+    private static final String ATTR_PAYROLL_RUN = "payrollRun";
     private static final String PAYROLL_NOT_FOUND = "Payroll tidak ditemukan";
+    private static final String PAGE_PAYROLL = "payroll";
+    private static final String REDIRECT_PAYROLL = "redirect:/payroll";
     private static final String CONTENT_TYPE_XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
     private static final String ATTACHMENT_FILENAME = "attachment; filename=\"";
+    private static final String EXT_XLSX = ".xlsx";
 
     private final PayrollService payrollService;
     private final PayrollReportService payrollReportService;
@@ -63,7 +67,7 @@ public class PayrollController {
         model.addAttribute("payrollRuns", payrollRuns);
         model.addAttribute("statuses", Arrays.asList(PayrollStatus.values()));
         model.addAttribute("selectedStatus", status);
-        model.addAttribute(ATTR_CURRENT_PAGE, "payroll");
+        model.addAttribute(ATTR_CURRENT_PAGE, PAGE_PAYROLL);
 
         return "payroll/list";
     }
@@ -71,7 +75,7 @@ public class PayrollController {
     @GetMapping("/new")
     public String newPayrollForm(Model model) {
         model.addAttribute("payrollForm", new PayrollForm());
-        model.addAttribute(ATTR_CURRENT_PAGE, "payroll");
+        model.addAttribute(ATTR_CURRENT_PAGE, PAGE_PAYROLL);
         model.addAttribute("riskClasses", getRiskClasses());
 
         // Suggest next period
@@ -90,7 +94,7 @@ public class PayrollController {
     ) {
         if (bindingResult.hasErrors()) {
             model.addAttribute("riskClasses", getRiskClasses());
-            model.addAttribute(ATTR_CURRENT_PAGE, "payroll");
+            model.addAttribute(ATTR_CURRENT_PAGE, PAGE_PAYROLL);
             return "payroll/form";
         }
 
@@ -100,7 +104,7 @@ public class PayrollController {
             if (payrollService.existsByPeriod(period.toString())) {
                 bindingResult.rejectValue("period", "duplicate", "Payroll untuk periode ini sudah ada");
                 model.addAttribute("riskClasses", getRiskClasses());
-                model.addAttribute(ATTR_CURRENT_PAGE, "payroll");
+                model.addAttribute(ATTR_CURRENT_PAGE, PAGE_PAYROLL);
                 return "payroll/form";
             }
 
@@ -115,11 +119,11 @@ public class PayrollController {
             redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE,
                 "Payroll untuk periode " + period.toString() + " berhasil dibuat dan dikalkulasi");
 
-            return "redirect:/payroll/" + payrollRun.getId();
+            return REDIRECT_PAYROLL + "/" + payrollRun.getId();
 
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, e.getMessage());
-            return "redirect:/payroll/new";
+            return REDIRECT_PAYROLL + "/new";
         }
     }
 
@@ -130,9 +134,9 @@ public class PayrollController {
 
         var details = payrollService.getPayrollDetails(id);
 
-        model.addAttribute("payrollRun", payrollRun);
+        model.addAttribute(ATTR_PAYROLL_RUN, payrollRun);
         model.addAttribute("details", details);
-        model.addAttribute(ATTR_CURRENT_PAGE, "payroll");
+        model.addAttribute(ATTR_CURRENT_PAGE, PAGE_PAYROLL);
 
         return "payroll/detail";
     }
@@ -150,7 +154,7 @@ public class PayrollController {
             redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, e.getMessage());
         }
 
-        return "redirect:/payroll/" + id;
+        return REDIRECT_PAYROLL + "/" + id;
     }
 
     @PostMapping("/{id}/cancel")
@@ -167,7 +171,7 @@ public class PayrollController {
             redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, e.getMessage());
         }
 
-        return "redirect:/payroll/" + id;
+        return REDIRECT_PAYROLL + "/" + id;
     }
 
     @PostMapping("/{id}/post")
@@ -183,7 +187,7 @@ public class PayrollController {
             redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, e.getMessage());
         }
 
-        return "redirect:/payroll/" + id;
+        return REDIRECT_PAYROLL + "/" + id;
     }
 
     @PostMapping("/{id}/recalculate")
@@ -201,7 +205,7 @@ public class PayrollController {
             redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, e.getMessage());
         }
 
-        return "redirect:/payroll/" + id;
+        return REDIRECT_PAYROLL + "/" + id;
     }
 
     @PostMapping("/{id}/delete")
@@ -216,7 +220,7 @@ public class PayrollController {
             redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, e.getMessage());
         }
 
-        return "redirect:/payroll";
+        return REDIRECT_PAYROLL;
     }
 
     // ==================== REPORT ENDPOINTS ====================
@@ -243,7 +247,7 @@ public class PayrollController {
         List<PayrollDetail> details = payrollService.getPayrollDetails(id);
 
         byte[] excel = payrollReportService.exportPayrollSummaryToExcel(payrollRun, details);
-        String filename = "rekap-gaji-" + payrollRun.getPayrollPeriod() + ".xlsx";
+        String filename = "rekap-gaji-" + payrollRun.getPayrollPeriod() + EXT_XLSX;
 
         return ResponseEntity.ok()
             .header(HttpHeaders.CONTENT_DISPOSITION, ATTACHMENT_FILENAME + filename + "\"")
@@ -273,7 +277,7 @@ public class PayrollController {
         List<PayrollDetail> details = payrollService.getPayrollDetails(id);
 
         byte[] excel = payrollReportService.exportPph21ReportToExcel(payrollRun, details);
-        String filename = "pph21-" + payrollRun.getPayrollPeriod() + ".xlsx";
+        String filename = "pph21-" + payrollRun.getPayrollPeriod() + EXT_XLSX;
 
         return ResponseEntity.ok()
             .header(HttpHeaders.CONTENT_DISPOSITION, ATTACHMENT_FILENAME + filename + "\"")
@@ -303,7 +307,7 @@ public class PayrollController {
         List<PayrollDetail> details = payrollService.getPayrollDetails(id);
 
         byte[] excel = payrollReportService.exportBpjsReportToExcel(payrollRun, details);
-        String filename = "bpjs-" + payrollRun.getPayrollPeriod() + ".xlsx";
+        String filename = "bpjs-" + payrollRun.getPayrollPeriod() + EXT_XLSX;
 
         return ResponseEntity.ok()
             .header(HttpHeaders.CONTENT_DISPOSITION, ATTACHMENT_FILENAME + filename + "\"")
@@ -359,7 +363,7 @@ public class PayrollController {
         model.addAttribute("summaries", summaries);
         model.addAttribute("selectedYear", selectedYear);
         model.addAttribute("yearOptions", yearOptions);
-        model.addAttribute(ATTR_CURRENT_PAGE, "payroll");
+        model.addAttribute(ATTR_CURRENT_PAGE, PAGE_PAYROLL);
 
         return "payroll/bukti-potong";
     }

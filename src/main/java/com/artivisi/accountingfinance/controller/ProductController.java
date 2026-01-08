@@ -36,6 +36,11 @@ import static com.artivisi.accountingfinance.controller.ViewConstants.*;
 @PreAuthorize("hasAuthority('" + Permission.PRODUCT_VIEW + "')")
 public class ProductController {
 
+    private static final String ATTR_PRODUCT = "product";
+    private static final String ATTR_PRODUCTS = "products";
+    private static final String ATTR_SUCCESS_MESSAGE = "successMessage";
+    private static final String REDIRECT_PRODUCTS = "redirect:/products";
+
     private final ProductService productService;
     private final ProductCategoryService categoryService;
     private final ChartOfAccountRepository chartOfAccountRepository;
@@ -51,7 +56,7 @@ public class ProductController {
 
         Page<Product> products = productService.findByFilters(search, categoryId, active, pageable);
 
-        model.addAttribute("products", products);
+        model.addAttribute(ATTR_PRODUCTS, products);
         model.addAttribute("search", search);
         model.addAttribute("categoryId", categoryId);
         model.addAttribute("active", active);
@@ -73,7 +78,7 @@ public class ProductController {
         product.setTrackInventory(true);
         product.setActive(true);
 
-        model.addAttribute("product", product);
+        model.addAttribute(ATTR_PRODUCT, product);
         addFormAttributes(model);
         return "products/form";
     }
@@ -93,8 +98,8 @@ public class ProductController {
 
         try {
             productService.create(product);
-            redirectAttributes.addFlashAttribute("successMessage", "Produk berhasil ditambahkan");
-            return "redirect:/products";
+            redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Produk berhasil ditambahkan");
+            return REDIRECT_PRODUCTS;
         } catch (IllegalArgumentException e) {
             if (e.getMessage().contains("Kode")) {
                 bindingResult.rejectValue("code", "duplicate", e.getMessage());
@@ -111,7 +116,7 @@ public class ProductController {
         Product product = productService.findByIdWithDetails(id)
                 .orElseThrow(() -> new IllegalArgumentException("Produk tidak ditemukan: " + id));
 
-        model.addAttribute("product", product);
+        model.addAttribute(ATTR_PRODUCT, product);
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_PRODUCTS);
         return "products/detail";
     }
@@ -122,7 +127,7 @@ public class ProductController {
         Product product = productService.findByIdWithDetails(id)
                 .orElseThrow(() -> new IllegalArgumentException("Produk tidak ditemukan: " + id));
 
-        model.addAttribute("product", product);
+        model.addAttribute(ATTR_PRODUCT, product);
         addFormAttributes(model);
         return "products/form";
     }
@@ -143,8 +148,8 @@ public class ProductController {
 
         try {
             productService.update(id, product);
-            redirectAttributes.addFlashAttribute("successMessage", "Produk berhasil diubah");
-            return "redirect:/products";
+            redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Produk berhasil diubah");
+            return REDIRECT_PRODUCTS;
         } catch (IllegalArgumentException e) {
             if (e.getMessage().contains("Kode")) {
                 bindingResult.rejectValue("code", "duplicate", e.getMessage());
@@ -160,16 +165,16 @@ public class ProductController {
     @PreAuthorize("hasAuthority('" + Permission.PRODUCT_EDIT + "')")
     public String activate(@PathVariable UUID id, RedirectAttributes redirectAttributes) {
         productService.activate(id);
-        redirectAttributes.addFlashAttribute("successMessage", "Produk berhasil diaktifkan");
-        return "redirect:/products";
+        redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Produk berhasil diaktifkan");
+        return REDIRECT_PRODUCTS;
     }
 
     @PostMapping("/{id}/deactivate")
     @PreAuthorize("hasAuthority('" + Permission.PRODUCT_EDIT + "')")
     public String deactivate(@PathVariable UUID id, RedirectAttributes redirectAttributes) {
         productService.deactivate(id);
-        redirectAttributes.addFlashAttribute("successMessage", "Produk berhasil dinonaktifkan");
-        return "redirect:/products";
+        redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Produk berhasil dinonaktifkan");
+        return REDIRECT_PRODUCTS;
     }
 
     @PostMapping("/{id}/delete")
@@ -177,11 +182,11 @@ public class ProductController {
     public String delete(@PathVariable UUID id, RedirectAttributes redirectAttributes) {
         try {
             productService.delete(id);
-            redirectAttributes.addFlashAttribute("successMessage", "Produk berhasil dihapus");
+            redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Produk berhasil dihapus");
         } catch (IllegalStateException e) {
             redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
         }
-        return "redirect:/products";
+        return REDIRECT_PRODUCTS;
     }
 
     private void addFormAttributes(Model model) {
