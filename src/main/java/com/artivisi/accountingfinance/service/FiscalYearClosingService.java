@@ -43,6 +43,9 @@ public class FiscalYearClosingService {
     // Account names for error messages and descriptions
     private static final String LABA_BERJALAN = "Laba Berjalan";
     private static final String LABA_DITAHAN = "Laba Ditahan";
+    // Labels for preview display
+    private static final String LABA_BERJALAN_LABEL = "LABA_BERJALAN";
+    private static final String LABA_DITAHAN_LABEL = "LABA_DITAHAN";
     private static final String CLOSING_REF_PREFIX = "CLOSING-";
     private static final String SEQ_TYPE_FISCAL_CLOSING = "FISCAL_CLOSING";
 
@@ -385,7 +388,7 @@ public class FiscalYearClosingService {
 
         lines.add(new ClosingLinePreview(
                 LABA_BERJALAN_CODE,
-                "LABA_BERJALAN",
+                LABA_BERJALAN_LABEL,
                 BigDecimal.ZERO,
                 incomeStatement.totalRevenue(),
                 "Total Pendapatan Tahun " + year
@@ -412,7 +415,7 @@ public class FiscalYearClosingService {
 
         lines.add(new ClosingLinePreview(
                 LABA_BERJALAN_CODE,
-                "LABA_BERJALAN",
+                LABA_BERJALAN_LABEL,
                 incomeStatement.totalExpense(),
                 BigDecimal.ZERO,
                 "Total Beban Tahun " + year
@@ -427,33 +430,33 @@ public class FiscalYearClosingService {
         if (netIncome.compareTo(BigDecimal.ZERO) > 0) {
             lines.add(new ClosingLinePreview(
                     LABA_BERJALAN_CODE,
-                    "LABA_BERJALAN",
+                    LABA_BERJALAN_LABEL,
                     netIncome,
                     BigDecimal.ZERO,
                     "Laba Bersih Tahun " + year
             ));
             lines.add(new ClosingLinePreview(
                     LABA_DITAHAN_CODE,
-                    "LABA_DITAHAN",
+                    LABA_DITAHAN_LABEL,
                     BigDecimal.ZERO,
                     netIncome,
-                    "Transfer ke LABA_DITAHAN"
+                    "Transfer ke " + LABA_DITAHAN_LABEL
             ));
         } else {
             BigDecimal loss = netIncome.abs();
             lines.add(new ClosingLinePreview(
                     LABA_BERJALAN_CODE,
-                    "LABA_BERJALAN",
+                    LABA_BERJALAN_LABEL,
                     BigDecimal.ZERO,
                     loss,
                     "Rugi Bersih Tahun " + year
             ));
             lines.add(new ClosingLinePreview(
                     LABA_DITAHAN_CODE,
-                    "LABA_DITAHAN",
+                    LABA_DITAHAN_LABEL,
                     loss,
                     BigDecimal.ZERO,
-                    "Transfer Rugi ke LABA_DITAHAN"
+                    "Transfer Rugi ke " + LABA_DITAHAN_LABEL
             ));
         }
 

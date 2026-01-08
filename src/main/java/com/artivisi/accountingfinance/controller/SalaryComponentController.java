@@ -34,6 +34,7 @@ public class SalaryComponentController {
     private static final String ATTR_COMPONENT_TYPES = "componentTypes";
     private static final String ATTR_SUCCESS_MESSAGE = "successMessage";
     private static final String REDIRECT_SALARY_COMPONENTS = "redirect:/salary-components";
+    private static final String VIEW_FORM = "salary-components/form";
 
     private final SalaryComponentService salaryComponentService;
 
@@ -72,7 +73,7 @@ public class SalaryComponentController {
         model.addAttribute(ATTR_COMPONENT, component);
         model.addAttribute(ATTR_COMPONENT_TYPES, SalaryComponentType.values());
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_SALARY_COMPONENTS);
-        return "salary-components/form";
+        return VIEW_FORM;
     }
 
     @PostMapping("/new")
@@ -84,7 +85,7 @@ public class SalaryComponentController {
 
         if (bindingResult.hasErrors()) {
             addFormAttributes(model);
-            return "salary-components/form";
+            return VIEW_FORM;
         }
 
         try {
@@ -98,7 +99,7 @@ public class SalaryComponentController {
                 bindingResult.reject("error", e.getMessage());
             }
             addFormAttributes(model);
-            return "salary-components/form";
+            return VIEW_FORM;
         }
     }
 
@@ -115,7 +116,7 @@ public class SalaryComponentController {
         SalaryComponent component = salaryComponentService.findById(id);
         model.addAttribute(ATTR_COMPONENT, component);
         addFormAttributes(model);
-        return "salary-components/form";
+        return VIEW_FORM;
     }
 
     @PostMapping("/{id}")
@@ -129,7 +130,7 @@ public class SalaryComponentController {
         if (bindingResult.hasErrors()) {
             component.setId(id);
             addFormAttributes(model);
-            return "salary-components/form";
+            return VIEW_FORM;
         }
 
         try {
@@ -144,7 +145,7 @@ public class SalaryComponentController {
             }
             component.setId(id);
             addFormAttributes(model);
-            return "salary-components/form";
+            return VIEW_FORM;
         }
     }
 

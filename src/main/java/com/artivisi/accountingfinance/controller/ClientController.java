@@ -30,6 +30,7 @@ public class ClientController {
     private static final String ATTR_CLIENT = "client";
     private static final String ATTR_SUCCESS_MESSAGE = "successMessage";
     private static final String REDIRECT_CLIENTS_PREFIX = "redirect:/clients/";
+    private static final String VIEW_FORM = "clients/form";
 
     private final ClientService clientService;
 
@@ -59,7 +60,7 @@ public class ClientController {
     public String newForm(Model model) {
         model.addAttribute(ATTR_CLIENT, new Client());
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_CLIENTS);
-        return "clients/form";
+        return VIEW_FORM;
     }
 
     @PostMapping("/new")
@@ -71,7 +72,7 @@ public class ClientController {
 
         if (bindingResult.hasErrors()) {
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_CLIENTS);
-            return "clients/form";
+            return VIEW_FORM;
         }
 
         try {
@@ -81,7 +82,7 @@ public class ClientController {
         } catch (IllegalArgumentException e) {
             bindingResult.rejectValue("code", "duplicate", e.getMessage());
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_CLIENTS);
-            return "clients/form";
+            return VIEW_FORM;
         }
     }
 
@@ -98,7 +99,7 @@ public class ClientController {
         Client client = clientService.findByCode(code);
         model.addAttribute(ATTR_CLIENT, client);
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_CLIENTS);
-        return "clients/form";
+        return VIEW_FORM;
     }
 
     @PostMapping("/{code}")
@@ -113,7 +114,7 @@ public class ClientController {
             Client existing = clientService.findByCode(code);
             client.setId(existing.getId());
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_CLIENTS);
-            return "clients/form";
+            return VIEW_FORM;
         }
 
         try {
@@ -126,7 +127,7 @@ public class ClientController {
             Client existing = clientService.findByCode(code);
             client.setId(existing.getId());
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_CLIENTS);
-            return "clients/form";
+            return VIEW_FORM;
         }
     }
 

@@ -622,7 +622,7 @@ public class TransactionController {
         // If query is empty, return recent/frequent templates
         if (query.isEmpty()) {
             var recentTemplates = dashboardService.getRecentTemplates(8);
-            model.addAttribute("templates", recentTemplates);
+            model.addAttribute(ATTR_TEMPLATES, recentTemplates);
             model.addAttribute("showRecent", true);
         } else {
             // Search templates by name

@@ -42,6 +42,7 @@ public class InvoiceController {
     private static final String ATTR_PROJECTS = "projects";
     private static final String REDIRECT_INVOICES_PREFIX = "redirect:/invoices/";
     private static final String PAGE_INVOICES = "invoices";
+    private static final String VIEW_FORM = "invoices/form";
 
     private final InvoiceService invoiceService;
     private final ClientService clientService;
@@ -97,7 +98,7 @@ public class InvoiceController {
         model.addAttribute(ATTR_CLIENTS, clientService.findActiveClients());
         model.addAttribute(ATTR_PROJECTS, projectService.findActiveProjects());
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_INVOICES);
-        return "invoices/form";
+        return VIEW_FORM;
     }
 
     @PostMapping("/new")
@@ -111,7 +112,7 @@ public class InvoiceController {
             model.addAttribute(ATTR_CLIENTS, clientService.findActiveClients());
             model.addAttribute(ATTR_PROJECTS, projectService.findActiveProjects());
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_INVOICES);
-            return "invoices/form";
+            return VIEW_FORM;
         }
 
         try {
@@ -123,7 +124,7 @@ public class InvoiceController {
             model.addAttribute(ATTR_CLIENTS, clientService.findActiveClients());
             model.addAttribute(ATTR_PROJECTS, projectService.findActiveProjects());
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_INVOICES);
-            return "invoices/form";
+            return VIEW_FORM;
         }
     }
 
@@ -148,7 +149,7 @@ public class InvoiceController {
         model.addAttribute(ATTR_CLIENTS, clientService.findActiveClients());
         model.addAttribute(ATTR_PROJECTS, projectService.findActiveProjects());
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_INVOICES);
-        return "invoices/form";
+        return VIEW_FORM;
     }
 
     @PostMapping("/{invoiceNumber}")
@@ -165,7 +166,7 @@ public class InvoiceController {
             model.addAttribute(ATTR_CLIENTS, clientService.findActiveClients());
             model.addAttribute(ATTR_PROJECTS, projectService.findActiveProjects());
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_INVOICES);
-            return "invoices/form";
+            return VIEW_FORM;
         }
 
         try {
@@ -184,7 +185,7 @@ public class InvoiceController {
             model.addAttribute(ATTR_CLIENTS, clientService.findActiveClients());
             model.addAttribute(ATTR_PROJECTS, projectService.findActiveProjects());
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_INVOICES);
-            return "invoices/form";
+            return VIEW_FORM;
         }
     }
 

@@ -37,7 +37,12 @@ public class DocumentController {
 
     private static final String MSG_UPLOAD_FAILED = "Gagal mengunggah dokumen: ";
     private static final String MSG_DELETE_FAILED = "Gagal menghapus dokumen: ";
+    private static final String MSG_UPLOAD_SUCCESS = "Dokumen berhasil diunggah";
+    private static final String MSG_DELETE_SUCCESS = "Dokumen berhasil dihapus";
     private static final String AUDIT_UPLOADED_DOC = "Uploaded document: ";
+    private static final String ATTR_MESSAGE = "message";
+    private static final String ATTR_SUCCESS = "success";
+    private static final String ATTR_DOCUMENTS = "documents";
 
     private final DocumentService documentService;
     private final SecurityAuditService securityAuditService;
@@ -58,21 +63,21 @@ public class DocumentController {
             securityAuditService.log(AuditEventType.DOCUMENT_UPLOAD,
                     AUDIT_UPLOADED_DOC + document.getOriginalFilename() + " for transaction: " + transactionId);
             model.addAttribute("document", document);
-            model.addAttribute("success", true);
-            model.addAttribute("message", "Dokumen berhasil diunggah");
+            model.addAttribute(ATTR_SUCCESS, true);
+            model.addAttribute(ATTR_MESSAGE, MSG_UPLOAD_SUCCESS);
         } catch (IOException e) {
             log.error("Failed to upload document for transaction {}: {}", transactionId, e.getMessage());
-            model.addAttribute("success", false);
+            model.addAttribute(ATTR_SUCCESS, false);
             // nosemgrep: semgrep.missing-html-escape-in-model - using HtmlUtils.htmlEscape
-            model.addAttribute("message", MSG_UPLOAD_FAILED + HtmlUtils.htmlEscape(e.getMessage()));
+            model.addAttribute(ATTR_MESSAGE, MSG_UPLOAD_FAILED + HtmlUtils.htmlEscape(e.getMessage()));
         } catch (IllegalArgumentException e) {
-            model.addAttribute("success", false);
-            model.addAttribute("message", HtmlUtils.htmlEscape(e.getMessage()));
+            model.addAttribute(ATTR_SUCCESS, false);
+            model.addAttribute(ATTR_MESSAGE, HtmlUtils.htmlEscape(e.getMessage()));
         }
 
         // Return updated document list fragment
         List<Document> documents = documentService.findByTransactionId(transactionId);
-        model.addAttribute("documents", documents);
+        model.addAttribute(ATTR_DOCUMENTS, documents);
         model.addAttribute("transactionId", transactionId);
         return "fragments/document-list :: documentList";
     }
@@ -93,20 +98,20 @@ public class DocumentController {
             securityAuditService.log(AuditEventType.DOCUMENT_UPLOAD,
                     AUDIT_UPLOADED_DOC + document.getOriginalFilename() + " for journal entry: " + journalEntryId);
             model.addAttribute("document", document);
-            model.addAttribute("success", true);
-            model.addAttribute("message", "Dokumen berhasil diunggah");
+            model.addAttribute(ATTR_SUCCESS, true);
+            model.addAttribute(ATTR_MESSAGE, MSG_UPLOAD_SUCCESS);
         } catch (IOException e) {
             log.error("Failed to upload document for journal entry {}: {}", journalEntryId, e.getMessage());
-            model.addAttribute("success", false);
+            model.addAttribute(ATTR_SUCCESS, false);
             // nosemgrep: semgrep.missing-html-escape-in-model - using HtmlUtils.htmlEscape
-            model.addAttribute("message", MSG_UPLOAD_FAILED + HtmlUtils.htmlEscape(e.getMessage()));
+            model.addAttribute(ATTR_MESSAGE, MSG_UPLOAD_FAILED + HtmlUtils.htmlEscape(e.getMessage()));
         } catch (IllegalArgumentException e) {
-            model.addAttribute("success", false);
-            model.addAttribute("message", HtmlUtils.htmlEscape(e.getMessage()));
+            model.addAttribute(ATTR_SUCCESS, false);
+            model.addAttribute(ATTR_MESSAGE, HtmlUtils.htmlEscape(e.getMessage()));
         }
 
         List<Document> documents = documentService.findByJournalEntryId(journalEntryId);
-        model.addAttribute("documents", documents);
+        model.addAttribute(ATTR_DOCUMENTS, documents);
         model.addAttribute("journalEntryId", journalEntryId);
         return "fragments/document-list :: documentList";
     }
@@ -127,20 +132,20 @@ public class DocumentController {
             securityAuditService.log(AuditEventType.DOCUMENT_UPLOAD,
                     AUDIT_UPLOADED_DOC + document.getOriginalFilename() + " for invoice: " + invoiceId);
             model.addAttribute("document", document);
-            model.addAttribute("success", true);
-            model.addAttribute("message", "Dokumen berhasil diunggah");
+            model.addAttribute(ATTR_SUCCESS, true);
+            model.addAttribute(ATTR_MESSAGE, MSG_UPLOAD_SUCCESS);
         } catch (IOException e) {
             log.error("Failed to upload document for invoice {}: {}", invoiceId, e.getMessage());
-            model.addAttribute("success", false);
+            model.addAttribute(ATTR_SUCCESS, false);
             // nosemgrep: semgrep.missing-html-escape-in-model - using HtmlUtils.htmlEscape
-            model.addAttribute("message", MSG_UPLOAD_FAILED + HtmlUtils.htmlEscape(e.getMessage()));
+            model.addAttribute(ATTR_MESSAGE, MSG_UPLOAD_FAILED + HtmlUtils.htmlEscape(e.getMessage()));
         } catch (IllegalArgumentException e) {
-            model.addAttribute("success", false);
-            model.addAttribute("message", HtmlUtils.htmlEscape(e.getMessage()));
+            model.addAttribute(ATTR_SUCCESS, false);
+            model.addAttribute(ATTR_MESSAGE, HtmlUtils.htmlEscape(e.getMessage()));
         }
 
         List<Document> documents = documentService.findByInvoiceId(invoiceId);
-        model.addAttribute("documents", documents);
+        model.addAttribute(ATTR_DOCUMENTS, documents);
         model.addAttribute("invoiceId", invoiceId);
         return "fragments/document-list :: documentList";
     }
@@ -153,7 +158,7 @@ public class DocumentController {
             @PathVariable UUID transactionId,
             Model model) {
         List<Document> documents = documentService.findByTransactionId(transactionId);
-        model.addAttribute("documents", documents);
+        model.addAttribute(ATTR_DOCUMENTS, documents);
         model.addAttribute("transactionId", transactionId);
         return "fragments/document-list :: documentList";
     }
@@ -226,13 +231,13 @@ public class DocumentController {
             documentService.delete(id);
             securityAuditService.log(AuditEventType.DOCUMENT_DELETE,
                     "Deleted document: " + filename + " (id: " + id + ")");
-            model.addAttribute("success", true);
-            model.addAttribute("message", "Dokumen berhasil dihapus");
+            model.addAttribute(ATTR_SUCCESS, true);
+            model.addAttribute(ATTR_MESSAGE, MSG_DELETE_SUCCESS);
         } catch (IOException e) {
             log.error("Failed to delete document {}: {}", id, e.getMessage());
-            model.addAttribute("success", false);
+            model.addAttribute(ATTR_SUCCESS, false);
             // nosemgrep: semgrep.missing-html-escape-in-model - using HtmlUtils.htmlEscape
-            model.addAttribute("message", MSG_DELETE_FAILED + HtmlUtils.htmlEscape(e.getMessage()));
+            model.addAttribute(ATTR_MESSAGE, MSG_DELETE_FAILED + HtmlUtils.htmlEscape(e.getMessage()));
         }
 
         // Return updated document list based on context
@@ -250,7 +255,7 @@ public class DocumentController {
             documents = List.of();
         }
 
-        model.addAttribute("documents", documents);
+        model.addAttribute(ATTR_DOCUMENTS, documents);
         return "fragments/document-list :: documentList";
     }
 

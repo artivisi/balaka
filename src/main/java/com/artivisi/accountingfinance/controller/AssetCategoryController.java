@@ -35,6 +35,7 @@ public class AssetCategoryController {
 
     private static final String ATTR_SUCCESS_MESSAGE = "successMessage";
     private static final String REDIRECT_ASSET_CATEGORIES = "redirect:/assets/categories";
+    private static final String VIEW_FORM = "assets/categories/form";
 
     private final AssetCategoryService assetCategoryService;
     private final ChartOfAccountRepository chartOfAccountRepository;
@@ -71,7 +72,7 @@ public class AssetCategoryController {
 
         model.addAttribute("category", category);
         addFormAttributes(model);
-        return "assets/categories/form";
+        return VIEW_FORM;
     }
 
     @PostMapping("/new")
@@ -84,7 +85,7 @@ public class AssetCategoryController {
 
         if (bindingResult.hasErrors()) {
             addFormAttributes(model);
-            return "assets/categories/form";
+            return VIEW_FORM;
         }
 
         try {
@@ -98,7 +99,7 @@ public class AssetCategoryController {
                 bindingResult.reject("error", e.getMessage());
             }
             addFormAttributes(model);
-            return "assets/categories/form";
+            return VIEW_FORM;
         }
     }
 
@@ -108,7 +109,7 @@ public class AssetCategoryController {
         AssetCategory category = assetCategoryService.findById(id);
         model.addAttribute("category", category);
         addFormAttributes(model);
-        return "assets/categories/form";
+        return VIEW_FORM;
     }
 
     @PostMapping("/{id}")
@@ -123,7 +124,7 @@ public class AssetCategoryController {
         if (bindingResult.hasErrors()) {
             category.setId(id);
             addFormAttributes(model);
-            return "assets/categories/form";
+            return VIEW_FORM;
         }
 
         try {
@@ -138,7 +139,7 @@ public class AssetCategoryController {
             }
             category.setId(id);
             addFormAttributes(model);
-            return "assets/categories/form";
+            return VIEW_FORM;
         }
     }
 

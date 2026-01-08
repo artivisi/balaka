@@ -51,8 +51,13 @@ public class ReportExportService {
     private static final String TOTAL_LABEL = "TOTAL";
     private static final String COL_KATEGORI = "Kategori";
     private static final String COL_NAMA_PRODUK = "Nama Produk";
+    private static final String COL_NILAI = "Nilai";
+    private static final String COL_SATUAN = "Satuan";
+    private static final String COL_HARGA_RATA_RATA = "Harga Rata-rata";
     private static final String TOTAL_LIABILITIES_EQUITY = "TOTAL LIABILITAS + EKUITAS";
     private static final String DATE_PATTERN_DMY = "dd/MM/yyyy";
+    private static final String LABEL_PERIODE = "Periode ";
+    private static final String LABEL_PER_TANGGAL = "Per tanggal ";
     private static final DecimalFormat NUMBER_FORMAT;
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("d MMMM yyyy", Locale.of("id", "ID"));
 
@@ -93,7 +98,7 @@ public class ReportExportService {
             document.open();
 
             addReportHeader(document, "NERACA SALDO", "Trial Balance",
-                    "Per tanggal " + report.asOfDate().format(DATE_FORMAT));
+                    LABEL_PER_TANGGAL + report.asOfDate().format(DATE_FORMAT));
 
             PdfPTable table = new PdfPTable(4);
             table.setWidthPercentage(100);
@@ -129,7 +134,7 @@ public class ReportExportService {
             int rowNum = 0;
 
             rowNum = addExcelHeader(workbook, sheet, rowNum, "NERACA SALDO",
-                    "Per tanggal " + report.asOfDate().format(DATE_FORMAT), 4);
+                    LABEL_PER_TANGGAL + report.asOfDate().format(DATE_FORMAT), 4);
 
             Row headerRow = sheet.createRow(rowNum++);
             CellStyle headerStyle = createHeaderStyle(workbook);
@@ -174,7 +179,7 @@ public class ReportExportService {
             document.open();
 
             addReportHeader(document, "LAPORAN POSISI KEUANGAN", "Balance Sheet",
-                    "Per tanggal " + report.asOfDate().format(DATE_FORMAT));
+                    LABEL_PER_TANGGAL + report.asOfDate().format(DATE_FORMAT));
 
             PdfPTable table = new PdfPTable(2);
             table.setWidthPercentage(100);
@@ -229,7 +234,7 @@ public class ReportExportService {
             int rowNum = 0;
 
             rowNum = addExcelHeader(workbook, sheet, rowNum, "LAPORAN POSISI KEUANGAN",
-                    "Per tanggal " + report.asOfDate().format(DATE_FORMAT), 2);
+                    LABEL_PER_TANGGAL + report.asOfDate().format(DATE_FORMAT), 2);
 
             CellStyle sectionStyle = createSectionStyle(workbook);
             CellStyle textStyle = createTextStyle(workbook);
@@ -301,7 +306,7 @@ public class ReportExportService {
             document.open();
 
             addReportHeader(document, "LAPORAN LABA RUGI", "Income Statement",
-                    "Periode " + report.startDate().format(DATE_FORMAT) + " - " + report.endDate().format(DATE_FORMAT));
+                    LABEL_PERIODE + report.startDate().format(DATE_FORMAT) + " - " + report.endDate().format(DATE_FORMAT));
 
             PdfPTable table = new PdfPTable(2);
             table.setWidthPercentage(100);
@@ -346,7 +351,7 @@ public class ReportExportService {
             int rowNum = 0;
 
             rowNum = addExcelHeader(workbook, sheet, rowNum, "LAPORAN LABA RUGI",
-                    "Periode " + report.startDate().format(DATE_FORMAT) + " - " + report.endDate().format(DATE_FORMAT), 2);
+                    LABEL_PERIODE + report.startDate().format(DATE_FORMAT) + " - " + report.endDate().format(DATE_FORMAT), 2);
 
             CellStyle sectionStyle = createSectionStyle(workbook);
             CellStyle textStyle = createTextStyle(workbook);
@@ -403,7 +408,7 @@ public class ReportExportService {
             document.open();
 
             addReportHeader(document, "LAPORAN ARUS KAS", "Cash Flow Statement",
-                    "Periode " + report.startDate().format(DATE_FORMAT) + " - " + report.endDate().format(DATE_FORMAT));
+                    LABEL_PERIODE + report.startDate().format(DATE_FORMAT) + " - " + report.endDate().format(DATE_FORMAT));
 
             PdfPTable table = new PdfPTable(2);
             table.setWidthPercentage(100);
@@ -459,7 +464,7 @@ public class ReportExportService {
             int rowNum = 0;
 
             rowNum = addExcelHeader(workbook, sheet, rowNum, "LAPORAN ARUS KAS",
-                    "Periode " + report.startDate().format(DATE_FORMAT) + " - " + report.endDate().format(DATE_FORMAT), 2);
+                    LABEL_PERIODE + report.startDate().format(DATE_FORMAT) + " - " + report.endDate().format(DATE_FORMAT), 2);
 
             CellStyle sectionStyle = createSectionStyle(workbook);
             CellStyle textStyle = createTextStyle(workbook);
@@ -543,7 +548,7 @@ public class ReportExportService {
             table.setWidths(new float[]{3, 12, 10, 8, 12, 6, 8, 12, 12, 12});
             table.setSpacingBefore(20);
 
-            addTableHeader(table, "No", "Nama Aset", "Kategori", "Tgl Perolehan",
+            addTableHeader(table, "No", "Nama Aset", COL_KATEGORI, "Tgl Perolehan",
                     "Harga Perolehan", "Masa", "Metode", "Penyusutan Thn Ini", "Akum. Penyusutan", "Nilai Buku");
 
             int no = 1;
@@ -689,14 +694,14 @@ public class ReportExportService {
             document.open();
 
             addReportHeader(document, "LAPORAN SALDO STOK", "Stock Balance Report",
-                    "Per tanggal " + asOfDate.format(DATE_FORMAT));
+                    LABEL_PER_TANGGAL + asOfDate.format(DATE_FORMAT));
 
             PdfPTable table = new PdfPTable(8);
             table.setWidthPercentage(100);
             table.setWidths(new float[]{3, 10, 15, 10, 8, 10, 12, 12});
             table.setSpacingBefore(20);
 
-            addTableHeader(table, "No", "Kode", "Nama Produk", "Kategori", "Satuan", "Qty", "Harga Rata-rata", "Nilai");
+            addTableHeader(table, "No", "Kode", COL_NAMA_PRODUK, COL_KATEGORI, COL_SATUAN, "Qty", COL_HARGA_RATA_RATA, COL_NILAI);
 
             int no = 1;
             for (InventoryReportService.StockBalanceItem item : report.items()) {
@@ -757,7 +762,7 @@ public class ReportExportService {
             int rowNum = 0;
 
             rowNum = addExcelHeader(workbook, sheet, rowNum, "LAPORAN SALDO STOK",
-                    "Per tanggal " + asOfDate.format(DATE_FORMAT), 8);
+                    LABEL_PER_TANGGAL + asOfDate.format(DATE_FORMAT), 8);
 
             Row headerRow = sheet.createRow(rowNum++);
             CellStyle headerStyle = createHeaderStyle(workbook);
@@ -765,10 +770,10 @@ public class ReportExportService {
             createCell(headerRow, 1, "Kode", headerStyle);
             createCell(headerRow, 2, COL_NAMA_PRODUK, headerStyle);
             createCell(headerRow, 3, COL_KATEGORI, headerStyle);
-            createCell(headerRow, 4, "Satuan", headerStyle);
+            createCell(headerRow, 4, COL_SATUAN, headerStyle);
             createCell(headerRow, 5, "Qty", headerStyle);
-            createCell(headerRow, 6, "Harga Rata-rata", headerStyle);
-            createCell(headerRow, 7, "Nilai", headerStyle);
+            createCell(headerRow, 6, COL_HARGA_RATA_RATA, headerStyle);
+            createCell(headerRow, 7, COL_NILAI, headerStyle);
 
             CellStyle numberStyle = createNumberStyle(workbook);
             CellStyle textStyle = createTextStyle(workbook);
@@ -815,14 +820,14 @@ public class ReportExportService {
             document.open();
 
             addReportHeader(document, "LAPORAN MUTASI STOK", "Stock Movement Report",
-                    "Periode " + report.startDate().format(DATE_FORMAT) + " - " + report.endDate().format(DATE_FORMAT));
+                    LABEL_PERIODE + report.startDate().format(DATE_FORMAT) + " - " + report.endDate().format(DATE_FORMAT));
 
             PdfPTable table = new PdfPTable(9);
             table.setWidthPercentage(100);
             table.setWidths(new float[]{3, 8, 10, 12, 10, 10, 10, 10, 10});
             table.setSpacingBefore(20);
 
-            addTableHeader(table, "No", "Tanggal", "Kode", "Nama Produk", "Tipe", "Qty", "Harga", "Nilai", "Saldo");
+            addTableHeader(table, "No", "Tanggal", "Kode", COL_NAMA_PRODUK, "Tipe", "Qty", "Harga", COL_NILAI, "Saldo");
 
             int no = 1;
             for (InventoryReportService.StockMovementItem item : report.items()) {
@@ -876,7 +881,7 @@ public class ReportExportService {
             int rowNum = 0;
 
             rowNum = addExcelHeader(workbook, sheet, rowNum, "LAPORAN MUTASI STOK",
-                    "Periode " + report.startDate().format(DATE_FORMAT) + " - " + report.endDate().format(DATE_FORMAT), 9);
+                    LABEL_PERIODE + report.startDate().format(DATE_FORMAT) + " - " + report.endDate().format(DATE_FORMAT), 9);
 
             Row headerRow = sheet.createRow(rowNum++);
             CellStyle headerStyle = createHeaderStyle(workbook);
@@ -887,7 +892,7 @@ public class ReportExportService {
             createCell(headerRow, 4, "Tipe", headerStyle);
             createCell(headerRow, 5, "Qty", headerStyle);
             createCell(headerRow, 6, "Harga", headerStyle);
-            createCell(headerRow, 7, "Nilai", headerStyle);
+            createCell(headerRow, 7, COL_NILAI, headerStyle);
             createCell(headerRow, 8, "Saldo", headerStyle);
 
             CellStyle numberStyle = createNumberStyle(workbook);
@@ -951,14 +956,14 @@ public class ReportExportService {
             document.open();
 
             addReportHeader(document, "LAPORAN PENILAIAN PERSEDIAAN", "Inventory Valuation Report",
-                    "Per tanggal " + asOfDate.format(DATE_FORMAT));
+                    LABEL_PER_TANGGAL + asOfDate.format(DATE_FORMAT));
 
             PdfPTable table = new PdfPTable(8);
             table.setWidthPercentage(100);
             table.setWidths(new float[]{3, 10, 15, 10, 8, 10, 12, 12});
             table.setSpacingBefore(20);
 
-            addTableHeader(table, "No", "Kode", "Nama Produk", "Kategori", "Satuan", "Qty", "Harga Rata-rata", "Nilai");
+            addTableHeader(table, "No", "Kode", COL_NAMA_PRODUK, COL_KATEGORI, COL_SATUAN, "Qty", COL_HARGA_RATA_RATA, COL_NILAI);
 
             int no = 1;
             for (InventoryReportService.ValuationItem item : report.items()) {
@@ -1006,7 +1011,7 @@ public class ReportExportService {
             int rowNum = 0;
 
             rowNum = addExcelHeader(workbook, sheet, rowNum, "LAPORAN PENILAIAN PERSEDIAAN",
-                    "Per tanggal " + asOfDate.format(DATE_FORMAT), 8);
+                    LABEL_PER_TANGGAL + asOfDate.format(DATE_FORMAT), 8);
 
             Row headerRow = sheet.createRow(rowNum++);
             CellStyle headerStyle = createHeaderStyle(workbook);
@@ -1014,10 +1019,10 @@ public class ReportExportService {
             createCell(headerRow, 1, "Kode", headerStyle);
             createCell(headerRow, 2, COL_NAMA_PRODUK, headerStyle);
             createCell(headerRow, 3, COL_KATEGORI, headerStyle);
-            createCell(headerRow, 4, "Satuan", headerStyle);
+            createCell(headerRow, 4, COL_SATUAN, headerStyle);
             createCell(headerRow, 5, "Qty", headerStyle);
-            createCell(headerRow, 6, "Harga Rata-rata", headerStyle);
-            createCell(headerRow, 7, "Nilai", headerStyle);
+            createCell(headerRow, 6, COL_HARGA_RATA_RATA, headerStyle);
+            createCell(headerRow, 7, COL_NILAI, headerStyle);
 
             CellStyle numberStyle = createNumberStyle(workbook);
             CellStyle textStyle = createTextStyle(workbook);
@@ -1064,14 +1069,14 @@ public class ReportExportService {
             document.open();
 
             addReportHeader(document, "LAPORAN PROFITABILITAS PRODUK", "Product Profitability Report",
-                    "Periode " + report.startDate().format(DATE_FORMAT) + " - " + report.endDate().format(DATE_FORMAT));
+                    LABEL_PERIODE + report.startDate().format(DATE_FORMAT) + " - " + report.endDate().format(DATE_FORMAT));
 
             PdfPTable table = new PdfPTable(9);
             table.setWidthPercentage(100);
             table.setWidths(new float[]{3, 8, 15, 10, 8, 12, 12, 12, 8});
             table.setSpacingBefore(20);
 
-            addTableHeader(table, "No", "Kode", "Nama Produk", "Kategori", "Qty", "Pendapatan", "HPP", "Margin", "%");
+            addTableHeader(table, "No", "Kode", COL_NAMA_PRODUK, COL_KATEGORI, "Qty", "Pendapatan", "HPP", "Margin", "%");
 
             int no = 1;
             for (InventoryReportService.ProfitabilityItem item : report.items()) {
@@ -1148,7 +1153,7 @@ public class ReportExportService {
             int rowNum = 0;
 
             rowNum = addExcelHeader(workbook, sheet, rowNum, "LAPORAN PROFITABILITAS PRODUK",
-                    "Periode " + report.startDate().format(DATE_FORMAT) + " - " + report.endDate().format(DATE_FORMAT), 9);
+                    LABEL_PERIODE + report.startDate().format(DATE_FORMAT) + " - " + report.endDate().format(DATE_FORMAT), 9);
 
             Row headerRow = sheet.createRow(rowNum++);
             CellStyle headerStyle = createHeaderStyle(workbook);

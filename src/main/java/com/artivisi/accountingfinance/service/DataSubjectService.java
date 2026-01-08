@@ -29,6 +29,8 @@ import java.util.UUID;
 @Slf4j
 public class DataSubjectService {
 
+    private static final String ERR_EMPLOYEE_NOT_FOUND = "Employee not found: ";
+
     private final EmployeeRepository employeeRepository;
     private final UserRepository userRepository;
     private final SecurityAuditService securityAuditService;
@@ -40,7 +42,7 @@ public class DataSubjectService {
     @Transactional(readOnly = true)
     public Map<String, Object> exportPersonalData(UUID employeeId) {
         Employee employee = employeeRepository.findById(employeeId)
-                .orElseThrow(() -> new IllegalArgumentException("Employee not found: " + employeeId));
+                .orElseThrow(() -> new IllegalArgumentException(ERR_EMPLOYEE_NOT_FOUND + employeeId));
 
         Map<String, Object> personalData = new HashMap<>();
 
@@ -88,7 +90,7 @@ public class DataSubjectService {
     @Transactional
     public void anonymizeEmployee(UUID employeeId, String reason) {
         Employee employee = employeeRepository.findById(employeeId)
-                .orElseThrow(() -> new IllegalArgumentException("Employee not found: " + employeeId));
+                .orElseThrow(() -> new IllegalArgumentException(ERR_EMPLOYEE_NOT_FOUND + employeeId));
 
         String originalName = employee.getName();
 
@@ -150,7 +152,7 @@ public class DataSubjectService {
     @Transactional(readOnly = true)
     public DataRetentionStatus getRetentionStatus(UUID employeeId) {
         Employee employee = employeeRepository.findById(employeeId)
-                .orElseThrow(() -> new IllegalArgumentException("Employee not found: " + employeeId));
+                .orElseThrow(() -> new IllegalArgumentException(ERR_EMPLOYEE_NOT_FOUND + employeeId));
 
         // Check if employee has financial records that require retention
         // For now, assume all employees with payroll records need retention

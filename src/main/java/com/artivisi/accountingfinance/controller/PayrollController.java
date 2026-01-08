@@ -45,6 +45,7 @@ public class PayrollController {
     private static final String CONTENT_TYPE_XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
     private static final String ATTACHMENT_FILENAME = "attachment; filename=\"";
     private static final String EXT_XLSX = ".xlsx";
+    private static final String VIEW_FORM = "payroll/form";
 
     private final PayrollService payrollService;
     private final PayrollReportService payrollReportService;
@@ -82,7 +83,7 @@ public class PayrollController {
         YearMonth suggestedPeriod = YearMonth.now();
         model.addAttribute("suggestedPeriod", suggestedPeriod.toString());
 
-        return "payroll/form";
+        return VIEW_FORM;
     }
 
     @PostMapping("/create")
@@ -95,7 +96,7 @@ public class PayrollController {
         if (bindingResult.hasErrors()) {
             model.addAttribute("riskClasses", getRiskClasses());
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_PAYROLL);
-            return "payroll/form";
+            return VIEW_FORM;
         }
 
         try {
@@ -105,7 +106,7 @@ public class PayrollController {
                 bindingResult.rejectValue("period", "duplicate", "Payroll untuk periode ini sudah ada");
                 model.addAttribute("riskClasses", getRiskClasses());
                 model.addAttribute(ATTR_CURRENT_PAGE, PAGE_PAYROLL);
-                return "payroll/form";
+                return VIEW_FORM;
             }
 
             // Create and calculate payroll

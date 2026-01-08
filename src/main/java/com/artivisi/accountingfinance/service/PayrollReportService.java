@@ -46,6 +46,7 @@ public class PayrollReportService {
     private static final String COMPANY_NAME = "PT ArtiVisi Intermedia";
     private static final String TOTAL_LABEL = "TOTAL";
     private static final String TOTAL_POTONGAN = "Total Potongan";
+    private static final String PPH_21 = "PPh 21";
     private static final String NUMBER_PATTERN = "#,##0";
     private static final String PERIODE_PREFIX = "Periode ";
     private static final DecimalFormat NUMBER_FORMAT;
@@ -80,7 +81,7 @@ public class PayrollReportService {
             table.setWidths(new float[]{5, 20, 15, 12, 12, 12, 12, 12});
             table.setSpacingBefore(15);
 
-            addTableHeader(table, "No", "Nama Karyawan", "NIK", "Gaji Bruto", "BPJS Karyawan", "PPh 21", TOTAL_POTONGAN, "Gaji Neto");
+            addTableHeader(table, "No", "Nama Karyawan", "NIK", "Gaji Bruto", "BPJS Karyawan", PPH_21, TOTAL_POTONGAN, "Gaji Neto");
 
             int no = 1;
             for (PayrollDetail detail : details) {
@@ -124,7 +125,7 @@ public class PayrollReportService {
             // Headers
             Row headerRow = sheet.createRow(rowNum++);
             CellStyle headerStyle = createHeaderStyle(workbook);
-            String[] headers = {"No", "Nama Karyawan", "NIK", "Gaji Bruto", "BPJS Karyawan", "PPh 21", TOTAL_POTONGAN, "Gaji Neto"};
+            String[] headers = {"No", "Nama Karyawan", "NIK", "Gaji Bruto", "BPJS Karyawan", PPH_21, TOTAL_POTONGAN, "Gaji Neto"};
             for (int i = 0; i < headers.length; i++) {
                 createCell(headerRow, i, headers[i], headerStyle);
             }
@@ -186,7 +187,7 @@ public class PayrollReportService {
             table.setWidths(new float[]{5, 25, 20, 15, 15, 20});
             table.setSpacingBefore(15);
 
-            addTableHeader(table, "No", "Nama", "NPWP", "Penghasilan Bruto", "PPh 21", "Status PTKP");
+            addTableHeader(table, "No", "Nama", "NPWP", "Penghasilan Bruto", PPH_21, "Status PTKP");
 
             int no = 1;
             for (PayrollDetail detail : details) {
@@ -249,7 +250,7 @@ public class PayrollReportService {
         try (Workbook workbook = new XSSFWorkbook();
              ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
 
-            Sheet sheet = workbook.createSheet("PPh 21");
+            Sheet sheet = workbook.createSheet(PPH_21);
             int rowNum = 0;
 
             rowNum = addExcelHeader(workbook, sheet, rowNum, "LAPORAN PPh 21 BULANAN",
@@ -257,7 +258,7 @@ public class PayrollReportService {
 
             Row headerRow = sheet.createRow(rowNum++);
             CellStyle headerStyle = createHeaderStyle(workbook);
-            String[] headers = {"No", "Nama", "NPWP", "Penghasilan Bruto", "PPh 21", "Status PTKP"};
+            String[] headers = {"No", "Nama", "NPWP", "Penghasilan Bruto", PPH_21, "Status PTKP"};
             for (int i = 0; i < headers.length; i++) {
                 createCell(headerRow, i, headers[i], headerStyle);
             }
@@ -544,7 +545,7 @@ public class PayrollReportService {
             addPayslipRow(deductionsTable, "BPJS Kesehatan", detail.getBpjsKesEmployee());
             addPayslipRow(deductionsTable, "BPJS JHT", detail.getBpjsJhtEmployee());
             addPayslipRow(deductionsTable, "BPJS JP", detail.getBpjsJpEmployee());
-            addPayslipRow(deductionsTable, "PPh 21", detail.getPph21());
+            addPayslipRow(deductionsTable, PPH_21, detail.getPph21());
             addPayslipRow(deductionsTable, TOTAL_POTONGAN, detail.getTotalDeductions());
             document.add(deductionsTable);
 

@@ -27,6 +27,9 @@ public class TaxExportController {
     private final CoretaxExportService coretaxExportService;
 
     private static final DateTimeFormatter MONTH_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM");
+    private static final DateTimeFormatter FILE_MONTH_FORMAT = DateTimeFormatter.ofPattern("yyyyMM");
+    private static final String ATTACHMENT_FILENAME_PREFIX = "attachment; filename=\"";
+    private static final String CONTENT_TYPE_XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
     @GetMapping
     public String showExportPage(
@@ -70,12 +73,12 @@ public class TaxExportController {
         byte[] excelData = coretaxExportService.exportEFakturKeluaran(startDate, endDate);
 
         String filename = String.format("efaktur-keluaran_%s_%s.xlsx",
-                start.format(DateTimeFormatter.ofPattern("yyyyMM")),
-                end.format(DateTimeFormatter.ofPattern("yyyyMM")));
+                start.format(FILE_MONTH_FORMAT),
+                end.format(FILE_MONTH_FORMAT));
 
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
-                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .header(HttpHeaders.CONTENT_DISPOSITION, ATTACHMENT_FILENAME_PREFIX + filename + "\"")
+                .contentType(MediaType.parseMediaType(CONTENT_TYPE_XLSX))
                 .body(excelData);
     }
 
@@ -92,12 +95,12 @@ public class TaxExportController {
         byte[] excelData = coretaxExportService.exportEFakturMasukan(startDate, endDate);
 
         String filename = String.format("efaktur-masukan_%s_%s.xlsx",
-                start.format(DateTimeFormatter.ofPattern("yyyyMM")),
-                end.format(DateTimeFormatter.ofPattern("yyyyMM")));
+                start.format(FILE_MONTH_FORMAT),
+                end.format(FILE_MONTH_FORMAT));
 
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
-                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .header(HttpHeaders.CONTENT_DISPOSITION, ATTACHMENT_FILENAME_PREFIX + filename + "\"")
+                .contentType(MediaType.parseMediaType(CONTENT_TYPE_XLSX))
                 .body(excelData);
     }
 
@@ -114,12 +117,12 @@ public class TaxExportController {
         byte[] excelData = coretaxExportService.exportBupotUnifikasi(startDate, endDate);
 
         String filename = String.format("bupot-unifikasi_%s_%s.xlsx",
-                start.format(DateTimeFormatter.ofPattern("yyyyMM")),
-                end.format(DateTimeFormatter.ofPattern("yyyyMM")));
+                start.format(FILE_MONTH_FORMAT),
+                end.format(FILE_MONTH_FORMAT));
 
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
-                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .header(HttpHeaders.CONTENT_DISPOSITION, ATTACHMENT_FILENAME_PREFIX + filename + "\"")
+                .contentType(MediaType.parseMediaType(CONTENT_TYPE_XLSX))
                 .body(excelData);
     }
 

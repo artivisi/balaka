@@ -35,6 +35,7 @@ public class ProjectController {
     private static final String ATTR_CLIENTS = "clients";
     private static final String ATTR_SUCCESS_MESSAGE = "successMessage";
     private static final String REDIRECT_PROJECTS_PREFIX = "redirect:/projects/";
+    private static final String VIEW_FORM = "projects/form";
 
     private final ProjectService projectService;
     private final ClientService clientService;
@@ -70,7 +71,7 @@ public class ProjectController {
         model.addAttribute(ATTR_PROJECT, new Project());
         model.addAttribute(ATTR_CLIENTS, clientService.findActiveClients());
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_PROJECTS);
-        return "projects/form";
+        return VIEW_FORM;
     }
 
     @PostMapping("/new")
@@ -84,7 +85,7 @@ public class ProjectController {
         if (bindingResult.hasErrors()) {
             model.addAttribute(ATTR_CLIENTS, clientService.findActiveClients());
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_PROJECTS);
-            return "projects/form";
+            return VIEW_FORM;
         }
 
         try {
@@ -95,7 +96,7 @@ public class ProjectController {
             bindingResult.rejectValue("code", "duplicate", e.getMessage());
             model.addAttribute(ATTR_CLIENTS, clientService.findActiveClients());
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_PROJECTS);
-            return "projects/form";
+            return VIEW_FORM;
         }
     }
 
@@ -113,7 +114,7 @@ public class ProjectController {
         model.addAttribute(ATTR_PROJECT, project);
         model.addAttribute(ATTR_CLIENTS, clientService.findActiveClients());
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_PROJECTS);
-        return "projects/form";
+        return VIEW_FORM;
     }
 
     @PostMapping("/{code}")
@@ -130,7 +131,7 @@ public class ProjectController {
             project.setId(existing.getId());
             model.addAttribute(ATTR_CLIENTS, clientService.findActiveClients());
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_PROJECTS);
-            return "projects/form";
+            return VIEW_FORM;
         }
 
         try {
@@ -144,7 +145,7 @@ public class ProjectController {
             project.setId(existing.getId());
             model.addAttribute(ATTR_CLIENTS, clientService.findActiveClients());
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_PROJECTS);
-            return "projects/form";
+            return VIEW_FORM;
         }
     }
 

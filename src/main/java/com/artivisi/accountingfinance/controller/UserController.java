@@ -180,7 +180,7 @@ public class UserController {
 
             userService.update(id, user, roles);
             securityAuditService.log(AuditEventType.USER_UPDATED,
-                    "Updated user: " + user.getUsername() + " (id: " + id + ") with roles: " + roles);
+                    "Updated user: " + user.getUsername() + AUDIT_ID_SUFFIX + id + ") with roles: " + roles);
             redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Pengguna berhasil diperbarui: " + user.getUsername());
             return "redirect:/users/" + id;
         } catch (IllegalArgumentException e) {
@@ -243,7 +243,7 @@ public class UserController {
         Boolean wasActive = user.getActive();
         userService.toggleActive(id);
         securityAuditService.log(AuditEventType.USER_STATUS_CHANGED,
-                "User " + user.getUsername() + " (id: " + id + ") status changed from " +
+                "User " + user.getUsername() + AUDIT_ID_SUFFIX + id + ") status changed from " +
                         (Boolean.TRUE.equals(wasActive) ? "active" : "inactive") + " to " + (Boolean.TRUE.equals(wasActive) ? "inactive" : "active"));
         redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Status pengguna berhasil diubah");
         return "redirect:/users/" + id;

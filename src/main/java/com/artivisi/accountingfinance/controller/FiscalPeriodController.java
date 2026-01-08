@@ -29,6 +29,7 @@ public class FiscalPeriodController {
     private static final String ATTR_SUCCESS_MESSAGE = "successMessage";
     private static final String ATTR_ERROR_MESSAGE = "errorMessage";
     private static final String ATTR_CURRENT_PAGE = "currentPage";
+    private static final String PAGE_FISCAL_PERIODS = "fiscal-periods";
 
     private final FiscalPeriodService fiscalPeriodService;
 
@@ -47,7 +48,7 @@ public class FiscalPeriodController {
         model.addAttribute("status", status);
         model.addAttribute("statuses", FiscalPeriodStatus.values());
         model.addAttribute("years", fiscalPeriodService.findDistinctYears());
-        model.addAttribute(ATTR_CURRENT_PAGE, "fiscal-periods");
+        model.addAttribute(ATTR_CURRENT_PAGE, PAGE_FISCAL_PERIODS);
 
         if ("true".equals(hxRequest)) {
             return "fiscal-periods/fragments/period-table :: table";
@@ -60,7 +61,7 @@ public class FiscalPeriodController {
     public String newForm(Model model) {
         int currentYear = LocalDate.now().getYear();
         model.addAttribute("currentYear", currentYear);
-        model.addAttribute(ATTR_CURRENT_PAGE, "fiscal-periods");
+        model.addAttribute(ATTR_CURRENT_PAGE, PAGE_FISCAL_PERIODS);
         return "fiscal-periods/form";
     }
 
@@ -109,7 +110,7 @@ public class FiscalPeriodController {
     public String detail(@PathVariable UUID id, Model model) {
         FiscalPeriod period = fiscalPeriodService.findById(id);
         model.addAttribute("period", period);
-        model.addAttribute(ATTR_CURRENT_PAGE, "fiscal-periods");
+        model.addAttribute(ATTR_CURRENT_PAGE, PAGE_FISCAL_PERIODS);
         return "fiscal-periods/detail";
     }
 

@@ -40,6 +40,8 @@ public class ReportController {
     private static final String ATTR_START_DATE = "startDate";
     private static final String ATTR_END_DATE = "endDate";
     private static final String ATTR_REPORT = "report";
+    private static final String ATTACHMENT_FILENAME_PREFIX = "attachment; filename=\"";
+    private static final String CONTENT_TYPE_XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
     private final ReportService reportService;
     private final ReportExportService reportExportService;
@@ -167,7 +169,7 @@ public class ReportController {
 
         String filename = "neraca-saldo-" + reportDate.format(FILE_DATE_FORMAT) + ".pdf";
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .header(HttpHeaders.CONTENT_DISPOSITION, ATTACHMENT_FILENAME_PREFIX + filename + "\"")
                 .contentType(MediaType.APPLICATION_PDF)
                 .body(pdfBytes);
     }
@@ -181,8 +183,8 @@ public class ReportController {
 
         String filename = "neraca-saldo-" + reportDate.format(FILE_DATE_FORMAT) + ".xlsx";
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
-                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .header(HttpHeaders.CONTENT_DISPOSITION, ATTACHMENT_FILENAME_PREFIX + filename + "\"")
+                .contentType(MediaType.parseMediaType(CONTENT_TYPE_XLSX))
                 .body(excelBytes);
     }
 
@@ -196,7 +198,7 @@ public class ReportController {
 
         String filename = "laporan-posisi-keuangan-" + reportDate.format(FILE_DATE_FORMAT) + ".pdf";
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .header(HttpHeaders.CONTENT_DISPOSITION, ATTACHMENT_FILENAME_PREFIX + filename + "\"")
                 .contentType(MediaType.APPLICATION_PDF)
                 .body(pdfBytes);
     }
@@ -210,8 +212,8 @@ public class ReportController {
 
         String filename = "laporan-posisi-keuangan-" + reportDate.format(FILE_DATE_FORMAT) + ".xlsx";
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
-                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .header(HttpHeaders.CONTENT_DISPOSITION, ATTACHMENT_FILENAME_PREFIX + filename + "\"")
+                .contentType(MediaType.parseMediaType(CONTENT_TYPE_XLSX))
                 .body(excelBytes);
     }
 
@@ -227,7 +229,7 @@ public class ReportController {
 
         String filename = "laporan-laba-rugi-" + start.format(FILE_DATE_FORMAT) + "-" + end.format(FILE_DATE_FORMAT) + ".pdf";
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .header(HttpHeaders.CONTENT_DISPOSITION, ATTACHMENT_FILENAME_PREFIX + filename + "\"")
                 .contentType(MediaType.APPLICATION_PDF)
                 .body(pdfBytes);
     }
@@ -243,8 +245,8 @@ public class ReportController {
 
         String filename = "laporan-laba-rugi-" + start.format(FILE_DATE_FORMAT) + "-" + end.format(FILE_DATE_FORMAT) + ".xlsx";
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
-                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .header(HttpHeaders.CONTENT_DISPOSITION, ATTACHMENT_FILENAME_PREFIX + filename + "\"")
+                .contentType(MediaType.parseMediaType(CONTENT_TYPE_XLSX))
                 .body(excelBytes);
     }
 
@@ -260,7 +262,7 @@ public class ReportController {
 
         String filename = "laporan-arus-kas-" + start.format(FILE_DATE_FORMAT) + "-" + end.format(FILE_DATE_FORMAT) + ".pdf";
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .header(HttpHeaders.CONTENT_DISPOSITION, ATTACHMENT_FILENAME_PREFIX + filename + "\"")
                 .contentType(MediaType.APPLICATION_PDF)
                 .body(pdfBytes);
     }
@@ -276,8 +278,8 @@ public class ReportController {
 
         String filename = "laporan-arus-kas-" + start.format(FILE_DATE_FORMAT) + "-" + end.format(FILE_DATE_FORMAT) + ".xlsx";
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
-                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .header(HttpHeaders.CONTENT_DISPOSITION, ATTACHMENT_FILENAME_PREFIX + filename + "\"")
+                .contentType(MediaType.parseMediaType(CONTENT_TYPE_XLSX))
                 .body(excelBytes);
     }
 
@@ -605,7 +607,7 @@ public class ReportController {
 
         String filename = "laporan-penyusutan-" + reportYear + ".pdf";
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .header(HttpHeaders.CONTENT_DISPOSITION, ATTACHMENT_FILENAME_PREFIX + filename + "\"")
                 .contentType(MediaType.APPLICATION_PDF)
                 .body(pdfBytes);
     }
@@ -619,8 +621,8 @@ public class ReportController {
 
         String filename = "laporan-penyusutan-" + reportYear + ".xlsx";
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
-                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .header(HttpHeaders.CONTENT_DISPOSITION, ATTACHMENT_FILENAME_PREFIX + filename + "\"")
+                .contentType(MediaType.parseMediaType(CONTENT_TYPE_XLSX))
                 .body(excelBytes);
     }
 

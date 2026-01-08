@@ -44,6 +44,9 @@ public class InventoryTransactionController {
     private static final String ATTR_TRANSACTIONS = "transactions";
     private static final String ATTR_TRANSACTION = "transaction";
     private static final String REDIRECT_INVENTORY_TRANSACTIONS = "redirect:/inventory/transactions/";
+    private static final String VIEW_PURCHASE_FORM = "inventory/purchase-form";
+    private static final String VIEW_SALE_FORM = "inventory/sale-form";
+    private static final String VIEW_ADJUSTMENT_FORM = "inventory/adjustment-form";
 
     private final InventoryService inventoryService;
     private final ProductRepository productRepository;
@@ -177,7 +180,7 @@ public class InventoryTransactionController {
         model.addAttribute(ATTR_PRODUCTS, productRepository.findAllActiveOrderByCode());
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_INVENTORY_PURCHASE);
 
-        return "inventory/purchase-form";
+        return VIEW_PURCHASE_FORM;
     }
 
     @PostMapping("/purchase")
@@ -191,7 +194,7 @@ public class InventoryTransactionController {
         if (bindingResult.hasErrors()) {
             model.addAttribute(ATTR_PRODUCTS, productRepository.findAllActiveOrderByCode());
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_INVENTORY_PURCHASE);
-            return "inventory/purchase-form";
+            return VIEW_PURCHASE_FORM;
         }
 
         try {
@@ -211,7 +214,7 @@ public class InventoryTransactionController {
             model.addAttribute("error", e.getMessage());
             model.addAttribute(ATTR_PRODUCTS, productRepository.findAllActiveOrderByCode());
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_INVENTORY_PURCHASE);
-            return "inventory/purchase-form";
+            return VIEW_PURCHASE_FORM;
         }
     }
 
@@ -226,7 +229,7 @@ public class InventoryTransactionController {
         model.addAttribute(ATTR_PRODUCTS, productRepository.findAllActiveOrderByCode());
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_INVENTORY_SALE);
 
-        return "inventory/sale-form";
+        return VIEW_SALE_FORM;
     }
 
     @PostMapping("/sale")
@@ -240,7 +243,7 @@ public class InventoryTransactionController {
         if (bindingResult.hasErrors()) {
             model.addAttribute(ATTR_PRODUCTS, productRepository.findAllActiveOrderByCode());
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_INVENTORY_SALE);
-            return "inventory/sale-form";
+            return VIEW_SALE_FORM;
         }
 
         try {
@@ -260,7 +263,7 @@ public class InventoryTransactionController {
             model.addAttribute("error", e.getMessage());
             model.addAttribute(ATTR_PRODUCTS, productRepository.findAllActiveOrderByCode());
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_INVENTORY_SALE);
-            return "inventory/sale-form";
+            return VIEW_SALE_FORM;
         }
     }
 
@@ -275,7 +278,7 @@ public class InventoryTransactionController {
         model.addAttribute(ATTR_PRODUCTS, productRepository.findAllActiveOrderByCode());
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_INVENTORY_ADJUSTMENT);
 
-        return "inventory/adjustment-form";
+        return VIEW_ADJUSTMENT_FORM;
     }
 
     @PostMapping("/adjustment")
@@ -289,7 +292,7 @@ public class InventoryTransactionController {
         if (bindingResult.hasErrors()) {
             model.addAttribute(ATTR_PRODUCTS, productRepository.findAllActiveOrderByCode());
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_INVENTORY_ADJUSTMENT);
-            return "inventory/adjustment-form";
+            return VIEW_ADJUSTMENT_FORM;
         }
 
         try {
@@ -320,7 +323,7 @@ public class InventoryTransactionController {
             model.addAttribute("error", e.getMessage());
             model.addAttribute(ATTR_PRODUCTS, productRepository.findAllActiveOrderByCode());
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_INVENTORY_ADJUSTMENT);
-            return "inventory/adjustment-form";
+            return VIEW_ADJUSTMENT_FORM;
         }
     }
 

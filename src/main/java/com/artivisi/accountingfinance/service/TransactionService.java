@@ -95,6 +95,7 @@ public class TransactionService {
                 .orElseThrow(() -> new EntityNotFoundException(ERR_TRANSACTION_NOT_FOUND + id));
     }
 
+    @Transactional
     public Transaction create(Transaction transaction, Map<UUID, UUID> accountMappings) {
         return create(transaction, accountMappings, null);
     }

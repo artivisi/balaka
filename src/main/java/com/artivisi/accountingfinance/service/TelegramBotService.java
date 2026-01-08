@@ -95,27 +95,31 @@ public class TelegramBotService {
         }
 
         if (message.hasText()) {
-            if (log.isDebugEnabled()) {
-                log.debug("Processing text message from user id: {}", sanitizeForLog(String.valueOf(userId)));
-            }
-            String text = message.getText();
-
-            if (text.startsWith("/start")) {
-                handleStartCommand(chatId, userId, username, firstName, text);
-            } else if (text.equals("/status")) {
-                handleStatusCommand(chatId, linkOpt);
-            } else if (text.equals("/help")) {
-                handleHelpCommand(chatId);
-            } else if (text.startsWith("/link ")) {
-                handleLinkCommand(chatId, userId, username, firstName, text.substring(6).trim());
-            } else {
-                sendMessage(chatId, "Kirim foto struk untuk diproses, atau ketik /help untuk bantuan.");
-            }
+            handleTextMessage(chatId, userId, username, firstName, message.getText(), linkOpt);
         } else if (message.hasPhoto()) {
             log.info("Processing photo message with {} photos", message.getPhoto().size());
             handlePhotoMessage(chatId, message.getPhoto(), message.getMessageId(), linkOpt);
         } else {
             log.info("Ignoring message - no text or photo");
+        }
+    }
+
+    private void handleTextMessage(Long chatId, Long userId, String username, String firstName,
+                                    String text, Optional<TelegramUserLink> linkOpt) {
+        if (log.isDebugEnabled()) {
+            log.debug("Processing text message from user id: {}", sanitizeForLog(String.valueOf(userId)));
+        }
+
+        if (text.startsWith("/start")) {
+            handleStartCommand(chatId, userId, username, firstName, text);
+        } else if (text.equals("/status")) {
+            handleStatusCommand(chatId, linkOpt);
+        } else if (text.equals("/help")) {
+            handleHelpCommand(chatId);
+        } else if (text.startsWith("/link ")) {
+            handleLinkCommand(chatId, userId, username, firstName, text.substring(6).trim());
+        } else {
+            sendMessage(chatId, "Kirim foto struk untuk diproses, atau ketik /help untuk bantuan.");
         }
     }
 

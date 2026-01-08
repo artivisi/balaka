@@ -39,6 +39,7 @@ import java.util.Map;
 @Service
 public class FormulaEvaluator {
 
+    private static final String VAR_AMOUNT = "amount";
     private final ExpressionParser parser = new SpelExpressionParser();
 
     /**
@@ -66,7 +67,7 @@ public class FormulaEvaluator {
         String trimmed = formula.trim();
 
         // Handle simple "amount" case directly
-        if (trimmed.equalsIgnoreCase("amount")) {
+        if (trimmed.equalsIgnoreCase(VAR_AMOUNT)) {
             return context.amount();
         }
 
@@ -112,14 +113,14 @@ public class FormulaEvaluator {
             }
             FormulaContext formulaContext = (FormulaContext) target;
             // Can read "amount" or any variable in the map
-            return "amount".equals(name) || formulaContext.variables().containsKey(name);
+            return VAR_AMOUNT.equals(name) || formulaContext.variables().containsKey(name);
         }
         
         @Override
         public TypedValue read(EvaluationContext context, Object target, String name) throws AccessException {
             FormulaContext formulaContext = (FormulaContext) target;
             
-            if ("amount".equals(name)) {
+            if (VAR_AMOUNT.equals(name)) {
                 return new TypedValue(formulaContext.amount());
             }
             
@@ -180,7 +181,7 @@ public class FormulaEvaluator {
         String trimmed = formula.trim();
 
         // Simple "amount" is always valid
-        if (trimmed.equalsIgnoreCase("amount")) {
+        if (trimmed.equalsIgnoreCase(VAR_AMOUNT)) {
             return errors;
         }
 

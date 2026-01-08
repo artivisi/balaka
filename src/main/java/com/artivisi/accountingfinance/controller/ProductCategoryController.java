@@ -34,6 +34,7 @@ public class ProductCategoryController {
 
     private static final String ATTR_SUCCESS_MESSAGE = "successMessage";
     private static final String REDIRECT_PRODUCT_CATEGORIES = "redirect:/products/categories";
+    private static final String VIEW_FORM = "products/categories/form";
 
     private final ProductCategoryService categoryService;
 
@@ -65,7 +66,7 @@ public class ProductCategoryController {
 
         model.addAttribute("category", category);
         addFormAttributes(model);
-        return "products/categories/form";
+        return VIEW_FORM;
     }
 
     @PostMapping("/new")
@@ -78,7 +79,7 @@ public class ProductCategoryController {
 
         if (bindingResult.hasErrors()) {
             addFormAttributes(model);
-            return "products/categories/form";
+            return VIEW_FORM;
         }
 
         try {
@@ -92,7 +93,7 @@ public class ProductCategoryController {
                 bindingResult.reject("error", e.getMessage());
             }
             addFormAttributes(model);
-            return "products/categories/form";
+            return VIEW_FORM;
         }
     }
 
@@ -104,7 +105,7 @@ public class ProductCategoryController {
 
         model.addAttribute("category", category);
         addFormAttributes(model);
-        return "products/categories/form";
+        return VIEW_FORM;
     }
 
     @PostMapping("/{id}/edit")
@@ -118,7 +119,7 @@ public class ProductCategoryController {
 
         if (bindingResult.hasErrors()) {
             addFormAttributes(model);
-            return "products/categories/form";
+            return VIEW_FORM;
         }
 
         try {
@@ -132,7 +133,7 @@ public class ProductCategoryController {
                 bindingResult.reject("error", e.getMessage());
             }
             addFormAttributes(model);
-            return "products/categories/form";
+            return VIEW_FORM;
         }
     }
 

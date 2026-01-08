@@ -60,6 +60,7 @@ public class JournalTemplateController {
     private static final String ATTR_ALL_TAGS = "allTags";
     private static final String ATTR_TEMPLATE_ID = "templateId";
     private static final String ATTR_SUCCESS_MESSAGE = "successMessage";
+    private static final String VIEW_FORM = "templates/form";
 
     private final JournalTemplateService journalTemplateService;
     private final ChartOfAccountService chartOfAccountService;
@@ -153,7 +154,7 @@ public class JournalTemplateController {
         model.addAttribute(ATTR_CASH_FLOW_CATEGORIES, CashFlowCategory.values());
         model.addAttribute(ATTR_TEMPLATE_TYPES, TemplateType.values());
         model.addAttribute(ATTR_ACCOUNTS, chartOfAccountService.findTransactableAccounts());
-        return "templates/form";
+        return VIEW_FORM;
     }
 
     @GetMapping("/{id}/edit")
@@ -166,7 +167,7 @@ public class JournalTemplateController {
         model.addAttribute(ATTR_CASH_FLOW_CATEGORIES, CashFlowCategory.values());
         model.addAttribute(ATTR_TEMPLATE_TYPES, TemplateType.values());
         model.addAttribute(ATTR_ACCOUNTS, chartOfAccountService.findTransactableAccounts());
-        return "templates/form";
+        return VIEW_FORM;
     }
 
     @GetMapping("/{id}/duplicate")
@@ -179,7 +180,7 @@ public class JournalTemplateController {
         model.addAttribute(ATTR_CASH_FLOW_CATEGORIES, CashFlowCategory.values());
         model.addAttribute(ATTR_TEMPLATE_TYPES, TemplateType.values());
         model.addAttribute(ATTR_ACCOUNTS, chartOfAccountService.findTransactableAccounts());
-        return "templates/form";
+        return VIEW_FORM;
     }
 
     /**

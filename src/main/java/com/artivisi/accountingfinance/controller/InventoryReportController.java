@@ -49,9 +49,12 @@ public class InventoryReportController {
     private static final String XLSX_EXTENSION = ".xlsx";
     private static final String XLSX_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
+    // Page constants
+    private static final String PAGE_INVENTORY_REPORTS = "inventory-reports";
+
     @GetMapping
     public String index(Model model) {
-        model.addAttribute(ATTR_CURRENT_PAGE, "inventory-reports");
+        model.addAttribute(ATTR_CURRENT_PAGE, PAGE_INVENTORY_REPORTS);
         return "inventory/reports/index";
     }
 
@@ -61,7 +64,7 @@ public class InventoryReportController {
             @RequestParam(required = false) String search,
             Model model) {
 
-        model.addAttribute(ATTR_CURRENT_PAGE, "inventory-reports");
+        model.addAttribute(ATTR_CURRENT_PAGE, PAGE_INVENTORY_REPORTS);
         model.addAttribute(ATTR_REPORT_TYPE, "stock-balance");
         model.addAttribute(ATTR_CATEGORY_ID, categoryId);
         model.addAttribute("search", search);
@@ -97,7 +100,7 @@ public class InventoryReportController {
         LocalDate start = startDate != null ? startDate : LocalDate.now().withDayOfMonth(1);
         LocalDate end = endDate != null ? endDate : LocalDate.now();
 
-        model.addAttribute(ATTR_CURRENT_PAGE, "inventory-reports");
+        model.addAttribute(ATTR_CURRENT_PAGE, PAGE_INVENTORY_REPORTS);
         model.addAttribute(ATTR_REPORT_TYPE, "stock-movement");
         model.addAttribute(ATTR_START_DATE, start);
         model.addAttribute(ATTR_END_DATE, end);
@@ -135,7 +138,7 @@ public class InventoryReportController {
             @RequestParam(required = false) UUID categoryId,
             Model model) {
 
-        model.addAttribute(ATTR_CURRENT_PAGE, "inventory-reports");
+        model.addAttribute(ATTR_CURRENT_PAGE, PAGE_INVENTORY_REPORTS);
         model.addAttribute(ATTR_REPORT_TYPE, "valuation");
         model.addAttribute(ATTR_CATEGORY_ID, categoryId);
         model.addAttribute(ATTR_CATEGORIES, categoryService.findAllActive());
@@ -168,7 +171,7 @@ public class InventoryReportController {
         LocalDate start = startDate != null ? startDate : LocalDate.now().withDayOfMonth(1);
         LocalDate end = endDate != null ? endDate : LocalDate.now();
 
-        model.addAttribute(ATTR_CURRENT_PAGE, "inventory-reports");
+        model.addAttribute(ATTR_CURRENT_PAGE, PAGE_INVENTORY_REPORTS);
         model.addAttribute(ATTR_REPORT_TYPE, "profitability");
         model.addAttribute(ATTR_START_DATE, start);
         model.addAttribute(ATTR_END_DATE, end);

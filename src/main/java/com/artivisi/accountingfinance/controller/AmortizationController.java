@@ -38,6 +38,8 @@ import static com.artivisi.accountingfinance.controller.ViewConstants.*;
 @org.springframework.security.access.prepost.PreAuthorize("hasAuthority('" + com.artivisi.accountingfinance.security.Permission.AMORTIZATION_VIEW + "')")
 public class AmortizationController {
 
+    private static final String ATTR_SUCCESS_MESSAGE = "successMessage";
+
     private final AmortizationScheduleService scheduleService;
     private final AmortizationEntryService entryService;
     private final AmortizationBatchService batchService;
@@ -144,7 +146,7 @@ public class AmortizationController {
         schedule.setTargetAccount(targetAccount);
 
         AmortizationSchedule saved = scheduleService.create(schedule);
-        redirectAttributes.addFlashAttribute("successMessage", "Jadwal amortisasi berhasil dibuat");
+        redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Jadwal amortisasi berhasil dibuat");
         return "redirect:/amortization/" + saved.getId();
     }
 
@@ -164,21 +166,21 @@ public class AmortizationController {
         schedule.setPostDay(postDay);
 
         scheduleService.update(id, schedule);
-        redirectAttributes.addFlashAttribute("successMessage", "Jadwal amortisasi berhasil diperbarui");
+        redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Jadwal amortisasi berhasil diperbarui");
         return "redirect:/amortization/" + id;
     }
 
     @PostMapping("/{id}/cancel")
     public String cancel(@PathVariable UUID id, RedirectAttributes redirectAttributes) {
         scheduleService.cancel(id);
-        redirectAttributes.addFlashAttribute("successMessage", "Jadwal amortisasi berhasil dibatalkan");
+        redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Jadwal amortisasi berhasil dibatalkan");
         return "redirect:/amortization/" + id;
     }
 
     @PostMapping("/{id}/delete")
     public String delete(@PathVariable UUID id, RedirectAttributes redirectAttributes) {
         scheduleService.delete(id);
-        redirectAttributes.addFlashAttribute("successMessage", "Jadwal amortisasi berhasil dihapus");
+        redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Jadwal amortisasi berhasil dihapus");
         return "redirect:/amortization";
     }
 
@@ -202,7 +204,7 @@ public class AmortizationController {
             return "amortization/fragments/entry-table :: table";
         }
 
-        redirectAttributes.addFlashAttribute("successMessage", "Entry berhasil diposting");
+        redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Entry berhasil diposting");
         return "redirect:/amortization/" + id;
     }
 
@@ -224,7 +226,7 @@ public class AmortizationController {
             return "amortization/fragments/entry-table :: table";
         }
 
-        redirectAttributes.addFlashAttribute("successMessage", "Entry berhasil dilewati");
+        redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Entry berhasil dilewati");
         return "redirect:/amortization/" + id;
     }
 
@@ -234,7 +236,7 @@ public class AmortizationController {
             RedirectAttributes redirectAttributes) {
 
         entryService.postAllPending(id);
-        redirectAttributes.addFlashAttribute("successMessage", "Semua entry pending berhasil diposting");
+        redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Semua entry pending berhasil diposting");
         return "redirect:/amortization/" + id;
     }
 
@@ -246,7 +248,7 @@ public class AmortizationController {
             redirectAttributes.addFlashAttribute("warningMessage",
                     String.format("Batch selesai: %d berhasil, %d gagal", result.successCount(), result.errorCount()));
         } else {
-            redirectAttributes.addFlashAttribute("successMessage",
+            redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE,
                     String.format("Batch selesai: %d entry berhasil diproses", result.successCount()));
         }
         return "redirect:/amortization";

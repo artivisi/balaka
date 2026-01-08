@@ -42,7 +42,7 @@ public class SecurityAuditService {
      */
     @Transactional
     public void log(AuditEventType eventType, String details) {
-        log(eventType, details, true);
+        logInternal(eventType, details, true);
     }
 
     /**
@@ -50,6 +50,24 @@ public class SecurityAuditService {
      */
     @Transactional
     public void log(AuditEventType eventType, String details, boolean success) {
+        logInternal(eventType, details, success);
+    }
+
+    /**
+     * Log a security event asynchronously (for non-critical events).
+     */
+    @Async
+    @Transactional
+    public void logAsync(AuditEventType eventType, String details) {
+        logInternal(eventType, details, true);
+    }
+
+    /**
+     * Internal implementation for logging security events.
+     * This avoids @Transactional self-invocation issues by having all public methods
+     * delegate to this private method.
+     */
+    private void logInternal(AuditEventType eventType, String details, boolean success) {
         String username = getCurrentUsername();
         String ipAddress = getClientIpAddress();
         String userAgent = getUserAgent();
@@ -72,15 +90,6 @@ public class SecurityAuditService {
                     eventType, LogSanitizer.username(username),
                     LogSanitizer.ipAddress(ipAddress), LogSanitizer.sanitize(details));
         }
-    }
-
-    /**
-     * Log a security event asynchronously (for non-critical events).
-     */
-    @Async
-    @Transactional
-    public void logAsync(AuditEventType eventType, String details) {
-        log(eventType, details, true);
     }
 
     /**

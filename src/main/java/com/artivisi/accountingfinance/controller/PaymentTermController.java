@@ -34,6 +34,7 @@ public class PaymentTermController {
     private static final String ATTR_TRIGGERS = "triggers";
     private static final String ATTR_SUCCESS_MESSAGE = "successMessage";
     private static final String REDIRECT_PROJECT_PREFIX = "redirect:/projects/";
+    private static final String VIEW_FORM = "payment-terms/form";
 
     private final ProjectPaymentTermService paymentTermService;
     private final ProjectService projectService;
@@ -50,7 +51,7 @@ public class PaymentTermController {
         model.addAttribute(ATTR_MILESTONES, milestoneService.findByProjectId(project.getId()));
         model.addAttribute(ATTR_TRIGGERS, PaymentTrigger.values());
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_PROJECTS);
-        return "payment-terms/form";
+        return VIEW_FORM;
     }
 
     @PostMapping("/new")
@@ -67,7 +68,7 @@ public class PaymentTermController {
             model.addAttribute(ATTR_MILESTONES, milestoneService.findByProjectId(project.getId()));
             model.addAttribute(ATTR_TRIGGERS, PaymentTrigger.values());
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_PROJECTS);
-            return "payment-terms/form";
+            return VIEW_FORM;
         }
 
         try {
@@ -82,7 +83,7 @@ public class PaymentTermController {
             model.addAttribute(ATTR_MILESTONES, milestoneService.findByProjectId(project.getId()));
             model.addAttribute(ATTR_TRIGGERS, PaymentTrigger.values());
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_PROJECTS);
-            return "payment-terms/form";
+            return VIEW_FORM;
         }
     }
 
@@ -100,7 +101,7 @@ public class PaymentTermController {
         model.addAttribute(ATTR_MILESTONES, milestoneService.findByProjectId(project.getId()));
         model.addAttribute(ATTR_TRIGGERS, PaymentTrigger.values());
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_PROJECTS);
-        return "payment-terms/form";
+        return VIEW_FORM;
     }
 
     @PostMapping("/{id}")
@@ -119,7 +120,7 @@ public class PaymentTermController {
             model.addAttribute(ATTR_MILESTONES, milestoneService.findByProjectId(project.getId()));
             model.addAttribute(ATTR_TRIGGERS, PaymentTrigger.values());
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_PROJECTS);
-            return "payment-terms/form";
+            return VIEW_FORM;
         }
 
         try {
@@ -134,7 +135,7 @@ public class PaymentTermController {
             model.addAttribute(ATTR_MILESTONES, milestoneService.findByProjectId(project.getId()));
             model.addAttribute(ATTR_TRIGGERS, PaymentTrigger.values());
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_PROJECTS);
-            return "payment-terms/form";
+            return VIEW_FORM;
         }
     }
 

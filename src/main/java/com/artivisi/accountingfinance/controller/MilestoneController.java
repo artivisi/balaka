@@ -28,6 +28,8 @@ public class MilestoneController {
 
     private static final String REDIRECT_PROJECT_PREFIX = "redirect:/projects/";
     private static final String MILESTONES_FRAGMENT_SUFFIX = "/milestones-fragment";
+    private static final String VIEW_FORM = "milestones/form";
+    private static final String ATTR_SUCCESS_MESSAGE = "successMessage";
 
     private final ProjectMilestoneService milestoneService;
     private final ProjectService projectService;
@@ -40,7 +42,7 @@ public class MilestoneController {
         model.addAttribute("project", project);
         model.addAttribute("milestone", milestone);
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_PROJECTS);
-        return "milestones/form";
+        return VIEW_FORM;
     }
 
     @PostMapping("/new")
@@ -55,20 +57,20 @@ public class MilestoneController {
             Project project = projectService.findByCode(projectCode);
             model.addAttribute("project", project);
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_PROJECTS);
-            return "milestones/form";
+            return VIEW_FORM;
         }
 
         try {
             Project project = projectService.findByCode(projectCode);
             milestoneService.create(project.getId(), milestone);
-            redirectAttributes.addFlashAttribute("successMessage", "Milestone berhasil ditambahkan");
+            redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Milestone berhasil ditambahkan");
             return REDIRECT_PROJECT_PREFIX + projectCode;
         } catch (IllegalArgumentException e) {
             bindingResult.rejectValue("sequence", "duplicate", e.getMessage());
             Project project = projectService.findByCode(projectCode);
             model.addAttribute("project", project);
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_PROJECTS);
-            return "milestones/form";
+            return VIEW_FORM;
         }
     }
 
@@ -84,7 +86,7 @@ public class MilestoneController {
         model.addAttribute("project", project);
         model.addAttribute("milestone", milestone);
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_PROJECTS);
-        return "milestones/form";
+        return VIEW_FORM;
     }
 
     @PostMapping("/{id}")
@@ -101,12 +103,12 @@ public class MilestoneController {
             milestone.setId(id);
             model.addAttribute("project", project);
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_PROJECTS);
-            return "milestones/form";
+            return VIEW_FORM;
         }
 
         try {
             milestoneService.update(id, milestone);
-            redirectAttributes.addFlashAttribute("successMessage", "Milestone berhasil diperbarui");
+            redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Milestone berhasil diperbarui");
             return REDIRECT_PROJECT_PREFIX + projectCode;
         } catch (IllegalArgumentException e) {
             bindingResult.rejectValue("sequence", "duplicate", e.getMessage());
@@ -114,7 +116,7 @@ public class MilestoneController {
             milestone.setId(id);
             model.addAttribute("project", project);
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_PROJECTS);
-            return "milestones/form";
+            return VIEW_FORM;
         }
     }
 
@@ -131,7 +133,7 @@ public class MilestoneController {
             return REDIRECT_PROJECT_PREFIX + projectCode + MILESTONES_FRAGMENT_SUFFIX;
         }
 
-        redirectAttributes.addFlashAttribute("successMessage", "Milestone dimulai");
+        redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Milestone dimulai");
         return REDIRECT_PROJECT_PREFIX + projectCode;
     }
 
@@ -148,7 +150,7 @@ public class MilestoneController {
             return REDIRECT_PROJECT_PREFIX + projectCode + MILESTONES_FRAGMENT_SUFFIX;
         }
 
-        redirectAttributes.addFlashAttribute("successMessage", "Milestone selesai");
+        redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Milestone selesai");
         return REDIRECT_PROJECT_PREFIX + projectCode;
     }
 
@@ -165,7 +167,7 @@ public class MilestoneController {
             return REDIRECT_PROJECT_PREFIX + projectCode + MILESTONES_FRAGMENT_SUFFIX;
         }
 
-        redirectAttributes.addFlashAttribute("successMessage", "Milestone direset");
+        redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Milestone direset");
         return REDIRECT_PROJECT_PREFIX + projectCode;
     }
 
@@ -176,7 +178,7 @@ public class MilestoneController {
             RedirectAttributes redirectAttributes) {
 
         milestoneService.delete(id);
-        redirectAttributes.addFlashAttribute("successMessage", "Milestone berhasil dihapus");
+        redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Milestone berhasil dihapus");
         return REDIRECT_PROJECT_PREFIX + projectCode;
     }
 }

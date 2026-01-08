@@ -34,12 +34,13 @@ public class ChartOfAccountsController {
     private static final String ATTR_HAS_CHILDREN = "hasChildren";
     private static final String ATTR_HAS_PARENT = "hasParent";
     private static final String VIEW_FORM = "accounts/form";
+    private static final String PAGE_ACCOUNTS = "accounts";
 
     private final ChartOfAccountService chartOfAccountService;
 
     @GetMapping
     public String list(Model model) {
-        model.addAttribute(ATTR_CURRENT_PAGE, "accounts");
+        model.addAttribute(ATTR_CURRENT_PAGE, PAGE_ACCOUNTS);
         model.addAttribute("accounts", chartOfAccountService.findRootAccounts());
         return "accounts/list";
     }
@@ -47,7 +48,7 @@ public class ChartOfAccountsController {
     @GetMapping("/new")
     @PreAuthorize("hasAuthority('" + Permission.ACCOUNT_CREATE + "')")
     public String create(Model model) {
-        model.addAttribute(ATTR_CURRENT_PAGE, "accounts");
+        model.addAttribute(ATTR_CURRENT_PAGE, PAGE_ACCOUNTS);
         model.addAttribute("account", new ChartOfAccount());
         model.addAttribute("accountTypes", AccountType.values());
         model.addAttribute("parentAccounts", chartOfAccountService.findAll());
@@ -70,7 +71,7 @@ public class ChartOfAccountsController {
         }
 
         if (bindingResult.hasErrors()) {
-            model.addAttribute(ATTR_CURRENT_PAGE, "accounts");
+            model.addAttribute(ATTR_CURRENT_PAGE, PAGE_ACCOUNTS);
             model.addAttribute(ATTR_ACCOUNT_TYPES, AccountType.values());
             model.addAttribute(ATTR_PARENT_ACCOUNTS, chartOfAccountService.findAll());
             model.addAttribute(ATTR_HAS_CHILDREN, false);
@@ -82,7 +83,7 @@ public class ChartOfAccountsController {
             chartOfAccountService.create(account);
         } catch (IllegalArgumentException e) {
             bindingResult.rejectValue("accountCode", "duplicate", e.getMessage());
-            model.addAttribute(ATTR_CURRENT_PAGE, "accounts");
+            model.addAttribute(ATTR_CURRENT_PAGE, PAGE_ACCOUNTS);
             model.addAttribute(ATTR_ACCOUNT_TYPES, AccountType.values());
             model.addAttribute(ATTR_PARENT_ACCOUNTS, chartOfAccountService.findAll());
             model.addAttribute(ATTR_HAS_CHILDREN, false);
@@ -98,7 +99,7 @@ public class ChartOfAccountsController {
     @PreAuthorize("hasAuthority('" + Permission.ACCOUNT_EDIT + "')")
     public String edit(@PathVariable UUID id, Model model) {
         ChartOfAccount account = chartOfAccountService.findById(id);
-        model.addAttribute(ATTR_CURRENT_PAGE, "accounts");
+        model.addAttribute(ATTR_CURRENT_PAGE, PAGE_ACCOUNTS);
         model.addAttribute("account", account);
         model.addAttribute("accountTypes", AccountType.values());
         model.addAttribute("parentAccounts", chartOfAccountService.findAll());
@@ -125,7 +126,7 @@ public class ChartOfAccountsController {
         }
 
         if (bindingResult.hasErrors()) {
-            model.addAttribute(ATTR_CURRENT_PAGE, "accounts");
+            model.addAttribute(ATTR_CURRENT_PAGE, PAGE_ACCOUNTS);
             model.addAttribute(ATTR_ACCOUNT_TYPES, AccountType.values());
             model.addAttribute(ATTR_PARENT_ACCOUNTS, chartOfAccountService.findAll());
             model.addAttribute(ATTR_HAS_CHILDREN, hasChildren);
@@ -137,7 +138,7 @@ public class ChartOfAccountsController {
             chartOfAccountService.update(id, account);
         } catch (IllegalArgumentException e) {
             bindingResult.rejectValue("accountCode", "duplicate", e.getMessage());
-            model.addAttribute(ATTR_CURRENT_PAGE, "accounts");
+            model.addAttribute(ATTR_CURRENT_PAGE, PAGE_ACCOUNTS);
             model.addAttribute(ATTR_ACCOUNT_TYPES, AccountType.values());
             model.addAttribute(ATTR_PARENT_ACCOUNTS, chartOfAccountService.findAll());
             model.addAttribute(ATTR_HAS_CHILDREN, hasChildren);
@@ -145,7 +146,7 @@ public class ChartOfAccountsController {
             return VIEW_FORM;
         } catch (IllegalStateException e) {
             bindingResult.rejectValue("accountType", "invalid", e.getMessage());
-            model.addAttribute(ATTR_CURRENT_PAGE, "accounts");
+            model.addAttribute(ATTR_CURRENT_PAGE, PAGE_ACCOUNTS);
             model.addAttribute(ATTR_ACCOUNT_TYPES, AccountType.values());
             model.addAttribute(ATTR_PARENT_ACCOUNTS, chartOfAccountService.findAll());
             model.addAttribute(ATTR_HAS_CHILDREN, hasChildren);

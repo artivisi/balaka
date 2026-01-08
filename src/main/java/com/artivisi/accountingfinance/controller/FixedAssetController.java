@@ -46,8 +46,10 @@ public class FixedAssetController {
     private static final String ATTR_ASSET = "asset";
     private static final String ATTR_ASSETS = "assets";
     private static final String ATTR_SUCCESS_MESSAGE = "successMessage";
+    private static final String ATTR_ERROR_MESSAGE = "errorMessage";
     private static final String REDIRECT_ASSETS = "redirect:/assets";
     private static final String REDIRECT_ASSETS_DEPRECIATION = "redirect:/assets/depreciation";
+    private static final String VIEW_FORM = "assets/form";
 
     private final FixedAssetService fixedAssetService;
     private final AssetCategoryService assetCategoryService;
@@ -95,7 +97,7 @@ public class FixedAssetController {
 
         model.addAttribute(ATTR_ASSET, asset);
         addFormAttributes(model);
-        return "assets/form";
+        return VIEW_FORM;
     }
 
     @PostMapping("/new")
@@ -108,7 +110,7 @@ public class FixedAssetController {
 
         if (bindingResult.hasErrors()) {
             addFormAttributes(model);
-            return "assets/form";
+            return VIEW_FORM;
         }
 
         try {
@@ -122,7 +124,7 @@ public class FixedAssetController {
                 bindingResult.reject("error", e.getMessage());
             }
             addFormAttributes(model);
-            return "assets/form";
+            return VIEW_FORM;
         }
     }
 
@@ -144,7 +146,7 @@ public class FixedAssetController {
         FixedAsset asset = fixedAssetService.findByIdWithDetails(id);
         model.addAttribute(ATTR_ASSET, asset);
         addFormAttributes(model);
-        return "assets/form";
+        return VIEW_FORM;
     }
 
     @PostMapping("/{id}")
@@ -159,7 +161,7 @@ public class FixedAssetController {
         if (bindingResult.hasErrors()) {
             asset.setId(id);
             addFormAttributes(model);
-            return "assets/form";
+            return VIEW_FORM;
         }
 
         try {
@@ -170,7 +172,7 @@ public class FixedAssetController {
             bindingResult.reject("error", e.getMessage());
             asset.setId(id);
             addFormAttributes(model);
-            return "assets/form";
+            return VIEW_FORM;
         }
     }
 
@@ -185,7 +187,7 @@ public class FixedAssetController {
             redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Aset berhasil dihapus");
             return REDIRECT_ASSETS;
         } catch (IllegalStateException e) {
-            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, e.getMessage());
             return REDIRECT_ASSETS + "/" + id;
         }
     }
@@ -231,7 +233,7 @@ public class FixedAssetController {
             redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE,
                     "Penyusutan untuk " + entry.getFixedAsset().getName() + " berhasil di-posting");
         } catch (IllegalStateException e) {
-            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, e.getMessage());
         }
         return REDIRECT_ASSETS_DEPRECIATION;
     }
@@ -301,7 +303,7 @@ public class FixedAssetController {
                     "Aset " + disposed.getName() + " berhasil dilepas");
             return REDIRECT_ASSETS + "/" + id;
         } catch (IllegalStateException e) {
-            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, e.getMessage());
             return REDIRECT_ASSETS + "/" + id + "/dispose";
         }
     }

@@ -19,6 +19,8 @@ import java.util.UUID;
 @Transactional
 public class ProductService {
 
+    private static final String ERR_PRODUCT_NOT_FOUND = "Produk tidak ditemukan: ";
+
     private final ProductRepository productRepository;
 
     public Product create(Product product) {
@@ -28,7 +30,7 @@ public class ProductService {
 
     public Product update(UUID id, Product updated) {
         Product existing = productRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Produk tidak ditemukan: " + id));
+                .orElseThrow(() -> new IllegalArgumentException(ERR_PRODUCT_NOT_FOUND + id));
 
         validateUniqueCode(updated.getCode(), id);
 
@@ -51,7 +53,7 @@ public class ProductService {
 
     public void delete(UUID id) {
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Produk tidak ditemukan: " + id));
+                .orElseThrow(() -> new IllegalArgumentException(ERR_PRODUCT_NOT_FOUND + id));
 
         // TODO: Check for inventory transactions before deleting
 
@@ -61,7 +63,7 @@ public class ProductService {
 
     public void activate(UUID id) {
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Produk tidak ditemukan: " + id));
+                .orElseThrow(() -> new IllegalArgumentException(ERR_PRODUCT_NOT_FOUND + id));
         product.setActive(true);
         productRepository.save(product);
         log.info("Activated product: {}", product.getCode());
@@ -69,7 +71,7 @@ public class ProductService {
 
     public void deactivate(UUID id) {
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Produk tidak ditemukan: " + id));
+                .orElseThrow(() -> new IllegalArgumentException(ERR_PRODUCT_NOT_FOUND + id));
         product.setActive(false);
         productRepository.save(product);
         log.info("Deactivated product: {}", product.getCode());

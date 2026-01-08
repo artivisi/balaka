@@ -40,6 +40,7 @@ public class EmployeeController {
     private static final String ATTR_EMPLOYMENT_STATUSES = "employmentStatuses";
     private static final String ATTR_SUCCESS_MESSAGE = "successMessage";
     private static final String REDIRECT_EMPLOYEES = "redirect:/employees";
+    private static final String VIEW_FORM = "employees/form";
 
     private final EmployeeService employeeService;
     private final UserRepository userRepository;
@@ -82,7 +83,7 @@ public class EmployeeController {
         model.addAttribute("employmentTypes", EmploymentType.values());
         model.addAttribute(ATTR_EMPLOYMENT_STATUSES, EmploymentStatus.values());
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_EMPLOYEES);
-        return "employees/form";
+        return VIEW_FORM;
     }
 
     @PostMapping("/new")
@@ -95,7 +96,7 @@ public class EmployeeController {
 
         if (bindingResult.hasErrors()) {
             addFormAttributes(model);
-            return "employees/form";
+            return VIEW_FORM;
         }
 
         try {
@@ -111,7 +112,7 @@ public class EmployeeController {
                 bindingResult.reject("error", e.getMessage());
             }
             addFormAttributes(model);
-            return "employees/form";
+            return VIEW_FORM;
         }
     }
 
@@ -129,7 +130,7 @@ public class EmployeeController {
         Employee employee = employeeService.findByEmployeeId(employeeId);
         model.addAttribute(ATTR_EMPLOYEE, employee);
         addFormAttributes(model);
-        return "employees/form";
+        return VIEW_FORM;
     }
 
     @PostMapping("/{employeeId}")
@@ -145,7 +146,7 @@ public class EmployeeController {
             Employee existing = employeeService.findByEmployeeId(employeeId);
             employee.setId(existing.getId());
             addFormAttributes(model);
-            return "employees/form";
+            return VIEW_FORM;
         }
 
         try {
@@ -164,7 +165,7 @@ public class EmployeeController {
             Employee existing = employeeService.findByEmployeeId(employeeId);
             employee.setId(existing.getId());
             addFormAttributes(model);
-            return "employees/form";
+            return VIEW_FORM;
         }
     }
 

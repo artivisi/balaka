@@ -8,6 +8,7 @@ package com.artivisi.accountingfinance.security;
 public final class LogSanitizer {
 
     private static final int MAX_LOG_LENGTH = 500;
+    private static final String TRUNCATED_SUFFIX = "...[truncated]";
 
     private LogSanitizer() {
         // Utility class
@@ -39,7 +40,7 @@ public final class LogSanitizer {
 
         // Limit length to prevent log flooding
         if (sanitized.length() > MAX_LOG_LENGTH) {
-            return sanitized.substring(0, MAX_LOG_LENGTH) + "...[truncated]";
+            return sanitized.substring(0, MAX_LOG_LENGTH) + TRUNCATED_SUFFIX;
         }
 
         return sanitized;
@@ -61,7 +62,7 @@ public final class LogSanitizer {
         String sanitized = sanitize(username);
         // Limit username to reasonable length
         if (sanitized.length() > 100) {
-            return sanitized.substring(0, 100) + "...[truncated]";
+            return sanitized.substring(0, 100) + TRUNCATED_SUFFIX;
         }
         return sanitized;
     }
@@ -81,7 +82,7 @@ public final class LogSanitizer {
         String sanitized = ipAddress.replaceAll("[^0-9a-fA-F.:,]", "_");
         // Limit to reasonable length (IPv6 max is ~45 chars)
         if (sanitized.length() > 100) {
-            return sanitized.substring(0, 100) + "...[truncated]";
+            return sanitized.substring(0, 100) + TRUNCATED_SUFFIX;
         }
         return sanitized;
     }
@@ -99,7 +100,7 @@ public final class LogSanitizer {
         String sanitized = sanitize(filename);
         // Limit filename to reasonable length
         if (sanitized.length() > 255) {
-            return sanitized.substring(0, 255) + "...[truncated]";
+            return sanitized.substring(0, 255) + TRUNCATED_SUFFIX;
         }
         return sanitized;
     }

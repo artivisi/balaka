@@ -29,6 +29,7 @@ public class TaxCalendarController {
     private static final String ATTR_SUCCESS_MESSAGE = "successMessage";
     private static final String ATTR_ERROR_MESSAGE = "errorMessage";
     private static final String ATTR_CURRENT_PAGE = "currentPage";
+    private static final String PAGE_TAX_CALENDAR = "tax-calendar";
 
     private final TaxDeadlineService taxDeadlineService;
 
@@ -52,7 +53,7 @@ public class TaxCalendarController {
         model.addAttribute("selectedYear", selectedYear);
         model.addAttribute("selectedMonth", selectedMonth);
         model.addAttribute("monthNames", getMonthNames());
-        model.addAttribute(ATTR_CURRENT_PAGE, "tax-calendar");
+        model.addAttribute(ATTR_CURRENT_PAGE, PAGE_TAX_CALENDAR);
 
         if ("true".equals(hxRequest)) {
             return "tax-calendar/fragments/checklist :: checklist";
@@ -73,7 +74,7 @@ public class TaxCalendarController {
         model.addAttribute("summaries", summaries);
         model.addAttribute("selectedYear", selectedYear);
         model.addAttribute("monthNames", getMonthNames());
-        model.addAttribute(ATTR_CURRENT_PAGE, "tax-calendar");
+        model.addAttribute(ATTR_CURRENT_PAGE, PAGE_TAX_CALENDAR);
 
         return "tax-calendar/yearly";
     }
@@ -124,7 +125,7 @@ public class TaxCalendarController {
         model.addAttribute("upcoming", upcoming);
         model.addAttribute("overdue", overdue);
         model.addAttribute("dueSoon", dueSoon);
-        model.addAttribute(ATTR_CURRENT_PAGE, "tax-calendar");
+        model.addAttribute(ATTR_CURRENT_PAGE, PAGE_TAX_CALENDAR);
 
         return "tax-calendar/upcoming";
     }

@@ -24,6 +24,7 @@ public class DataImportController {
     private static final String ATTR_ERROR_MESSAGE = "errorMessage";
     private static final String ATTR_SUCCESS_MESSAGE = "successMessage";
     private static final String ATTR_CURRENT_PAGE = "currentPage";
+    private static final String REDIRECT_IMPORT = "redirect:/settings/import";
 
     private final DataImportService dataImportService;
 
@@ -40,13 +41,13 @@ public class DataImportController {
 
         if (file.isEmpty()) {
             redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, "File tidak boleh kosong");
-            return "redirect:/settings/import";
+            return REDIRECT_IMPORT;
         }
 
         String filename = file.getOriginalFilename();
         if (filename == null || !filename.toLowerCase().endsWith(".zip")) {
             redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, "Format file tidak didukung. Gunakan file ZIP hasil ekspor.");
-            return "redirect:/settings/import";
+            return REDIRECT_IMPORT;
         }
 
         try {
@@ -62,15 +63,15 @@ public class DataImportController {
             redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, message);
             log.info("Data import completed: {}", message);
 
-            return "redirect:/settings/import";
+            return REDIRECT_IMPORT;
         } catch (IOException e) {
             log.error("Error importing data: {}", e.getMessage(), e);
             redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, "Error import: " + e.getMessage());
-            return "redirect:/settings/import";
+            return REDIRECT_IMPORT;
         } catch (Exception e) {
             log.error("Unexpected error during import: {}", e.getMessage(), e);
             redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, "Error: " + e.getMessage());
-            return "redirect:/settings/import";
+            return REDIRECT_IMPORT;
         }
     }
 }

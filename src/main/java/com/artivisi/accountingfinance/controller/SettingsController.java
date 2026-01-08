@@ -60,6 +60,8 @@ public class SettingsController {
 
     private static final String ATTR_SUCCESS_MESSAGE = "successMessage";
     private static final String ATTR_ERROR_MESSAGE = "errorMessage";
+    private static final String REDIRECT_SETTINGS = "redirect:/settings";
+    private static final String VIEW_BANK_FORM = "settings/bank-form";
     private static final Set<String> ALLOWED_LOGO_TYPES = Set.of(
             "image/png", "image/jpeg", "image/gif", "image/webp"
     );
@@ -107,7 +109,7 @@ public class SettingsController {
         securityAuditService.log(AuditEventType.SETTINGS_CHANGE,
                 "Company settings updated: " + config.getCompanyName());
         redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Pengaturan perusahaan berhasil disimpan");
-        return "redirect:/settings";
+        return REDIRECT_SETTINGS;
     }
 
     // ==================== Company Logo ====================
@@ -120,20 +122,20 @@ public class SettingsController {
 
         if (logoFile.isEmpty()) {
             redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, "File tidak boleh kosong");
-            return "redirect:/settings";
+            return REDIRECT_SETTINGS;
         }
 
         String contentType = logoFile.getContentType();
         if (contentType == null || !ALLOWED_LOGO_TYPES.contains(contentType)) {
             redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE,
                     "Format file tidak didukung. Gunakan PNG, JPG, GIF, atau WebP.");
-            return "redirect:/settings";
+            return REDIRECT_SETTINGS;
         }
 
         if (logoFile.getSize() > MAX_LOGO_SIZE) {
             redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE,
                     "Ukuran file terlalu besar. Maksimal 2MB.");
-            return "redirect:/settings";
+            return REDIRECT_SETTINGS;
         }
 
         try {
@@ -160,7 +162,7 @@ public class SettingsController {
                     "Gagal mengupload logo: " + e.getMessage());
         }
 
-        return "redirect:/settings";
+        return REDIRECT_SETTINGS;
     }
 
     @GetMapping("/company/logo")
@@ -207,7 +209,7 @@ public class SettingsController {
             redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Logo perusahaan berhasil dihapus");
         }
 
-        return "redirect:/settings";
+        return REDIRECT_SETTINGS;
     }
 
     private String determineContentType(String filename) {
@@ -252,7 +254,7 @@ public class SettingsController {
     public String newBankAccountForm(Model model) {
         model.addAttribute("bankAccount", new CompanyBankAccount());
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_SETTINGS);
-        return "settings/bank-form";
+        return VIEW_BANK_FORM;
     }
 
     @PostMapping("/bank-accounts/new")
@@ -265,7 +267,7 @@ public class SettingsController {
 
         if (bindingResult.hasErrors()) {
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_SETTINGS);
-            return "settings/bank-form";
+            return VIEW_BANK_FORM;
         }
 
         try {
@@ -273,11 +275,11 @@ public class SettingsController {
             securityAuditService.log(AuditEventType.SETTINGS_CHANGE,
                     "Bank account created: " + bankAccount.getBankName() + " - " + maskAccountNumber(bankAccount.getAccountNumber()));
             redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Rekening bank berhasil ditambahkan");
-            return "redirect:/settings";
+            return REDIRECT_SETTINGS;
         } catch (IllegalArgumentException e) {
             bindingResult.rejectValue("accountNumber", "duplicate", e.getMessage());
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_SETTINGS);
-            return "settings/bank-form";
+            return VIEW_BANK_FORM;
         }
     }
 
@@ -286,7 +288,7 @@ public class SettingsController {
         CompanyBankAccount bankAccount = bankAccountService.findById(id);
         model.addAttribute("bankAccount", bankAccount);
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_SETTINGS);
-        return "settings/bank-form";
+        return VIEW_BANK_FORM;
     }
 
     @PostMapping("/bank-accounts/{id}")
@@ -301,7 +303,7 @@ public class SettingsController {
         if (bindingResult.hasErrors()) {
             bankAccount.setId(id);
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_SETTINGS);
-            return "settings/bank-form";
+            return VIEW_BANK_FORM;
         }
 
         try {
@@ -309,12 +311,12 @@ public class SettingsController {
             securityAuditService.log(AuditEventType.SETTINGS_CHANGE,
                     "Bank account updated: " + bankAccount.getBankName() + " - " + maskAccountNumber(bankAccount.getAccountNumber()));
             redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Rekening bank berhasil diperbarui");
-            return "redirect:/settings";
+            return REDIRECT_SETTINGS;
         } catch (IllegalArgumentException e) {
             bindingResult.rejectValue("accountNumber", "duplicate", e.getMessage());
             bankAccount.setId(id);
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_SETTINGS);
-            return "settings/bank-form";
+            return VIEW_BANK_FORM;
         }
     }
 
@@ -329,7 +331,7 @@ public class SettingsController {
         securityAuditService.log(AuditEventType.SETTINGS_CHANGE,
                 "Default bank account changed to: " + bankAccount.getBankName());
         redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Rekening utama berhasil diubah");
-        return "redirect:/settings";
+        return REDIRECT_SETTINGS;
     }
 
     @PostMapping("/bank-accounts/{id}/deactivate")
@@ -343,7 +345,7 @@ public class SettingsController {
         securityAuditService.log(AuditEventType.SETTINGS_CHANGE,
                 "Bank account deactivated: " + bankAccount.getBankName());
         redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Rekening bank berhasil dinonaktifkan");
-        return "redirect:/settings";
+        return REDIRECT_SETTINGS;
     }
 
     @PostMapping("/bank-accounts/{id}/activate")
@@ -357,7 +359,7 @@ public class SettingsController {
         securityAuditService.log(AuditEventType.SETTINGS_CHANGE,
                 "Bank account activated: " + bankAccount.getBankName());
         redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Rekening bank berhasil diaktifkan");
-        return "redirect:/settings";
+        return REDIRECT_SETTINGS;
     }
 
     @PostMapping("/bank-accounts/{id}/delete")
@@ -372,7 +374,7 @@ public class SettingsController {
         securityAuditService.log(AuditEventType.SETTINGS_CHANGE,
                 "Bank account deleted: " + bankName);
         redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Rekening bank berhasil dihapus");
-        return "redirect:/settings";
+        return REDIRECT_SETTINGS;
     }
 
     // ==================== Telegram Settings ====================
