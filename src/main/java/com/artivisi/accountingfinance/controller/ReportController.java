@@ -36,6 +36,11 @@ import static com.artivisi.accountingfinance.controller.ViewConstants.*;
 @org.springframework.security.access.prepost.PreAuthorize("hasAuthority('" + com.artivisi.accountingfinance.security.Permission.REPORT_VIEW + "')")
 public class ReportController {
 
+    private static final String ATTR_REPORT_TYPE = "reportType";
+    private static final String ATTR_START_DATE = "startDate";
+    private static final String ATTR_END_DATE = "endDate";
+    private static final String ATTR_REPORT = "report";
+
     private final ReportService reportService;
     private final ReportExportService reportExportService;
     private final ProjectProfitabilityService profitabilityService;
@@ -60,12 +65,12 @@ public class ReportController {
             @RequestParam(required = false) LocalDate asOfDate,
             Model model) {
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_REPORTS);
-        model.addAttribute("reportType", "trial-balance");
+        model.addAttribute(ATTR_REPORT_TYPE, "trial-balance");
         model.addAttribute("period", period);
 
         LocalDate reportDate = asOfDate != null ? asOfDate : LocalDate.now();
         model.addAttribute("asOfDate", reportDate);
-        model.addAttribute("report", reportService.generateTrialBalance(reportDate));
+        model.addAttribute(ATTR_REPORT, reportService.generateTrialBalance(reportDate));
 
         return "reports/trial-balance";
     }
@@ -77,15 +82,15 @@ public class ReportController {
             @RequestParam(required = false) String compareWith,
             Model model) {
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_REPORTS);
-        model.addAttribute("reportType", "income-statement");
+        model.addAttribute(ATTR_REPORT_TYPE, "income-statement");
         model.addAttribute("compareWith", compareWith);
 
         LocalDate start = startDate != null ? startDate : LocalDate.now().withDayOfMonth(1);
         LocalDate end = endDate != null ? endDate : LocalDate.now();
 
-        model.addAttribute("startDate", start);
-        model.addAttribute("endDate", end);
-        model.addAttribute("report", reportService.generateIncomeStatement(start, end));
+        model.addAttribute(ATTR_START_DATE, start);
+        model.addAttribute(ATTR_END_DATE, end);
+        model.addAttribute(ATTR_REPORT, reportService.generateIncomeStatement(start, end));
 
         return "reports/income-statement";
     }
@@ -96,12 +101,12 @@ public class ReportController {
             @RequestParam(required = false) String compareWith,
             Model model) {
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_REPORTS);
-        model.addAttribute("reportType", "balance-sheet");
+        model.addAttribute(ATTR_REPORT_TYPE, "balance-sheet");
         model.addAttribute("compareWith", compareWith);
 
         LocalDate reportDate = asOfDate != null ? asOfDate : LocalDate.now();
         model.addAttribute("asOfDate", reportDate);
-        model.addAttribute("report", reportService.generateBalanceSheet(reportDate));
+        model.addAttribute(ATTR_REPORT, reportService.generateBalanceSheet(reportDate));
 
         return "reports/balance-sheet";
     }
@@ -112,14 +117,14 @@ public class ReportController {
             @RequestParam(required = false) LocalDate endDate,
             Model model) {
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_REPORTS);
-        model.addAttribute("reportType", "cash-flow");
+        model.addAttribute(ATTR_REPORT_TYPE, "cash-flow");
 
         LocalDate start = startDate != null ? startDate : LocalDate.now().withDayOfMonth(1);
         LocalDate end = endDate != null ? endDate : LocalDate.now();
 
-        model.addAttribute("startDate", start);
-        model.addAttribute("endDate", end);
-        model.addAttribute("report", reportService.generateCashFlowStatement(start, end));
+        model.addAttribute(ATTR_START_DATE, start);
+        model.addAttribute(ATTR_END_DATE, end);
+        model.addAttribute(ATTR_REPORT, reportService.generateCashFlowStatement(start, end));
 
         return "reports/cash-flow";
     }
@@ -285,17 +290,17 @@ public class ReportController {
             @RequestParam(required = false) LocalDate endDate,
             Model model) {
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_REPORTS);
-        model.addAttribute("reportType", "project-profitability");
+        model.addAttribute(ATTR_REPORT_TYPE, "project-profitability");
         model.addAttribute("projects", projectService.findActiveProjects());
 
         LocalDate start = startDate != null ? startDate : LocalDate.now().withDayOfYear(1);
         LocalDate end = endDate != null ? endDate : LocalDate.now();
-        model.addAttribute("startDate", start);
-        model.addAttribute("endDate", end);
+        model.addAttribute(ATTR_START_DATE, start);
+        model.addAttribute(ATTR_END_DATE, end);
         model.addAttribute("selectedProjectId", projectId);
 
         if (projectId != null) {
-            model.addAttribute("report", profitabilityService.calculateProjectProfitability(projectId, start, end));
+            model.addAttribute(ATTR_REPORT, profitabilityService.calculateProjectProfitability(projectId, start, end));
             model.addAttribute("costOverrun", profitabilityService.calculateCostOverrun(projectId));
         }
 
@@ -309,17 +314,17 @@ public class ReportController {
             @RequestParam(required = false) LocalDate endDate,
             Model model) {
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_REPORTS);
-        model.addAttribute("reportType", "client-profitability");
+        model.addAttribute(ATTR_REPORT_TYPE, "client-profitability");
         model.addAttribute("clients", clientService.findActiveClients());
 
         LocalDate start = startDate != null ? startDate : LocalDate.now().withDayOfYear(1);
         LocalDate end = endDate != null ? endDate : LocalDate.now();
-        model.addAttribute("startDate", start);
-        model.addAttribute("endDate", end);
+        model.addAttribute(ATTR_START_DATE, start);
+        model.addAttribute(ATTR_END_DATE, end);
         model.addAttribute("selectedClientId", clientId);
 
         if (clientId != null) {
-            model.addAttribute("report", profitabilityService.calculateClientProfitability(clientId, start, end));
+            model.addAttribute(ATTR_REPORT, profitabilityService.calculateClientProfitability(clientId, start, end));
         }
 
         return "reports/client-profitability";
@@ -332,12 +337,12 @@ public class ReportController {
             @RequestParam(defaultValue = "10") int limit,
             Model model) {
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_REPORTS);
-        model.addAttribute("reportType", "client-ranking");
+        model.addAttribute(ATTR_REPORT_TYPE, "client-ranking");
 
         LocalDate start = startDate != null ? startDate : LocalDate.now().withDayOfYear(1);
         LocalDate end = endDate != null ? endDate : LocalDate.now();
-        model.addAttribute("startDate", start);
-        model.addAttribute("endDate", end);
+        model.addAttribute(ATTR_START_DATE, start);
+        model.addAttribute(ATTR_END_DATE, end);
         model.addAttribute("limit", limit);
 
         model.addAttribute("rankings", profitabilityService.getClientRanking(start, end, limit));
@@ -381,7 +386,7 @@ public class ReportController {
         CompanyConfig company = companyConfigService.getConfig();
 
         model.addAttribute("asOfDate", reportDate);
-        model.addAttribute("report", reportService.generateTrialBalance(reportDate));
+        model.addAttribute(ATTR_REPORT, reportService.generateTrialBalance(reportDate));
         model.addAttribute("company", company);
 
         return "reports/trial-balance-print";
@@ -395,7 +400,7 @@ public class ReportController {
         CompanyConfig company = companyConfigService.getConfig();
 
         model.addAttribute("asOfDate", reportDate);
-        model.addAttribute("report", reportService.generateBalanceSheet(reportDate));
+        model.addAttribute(ATTR_REPORT, reportService.generateBalanceSheet(reportDate));
         model.addAttribute("company", company);
 
         return "reports/balance-sheet-print";
@@ -410,9 +415,9 @@ public class ReportController {
         LocalDate end = endDate != null ? endDate : LocalDate.now();
         CompanyConfig company = companyConfigService.getConfig();
 
-        model.addAttribute("startDate", start);
-        model.addAttribute("endDate", end);
-        model.addAttribute("report", reportService.generateIncomeStatement(start, end));
+        model.addAttribute(ATTR_START_DATE, start);
+        model.addAttribute(ATTR_END_DATE, end);
+        model.addAttribute(ATTR_REPORT, reportService.generateIncomeStatement(start, end));
         model.addAttribute("company", company);
 
         return "reports/income-statement-print";
@@ -427,9 +432,9 @@ public class ReportController {
         LocalDate end = endDate != null ? endDate : LocalDate.now();
         CompanyConfig company = companyConfigService.getConfig();
 
-        model.addAttribute("startDate", start);
-        model.addAttribute("endDate", end);
-        model.addAttribute("report", reportService.generateCashFlowStatement(start, end));
+        model.addAttribute(ATTR_START_DATE, start);
+        model.addAttribute(ATTR_END_DATE, end);
+        model.addAttribute(ATTR_REPORT, reportService.generateCashFlowStatement(start, end));
         model.addAttribute("company", company);
 
         return "reports/cash-flow-print";
@@ -443,14 +448,14 @@ public class ReportController {
             @RequestParam(required = false) LocalDate endDate,
             Model model) {
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_REPORTS);
-        model.addAttribute("reportType", "ppn-summary");
+        model.addAttribute(ATTR_REPORT_TYPE, "ppn-summary");
 
         LocalDate start = startDate != null ? startDate : LocalDate.now().withDayOfMonth(1);
         LocalDate end = endDate != null ? endDate : LocalDate.now();
 
-        model.addAttribute("startDate", start);
-        model.addAttribute("endDate", end);
-        model.addAttribute("report", taxReportService.generatePPNSummary(start, end));
+        model.addAttribute(ATTR_START_DATE, start);
+        model.addAttribute(ATTR_END_DATE, end);
+        model.addAttribute(ATTR_REPORT, taxReportService.generatePPNSummary(start, end));
 
         return "reports/ppn-summary";
     }
@@ -461,14 +466,14 @@ public class ReportController {
             @RequestParam(required = false) LocalDate endDate,
             Model model) {
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_REPORTS);
-        model.addAttribute("reportType", "pph23-withholding");
+        model.addAttribute(ATTR_REPORT_TYPE, "pph23-withholding");
 
         LocalDate start = startDate != null ? startDate : LocalDate.now().withDayOfMonth(1);
         LocalDate end = endDate != null ? endDate : LocalDate.now();
 
-        model.addAttribute("startDate", start);
-        model.addAttribute("endDate", end);
-        model.addAttribute("report", taxReportService.generatePPh23Withholding(start, end));
+        model.addAttribute(ATTR_START_DATE, start);
+        model.addAttribute(ATTR_END_DATE, end);
+        model.addAttribute(ATTR_REPORT, taxReportService.generatePPh23Withholding(start, end));
 
         return "reports/pph23-withholding";
     }
@@ -479,14 +484,14 @@ public class ReportController {
             @RequestParam(required = false) LocalDate endDate,
             Model model) {
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_REPORTS);
-        model.addAttribute("reportType", "tax-summary");
+        model.addAttribute(ATTR_REPORT_TYPE, "tax-summary");
 
         LocalDate start = startDate != null ? startDate : LocalDate.now().withDayOfMonth(1);
         LocalDate end = endDate != null ? endDate : LocalDate.now();
 
-        model.addAttribute("startDate", start);
-        model.addAttribute("endDate", end);
-        model.addAttribute("report", taxReportService.generateTaxSummary(start, end));
+        model.addAttribute(ATTR_START_DATE, start);
+        model.addAttribute(ATTR_END_DATE, end);
+        model.addAttribute(ATTR_REPORT, taxReportService.generateTaxSummary(start, end));
 
         return "reports/tax-summary";
     }
@@ -528,9 +533,9 @@ public class ReportController {
         LocalDate end = endDate != null ? endDate : LocalDate.now();
         CompanyConfig company = companyConfigService.getConfig();
 
-        model.addAttribute("startDate", start);
-        model.addAttribute("endDate", end);
-        model.addAttribute("report", taxReportService.generatePPNSummary(start, end));
+        model.addAttribute(ATTR_START_DATE, start);
+        model.addAttribute(ATTR_END_DATE, end);
+        model.addAttribute(ATTR_REPORT, taxReportService.generatePPNSummary(start, end));
         model.addAttribute("company", company);
 
         return "reports/ppn-summary-print";
@@ -545,9 +550,9 @@ public class ReportController {
         LocalDate end = endDate != null ? endDate : LocalDate.now();
         CompanyConfig company = companyConfigService.getConfig();
 
-        model.addAttribute("startDate", start);
-        model.addAttribute("endDate", end);
-        model.addAttribute("report", taxReportService.generatePPh23Withholding(start, end));
+        model.addAttribute(ATTR_START_DATE, start);
+        model.addAttribute(ATTR_END_DATE, end);
+        model.addAttribute(ATTR_REPORT, taxReportService.generatePPh23Withholding(start, end));
         model.addAttribute("company", company);
 
         return "reports/pph23-withholding-print";
@@ -560,11 +565,11 @@ public class ReportController {
             @RequestParam(required = false) Integer year,
             Model model) {
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_REPORTS);
-        model.addAttribute("reportType", "depreciation");
+        model.addAttribute(ATTR_REPORT_TYPE, "depreciation");
 
         int reportYear = year != null ? year : LocalDate.now().getYear();
         model.addAttribute("year", reportYear);
-        model.addAttribute("report", depreciationReportService.generateReport(reportYear));
+        model.addAttribute(ATTR_REPORT, depreciationReportService.generateReport(reportYear));
 
         return "reports/depreciation";
     }
@@ -577,7 +582,7 @@ public class ReportController {
         CompanyConfig company = companyConfigService.getConfig();
 
         model.addAttribute("year", reportYear);
-        model.addAttribute("report", depreciationReportService.generateReport(reportYear));
+        model.addAttribute(ATTR_REPORT, depreciationReportService.generateReport(reportYear));
         model.addAttribute("company", company);
 
         return "reports/depreciation-print";
@@ -626,7 +631,7 @@ public class ReportController {
             @RequestParam(required = false) Integer year,
             Model model) {
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_REPORTS);
-        model.addAttribute("reportType", "fiscal-closing");
+        model.addAttribute(ATTR_REPORT_TYPE, "fiscal-closing");
 
         int closingYear = year != null ? year : LocalDate.now().getYear() - 1;
         model.addAttribute("year", closingYear);
