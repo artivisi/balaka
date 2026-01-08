@@ -43,6 +43,8 @@ public class FiscalYearClosingService {
     // Account names for error messages and descriptions
     private static final String LABA_BERJALAN = "Laba Berjalan";
     private static final String LABA_DITAHAN = "Laba Ditahan";
+    private static final String CLOSING_REF_PREFIX = "CLOSING-";
+    private static final String SEQ_TYPE_FISCAL_CLOSING = "FISCAL_CLOSING";
 
     // Fiscal Year Closing template ID (from V004 seed data)
     private static final UUID CLOSING_TEMPLATE_ID = UUID.fromString("e0000000-0000-0000-0000-000000000098");
@@ -58,7 +60,7 @@ public class FiscalYearClosingService {
      * Check if closing entries already exist for a year.
      */
     public boolean hasClosingEntries(int year) {
-        String referencePattern = "CLOSING-" + year + "-%";
+        String referencePattern = CLOSING_REF_PREFIX + year + "-%";
         return journalEntryRepository.countByReferenceNumberLike(referencePattern) > 0;
     }
 
@@ -66,7 +68,7 @@ public class FiscalYearClosingService {
      * Get existing closing entries for a year.
      */
     public List<JournalEntry> getClosingEntries(int year) {
-        String referencePattern = "CLOSING-" + year + "-%";
+        String referencePattern = CLOSING_REF_PREFIX + year + "-%";
         return journalEntryRepository.findByReferenceNumberLike(referencePattern);
     }
 
@@ -87,7 +89,7 @@ public class FiscalYearClosingService {
         // Entry 1: Close Revenue to LABA_BERJALAN
         if (incomeStatement.totalRevenue().compareTo(BigDecimal.ZERO) != 0) {
             entries.add(new ClosingEntryPreview(
-                    "CLOSING-" + year + "-01",
+                    CLOSING_REF_PREFIX + year + "-01",
                     "Tutup Pendapatan ke LABA_BERJALAN",
                     yearEnd,
                     createRevenueClosingLines(incomeStatement, year)
@@ -97,7 +99,7 @@ public class FiscalYearClosingService {
         // Entry 2: Close Expenses to LABA_BERJALAN
         if (incomeStatement.totalExpense().compareTo(BigDecimal.ZERO) != 0) {
             entries.add(new ClosingEntryPreview(
-                    "CLOSING-" + year + "-02",
+                    CLOSING_REF_PREFIX + year + "-02",
                     "Tutup Beban ke LABA_BERJALAN",
                     yearEnd,
                     createExpenseClosingLines(incomeStatement, year)
@@ -108,7 +110,7 @@ public class FiscalYearClosingService {
         BigDecimal netIncome = incomeStatement.netIncome();
         if (netIncome.compareTo(BigDecimal.ZERO) != 0) {
             entries.add(new ClosingEntryPreview(
-                    "CLOSING-" + year + "-03",
+                    CLOSING_REF_PREFIX + year + "-03",
                     "Transfer LABA_BERJALAN ke LABA_DITAHAN",
                     yearEnd,
                     createRetainedEarningsLines(netIncome, year)
@@ -184,7 +186,7 @@ public class FiscalYearClosingService {
 
         Transaction transaction = createClosingTransaction(ctx.template, ctx.yearEnd, ctx.year,
                 "Tutup Pendapatan ke LABA_BERJALAN - Tahun " + ctx.year,
-                "CLOSING-" + ctx.year + "-01", report.totalRevenue(), ctx.username);
+                CLOSING_REF_PREFIX + ctx.year + "-01", report.totalRevenue(), ctx.username);
 
         String journalNumber = generateJournalNumber(ctx.yearEnd);
         int lineIndex = addItemEntries(transaction, report.revenueItems(), journalNumber, ctx.username, true);
@@ -205,7 +207,7 @@ public class FiscalYearClosingService {
 
         Transaction transaction = createClosingTransaction(ctx.template, ctx.yearEnd, ctx.year,
                 "Tutup Beban ke LABA_BERJALAN - Tahun " + ctx.year,
-                "CLOSING-" + ctx.year + "-02", report.totalExpense(), ctx.username);
+                CLOSING_REF_PREFIX + ctx.year + "-02", report.totalExpense(), ctx.username);
 
         String journalNumber = generateJournalNumber(ctx.yearEnd);
         int lineIndex = addItemEntries(transaction, report.expenseItems(), journalNumber, ctx.username, false);
@@ -244,7 +246,7 @@ public class FiscalYearClosingService {
                 " Berjalan ke LABA_DITAHAN - Tahun " + ctx.year;
 
         Transaction transaction = createClosingTransaction(ctx.template, ctx.yearEnd, ctx.year,
-                description, "CLOSING-" + ctx.year + "-03", netIncome.abs(), ctx.username);
+                description, CLOSING_REF_PREFIX + ctx.year + "-03", netIncome.abs(), ctx.username);
 
         String journalNumber = generateJournalNumber(ctx.yearEnd);
         BigDecimal amount = netIncome.abs();
@@ -329,10 +331,10 @@ public class FiscalYearClosingService {
 
     private String generateTransactionNumber(int year) {
         TransactionSequence sequence = transactionSequenceRepository
-                .findBySequenceTypeAndYearForUpdate("FISCAL_CLOSING", year)
+                .findBySequenceTypeAndYearForUpdate("SEQ_TYPE_FISCAL_CLOSING", year)
                 .orElseGet(() -> {
                     TransactionSequence newSeq = new TransactionSequence();
-                    newSeq.setSequenceType("FISCAL_CLOSING");
+                    newSeq.setSequenceType("SEQ_TYPE_FISCAL_CLOSING");
                     newSeq.setPrefix("FC");
                     newSeq.setYear(year);
                     newSeq.setLastNumber(0);

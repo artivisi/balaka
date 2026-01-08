@@ -46,6 +46,8 @@ public class PayrollReportService {
     private static final String COMPANY_NAME = "PT ArtiVisi Intermedia";
     private static final String TOTAL_LABEL = "TOTAL";
     private static final String TOTAL_POTONGAN = "Total Potongan";
+    private static final String NUMBER_PATTERN = "#,##0";
+    private static final String PERIODE_PREFIX = "Periode ";
     private static final DecimalFormat NUMBER_FORMAT;
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("d MMMM yyyy", Locale.of("id", "ID"));
 
@@ -53,7 +55,7 @@ public class PayrollReportService {
         DecimalFormatSymbols symbols = new DecimalFormatSymbols(Locale.of("id", "ID"));
         symbols.setGroupingSeparator('.');
         symbols.setDecimalSeparator(',');
-        NUMBER_FORMAT = new DecimalFormat("#,##0", symbols);
+        NUMBER_FORMAT = new DecimalFormat(NUMBER_PATTERN, symbols);
     }
 
     private final PayrollService payrollService;
@@ -67,7 +69,7 @@ public class PayrollReportService {
             document.open();
 
             addReportHeader(document, "REKAP GAJI KARYAWAN", "Payroll Summary",
-                    "Periode " + payrollRun.getPeriodDisplayName());
+                    PERIODE_PREFIX + payrollRun.getPeriodDisplayName());
 
             // Summary section
             addSummarySection(document, payrollRun);
@@ -113,7 +115,7 @@ public class PayrollReportService {
             int rowNum = 0;
 
             rowNum = addExcelHeader(workbook, sheet, rowNum, "REKAP GAJI KARYAWAN",
-                    "Periode " + payrollRun.getPeriodDisplayName(), 8);
+                    PERIODE_PREFIX + payrollRun.getPeriodDisplayName(), 8);
 
             // Summary
             rowNum = addExcelSummary(workbook, sheet, rowNum, payrollRun);
@@ -301,7 +303,7 @@ public class PayrollReportService {
             document.open();
 
             addReportHeader(document, "LAPORAN IURAN BPJS", "BPJS Contribution Report",
-                    "Periode " + payrollRun.getPeriodDisplayName());
+                    PERIODE_PREFIX + payrollRun.getPeriodDisplayName());
 
             // BPJS Kesehatan
             document.add(new Paragraph("BPJS Kesehatan", getBoldFont()));
@@ -393,7 +395,7 @@ public class PayrollReportService {
             Sheet kesSheet = workbook.createSheet("BPJS Kesehatan");
             int rowNum = 0;
             rowNum = addExcelHeader(workbook, kesSheet, rowNum, "BPJS KESEHATAN",
-                    "Periode " + payrollRun.getPeriodDisplayName(), 5);
+                    PERIODE_PREFIX + payrollRun.getPeriodDisplayName(), 5);
 
             Row kesHeaderRow = kesSheet.createRow(rowNum++);
             CellStyle headerStyle = createHeaderStyle(workbook);
@@ -432,7 +434,7 @@ public class PayrollReportService {
             Sheet tkSheet = workbook.createSheet("BPJS Ketenagakerjaan");
             rowNum = 0;
             rowNum = addExcelHeader(workbook, tkSheet, rowNum, "BPJS KETENAGAKERJAAN",
-                    "Periode " + payrollRun.getPeriodDisplayName(), 9);
+                    PERIODE_PREFIX + payrollRun.getPeriodDisplayName(), 9);
 
             Row tkHeaderRow = tkSheet.createRow(rowNum++);
             String[] tkHeaders = {"No", "Nama", "Gaji", "JKK", "JKM", "JHT (P)", "JHT (K)", "JP (P)", "JP (K)"};
@@ -1048,7 +1050,7 @@ public class PayrollReportService {
         style.setBorderRight(BorderStyle.THIN);
         style.setAlignment(HorizontalAlignment.RIGHT);
         DataFormat format = workbook.createDataFormat();
-        style.setDataFormat(format.getFormat("#,##0"));
+        style.setDataFormat(format.getFormat(NUMBER_PATTERN));
         return style;
     }
 
@@ -1064,7 +1066,7 @@ public class PayrollReportService {
         style.setBorderLeft(BorderStyle.THIN);
         style.setBorderRight(BorderStyle.THIN);
         DataFormat format = workbook.createDataFormat();
-        style.setDataFormat(format.getFormat("#,##0"));
+        style.setDataFormat(format.getFormat(NUMBER_PATTERN));
         return style;
     }
 

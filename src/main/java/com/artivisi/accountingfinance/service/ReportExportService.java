@@ -51,6 +51,8 @@ public class ReportExportService {
     private static final String TOTAL_LABEL = "TOTAL";
     private static final String COL_KATEGORI = "Kategori";
     private static final String COL_NAMA_PRODUK = "Nama Produk";
+    private static final String TOTAL_LIABILITIES_EQUITY = "TOTAL LIABILITAS + EKUITAS";
+    private static final String DATE_PATTERN_DMY = "dd/MM/yyyy";
     private static final DecimalFormat NUMBER_FORMAT;
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("d MMMM yyyy", Locale.of("id", "ID"));
 
@@ -207,7 +209,7 @@ public class ReportExportService {
 
             // TOTAL LIABILITIES + EQUITY
             BigDecimal totalLiabilitiesAndEquity = report.totalLiabilities().add(report.totalEquity());
-            addTotalRow(table, "TOTAL LIABILITAS + EKUITAS", formatNumber(totalLiabilitiesAndEquity), null);
+            addTotalRow(table, "TOTAL_LIABILITIES_EQUITY", formatNumber(totalLiabilitiesAndEquity), null);
 
             document.add(table);
             document.close();
@@ -278,7 +280,7 @@ public class ReportExportService {
 
             // TOTAL
             Row grandTotal = sheet.createRow(rowNum);
-            createCell(grandTotal, 0, "TOTAL LIABILITAS + EKUITAS", totalStyle);
+            createCell(grandTotal, 0, "TOTAL_LIABILITIES_EQUITY", totalStyle);
             createNumericCell(grandTotal, 1, report.totalLiabilities().add(report.totalEquity()), totalStyle);
 
             autoSizeColumns(sheet, 2);
@@ -549,7 +551,7 @@ public class ReportExportService {
                 addTableCell(table, String.valueOf(no++), Element.ALIGN_CENTER);
                 addTableCell(table, item.assetName(), Element.ALIGN_LEFT);
                 addTableCell(table, item.categoryName(), Element.ALIGN_LEFT);
-                addTableCell(table, item.purchaseDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")), Element.ALIGN_CENTER);
+                addTableCell(table, item.purchaseDate().format(DateTimeFormatter.ofPattern(DATE_PATTERN_DMY)), Element.ALIGN_CENTER);
                 addTableCell(table, formatNumber(item.purchaseCost()), Element.ALIGN_RIGHT);
                 addTableCell(table, item.usefulLifeYears() + " thn", Element.ALIGN_CENTER);
                 addTableCell(table, item.depreciationMethod(), Element.ALIGN_LEFT);
@@ -825,7 +827,7 @@ public class ReportExportService {
             int no = 1;
             for (InventoryReportService.StockMovementItem item : report.items()) {
                 addTableCell(table, String.valueOf(no++), Element.ALIGN_CENTER);
-                addTableCell(table, item.transactionDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")), Element.ALIGN_CENTER);
+                addTableCell(table, item.transactionDate().format(DateTimeFormatter.ofPattern(DATE_PATTERN_DMY)), Element.ALIGN_CENTER);
                 addTableCell(table, item.productCode(), Element.ALIGN_LEFT);
                 addTableCell(table, item.productName(), Element.ALIGN_LEFT);
                 addTableCell(table, item.transactionTypeLabel(), Element.ALIGN_LEFT);
@@ -1423,7 +1425,7 @@ public class ReportExportService {
         style.setBorderLeft(BorderStyle.THIN);
         style.setBorderRight(BorderStyle.THIN);
         DataFormat format = workbook.createDataFormat();
-        style.setDataFormat(format.getFormat("dd/MM/yyyy"));
+        style.setDataFormat(format.getFormat(DATE_PATTERN_DMY));
         return style;
     }
 
