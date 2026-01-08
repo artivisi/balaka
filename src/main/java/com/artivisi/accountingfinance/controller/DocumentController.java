@@ -37,6 +37,7 @@ public class DocumentController {
 
     private static final String MSG_UPLOAD_FAILED = "Gagal mengunggah dokumen: ";
     private static final String MSG_DELETE_FAILED = "Gagal menghapus dokumen: ";
+    private static final String AUDIT_UPLOADED_DOC = "Uploaded document: ";
 
     private final DocumentService documentService;
     private final SecurityAuditService securityAuditService;
@@ -55,7 +56,7 @@ public class DocumentController {
         try {
             Document document = documentService.uploadForTransaction(transactionId, file, username);
             securityAuditService.log(AuditEventType.DOCUMENT_UPLOAD,
-                    "Uploaded document: " + document.getOriginalFilename() + " for transaction: " + transactionId);
+                    AUDIT_UPLOADED_DOC + document.getOriginalFilename() + " for transaction: " + transactionId);
             model.addAttribute("document", document);
             model.addAttribute("success", true);
             model.addAttribute("message", "Dokumen berhasil diunggah");
@@ -90,7 +91,7 @@ public class DocumentController {
         try {
             Document document = documentService.uploadForJournalEntry(journalEntryId, file, username);
             securityAuditService.log(AuditEventType.DOCUMENT_UPLOAD,
-                    "Uploaded document: " + document.getOriginalFilename() + " for journal entry: " + journalEntryId);
+                    AUDIT_UPLOADED_DOC + document.getOriginalFilename() + " for journal entry: " + journalEntryId);
             model.addAttribute("document", document);
             model.addAttribute("success", true);
             model.addAttribute("message", "Dokumen berhasil diunggah");
@@ -124,7 +125,7 @@ public class DocumentController {
         try {
             Document document = documentService.uploadForInvoice(invoiceId, file, username);
             securityAuditService.log(AuditEventType.DOCUMENT_UPLOAD,
-                    "Uploaded document: " + document.getOriginalFilename() + " for invoice: " + invoiceId);
+                    AUDIT_UPLOADED_DOC + document.getOriginalFilename() + " for invoice: " + invoiceId);
             model.addAttribute("document", document);
             model.addAttribute("success", true);
             model.addAttribute("message", "Dokumen berhasil diunggah");

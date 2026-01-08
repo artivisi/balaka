@@ -84,14 +84,20 @@ public class TelegramBotService {
         String firstName = message.getFrom().getFirstName();
 
         // Log with debug level to avoid exposing user IDs in production logs
-        log.debug("Received message from telegram user id: {}", sanitizeForLog(String.valueOf(userId)));
+        if (log.isDebugEnabled()) {
+            log.debug("Received message from telegram user id: {}", sanitizeForLog(String.valueOf(userId)));
+        }
 
         // Check if user is linked
         Optional<TelegramUserLink> linkOpt = telegramLinkRepository.findByTelegramUserIdAndIsActiveTrue(userId);
-        log.debug("User link status: {}", linkOpt.isPresent() ? "linked" : "not linked");
+        if (log.isDebugEnabled()) {
+            log.debug("User link status: {}", linkOpt.isPresent() ? "linked" : "not linked");
+        }
 
         if (message.hasText()) {
-            log.debug("Processing text message from user id: {}", sanitizeForLog(String.valueOf(userId)));
+            if (log.isDebugEnabled()) {
+                log.debug("Processing text message from user id: {}", sanitizeForLog(String.valueOf(userId)));
+            }
             String text = message.getText();
 
             if (text.startsWith("/start")) {

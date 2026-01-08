@@ -41,6 +41,7 @@ public class UserController {
     private static final String VIEW_CHANGE_PASSWORD = "users/change-password";
     private static final String REDIRECT_USERS = "redirect:/users";
     private static final String USER_NOT_FOUND = "User not found: ";
+    private static final String AUDIT_ID_SUFFIX = " (id: ";
 
     private final UserService userService;
     private final PasswordValidator passwordValidator;
@@ -229,7 +230,7 @@ public class UserController {
 
         userService.changePassword(id, newPassword);
         securityAuditService.log(AuditEventType.PASSWORD_CHANGED,
-                "Password changed for user: " + user.getUsername() + " (id: " + id + ")");
+                "Password changed for user: " + user.getUsername() + AUDIT_ID_SUFFIX + id + ")");
         redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Password berhasil diubah");
         return "redirect:/users/" + id;
     }
@@ -257,7 +258,7 @@ public class UserController {
             String username = user.getUsername();
             userService.delete(id);
             securityAuditService.log(AuditEventType.USER_DELETED,
-                    "Deleted user: " + username + " (id: " + id + ")");
+                    "Deleted user: " + username + AUDIT_ID_SUFFIX + id + ")");
             redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Pengguna berhasil dihapus");
             return REDIRECT_USERS;
         } catch (IllegalArgumentException e) {

@@ -25,6 +25,8 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import java.util.Map;
 import java.util.UUID;
 
+import static com.artivisi.accountingfinance.controller.ViewConstants.*;
+
 /**
  * Controller for GDPR/UU PDP Data Subject Rights management.
  * Admin-only access for handling data subject requests.
@@ -38,7 +40,8 @@ public class DataSubjectController {
 
     private static final String ATTR_SUCCESS_MESSAGE = "successMessage";
     private static final String ATTR_ERROR_MESSAGE = "errorMessage";
-    private static final String ATTR_CURRENT_PAGE = "currentPage";
+    private static final String ATTR_EMPLOYEE = "employee";
+    private static final String ERR_EMPLOYEE_NOT_FOUND = "Employee not found: ";
 
     private final DataSubjectService dataSubjectService;
     private final EmployeeRepository employeeRepository;
@@ -65,7 +68,7 @@ public class DataSubjectController {
 
         model.addAttribute("employees", employees);
         model.addAttribute("search", search);
-        model.addAttribute(ATTR_CURRENT_PAGE, "settings");
+        model.addAttribute(ATTR_CURRENT_PAGE, PAGE_SETTINGS);
 
         if ("true".equals(hxRequest)) {
             return "settings/data-subjects/fragments/employee-table :: table";
@@ -80,13 +83,13 @@ public class DataSubjectController {
     @GetMapping("/{id}")
     public String detail(@PathVariable UUID id, Model model) {
         Employee employee = employeeRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Employee not found: " + id));
+                .orElseThrow(() -> new IllegalArgumentException(ERR_EMPLOYEE_NOT_FOUND + id));
 
         DataRetentionStatus retentionStatus = dataSubjectService.getRetentionStatus(id);
 
-        model.addAttribute("employee", employee);
+        model.addAttribute(ATTR_EMPLOYEE, employee);
         model.addAttribute("retentionStatus", retentionStatus);
-        model.addAttribute(ATTR_CURRENT_PAGE, "settings");
+        model.addAttribute(ATTR_CURRENT_PAGE, PAGE_SETTINGS);
 
         return "settings/data-subjects/detail";
     }
@@ -98,13 +101,13 @@ public class DataSubjectController {
     @PreAuthorize("hasAuthority('" + Permission.DATA_SUBJECT_EXPORT + "')")
     public String exportData(@PathVariable UUID id, Model model) {
         Employee employee = employeeRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Employee not found: " + id));
+                .orElseThrow(() -> new IllegalArgumentException(ERR_EMPLOYEE_NOT_FOUND + id));
 
         Map<String, Object> exportedData = dataSubjectService.exportPersonalData(id);
 
-        model.addAttribute("employee", employee);
+        model.addAttribute(ATTR_EMPLOYEE, employee);
         model.addAttribute("exportedData", exportedData);
-        model.addAttribute(ATTR_CURRENT_PAGE, "settings");
+        model.addAttribute(ATTR_CURRENT_PAGE, PAGE_SETTINGS);
 
         return "settings/data-subjects/export";
     }
@@ -116,13 +119,13 @@ public class DataSubjectController {
     @PreAuthorize("hasAuthority('" + Permission.DATA_SUBJECT_ANONYMIZE + "')")
     public String showAnonymizeForm(@PathVariable UUID id, Model model) {
         Employee employee = employeeRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Employee not found: " + id));
+                .orElseThrow(() -> new IllegalArgumentException(ERR_EMPLOYEE_NOT_FOUND + id));
 
         DataRetentionStatus retentionStatus = dataSubjectService.getRetentionStatus(id);
 
-        model.addAttribute("employee", employee);
+        model.addAttribute(ATTR_EMPLOYEE, employee);
         model.addAttribute("retentionStatus", retentionStatus);
-        model.addAttribute(ATTR_CURRENT_PAGE, "settings");
+        model.addAttribute(ATTR_CURRENT_PAGE, PAGE_SETTINGS);
 
         return "settings/data-subjects/anonymize";
     }
@@ -138,7 +141,7 @@ public class DataSubjectController {
             RedirectAttributes redirectAttributes) {
 
         Employee employee = employeeRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Employee not found: " + id));
+                .orElseThrow(() -> new IllegalArgumentException(ERR_EMPLOYEE_NOT_FOUND + id));
 
         if (reason == null || reason.trim().isEmpty()) {
             redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, "Alasan anonimisasi wajib diisi");

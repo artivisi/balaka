@@ -79,16 +79,14 @@ public class RateLimitFilter extends OncePerRequestFilter {
         }
 
         // Apply rate limiting to API endpoints
-        if (path.startsWith("/api/")) {
-            if (!rateLimitService.isApiAllowed(clientIp)) {
-                log.warn("Rate limit exceeded for API from IP: {}", LogSanitizer.ipAddress(clientIp));
+        if (path.startsWith("/api/") && !rateLimitService.isApiAllowed(clientIp)) {
+            log.warn("Rate limit exceeded for API from IP: {}", LogSanitizer.ipAddress(clientIp));
 
-                response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
-                response.setContentType("application/json;charset=UTF-8");
-                response.setHeader("Retry-After", "60");
-                response.getWriter().write("{\"error\":\"Too many requests\",\"message\":\"Rate limit exceeded\"}");
-                return;
-            }
+            response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
+            response.setContentType("application/json;charset=UTF-8");
+            response.setHeader("Retry-After", "60");
+            response.getWriter().write("{\"error\":\"Too many requests\",\"message\":\"Rate limit exceeded\"}");
+            return;
         }
 
         filterChain.doFilter(request, response);
