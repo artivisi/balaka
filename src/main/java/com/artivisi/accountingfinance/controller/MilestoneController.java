@@ -26,6 +26,9 @@ import static com.artivisi.accountingfinance.controller.ViewConstants.*;
 @RequiredArgsConstructor
 public class MilestoneController {
 
+    private static final String REDIRECT_PROJECT_PREFIX = "redirect:/projects/";
+    private static final String MILESTONES_FRAGMENT_SUFFIX = "/milestones-fragment";
+
     private final ProjectMilestoneService milestoneService;
     private final ProjectService projectService;
 
@@ -59,7 +62,7 @@ public class MilestoneController {
             Project project = projectService.findByCode(projectCode);
             milestoneService.create(project.getId(), milestone);
             redirectAttributes.addFlashAttribute("successMessage", "Milestone berhasil ditambahkan");
-            return "redirect:/projects/" + projectCode;
+            return REDIRECT_PROJECT_PREFIX + projectCode;
         } catch (IllegalArgumentException e) {
             bindingResult.rejectValue("sequence", "duplicate", e.getMessage());
             Project project = projectService.findByCode(projectCode);
@@ -104,7 +107,7 @@ public class MilestoneController {
         try {
             milestoneService.update(id, milestone);
             redirectAttributes.addFlashAttribute("successMessage", "Milestone berhasil diperbarui");
-            return "redirect:/projects/" + projectCode;
+            return REDIRECT_PROJECT_PREFIX + projectCode;
         } catch (IllegalArgumentException e) {
             bindingResult.rejectValue("sequence", "duplicate", e.getMessage());
             Project project = projectService.findByCode(projectCode);
@@ -125,11 +128,11 @@ public class MilestoneController {
         milestoneService.startMilestone(id);
 
         if ("true".equals(hxRequest)) {
-            return "redirect:/projects/" + projectCode + "/milestones-fragment";
+            return REDIRECT_PROJECT_PREFIX + projectCode + MILESTONES_FRAGMENT_SUFFIX;
         }
 
         redirectAttributes.addFlashAttribute("successMessage", "Milestone dimulai");
-        return "redirect:/projects/" + projectCode;
+        return REDIRECT_PROJECT_PREFIX + projectCode;
     }
 
     @PostMapping("/{id}/complete")
@@ -142,11 +145,11 @@ public class MilestoneController {
         milestoneService.completeMilestone(id);
 
         if ("true".equals(hxRequest)) {
-            return "redirect:/projects/" + projectCode + "/milestones-fragment";
+            return REDIRECT_PROJECT_PREFIX + projectCode + MILESTONES_FRAGMENT_SUFFIX;
         }
 
         redirectAttributes.addFlashAttribute("successMessage", "Milestone selesai");
-        return "redirect:/projects/" + projectCode;
+        return REDIRECT_PROJECT_PREFIX + projectCode;
     }
 
     @PostMapping("/{id}/reset")
@@ -159,11 +162,11 @@ public class MilestoneController {
         milestoneService.resetMilestone(id);
 
         if ("true".equals(hxRequest)) {
-            return "redirect:/projects/" + projectCode + "/milestones-fragment";
+            return REDIRECT_PROJECT_PREFIX + projectCode + MILESTONES_FRAGMENT_SUFFIX;
         }
 
         redirectAttributes.addFlashAttribute("successMessage", "Milestone direset");
-        return "redirect:/projects/" + projectCode;
+        return REDIRECT_PROJECT_PREFIX + projectCode;
     }
 
     @PostMapping("/{id}/delete")
@@ -174,6 +177,6 @@ public class MilestoneController {
 
         milestoneService.delete(id);
         redirectAttributes.addFlashAttribute("successMessage", "Milestone berhasil dihapus");
-        return "redirect:/projects/" + projectCode;
+        return REDIRECT_PROJECT_PREFIX + projectCode;
     }
 }
