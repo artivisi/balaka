@@ -345,9 +345,12 @@ public class PayrollReportService {
             addTableHeader(tkTable, "No", "Nama", "Gaji", "JKK", "JKM", "JHT (P)", "JHT (K)", "JP (P)", "JP (K)");
 
             no = 1;
-            BigDecimal totalJkk = BigDecimal.ZERO, totalJkm = BigDecimal.ZERO;
-            BigDecimal totalJhtC = BigDecimal.ZERO, totalJhtE = BigDecimal.ZERO;
-            BigDecimal totalJpC = BigDecimal.ZERO, totalJpE = BigDecimal.ZERO;
+            BigDecimal totalJkk = BigDecimal.ZERO;
+            BigDecimal totalJkm = BigDecimal.ZERO;
+            BigDecimal totalJhtC = BigDecimal.ZERO;
+            BigDecimal totalJhtE = BigDecimal.ZERO;
+            BigDecimal totalJpC = BigDecimal.ZERO;
+            BigDecimal totalJpE = BigDecimal.ZERO;
 
             for (PayrollDetail detail : details) {
                 addTableCell(tkTable, String.valueOf(no++), Element.ALIGN_CENTER);
@@ -447,9 +450,12 @@ public class PayrollReportService {
             }
 
             no = 1;
-            BigDecimal totalJkk = BigDecimal.ZERO, totalJkm = BigDecimal.ZERO;
-            BigDecimal totalJhtC = BigDecimal.ZERO, totalJhtE = BigDecimal.ZERO;
-            BigDecimal totalJpC = BigDecimal.ZERO, totalJpE = BigDecimal.ZERO;
+            BigDecimal totalJkk = BigDecimal.ZERO;
+            BigDecimal totalJkm = BigDecimal.ZERO;
+            BigDecimal totalJhtC = BigDecimal.ZERO;
+            BigDecimal totalJhtE = BigDecimal.ZERO;
+            BigDecimal totalJpC = BigDecimal.ZERO;
+            BigDecimal totalJpE = BigDecimal.ZERO;
 
             for (PayrollDetail detail : details) {
                 Row row = tkSheet.createRow(rowNum++);
