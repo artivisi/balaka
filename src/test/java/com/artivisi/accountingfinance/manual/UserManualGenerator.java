@@ -378,8 +378,7 @@ public class UserManualGenerator {
             String[] parts = markdown.split("(?m)^## ", 2);
             if (parts.length > 0) {
                 // Remove H1 from the content
-                String content = parts[0].replaceFirst("^#\\s+[^\\n]+\\n*", "").trim();
-                return content;
+                return parts[0].replaceFirst("^#\\s+[^\\n]+\\n*", "").trim();
             }
             return "";
         }

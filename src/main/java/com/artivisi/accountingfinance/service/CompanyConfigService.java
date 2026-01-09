@@ -37,12 +37,10 @@ public class CompanyConfigService {
     public CompanyConfig update(UUID id, CompanyConfig updatedConfig) {
         // Always fetch the existing config from database to ensure we're updating the right one
         CompanyConfig existing = companyConfigRepository.findById(id)
-                .orElseGet(() -> {
+                .orElseGet(() ->
                     // If config with this ID doesn't exist, get or create the first one
-                    CompanyConfig config = companyConfigRepository.findFirst().orElseGet(this::createDefaultConfig);
-                    // If the ID still doesn't match, we have a problem - return the correct one
-                    return config;
-                });
+                    companyConfigRepository.findFirst().orElseGet(this::createDefaultConfig)
+                );
 
         existing.setCompanyName(updatedConfig.getCompanyName());
         existing.setCompanyAddress(updatedConfig.getCompanyAddress());

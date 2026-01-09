@@ -391,7 +391,7 @@ public class JournalTemplateController {
         template.setCashFlowCategory(dto.cashFlowCategory());
         template.setTemplateType(dto.templateType());
         template.setDescription(dto.description());
-        template.setActive(dto.active() != null ? dto.active() : true);
+        template.setActive(!Boolean.FALSE.equals(dto.active()));
 
         if (dto.lines() != null) {
             int order = 1;

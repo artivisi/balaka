@@ -50,7 +50,7 @@ public class ChartOfAccountService {
     }
 
     public Page<ChartOfAccount> search(String search, Boolean active, Pageable pageable) {
-        return chartOfAccountRepository.searchAccounts(search, active != null ? active : true, pageable);
+        return chartOfAccountRepository.searchAccounts(search, !Boolean.FALSE.equals(active), pageable);
     }
 
     public ChartOfAccount findById(UUID id) {
