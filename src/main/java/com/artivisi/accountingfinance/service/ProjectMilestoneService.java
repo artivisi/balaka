@@ -70,10 +70,9 @@ public class ProjectMilestoneService {
         ProjectMilestone existing = findById(id);
 
         // Check if sequence is being changed and already exists
-        if (!existing.getSequence().equals(updatedMilestone.getSequence())) {
-            if (milestoneRepository.findByProjectIdAndSequence(existing.getProject().getId(), updatedMilestone.getSequence()).isPresent()) {
-                throw new IllegalArgumentException("Milestone with sequence " + updatedMilestone.getSequence() + " already exists");
-            }
+        if (!existing.getSequence().equals(updatedMilestone.getSequence())
+                && milestoneRepository.findByProjectIdAndSequence(existing.getProject().getId(), updatedMilestone.getSequence()).isPresent()) {
+            throw new IllegalArgumentException("Milestone with sequence " + updatedMilestone.getSequence() + " already exists");
         }
 
         existing.setSequence(updatedMilestone.getSequence());

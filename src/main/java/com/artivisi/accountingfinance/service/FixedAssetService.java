@@ -533,10 +533,9 @@ public class FixedAssetService {
         }
 
         // Validate depreciation settings
-        if (asset.getDepreciationMethod() == DepreciationMethod.DECLINING_BALANCE) {
-            if (asset.getDepreciationRate() == null || asset.getDepreciationRate().compareTo(BigDecimal.ZERO) <= 0) {
-                throw new IllegalArgumentException("Tarif penyusutan wajib diisi untuk metode saldo menurun");
-            }
+        if (asset.getDepreciationMethod() == DepreciationMethod.DECLINING_BALANCE
+                && (asset.getDepreciationRate() == null || asset.getDepreciationRate().compareTo(BigDecimal.ZERO) <= 0)) {
+            throw new IllegalArgumentException("Tarif penyusutan wajib diisi untuk metode saldo menurun");
         }
 
         // Validate residual value

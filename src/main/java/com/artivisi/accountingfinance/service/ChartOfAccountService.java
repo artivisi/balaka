@@ -111,10 +111,8 @@ public class ChartOfAccountService {
 
         if (existing.getParent() == null) {
             // Check if account type is being changed
-            if (existing.getAccountType() != accountData.getAccountType()) {
-                if (hasJournalEntries(id)) {
-                    throw new IllegalStateException("Cannot change account type: account has journal entries");
-                }
+            if (existing.getAccountType() != accountData.getAccountType() && hasJournalEntries(id)) {
+                throw new IllegalStateException("Cannot change account type: account has journal entries");
             }
             existing.setAccountType(accountData.getAccountType());
             existing.setNormalBalance(accountData.getNormalBalance());
