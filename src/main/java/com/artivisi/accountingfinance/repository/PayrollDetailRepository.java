@@ -27,6 +27,9 @@ public interface PayrollDetailRepository extends JpaRepository<PayrollDetail, UU
 
     boolean existsByPayrollRunAndEmployeeId(PayrollRun payrollRun, UUID employeeId);
 
+    @Query("SELECT CASE WHEN COUNT(pd) > 0 THEN true ELSE false END FROM PayrollDetail pd WHERE pd.employee.id = :employeeId")
+    boolean existsByEmployeeId(@Param("employeeId") UUID employeeId);
+
     @Query("SELECT pd FROM PayrollDetail pd " +
            "JOIN FETCH pd.employee " +
            "JOIN FETCH pd.payrollRun pr " +

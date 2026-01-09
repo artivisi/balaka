@@ -45,6 +45,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @ActiveProfiles("test")
 @Tag("security")
 @Tag("dast")
+@SuppressWarnings("java:S2925") // Thread.sleep is intentional for ZAP proxy synchronization in DAST tests
 abstract class ZapDastTestBase {
 
     protected static final boolean QUICK_SCAN = "true".equals(System.getProperty("dast.quick"));

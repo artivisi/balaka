@@ -1,6 +1,7 @@
 package com.artivisi.accountingfinance.service;
 
 import com.artivisi.accountingfinance.entity.Product;
+import com.artivisi.accountingfinance.repository.InventoryTransactionRepository;
 import com.artivisi.accountingfinance.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,8 +21,10 @@ import java.util.UUID;
 public class ProductService {
 
     private static final String ERR_PRODUCT_NOT_FOUND = "Produk tidak ditemukan: ";
+    private static final String ERR_PRODUCT_HAS_TRANSACTIONS = "Tidak dapat menghapus produk yang memiliki transaksi inventori";
 
     private final ProductRepository productRepository;
+    private final InventoryTransactionRepository inventoryTransactionRepository;
 
     public Product create(Product product) {
         validateUniqueCode(product.getCode(), null);
@@ -55,7 +58,10 @@ public class ProductService {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException(ERR_PRODUCT_NOT_FOUND + id));
 
-        // TODO: Check for inventory transactions before deleting
+        // Check for inventory transactions before deleting
+        if (inventoryTransactionRepository.countByProductId(id) > 0) {
+            throw new IllegalStateException(ERR_PRODUCT_HAS_TRANSACTIONS);
+        }
 
         productRepository.delete(product);
         log.info("Deleted product: {}", product.getCode());

@@ -4,6 +4,7 @@ import com.artivisi.accountingfinance.entity.Employee;
 import com.artivisi.accountingfinance.entity.User;
 import com.artivisi.accountingfinance.enums.AuditEventType;
 import com.artivisi.accountingfinance.repository.EmployeeRepository;
+import com.artivisi.accountingfinance.repository.PayrollDetailRepository;
 import com.artivisi.accountingfinance.repository.UserRepository;
 import com.artivisi.accountingfinance.security.LogSanitizer;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +33,7 @@ public class DataSubjectService {
     private static final String ERR_EMPLOYEE_NOT_FOUND = "Employee not found: ";
 
     private final EmployeeRepository employeeRepository;
+    private final PayrollDetailRepository payrollDetailRepository;
     private final UserRepository userRepository;
     private final SecurityAuditService securityAuditService;
 
@@ -155,8 +157,7 @@ public class DataSubjectService {
                 .orElseThrow(() -> new IllegalArgumentException(ERR_EMPLOYEE_NOT_FOUND + employeeId));
 
         // Check if employee has financial records that require retention
-        // For now, assume all employees with payroll records need retention
-        boolean hasFinancialRecords = true; // TODO: Check actual payroll records
+        boolean hasFinancialRecords = payrollDetailRepository.existsByEmployeeId(employeeId);
 
         // Indonesian tax law requires 10 years retention for tax documents
         // UU KUP Art. 28 - pembukuan/pencatatan harus disimpan 10 tahun
