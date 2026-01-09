@@ -20,6 +20,13 @@ public class ReceiptParserService {
     private static final String PATTERN_RUPIAH_AMOUNT = "Rp\\s*([\\d.,]+)";
     private static final String PATTERN_DATE_DMY = "(\\d{1,2}\\s+\\w+\\s+\\d{4})";
 
+    // Receipt type constants
+    private static final String RECEIPT_TYPE_JAGO = "jago";
+    private static final String RECEIPT_TYPE_CIMB = "cimb";
+    private static final String RECEIPT_TYPE_GOPAY = "gopay";
+    private static final String RECEIPT_TYPE_BYOND = "byond";
+    private static final String RECEIPT_TYPE_UNKNOWN = "unknown";
+
     private static final Map<String, Integer> INDONESIAN_MONTHS = Map.ofEntries(
             Map.entry("januari", 1), Map.entry("jan", 1),
             Map.entry("februari", 2), Map.entry("feb", 2),
@@ -57,10 +64,10 @@ public class ReceiptParserService {
         log.debug("Detected receipt type: {}", receiptType);
 
         return switch (receiptType) {
-            case "jago" -> parseJago(ocrText);
-            case "cimb" -> parseCimb(ocrText);
-            case "gopay" -> parseGopay(ocrText);
-            case "byond" -> parseByond(ocrText);
+            case RECEIPT_TYPE_JAGO -> parseJago(ocrText);
+            case RECEIPT_TYPE_CIMB -> parseCimb(ocrText);
+            case RECEIPT_TYPE_GOPAY -> parseGopay(ocrText);
+            case RECEIPT_TYPE_BYOND -> parseByond(ocrText);
             default -> parseGeneric(ocrText);
         };
     }
@@ -68,15 +75,15 @@ public class ReceiptParserService {
     private String detectReceiptType(String text) {
         String textLower = text.toLowerCase();
 
-        if (textLower.contains("byond")) return "byond";
-        if (textLower.contains("jago") && textLower.contains("syariah")) return "jago";
-        if (textLower.contains("octo")) return "cimb";
-        if (textLower.contains("gopay")) return "gopay";
-        if (textLower.contains("jago")) return "jago";
-        if (textLower.contains("cimb")) return "cimb";
-        if (textLower.contains("bsi")) return "byond";
+        if (textLower.contains(RECEIPT_TYPE_BYOND)) return RECEIPT_TYPE_BYOND;
+        if (textLower.contains(RECEIPT_TYPE_JAGO) && textLower.contains("syariah")) return RECEIPT_TYPE_JAGO;
+        if (textLower.contains("octo")) return RECEIPT_TYPE_CIMB;
+        if (textLower.contains(RECEIPT_TYPE_GOPAY)) return RECEIPT_TYPE_GOPAY;
+        if (textLower.contains(RECEIPT_TYPE_JAGO)) return RECEIPT_TYPE_JAGO;
+        if (textLower.contains(RECEIPT_TYPE_CIMB)) return RECEIPT_TYPE_CIMB;
+        if (textLower.contains("bsi")) return RECEIPT_TYPE_BYOND;
 
-        return "unknown";
+        return RECEIPT_TYPE_UNKNOWN;
     }
 
     private ParsedReceipt parseJago(String text) {
@@ -90,7 +97,7 @@ public class ReceiptParserService {
         BigDecimal dateConf = date != null ? new BigDecimal("0.90") : BigDecimal.ZERO;
 
         return new ParsedReceipt(
-                "jago", merchant, amount, date, reference, text,
+                RECEIPT_TYPE_JAGO, merchant, amount, date, reference, text,
                 merchantConf, amountConf, dateConf,
                 calculateOverallConfidence(merchantConf, amountConf, dateConf)
         );
@@ -107,7 +114,7 @@ public class ReceiptParserService {
         BigDecimal dateConf = date != null ? new BigDecimal("0.85") : BigDecimal.ZERO;
 
         return new ParsedReceipt(
-                "cimb", merchant, amount, date, reference, text,
+                RECEIPT_TYPE_CIMB, merchant, amount, date, reference, text,
                 merchantConf, amountConf, dateConf,
                 calculateOverallConfidence(merchantConf, amountConf, dateConf)
         );
@@ -124,7 +131,7 @@ public class ReceiptParserService {
         BigDecimal dateConf = date != null ? new BigDecimal("0.90") : BigDecimal.ZERO;
 
         return new ParsedReceipt(
-                "gopay", merchant, amount, date, reference, text,
+                RECEIPT_TYPE_GOPAY, merchant, amount, date, reference, text,
                 merchantConf, amountConf, dateConf,
                 calculateOverallConfidence(merchantConf, amountConf, dateConf)
         );
@@ -141,7 +148,7 @@ public class ReceiptParserService {
         BigDecimal dateConf = date != null ? new BigDecimal("0.85") : BigDecimal.ZERO;
 
         return new ParsedReceipt(
-                "byond", merchant, amount, date, reference, text,
+                RECEIPT_TYPE_BYOND, merchant, amount, date, reference, text,
                 merchantConf, amountConf, dateConf,
                 calculateOverallConfidence(merchantConf, amountConf, dateConf)
         );
@@ -167,7 +174,7 @@ public class ReceiptParserService {
         BigDecimal dateConf = date != null ? new BigDecimal("0.60") : BigDecimal.ZERO;
 
         return new ParsedReceipt(
-                "unknown", merchant, amount, date, null, text,
+                RECEIPT_TYPE_UNKNOWN, merchant, amount, date, null, text,
                 merchantConf, amountConf, dateConf,
                 calculateOverallConfidence(merchantConf, amountConf, dateConf)
         );

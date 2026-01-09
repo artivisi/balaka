@@ -28,6 +28,8 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.UUID;
 
+import static com.artivisi.accountingfinance.controller.ViewConstants.*;
+
 @Controller
 @RequestMapping("/invoices")
 @RequiredArgsConstructor
@@ -36,12 +38,10 @@ public class InvoiceController {
 
     private static final String ATTR_SUCCESS_MESSAGE = "successMessage";
     private static final String ATTR_ERROR_MESSAGE = "errorMessage";
-    private static final String ATTR_CURRENT_PAGE = "currentPage";
     private static final String ATTR_INVOICE = "invoice";
     private static final String ATTR_CLIENTS = "clients";
     private static final String ATTR_PROJECTS = "projects";
     private static final String REDIRECT_INVOICES_PREFIX = "redirect:/invoices/";
-    private static final String PAGE_INVOICES = "invoices";
     private static final String VIEW_FORM = "invoices/form";
 
     private final InvoiceService invoiceService;
