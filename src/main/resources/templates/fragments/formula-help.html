@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org" lang="id">
 <head><title>formula help Fragment</title></head>
 <body>
-    <!-- Formula Help Panel - Include with th:replace="fragments/formula-help :: formula-help" -->
+    <!-- Formula Help Panel - Thymeleaf fragment for formula assistance -->
     <div th:fragment="formula-help" x-data="formulaHelp" class="mt-4">
         <button @click="toggle" type="button"
                 data-testid="btn-formula-help-toggle"
@@ -372,7 +372,7 @@
 
                 parseAmount() {
                     // Remove dots and convert to number
-                    return Number.parseInt(this.tryAmount.replaceAll(/\./g, ''), 10) || 0;
+                    return Number.parseInt(this.tryAmount.replaceAll('.', ''), 10) || 0;
                 },
 
                 debouncedPreview() {
@@ -416,7 +416,7 @@
                             this.tryError = data.errors.join(', ');
                         }
                     } catch (error) {
-                        this.tryError = 'Gagal menghubungi server';
+                        this.tryError = error.message || 'Gagal menghubungi server';
                         this.tryResult = null;
                     } finally {
                         this.tryLoading = false;

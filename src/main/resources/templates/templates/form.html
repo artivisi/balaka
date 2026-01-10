@@ -534,7 +534,7 @@
                 },
 
                 parsePreviewAmount() {
-                    return Number.parseInt(this.previewAmount.replaceAll(/\./g, ''), 10) || 0;
+                    return Number.parseInt(this.previewAmount.replaceAll('.', ''), 10) || 0;
                 },
 
                 updateAllPreviews() {
@@ -598,7 +598,7 @@
                             line.previewError = data.errors.join(', ');
                         }
                     } catch (error) {
-                        line.previewError = 'Error';
+                        line.previewError = error.message || 'Error';
                         line.previewResult = null;
                     } finally {
                         line.previewLoading = false;
@@ -736,7 +736,7 @@
                     }
 
                     // Show loading state
-                    const previewBtn = document.querySelector('button[type="button"][\\@click*="showPreview"]');
+                    const previewBtn = document.getElementById('btn-preview');
                     const originalHTML = previewBtn?.innerHTML;
                     if (previewBtn) {
                         previewBtn.disabled = true;

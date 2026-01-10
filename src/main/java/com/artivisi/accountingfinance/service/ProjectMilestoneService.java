@@ -128,18 +128,12 @@ public class ProjectMilestoneService {
         List<ProjectPaymentTerm> paymentTerms = paymentTermRepository.findByMilestoneId(milestone.getId());
 
         for (ProjectPaymentTerm term : paymentTerms) {
-            if (term.getTemplate() == null) {
-                log.debug("Payment term {} has no template, skipping revenue recognition", term.getName());
+            if (!isValidForRevenueRecognition(term)) {
                 continue;
             }
 
             Project project = term.getProject();
             var amount = term.getCalculatedAmount(project.getContractValue());
-
-            if (amount == null || amount.signum() <= 0) {
-                log.debug("Payment term {} has no amount, skipping revenue recognition", term.getName());
-                continue;
-            }
 
             // Create transaction
             Transaction transaction = new Transaction();
@@ -161,6 +155,23 @@ public class ProjectMilestoneService {
                 log.info("Auto-posted transaction {}", savedTransaction.getTransactionNumber());
             }
         }
+    }
+
+    private boolean isValidForRevenueRecognition(ProjectPaymentTerm term) {
+        if (term.getTemplate() == null) {
+            log.debug("Payment term {} has no template, skipping revenue recognition", term.getName());
+            return false;
+        }
+
+        Project project = term.getProject();
+        var amount = term.getCalculatedAmount(project.getContractValue());
+
+        if (amount == null || amount.signum() <= 0) {
+            log.debug("Payment term {} has no amount, skipping revenue recognition", term.getName());
+            return false;
+        }
+
+        return true;
     }
 
     @Transactional

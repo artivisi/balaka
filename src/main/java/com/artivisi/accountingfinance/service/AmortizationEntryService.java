@@ -131,8 +131,9 @@ public class AmortizationEntryService {
 
         // Set accounts and amounts based on schedule type
         switch (type) {
-            case PREPAID_EXPENSE:
-                // Debit: Expense (target), Credit: Prepaid Asset (source)
+            case PREPAID_EXPENSE, INTANGIBLE_ASSET:
+                // PREPAID_EXPENSE: Debit Expense (target), Credit Prepaid Asset (source)
+                // INTANGIBLE_ASSET: Debit Amortization Expense (target), Credit Accumulated Amortization (source)
                 debitEntry.setAccount(schedule.getTargetAccount());
                 debitEntry.setDebitAmount(entry.getAmount());
                 debitEntry.setCreditAmount(BigDecimal.ZERO);
@@ -142,27 +143,14 @@ public class AmortizationEntryService {
                 creditEntry.setCreditAmount(entry.getAmount());
                 break;
 
-            case UNEARNED_REVENUE:
-            case ACCRUED_REVENUE:
-                // Debit: Source account, Credit: Target account
-                // UNEARNED_REVENUE: Debit Unearned Revenue, Credit Revenue
-                // ACCRUED_REVENUE: Debit Accrued Revenue Receivable, Credit Revenue
+            case UNEARNED_REVENUE, ACCRUED_REVENUE:
+                // UNEARNED_REVENUE: Debit Unearned Revenue (source), Credit Revenue (target)
+                // ACCRUED_REVENUE: Debit Accrued Revenue Receivable (source), Credit Revenue (target)
                 debitEntry.setAccount(schedule.getSourceAccount());
                 debitEntry.setDebitAmount(entry.getAmount());
                 debitEntry.setCreditAmount(BigDecimal.ZERO);
 
                 creditEntry.setAccount(schedule.getTargetAccount());
-                creditEntry.setDebitAmount(BigDecimal.ZERO);
-                creditEntry.setCreditAmount(entry.getAmount());
-                break;
-
-            case INTANGIBLE_ASSET:
-                // Debit: Amortization Expense (target), Credit: Accumulated Amortization (source)
-                debitEntry.setAccount(schedule.getTargetAccount());
-                debitEntry.setDebitAmount(entry.getAmount());
-                debitEntry.setCreditAmount(BigDecimal.ZERO);
-
-                creditEntry.setAccount(schedule.getSourceAccount());
                 creditEntry.setDebitAmount(BigDecimal.ZERO);
                 creditEntry.setCreditAmount(entry.getAmount());
                 break;

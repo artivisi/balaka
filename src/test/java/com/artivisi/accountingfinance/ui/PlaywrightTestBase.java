@@ -83,16 +83,17 @@ public abstract class PlaywrightTestBase {
 
         // Disable CSS animations and transitions for stable tests
         // This prevents Alpine.js x-collapse animation from causing flaky tests
-        page.addInitScript("() => {\n" +
-            "  const style = document.createElement('style');\n" +
-            "  style.innerHTML = '*, *::before, *::after { " +
-            "    transition-duration: 0s !important; " +
-            "    transition-delay: 0s !important; " +
-            "    animation-duration: 0s !important; " +
-            "    animation-delay: 0s !important; " +
-            "  }';\n" +
-            "  document.head.appendChild(style);\n" +
-            "}");
+        page.addInitScript("""
+            () => {
+              const style = document.createElement('style');
+              style.innerHTML = '*, *::before, *::after { \
+                transition-duration: 0s !important; \
+                transition-delay: 0s !important; \
+                animation-duration: 0s !important; \
+                animation-delay: 0s !important; \
+              }';
+              document.head.appendChild(style);
+            }""");
     }
 
     @AfterEach
