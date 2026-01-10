@@ -205,7 +205,7 @@
                 if (!confirm('Yakin ingin memutus hubungan dengan akun Telegram ini?')) e.preventDefault();
             });
             /*<![CDATA[*/
-            var verificationCode = /*[[${verificationCode}]]*/ null;
+            const verificationCode = /*[[${verificationCode}]]*/ null;
             /*]]>*/
             if (verificationCode) {
                 document.getElementById('btn-copy-code')?.addEventListener('click', function() {

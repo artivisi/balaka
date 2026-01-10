@@ -191,7 +191,7 @@
     </div>
     <th:block layout:fragment="scripts">
         <script th:inline="javascript" th:attr="nonce=${cspNonce}">
-            var year = /*[[${year}]]*/ 2024;
+            const year = /*[[${year}]]*/ 2024;
             document.getElementById('form-execute')?.addEventListener('submit', function(e) {
                 if (!confirm('Apakah Anda yakin ingin menutup tahun buku ' + year + '?')) {
                     e.preventDefault();

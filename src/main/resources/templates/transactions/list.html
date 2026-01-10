@@ -123,7 +123,7 @@
             // Auto-reload transaction list when transactions are updated (e.g., from Quick Transaction)
             document.addEventListener('transactionsUpdated', function() {
                 // Trigger HTMX request to reload the transaction table
-                var filterForm = document.getElementById('filter-form');
+                const filterForm = document.getElementById('filter-form');
                 if (filterForm) {
                     htmx.trigger(filterForm, 'submit');
                 }
@@ -136,9 +136,9 @@
             });
 
             // Template search dropdown show/hide
-            var searchResults = document.getElementById('template-search-results');
-            var searchInput = document.getElementById('template-search');
-            var searchContainer = document.getElementById('template-search-container');
+            const searchResults = document.getElementById('template-search-results');
+            const searchInput = document.getElementById('template-search');
+            const searchContainer = document.getElementById('template-search-container');
 
             function showDropdown() {
                 if (searchResults) searchResults.classList.remove('hidden');

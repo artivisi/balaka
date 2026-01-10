@@ -15,8 +15,8 @@
     <script th:attr="nonce=${cspNonce}">
         // Configure HTMX to include CSRF token in requests
         document.addEventListener('htmx:configRequest', function(evt) {
-            var csrfToken = document.querySelector('meta[name="_csrf"]').content;
-            var csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
+            const csrfToken = document.querySelector('meta[name="_csrf"]').content;
+            const csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
             evt.detail.headers[csrfHeader] = csrfToken;
         });
     </script>
@@ -547,11 +547,11 @@
     <!-- CSP-safe event handlers for modal -->
     <script th:attr="nonce=${cspNonce}">
         (function() {
-            var modal = document.getElementById('quick-transaction-modal');
+            const modal = document.getElementById('quick-transaction-modal');
 
             function attachModalHandlers() {
-                var fabBtn = document.getElementById('quick-transaction-fab');
-                var closeBtn = document.getElementById('quick-transaction-modal-close');
+                const fabBtn = document.getElementById('quick-transaction-fab');
+                const closeBtn = document.getElementById('quick-transaction-modal-close');
                 if (fabBtn && modal) {
                     fabBtn.addEventListener('click', function() { modal.showModal(); });
                 }
