@@ -1,5 +1,11 @@
 # Aplikasi Akunting
 
+[![CI](https://github.com/artivisi/aplikasi-akunting/actions/workflows/ci.yml/badge.svg)](https://github.com/artivisi/aplikasi-akunting/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/artivisi/aplikasi-akunting/graph/badge.svg)](https://codecov.io/gh/artivisi/aplikasi-akunting)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=artivisi_aplikasi-akunting&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=artivisi_aplikasi-akunting)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=artivisi_aplikasi-akunting&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=artivisi_aplikasi-akunting)
+[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=artivisi_aplikasi-akunting&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=artivisi_aplikasi-akunting)
+
 Accounting application for Indonesian small businesses. Spring Boot 4.0 + Thymeleaf + PostgreSQL.
 
 **Production-ready features:**
