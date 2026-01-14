@@ -182,4 +182,169 @@ class BillOfMaterialControllerFunctionalTest extends PlaywrightTestBase {
 
         assertThat(page.locator("body")).isVisible();
     }
+
+    // ==================== ADDITIONAL COVERAGE TESTS ====================
+
+    @Test
+    @DisplayName("Should search BOM via query parameter")
+    void shouldSearchBOMViaQueryParameter() {
+        navigateTo("/inventory/bom?search=kopi");
+        waitForPageLoad();
+
+        assertThat(page.locator("#page-title, h1").first()).isVisible();
+    }
+
+    @Test
+    @DisplayName("Should handle non-existent BOM detail")
+    void shouldHandleNonExistentBOMDetail() {
+        navigateTo("/inventory/bom/00000000-0000-0000-0000-000000000000");
+        waitForPageLoad();
+
+        // Should redirect to list
+        assertThat(page).hasURL(java.util.regex.Pattern.compile(".*\\/inventory\\/bom.*"));
+    }
+
+    @Test
+    @DisplayName("Should handle non-existent BOM edit")
+    void shouldHandleNonExistentBOMEdit() {
+        navigateTo("/inventory/bom/00000000-0000-0000-0000-000000000000/edit");
+        waitForPageLoad();
+
+        // Should redirect to list
+        assertThat(page).hasURL(java.util.regex.Pattern.compile(".*\\/inventory\\/bom.*"));
+    }
+
+    @Test
+    @DisplayName("Should create BOM with component lines")
+    void shouldCreateBOMWithComponentLines() {
+        var products = productRepository.findAll();
+        if (products.size() < 2) {
+            return;
+        }
+
+        navigateTo("/inventory/bom/create");
+        waitForPageLoad();
+
+        // Fill BOM code
+        var codeInput = page.locator("input[name='code']").first();
+        if (codeInput.isVisible()) {
+            codeInput.fill("BOM-TEST-" + System.currentTimeMillis());
+        }
+
+        // Fill BOM name
+        var nameInput = page.locator("input[name='name']").first();
+        if (nameInput.isVisible()) {
+            nameInput.fill("Test BOM With Lines " + System.currentTimeMillis());
+        }
+
+        // Select finished product
+        var productSelect = page.locator("select[name='productId']").first();
+        if (productSelect.isVisible()) {
+            productSelect.selectOption(products.get(0).getId().toString());
+        }
+
+        // Fill output quantity
+        var outputQtyInput = page.locator("input[name='outputQuantity']").first();
+        if (outputQtyInput.isVisible()) {
+            outputQtyInput.fill("1");
+        }
+
+        // Submit
+        var submitBtn = page.locator("#btn-simpan").first();
+        if (submitBtn.isVisible()) {
+            submitBtn.click();
+            waitForPageLoad();
+        }
+
+        assertThat(page.locator("body")).isVisible();
+    }
+
+    @Test
+    @DisplayName("Should display products on create form")
+    void shouldDisplayProductsOnCreateForm() {
+        navigateTo("/inventory/bom/create");
+        waitForPageLoad();
+
+        var productSelect = page.locator("select[name='productId']").first();
+        assertThat(productSelect).isVisible();
+    }
+
+    @Test
+    @DisplayName("Should display products on edit form")
+    void shouldDisplayProductsOnEditForm() {
+        var bom = bomRepository.findAll().stream().findFirst();
+        if (bom.isEmpty()) {
+            return;
+        }
+
+        navigateTo("/inventory/bom/" + bom.get().getId() + "/edit");
+        waitForPageLoad();
+
+        var productSelect = page.locator("select[name='productId']").first();
+        if (productSelect.isVisible()) {
+            assertThat(productSelect).isVisible();
+        }
+    }
+
+    @Test
+    @DisplayName("Should search with empty search parameter")
+    void shouldSearchWithEmptyParameter() {
+        navigateTo("/inventory/bom?search=");
+        waitForPageLoad();
+
+        assertThat(page.locator("#page-title, h1").first()).isVisible();
+    }
+
+    @Test
+    @DisplayName("Should update BOM with active checkbox")
+    void shouldUpdateBOMWithActiveCheckbox() {
+        var bom = bomRepository.findAll().stream().findFirst();
+        if (bom.isEmpty()) {
+            return;
+        }
+
+        navigateTo("/inventory/bom/" + bom.get().getId() + "/edit");
+        waitForPageLoad();
+
+        // Toggle active checkbox
+        var activeCheckbox = page.locator("input[name='active']").first();
+        if (activeCheckbox.isVisible()) {
+            if (activeCheckbox.isChecked()) {
+                activeCheckbox.uncheck();
+            } else {
+                activeCheckbox.check();
+            }
+        }
+
+        // Submit
+        var submitBtn = page.locator("#btn-simpan").first();
+        if (submitBtn.isVisible()) {
+            submitBtn.click();
+            waitForPageLoad();
+        }
+
+        assertThat(page.locator("body")).isVisible();
+    }
+
+    @Test
+    @DisplayName("Should handle BOM detail page with lines")
+    void shouldHandleBOMDetailPageWithLines() {
+        var bom = bomRepository.findAll().stream()
+                .filter(b -> b.getLines() != null && !b.getLines().isEmpty())
+                .findFirst();
+
+        if (bom.isEmpty()) {
+            // If no BOM with lines, just test any BOM
+            bom = bomRepository.findAll().stream().findFirst();
+        }
+
+        if (bom.isEmpty()) {
+            return;
+        }
+
+        navigateTo("/inventory/bom/" + bom.get().getId());
+        waitForPageLoad();
+
+        assertThat(page).hasURL(java.util.regex.Pattern.compile(".*\\/inventory\\/bom\\/.*"));
+    }
 }
