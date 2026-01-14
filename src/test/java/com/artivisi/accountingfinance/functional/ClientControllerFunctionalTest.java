@@ -145,55 +145,45 @@ class ClientControllerFunctionalTest extends PlaywrightTestBase {
     @Test
     @DisplayName("Should display client detail page")
     void shouldDisplayClientDetailPage() {
-        var client = clientRepository.findAll().stream().findFirst();
-        if (client.isEmpty()) {
-            return;
-        }
+        var client = clientRepository.findAll().stream().findFirst()
+                .orElseThrow(() -> new AssertionError("No client found in test data"));
 
-        navigateTo("/clients/" + client.get().getId());
+        navigateTo("/clients/" + client.getCode());
         waitForPageLoad();
 
-        assertThat(page).hasURL(java.util.regex.Pattern.compile(".*\\/clients\\/.*"));
+        // Page title is "Detail Klien", client name appears in body
+        assertThat(page.locator("#page-title, h1").first()).isVisible();
+        assertThat(page.locator("body")).containsText(client.getName());
     }
 
     @Test
     @DisplayName("Should display client edit form")
     void shouldDisplayClientEditForm() {
-        var client = clientRepository.findAll().stream().findFirst();
-        if (client.isEmpty()) {
-            return;
-        }
+        var client = clientRepository.findAll().stream().findFirst()
+                .orElseThrow(() -> new AssertionError("No client found in test data"));
 
-        navigateTo("/clients/" + client.get().getId() + "/edit");
+        navigateTo("/clients/" + client.getCode() + "/edit");
         waitForPageLoad();
 
-        assertThat(page.locator("body")).isVisible();
+        assertThat(page.locator("input[name='name']")).hasValue(client.getName());
     }
 
     @Test
     @DisplayName("Should update client")
     void shouldUpdateClient() {
-        var client = clientRepository.findAll().stream().findFirst();
-        if (client.isEmpty()) {
-            return;
-        }
+        var client = clientRepository.findAll().stream().findFirst()
+                .orElseThrow(() -> new AssertionError("No client found in test data"));
 
-        navigateTo("/clients/" + client.get().getId() + "/edit");
+        navigateTo("/clients/" + client.getCode() + "/edit");
         waitForPageLoad();
 
-        // Update name
-        var nameInput = page.locator("input[name='name']").first();
-        if (nameInput.isVisible()) {
-            nameInput.fill("Updated Client " + System.currentTimeMillis());
-        }
+        String updatedName = "Updated Client " + System.currentTimeMillis();
+        page.fill("input[name='name']", updatedName);
 
-        // Submit
-        var submitBtn = page.locator("#btn-simpan").first();
-        if (submitBtn.isVisible()) {
-            submitBtn.click();
-            waitForPageLoad();
-        }
+        page.click("#btn-simpan");
+        waitForPageLoad();
 
+        // Should redirect to detail page
         assertThat(page).hasURL(java.util.regex.Pattern.compile(".*\\/clients\\/.*"));
     }
 
@@ -202,42 +192,95 @@ class ClientControllerFunctionalTest extends PlaywrightTestBase {
     void shouldDeactivateClient() {
         var client = clientRepository.findAll().stream()
                 .filter(c -> Boolean.TRUE.equals(c.getActive()))
-                .findFirst();
-        if (client.isEmpty()) {
-            return;
-        }
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("No active client found in test data"));
 
-        navigateTo("/clients/" + client.get().getId());
+        navigateTo("/clients/" + client.getCode());
         waitForPageLoad();
 
+        page.click("form[action*='/deactivate'] button[type='submit']");
+        waitForPageLoad();
+
+        // Should stay on detail page
+        assertThat(page.locator("#page-title, h1").first()).isVisible();
+        assertThat(page.locator("body")).containsText(client.getName());
+    }
+
+    @Test
+    @DisplayName("Should activate client")
+    void shouldActivateClient() {
+        // First deactivate a client
+        var client = clientRepository.findAll().stream()
+                .filter(c -> Boolean.TRUE.equals(c.getActive()))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("No active client found in test data"));
+
+        navigateTo("/clients/" + client.getCode());
+        waitForPageLoad();
+
+        // Deactivate first if activate button not visible
         var deactivateBtn = page.locator("form[action*='/deactivate'] button[type='submit']").first();
         if (deactivateBtn.isVisible()) {
             deactivateBtn.click();
             waitForPageLoad();
         }
 
-        assertThat(page.locator("body")).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should activate client")
-    void shouldActivateClient() {
-        var client = clientRepository.findAll().stream()
-                .filter(c -> Boolean.FALSE.equals(c.getActive()))
-                .findFirst();
-        if (client.isEmpty()) {
-            return;
-        }
-
-        navigateTo("/clients/" + client.get().getId());
-        waitForPageLoad();
-
+        // Now activate
         var activateBtn = page.locator("form[action*='/activate'] button[type='submit']").first();
         if (activateBtn.isVisible()) {
             activateBtn.click();
             waitForPageLoad();
         }
 
-        assertThat(page.locator("body")).isVisible();
+        assertThat(page.locator("#page-title, h1").first()).isVisible();
+        assertThat(page.locator("body")).containsText(client.getName());
+    }
+
+    @Test
+    @DisplayName("Should filter clients with active filter")
+    void shouldFilterClientsWithActiveFilter() {
+        navigateTo("/clients?active=true");
+        waitForPageLoad();
+
+        assertThat(page.locator("#page-title, h1").first()).isVisible();
+    }
+
+    @Test
+    @DisplayName("Should filter clients with search param")
+    void shouldFilterClientsWithSearchParam() {
+        navigateTo("/clients?search=client");
+        waitForPageLoad();
+
+        assertThat(page.locator("#page-title, h1").first()).isVisible();
+    }
+
+    @Test
+    @DisplayName("Should handle HTMX request for client list")
+    void shouldHandleHtmxRequestForClientList() {
+        // Navigate normally first
+        navigateTo("/clients");
+        waitForPageLoad();
+
+        // Now test that list loads
+        assertThat(page.locator("table, [data-testid='client-list']").first()).isVisible();
+    }
+
+    @Test
+    @DisplayName("Should show validation error for duplicate code")
+    void shouldShowValidationErrorForDuplicateCode() {
+        var existingClient = clientRepository.findAll().stream().findFirst()
+                .orElseThrow(() -> new AssertionError("No client found in test data"));
+
+        navigateTo("/clients/new");
+        waitForPageLoad();
+
+        page.fill("input[name='code']", existingClient.getCode());
+        page.fill("input[name='name']", "Duplicate Code Client");
+
+        page.click("#btn-simpan");
+        waitForPageLoad();
+
+        // Should stay on form with error
+        assertThat(page.locator("input[name='code']")).isVisible();
     }
 }

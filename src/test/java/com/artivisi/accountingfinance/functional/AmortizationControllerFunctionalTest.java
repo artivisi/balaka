@@ -153,12 +153,16 @@ class AmortizationControllerFunctionalTest extends PlaywrightTestBase {
     @Test
     @DisplayName("Should display amortization detail page")
     void shouldDisplayAmortizationDetailPage() {
-        var schedule = scheduleRepository.findAll().stream().findFirst();
-        if (schedule.isEmpty()) {
+        var schedules = scheduleRepository.findAll();
+        if (schedules.isEmpty()) {
+            // If no schedules exist, just verify list page works
+            navigateTo("/amortization");
+            waitForPageLoad();
+            assertThat(page.locator("#page-title, h1").first()).isVisible();
             return;
         }
 
-        navigateTo("/amortization/" + schedule.get().getId());
+        navigateTo("/amortization/" + schedules.get(0).getId());
         waitForPageLoad();
 
         assertThat(page).hasURL(java.util.regex.Pattern.compile(".*\\/amortization\\/.*"));
@@ -167,40 +171,43 @@ class AmortizationControllerFunctionalTest extends PlaywrightTestBase {
     @Test
     @DisplayName("Should display amortization edit form")
     void shouldDisplayAmortizationEditForm() {
-        var schedule = scheduleRepository.findAll().stream().findFirst();
-        if (schedule.isEmpty()) {
+        var schedules = scheduleRepository.findAll();
+        if (schedules.isEmpty()) {
+            navigateTo("/amortization");
+            waitForPageLoad();
+            assertThat(page.locator("#page-title, h1").first()).isVisible();
             return;
         }
 
-        navigateTo("/amortization/" + schedule.get().getId() + "/edit");
+        navigateTo("/amortization/" + schedules.get(0).getId() + "/edit");
         waitForPageLoad();
 
-        assertThat(page.locator("body")).isVisible();
+        assertThat(page.locator("input[name='name']")).isVisible();
     }
 
     @Test
     @DisplayName("Should update amortization schedule")
     void shouldUpdateAmortizationSchedule() {
-        var schedule = scheduleRepository.findAll().stream().findFirst();
-        if (schedule.isEmpty()) {
+        var schedules = scheduleRepository.findAll();
+        if (schedules.isEmpty()) {
+            navigateTo("/amortization");
+            waitForPageLoad();
+            assertThat(page.locator("#page-title, h1").first()).isVisible();
             return;
         }
 
-        navigateTo("/amortization/" + schedule.get().getId() + "/edit");
+        navigateTo("/amortization/" + schedules.get(0).getId() + "/edit");
         waitForPageLoad();
 
-        // Update description
-        var descriptionInput = page.locator("input[name='description'], textarea[name='description']").first();
-        if (descriptionInput.isVisible()) {
-            descriptionInput.fill("Updated Prepaid " + System.currentTimeMillis());
+        // Update name
+        var nameInput = page.locator("input[name='name']").first();
+        if (nameInput.isVisible()) {
+            nameInput.fill("Updated Amortization " + System.currentTimeMillis());
         }
 
         // Submit
-        var submitBtn = page.locator("#btn-simpan").first();
-        if (submitBtn.isVisible()) {
-            submitBtn.click();
-            waitForPageLoad();
-        }
+        page.click("#btn-simpan, button[type='submit']");
+        waitForPageLoad();
 
         assertThat(page).hasURL(java.util.regex.Pattern.compile(".*\\/amortization\\/.*"));
     }
@@ -208,12 +215,15 @@ class AmortizationControllerFunctionalTest extends PlaywrightTestBase {
     @Test
     @DisplayName("Should post amortization entry")
     void shouldPostAmortizationEntry() {
-        var schedule = scheduleRepository.findAll().stream().findFirst();
-        if (schedule.isEmpty()) {
+        var schedules = scheduleRepository.findAll();
+        if (schedules.isEmpty()) {
+            navigateTo("/amortization");
+            waitForPageLoad();
+            assertThat(page.locator("#page-title, h1").first()).isVisible();
             return;
         }
 
-        navigateTo("/amortization/" + schedule.get().getId());
+        navigateTo("/amortization/" + schedules.get(0).getId());
         waitForPageLoad();
 
         var postBtn = page.locator("form[action*='/entries/'][action*='/post'] button[type='submit']").first();
@@ -228,12 +238,15 @@ class AmortizationControllerFunctionalTest extends PlaywrightTestBase {
     @Test
     @DisplayName("Should skip amortization entry")
     void shouldSkipAmortizationEntry() {
-        var schedule = scheduleRepository.findAll().stream().findFirst();
-        if (schedule.isEmpty()) {
+        var schedules = scheduleRepository.findAll();
+        if (schedules.isEmpty()) {
+            navigateTo("/amortization");
+            waitForPageLoad();
+            assertThat(page.locator("#page-title, h1").first()).isVisible();
             return;
         }
 
-        navigateTo("/amortization/" + schedule.get().getId());
+        navigateTo("/amortization/" + schedules.get(0).getId());
         waitForPageLoad();
 
         var skipBtn = page.locator("form[action*='/entries/'][action*='/skip'] button[type='submit']").first();
@@ -248,12 +261,15 @@ class AmortizationControllerFunctionalTest extends PlaywrightTestBase {
     @Test
     @DisplayName("Should post all pending entries")
     void shouldPostAllPendingEntries() {
-        var schedule = scheduleRepository.findAll().stream().findFirst();
-        if (schedule.isEmpty()) {
+        var schedules = scheduleRepository.findAll();
+        if (schedules.isEmpty()) {
+            navigateTo("/amortization");
+            waitForPageLoad();
+            assertThat(page.locator("#page-title, h1").first()).isVisible();
             return;
         }
 
-        navigateTo("/amortization/" + schedule.get().getId());
+        navigateTo("/amortization/" + schedules.get(0).getId());
         waitForPageLoad();
 
         var postAllBtn = page.locator("form[action*='/entries/post-all'] button[type='submit']").first();
@@ -268,14 +284,15 @@ class AmortizationControllerFunctionalTest extends PlaywrightTestBase {
     @Test
     @DisplayName("Should cancel amortization schedule")
     void shouldCancelAmortizationSchedule() {
-        var schedule = scheduleRepository.findAll().stream()
-                .filter(s -> "ACTIVE".equals(s.getStatus().name()))
-                .findFirst();
-        if (schedule.isEmpty()) {
+        var schedules = scheduleRepository.findAll();
+        if (schedules.isEmpty()) {
+            navigateTo("/amortization");
+            waitForPageLoad();
+            assertThat(page.locator("#page-title, h1").first()).isVisible();
             return;
         }
 
-        navigateTo("/amortization/" + schedule.get().getId());
+        navigateTo("/amortization/" + schedules.get(0).getId());
         waitForPageLoad();
 
         var cancelBtn = page.locator("form[action*='/cancel'] button[type='submit']").first();
@@ -290,12 +307,15 @@ class AmortizationControllerFunctionalTest extends PlaywrightTestBase {
     @Test
     @DisplayName("Should delete amortization schedule")
     void shouldDeleteAmortizationSchedule() {
-        var schedule = scheduleRepository.findAll().stream().findFirst();
-        if (schedule.isEmpty()) {
+        var schedules = scheduleRepository.findAll();
+        if (schedules.isEmpty()) {
+            navigateTo("/amortization");
+            waitForPageLoad();
+            assertThat(page.locator("#page-title, h1").first()).isVisible();
             return;
         }
 
-        navigateTo("/amortization/" + schedule.get().getId());
+        navigateTo("/amortization/" + schedules.get(0).getId());
         waitForPageLoad();
 
         var deleteBtn = page.locator("form[action*='/delete'] button[type='submit']").first();
@@ -308,11 +328,57 @@ class AmortizationControllerFunctionalTest extends PlaywrightTestBase {
     }
 
     @Test
-    @DisplayName("Should display batch processing page")
-    void shouldDisplayBatchProcessingPage() {
-        navigateTo("/amortization/batch/process");
+    @DisplayName("Should process batch via POST")
+    void shouldProcessBatchViaPost() {
+        // Navigate to amortization list first
+        navigateTo("/amortization");
         waitForPageLoad();
 
-        assertThat(page.locator("body")).isVisible();
+        // Look for batch process button
+        var batchBtn = page.locator("form[action*='/batch/process'] button[type='submit']").first();
+        if (batchBtn.isVisible()) {
+            batchBtn.click();
+            waitForPageLoad();
+        }
+
+        // Should redirect back to list
+        assertThat(page.locator("#page-title, h1").first()).isVisible();
+    }
+
+    @Test
+    @DisplayName("Should filter by status using query param")
+    void shouldFilterByStatusUsingQueryParam() {
+        navigateTo("/amortization?status=ACTIVE");
+        waitForPageLoad();
+
+        assertThat(page.locator("#page-title, h1").first()).isVisible();
+    }
+
+    @Test
+    @DisplayName("Should filter by type using query param")
+    void shouldFilterByTypeUsingQueryParam() {
+        // Valid types: PREPAID_EXPENSE, UNEARNED_REVENUE, INTANGIBLE_ASSET, ACCRUED_REVENUE
+        navigateTo("/amortization?type=PREPAID_EXPENSE");
+        waitForPageLoad();
+
+        assertThat(page.locator("#page-title, h1").first()).isVisible();
+    }
+
+    @Test
+    @DisplayName("Should filter by search using query param")
+    void shouldFilterBySearchUsingQueryParam() {
+        navigateTo("/amortization?search=test");
+        waitForPageLoad();
+
+        assertThat(page.locator("#page-title, h1").first()).isVisible();
+    }
+
+    @Test
+    @DisplayName("Should handle combined filters")
+    void shouldHandleCombinedFilters() {
+        navigateTo("/amortization?status=ACTIVE&type=PREPAID_EXPENSE&search=insurance");
+        waitForPageLoad();
+
+        assertThat(page.locator("#page-title, h1").first()).isVisible();
     }
 }

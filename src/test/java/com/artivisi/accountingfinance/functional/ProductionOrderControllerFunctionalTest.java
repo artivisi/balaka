@@ -238,4 +238,206 @@ class ProductionOrderControllerFunctionalTest extends PlaywrightTestBase {
 
         assertThat(page.getByTestId("order-status-completed")).isVisible();
     }
+
+    // ==================== FILTER TESTS ====================
+
+    @Test
+    @DisplayName("Should filter by DRAFT status")
+    void shouldFilterByDraftStatus() {
+        navigateTo("/inventory/production?status=DRAFT");
+        waitForPageLoad();
+
+        assertThat(page.locator("h1, .page-title").first()).isVisible();
+    }
+
+    @Test
+    @DisplayName("Should filter by IN_PROGRESS status")
+    void shouldFilterByInProgressStatus() {
+        navigateTo("/inventory/production?status=IN_PROGRESS");
+        waitForPageLoad();
+
+        assertThat(page.locator("h1, .page-title").first()).isVisible();
+    }
+
+    @Test
+    @DisplayName("Should filter by COMPLETED status")
+    void shouldFilterByCompletedStatus() {
+        navigateTo("/inventory/production?status=COMPLETED");
+        waitForPageLoad();
+
+        assertThat(page.locator("h1, .page-title").first()).isVisible();
+    }
+
+    @Test
+    @DisplayName("Should filter by CANCELLED status")
+    void shouldFilterByCancelledStatus() {
+        navigateTo("/inventory/production?status=CANCELLED");
+        waitForPageLoad();
+
+        assertThat(page.locator("h1, .page-title").first()).isVisible();
+    }
+
+    // ==================== EDIT FORM TESTS ====================
+
+    @Test
+    @DisplayName("Should display edit form for draft order")
+    void shouldDisplayEditFormForDraftOrder() {
+        var order = orderRepository.findAll().stream()
+                .filter(o -> "DRAFT".equals(o.getStatus().name()))
+                .findFirst();
+        if (order.isEmpty()) {
+            navigateTo("/inventory/production");
+            waitForPageLoad();
+            assertThat(page.locator("h1, .page-title").first()).isVisible();
+            return;
+        }
+
+        navigateTo("/inventory/production/" + order.get().getId() + "/edit");
+        waitForPageLoad();
+
+        assertThat(page.locator("#bomId, #quantity, #orderDate").first()).isVisible();
+    }
+
+    @Test
+    @DisplayName("Should redirect when editing non-draft order")
+    void shouldRedirectWhenEditingNonDraftOrder() {
+        var order = orderRepository.findAll().stream()
+                .filter(o -> !"DRAFT".equals(o.getStatus().name()))
+                .findFirst();
+        if (order.isEmpty()) {
+            navigateTo("/inventory/production");
+            waitForPageLoad();
+            assertThat(page.locator("h1, .page-title").first()).isVisible();
+            return;
+        }
+
+        navigateTo("/inventory/production/" + order.get().getId() + "/edit");
+        waitForPageLoad();
+
+        // Should redirect to detail page
+        assertThat(page).hasURL(java.util.regex.Pattern.compile(".*\\/inventory\\/production\\/.*"));
+    }
+
+    @Test
+    @DisplayName("Should handle non-existent order detail")
+    void shouldHandleNonExistentOrderDetail() {
+        navigateTo("/inventory/production/00000000-0000-0000-0000-000000000000");
+        waitForPageLoad();
+
+        // Should redirect to list
+        assertThat(page).hasURL(java.util.regex.Pattern.compile(".*\\/inventory\\/production.*"));
+    }
+
+    @Test
+    @DisplayName("Should handle non-existent order edit")
+    void shouldHandleNonExistentOrderEdit() {
+        navigateTo("/inventory/production/00000000-0000-0000-0000-000000000000/edit");
+        waitForPageLoad();
+
+        // Should redirect to list
+        assertThat(page).hasURL(java.util.regex.Pattern.compile(".*\\/inventory\\/production.*"));
+    }
+
+    // ==================== ACTION TESTS ====================
+
+    @Test
+    @DisplayName("Should start draft order")
+    void shouldStartDraftOrder() {
+        var order = orderRepository.findAll().stream()
+                .filter(o -> "DRAFT".equals(o.getStatus().name()))
+                .findFirst();
+        if (order.isEmpty()) {
+            navigateTo("/inventory/production");
+            waitForPageLoad();
+            assertThat(page.locator("h1, .page-title").first()).isVisible();
+            return;
+        }
+
+        navigateTo("/inventory/production/" + order.get().getId());
+        waitForPageLoad();
+
+        var startBtn = page.locator("#form-start button[type='submit']").first();
+        if (startBtn.isVisible()) {
+            startBtn.click();
+            waitForPageLoad();
+        }
+
+        assertThat(page).hasURL(java.util.regex.Pattern.compile(".*\\/inventory\\/production\\/.*"));
+    }
+
+    @Test
+    @DisplayName("Should complete in-progress order")
+    void shouldCompleteInProgressOrder() {
+        var order = orderRepository.findAll().stream()
+                .filter(o -> "IN_PROGRESS".equals(o.getStatus().name()))
+                .findFirst();
+        if (order.isEmpty()) {
+            navigateTo("/inventory/production");
+            waitForPageLoad();
+            assertThat(page.locator("h1, .page-title").first()).isVisible();
+            return;
+        }
+
+        navigateTo("/inventory/production/" + order.get().getId());
+        waitForPageLoad();
+
+        var completeBtn = page.locator("#form-complete button[type='submit']").first();
+        if (completeBtn.isVisible()) {
+            completeBtn.click();
+            waitForPageLoad();
+        }
+
+        assertThat(page).hasURL(java.util.regex.Pattern.compile(".*\\/inventory\\/production\\/.*"));
+    }
+
+    @Test
+    @DisplayName("Should cancel draft order")
+    void shouldCancelDraftOrder() {
+        var order = orderRepository.findAll().stream()
+                .filter(o -> "DRAFT".equals(o.getStatus().name()))
+                .findFirst();
+        if (order.isEmpty()) {
+            navigateTo("/inventory/production");
+            waitForPageLoad();
+            assertThat(page.locator("h1, .page-title").first()).isVisible();
+            return;
+        }
+
+        navigateTo("/inventory/production/" + order.get().getId());
+        waitForPageLoad();
+
+        var cancelBtn = page.locator("#form-cancel button[type='submit']").first();
+        if (cancelBtn.isVisible()) {
+            cancelBtn.click();
+            waitForPageLoad();
+        }
+
+        assertThat(page).hasURL(java.util.regex.Pattern.compile(".*\\/inventory\\/production\\/.*"));
+    }
+
+    @Test
+    @DisplayName("Should delete draft order")
+    void shouldDeleteDraftOrder() {
+        var order = orderRepository.findAll().stream()
+                .filter(o -> "DRAFT".equals(o.getStatus().name()))
+                .findFirst();
+        if (order.isEmpty()) {
+            navigateTo("/inventory/production");
+            waitForPageLoad();
+            assertThat(page.locator("h1, .page-title").first()).isVisible();
+            return;
+        }
+
+        navigateTo("/inventory/production/" + order.get().getId());
+        waitForPageLoad();
+
+        var deleteBtn = page.locator("#form-delete button[type='submit']").first();
+        if (deleteBtn.isVisible()) {
+            deleteBtn.click();
+            waitForPageLoad();
+        }
+
+        // Should redirect to list
+        assertThat(page).hasURL(java.util.regex.Pattern.compile(".*\\/inventory\\/production.*"));
+    }
 }
