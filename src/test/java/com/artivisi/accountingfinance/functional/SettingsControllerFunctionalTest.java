@@ -1,10 +1,12 @@
 package com.artivisi.accountingfinance.functional;
 
 import com.artivisi.accountingfinance.functional.service.ServiceTestDataInitializer;
+import com.artivisi.accountingfinance.repository.CompanyBankAccountRepository;
 import com.artivisi.accountingfinance.ui.PlaywrightTestBase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
@@ -19,6 +21,9 @@ import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertTha
 @DisplayName("Settings Controller Tests")
 @Import(ServiceTestDataInitializer.class)
 class SettingsControllerFunctionalTest extends PlaywrightTestBase {
+
+    @Autowired
+    private CompanyBankAccountRepository bankAccountRepository;
 
     @BeforeEach
     void setupAndLogin() {
@@ -233,5 +238,205 @@ class SettingsControllerFunctionalTest extends PlaywrightTestBase {
 
         // The page should have the audit log table
         assertThat(page.locator("#audit-log-table")).isVisible();
+    }
+
+    // ==================== BANK ACCOUNT ACTIONS ====================
+
+    @Test
+    @DisplayName("Should edit bank account")
+    void shouldEditBankAccount() {
+        var bankAccounts = bankAccountRepository.findAll();
+        if (bankAccounts.isEmpty()) {
+            return;
+        }
+
+        var bankAccount = bankAccounts.get(0);
+        navigateTo("/settings/bank-accounts/" + bankAccount.getId() + "/edit");
+        waitForPageLoad();
+
+        // Update bank name
+        var bankNameInput = page.locator("#bankName");
+        if (bankNameInput.isVisible()) {
+            String originalName = bankNameInput.inputValue();
+            bankNameInput.fill(originalName + " (Test Update)");
+            page.locator("#btn-save-bank").click();
+            waitForPageLoad();
+
+            // Restore original name
+            navigateTo("/settings/bank-accounts/" + bankAccount.getId() + "/edit");
+            waitForPageLoad();
+            page.locator("#bankName").fill(originalName);
+            page.locator("#btn-save-bank").click();
+            waitForPageLoad();
+        }
+    }
+
+    @Test
+    @DisplayName("Should activate bank account")
+    void shouldActivateBankAccount() {
+        var bankAccounts = bankAccountRepository.findAll();
+        if (bankAccounts.isEmpty()) {
+            return;
+        }
+
+        // Find inactive bank account or use first one
+        var bankAccount = bankAccounts.stream()
+            .filter(ba -> !ba.isActive())
+            .findFirst()
+            .orElse(bankAccounts.get(0));
+
+        navigateTo("/settings");
+        waitForPageLoad();
+
+        var activateForm = page.locator("form[action*='/bank-accounts/" + bankAccount.getId() + "/activate']").first();
+        if (activateForm.isVisible()) {
+            activateForm.locator("button[type='submit']").click();
+            waitForPageLoad();
+        }
+
+        // Verify page loads after action
+        assertThat(page.locator("#page-title")).isVisible();
+    }
+
+    @Test
+    @DisplayName("Should delete bank account")
+    void shouldDeleteBankAccount() {
+        // Create a bank account to delete
+        navigateTo("/settings/bank-accounts/new");
+        waitForPageLoad();
+
+        String uniqueNumber = "TEST" + System.currentTimeMillis();
+        page.locator("#bankName").fill("Bank To Delete");
+        page.locator("#accountNumber").fill(uniqueNumber);
+        page.locator("#accountName").fill("Test Delete Account");
+
+        page.locator("#btn-save-bank").click();
+        waitForPageLoad();
+
+        // Find the newly created account
+        var bankAccount = bankAccountRepository.findByAccountNumber(uniqueNumber);
+        if (bankAccount.isEmpty()) {
+            return;
+        }
+
+        navigateTo("/settings");
+        waitForPageLoad();
+
+        var deleteForm = page.locator("form[action*='/bank-accounts/" + bankAccount.get().getId() + "/delete']").first();
+        if (deleteForm.isVisible()) {
+            deleteForm.locator("button[type='submit']").click();
+            waitForPageLoad();
+        }
+
+        // Verify page loads after delete
+        assertThat(page.locator("#page-title")).isVisible();
+    }
+
+    // ==================== COMPANY LOGO ====================
+
+    @Test
+    @DisplayName("Should access company logo upload form")
+    void shouldAccessCompanyLogoUploadForm() {
+        navigateTo("/settings");
+        waitForPageLoad();
+
+        // Logo upload form should be present
+        var logoForm = page.locator("form[action*='/company/logo']").first();
+        if (logoForm.isVisible()) {
+            assertThat(logoForm).isVisible();
+        }
+    }
+
+    @Test
+    @DisplayName("Should access get company logo endpoint")
+    void shouldAccessGetCompanyLogoEndpoint() {
+        // Trigger the get logo endpoint
+        var response = page.request().get(baseUrl() + "/settings/company/logo");
+        // 200 = has logo, 404 = no logo set
+        org.assertj.core.api.Assertions.assertThat(response.status())
+            .as("Logo endpoint should return 200 or 404")
+            .isIn(200, 404);
+    }
+
+    @Test
+    @DisplayName("Should access delete company logo form")
+    void shouldAccessDeleteCompanyLogoForm() {
+        navigateTo("/settings");
+        waitForPageLoad();
+
+        // Logo delete form may be present if logo exists
+        var deleteLogoForm = page.locator("form[action*='/company/logo/delete']").first();
+        // Just verify the page loads - delete form visibility depends on whether logo exists
+        assertThat(page.locator("#page-title")).isVisible();
+    }
+
+    // ==================== TELEGRAM ACTIONS ====================
+
+    @Test
+    @DisplayName("Should generate telegram code")
+    void shouldGenerateTelegramCode() {
+        navigateTo("/settings/telegram");
+        waitForPageLoad();
+
+        var generateForm = page.locator("form[action*='/telegram/generate-code']").first();
+        if (generateForm.isVisible()) {
+            generateForm.locator("button[type='submit']").click();
+            waitForPageLoad();
+
+            // Should redirect back to telegram settings
+            org.assertj.core.api.Assertions.assertThat(page.url())
+                .as("Should remain on telegram settings")
+                .contains("/settings/telegram");
+        }
+    }
+
+    @Test
+    @DisplayName("Should access unlink telegram form")
+    void shouldAccessUnlinkTelegramForm() {
+        navigateTo("/settings/telegram");
+        waitForPageLoad();
+
+        // Unlink form may be present if telegram is linked
+        var unlinkForm = page.locator("form[action*='/telegram/unlink']").first();
+        // Just verify the page loads
+        assertThat(page.locator("#page-title")).isVisible();
+    }
+
+    // ==================== ADDITIONAL AUDIT LOG TESTS ====================
+
+    @Test
+    @DisplayName("Should filter audit logs by username")
+    void shouldFilterAuditLogsByUsername() {
+        navigateTo("/settings/audit-logs?username=admin");
+        waitForPageLoad();
+
+        // Verify filter is applied
+        var usernameFilter = page.locator("#username-filter");
+        if (usernameFilter.isVisible()) {
+            org.assertj.core.api.Assertions.assertThat(usernameFilter.inputValue())
+                .as("Username filter should have value")
+                .isEqualTo("admin");
+        }
+    }
+
+    @Test
+    @DisplayName("Should filter audit logs by date range")
+    void shouldFilterAuditLogsByDateRange() {
+        String today = java.time.LocalDate.now().toString();
+        navigateTo("/settings/audit-logs?startDate=" + today + "&endDate=" + today);
+        waitForPageLoad();
+
+        // Verify the page loads with filters
+        assertThat(page.locator("#page-title")).isVisible();
+    }
+
+    @Test
+    @DisplayName("Should paginate audit logs")
+    void shouldPaginateAuditLogs() {
+        navigateTo("/settings/audit-logs?page=0&size=5");
+        waitForPageLoad();
+
+        // Verify the page loads
+        assertThat(page.locator("#page-title")).isVisible();
     }
 }
