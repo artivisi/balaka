@@ -1,10 +1,14 @@
 package com.artivisi.accountingfinance.functional.service;
 
+import com.artivisi.accountingfinance.enums.Role;
+import com.artivisi.accountingfinance.entity.User;
+import com.artivisi.accountingfinance.repository.UserRepository;
 import com.artivisi.accountingfinance.service.DataImportService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Profile;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import jakarta.annotation.PostConstruct;
 import java.io.ByteArrayOutputStream;
@@ -16,7 +20,7 @@ import java.util.zip.ZipOutputStream;
 /**
  * Test configuration specific to IT Service industry tests.
  * Imports IT service seed data and test master data using DataImportService.
- * 
+ *
  * This initializer is scoped to service industry tests only.
  * For other industries (online-seller, coffee-shop), create separate initializers.
  */
@@ -27,6 +31,8 @@ import java.util.zip.ZipOutputStream;
 public class ServiceTestDataInitializer {
 
     private final DataImportService dataImportService;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @PostConstruct
     public void importServiceTestData() {
@@ -35,19 +41,37 @@ public class ServiceTestDataInitializer {
             log.info("Importing IT Service industry seed data...");
             byte[] seedZip = createZipFromDirectory("industry-seed/it-service/seed-data");
             DataImportService.ImportResult seedResult = dataImportService.importAllData(seedZip);
-            log.info("IT Service seed imported: {} records in {}ms", 
+            log.info("IT Service seed imported: {} records in {}ms",
                 seedResult.totalRecords(), seedResult.durationMs());
-            
+
             // Step 2: Import service test master data (Company Config, Fiscal Periods, Clients, Projects, Employees)
             log.info("Importing service test master data...");
             byte[] testDataZip = createZipFromTestData("src/test/resources/testdata/service");
             DataImportService.ImportResult testResult = dataImportService.importAllData(testDataZip);
-            log.info("Service test master data imported: {} records in {}ms", 
+            log.info("Service test master data imported: {} records in {}ms",
                 testResult.totalRecords(), testResult.durationMs());
-                
+
+            // Step 3: Create test users with known passwords
+            createTestUsers();
+
         } catch (Exception e) {
             log.error("Failed to import IT service test data", e);
             throw new RuntimeException("IT service test data initialization failed", e);
+        }
+    }
+
+    private void createTestUsers() {
+        // Create staff user for testing user management
+        if (userRepository.findByUsername("staff").isEmpty()) {
+            User staff = new User();
+            staff.setUsername("staff");
+            staff.setPassword(passwordEncoder.encode("password"));
+            staff.setFullName("Staff User");
+            staff.setEmail("staff@example.com");
+            staff.setActive(true);
+            staff.addRole(Role.STAFF, "system");
+            userRepository.save(staff);
+            log.info("Created test user 'staff'");
         }
     }
     

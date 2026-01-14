@@ -2,8 +2,6 @@ package com.artivisi.accountingfinance.functional;
 
 import com.artivisi.accountingfinance.functional.service.ServiceTestDataInitializer;
 import com.artivisi.accountingfinance.repository.PayrollRunRepository;
-import com.artivisi.accountingfinance.repository.EmployeeRepository;
-import com.artivisi.accountingfinance.repository.ClientRepository;
 import com.artivisi.accountingfinance.repository.ProjectRepository;
 import com.artivisi.accountingfinance.ui.PlaywrightTestBase;
 import org.junit.jupiter.api.BeforeEach;
@@ -12,11 +10,16 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
 
+import org.assertj.core.api.Assertions;
+
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 
 /**
  * Validation tests to exercise error paths in controllers.
- * These tests submit forms with invalid data to improve coverage of validation code.
+ * These tests submit forms with invalid data to verify validation works.
+ *
+ * Note: Uses strict ID-based locators for submit buttons to ensure reliability.
+ * Each form has a unique submit button ID defined in the template.
  */
 @DisplayName("Validation Tests")
 @Import(ServiceTestDataInitializer.class)
@@ -24,12 +27,6 @@ class ValidationTest extends PlaywrightTestBase {
 
     @Autowired
     private PayrollRunRepository payrollRunRepository;
-
-    @Autowired
-    private EmployeeRepository employeeRepository;
-
-    @Autowired
-    private ClientRepository clientRepository;
 
     @Autowired
     private ProjectRepository projectRepository;
@@ -47,28 +44,26 @@ class ValidationTest extends PlaywrightTestBase {
         navigateTo("/payroll/new");
         waitForPageLoad();
 
-        // Clear the period field and submit
-        var periodInput = page.locator("input[name='period']").first();
-        if (periodInput.isVisible()) {
-            periodInput.clear();
-        }
+        var periodInput = page.locator("#period");
+        assertThat(periodInput).isVisible();
+        periodInput.clear();
 
-        // Submit the form
-        var submitBtn = page.locator("button[type='submit']").first();
+        // payroll/form.html uses id="btn-submit"
+        var submitBtn = page.locator("#btn-submit");
+        assertThat(submitBtn).isVisible();
         submitBtn.click();
         waitForPageLoad();
 
-        // Should stay on form page with validation error
-        assertThat(page.locator("body")).isVisible();
+        // Should stay on form page (URL contains /new or /payroll)
+        Assertions.assertThat(page.url()).contains("/payroll");
     }
 
     @Test
     @DisplayName("Should show error when creating duplicate payroll period")
     void shouldShowErrorForDuplicatePayrollPeriod() {
-        // First, get an existing payroll period
         var existingPayroll = payrollRunRepository.findAll().stream().findFirst();
         if (existingPayroll.isEmpty()) {
-            return;
+            return; // No test data available
         }
 
         String existingPeriod = existingPayroll.get().getPayrollPeriod();
@@ -76,19 +71,17 @@ class ValidationTest extends PlaywrightTestBase {
         navigateTo("/payroll/new");
         waitForPageLoad();
 
-        // Fill with existing period
-        var periodInput = page.locator("input[name='period']").first();
-        if (periodInput.isVisible()) {
-            periodInput.fill(existingPeriod);
-        }
+        var periodInput = page.locator("#period");
+        assertThat(periodInput).isVisible();
+        periodInput.fill(existingPeriod);
 
-        // Submit the form
-        var submitBtn = page.locator("button[type='submit']").first();
+        var submitBtn = page.locator("#btn-submit");
+        assertThat(submitBtn).isVisible();
         submitBtn.click();
         waitForPageLoad();
 
-        // Should show error for duplicate
-        assertThat(page.locator("body")).isVisible();
+        // Should show error - either stay on form or show error message
+        Assertions.assertThat(page.url()).contains("/payroll");
     }
 
     // ==================== EMPLOYEE VALIDATION ====================
@@ -99,17 +92,18 @@ class ValidationTest extends PlaywrightTestBase {
         navigateTo("/employees/new");
         waitForPageLoad();
 
-        // Clear required fields and submit
-        var nameInput = page.locator("input[name='name']").first();
-        if (nameInput.isVisible()) {
-            nameInput.clear();
-        }
+        var nameInput = page.locator("#name");
+        assertThat(nameInput).isVisible();
+        nameInput.clear();
 
-        var submitBtn = page.locator("button[type='submit']").first();
+        // employees/form.html uses id="btn-simpan"
+        var submitBtn = page.locator("#btn-simpan");
+        assertThat(submitBtn).isVisible();
         submitBtn.click();
         waitForPageLoad();
 
-        assertThat(page.locator("body")).isVisible();
+        // Should stay on form page
+        Assertions.assertThat(page.url()).contains("/employees");
     }
 
     @Test
@@ -118,16 +112,17 @@ class ValidationTest extends PlaywrightTestBase {
         navigateTo("/employees/new");
         waitForPageLoad();
 
-        var emailInput = page.locator("input[name='email']").first();
-        if (emailInput.isVisible()) {
-            emailInput.fill("invalid-email");
-        }
+        var emailInput = page.locator("#email");
+        assertThat(emailInput).isVisible();
+        emailInput.fill("invalid-email");
 
-        var submitBtn = page.locator("button[type='submit']").first();
+        var submitBtn = page.locator("#btn-simpan");
+        assertThat(submitBtn).isVisible();
         submitBtn.click();
         waitForPageLoad();
 
-        assertThat(page.locator("body")).isVisible();
+        // Should stay on form due to validation
+        Assertions.assertThat(page.url()).contains("/employees");
     }
 
     // ==================== CLIENT VALIDATION ====================
@@ -138,16 +133,18 @@ class ValidationTest extends PlaywrightTestBase {
         navigateTo("/clients/new");
         waitForPageLoad();
 
-        var nameInput = page.locator("input[name='name']").first();
-        if (nameInput.isVisible()) {
-            nameInput.clear();
-        }
+        var nameInput = page.locator("#name");
+        assertThat(nameInput).isVisible();
+        nameInput.clear();
 
-        var submitBtn = page.locator("button[type='submit']").first();
+        // clients/form.html uses id="btn-simpan"
+        var submitBtn = page.locator("#btn-simpan");
+        assertThat(submitBtn).isVisible();
         submitBtn.click();
         waitForPageLoad();
 
-        assertThat(page.locator("body")).isVisible();
+        // Should stay on form page
+        Assertions.assertThat(page.url()).contains("/clients");
     }
 
     @Test
@@ -156,16 +153,17 @@ class ValidationTest extends PlaywrightTestBase {
         navigateTo("/clients/new");
         waitForPageLoad();
 
-        var npwpInput = page.locator("input[name='npwp']").first();
-        if (npwpInput.isVisible()) {
-            npwpInput.fill("invalid-npwp");
-        }
+        var npwpInput = page.locator("#npwp");
+        assertThat(npwpInput).isVisible();
+        npwpInput.fill("invalid-npwp");
 
-        var submitBtn = page.locator("button[type='submit']").first();
+        var submitBtn = page.locator("#btn-simpan");
+        assertThat(submitBtn).isVisible();
         submitBtn.click();
         waitForPageLoad();
 
-        assertThat(page.locator("body")).isVisible();
+        // Should stay on form due to validation
+        Assertions.assertThat(page.url()).contains("/clients");
     }
 
     // ==================== PROJECT VALIDATION ====================
@@ -176,16 +174,18 @@ class ValidationTest extends PlaywrightTestBase {
         navigateTo("/projects/new");
         waitForPageLoad();
 
-        var codeInput = page.locator("input[name='code']").first();
-        if (codeInput.isVisible()) {
-            codeInput.clear();
-        }
+        var codeInput = page.locator("#code");
+        assertThat(codeInput).isVisible();
+        codeInput.clear();
 
-        var submitBtn = page.locator("button[type='submit']").first();
+        // projects/form.html uses id="btn-simpan"
+        var submitBtn = page.locator("#btn-simpan");
+        assertThat(submitBtn).isVisible();
         submitBtn.click();
         waitForPageLoad();
 
-        assertThat(page.locator("body")).isVisible();
+        // Should stay on form page
+        Assertions.assertThat(page.url()).contains("/projects");
     }
 
     @Test
@@ -193,7 +193,7 @@ class ValidationTest extends PlaywrightTestBase {
     void shouldShowErrorForDuplicateProjectCode() {
         var existingProject = projectRepository.findAll().stream().findFirst();
         if (existingProject.isEmpty()) {
-            return;
+            return; // No test data available
         }
 
         String existingCode = existingProject.get().getCode();
@@ -201,16 +201,17 @@ class ValidationTest extends PlaywrightTestBase {
         navigateTo("/projects/new");
         waitForPageLoad();
 
-        var codeInput = page.locator("input[name='code']").first();
-        if (codeInput.isVisible()) {
-            codeInput.fill(existingCode);
-        }
+        var codeInput = page.locator("#code");
+        assertThat(codeInput).isVisible();
+        codeInput.fill(existingCode);
 
-        var submitBtn = page.locator("button[type='submit']").first();
+        var submitBtn = page.locator("#btn-simpan");
+        assertThat(submitBtn).isVisible();
         submitBtn.click();
         waitForPageLoad();
 
-        assertThat(page.locator("body")).isVisible();
+        // Should show error - stay on form or show error message
+        Assertions.assertThat(page.url()).contains("/projects");
     }
 
     // ==================== USER VALIDATION ====================
@@ -221,16 +222,18 @@ class ValidationTest extends PlaywrightTestBase {
         navigateTo("/users/new");
         waitForPageLoad();
 
-        var usernameInput = page.locator("input[name='username']").first();
-        if (usernameInput.isVisible()) {
-            usernameInput.clear();
-        }
+        var usernameInput = page.locator("#username");
+        assertThat(usernameInput).isVisible();
+        usernameInput.clear();
 
-        var submitBtn = page.locator("button[type='submit']").first();
+        // users/form.html uses id="btn-save"
+        var submitBtn = page.locator("#btn-save");
+        assertThat(submitBtn).isVisible();
         submitBtn.click();
         waitForPageLoad();
 
-        assertThat(page.locator("body")).isVisible();
+        // Should stay on form page
+        Assertions.assertThat(page.url()).contains("/users");
     }
 
     @Test
@@ -239,37 +242,17 @@ class ValidationTest extends PlaywrightTestBase {
         navigateTo("/users/new");
         waitForPageLoad();
 
-        var passwordInput = page.locator("input[name='password']").first();
-        if (passwordInput.isVisible()) {
-            passwordInput.fill("weak");  // Too short, no complexity
-        }
+        var passwordInput = page.locator("#password");
+        assertThat(passwordInput).isVisible();
+        passwordInput.fill("weak");
 
-        var submitBtn = page.locator("button[type='submit']").first();
+        var submitBtn = page.locator("#btn-save");
+        assertThat(submitBtn).isVisible();
         submitBtn.click();
         waitForPageLoad();
 
-        assertThat(page.locator("body")).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should show validation error for password mismatch")
-    void shouldShowValidationErrorForPasswordMismatch() {
-        navigateTo("/users/new");
-        waitForPageLoad();
-
-        var passwordInput = page.locator("input[name='password']").first();
-        var confirmInput = page.locator("input[name='confirmPassword']").first();
-
-        if (passwordInput.isVisible() && confirmInput.isVisible()) {
-            passwordInput.fill("ValidPassword123!");
-            confirmInput.fill("DifferentPassword456!");
-        }
-
-        var submitBtn = page.locator("button[type='submit']").first();
-        submitBtn.click();
-        waitForPageLoad();
-
-        assertThat(page.locator("body")).isVisible();
+        // Should stay on form due to validation
+        Assertions.assertThat(page.url()).contains("/users");
     }
 
     // ==================== INVOICE VALIDATION ====================
@@ -280,12 +263,14 @@ class ValidationTest extends PlaywrightTestBase {
         navigateTo("/invoices/new");
         waitForPageLoad();
 
-        // Try to submit without selecting client
-        var submitBtn = page.locator("button[type='submit']").first();
+        // invoices/form.html uses id="btn-simpan"
+        var submitBtn = page.locator("#btn-simpan");
+        assertThat(submitBtn).isVisible();
         submitBtn.click();
         waitForPageLoad();
 
-        assertThat(page.locator("body")).isVisible();
+        // Should stay on form due to validation
+        Assertions.assertThat(page.url()).contains("/invoices");
     }
 
     @Test
@@ -294,58 +279,60 @@ class ValidationTest extends PlaywrightTestBase {
         navigateTo("/invoices/new");
         waitForPageLoad();
 
-        var amountInput = page.locator("input[name='amount'], input[name='totalAmount']").first();
-        if (amountInput.isVisible()) {
-            amountInput.fill("-1000");
-        }
+        var amountInput = page.locator("#amount");
+        assertThat(amountInput).isVisible();
+        amountInput.fill("-1000");
 
-        var submitBtn = page.locator("button[type='submit']").first();
+        var submitBtn = page.locator("#btn-simpan");
+        assertThat(submitBtn).isVisible();
         submitBtn.click();
         waitForPageLoad();
 
-        assertThat(page.locator("body")).isVisible();
+        // Should stay on form due to validation
+        Assertions.assertThat(page.url()).contains("/invoices");
     }
 
     // ==================== FIXED ASSET VALIDATION ====================
+    // Note: Controller is at /assets (not /fixed-assets)
 
     @Test
-    @DisplayName("Should show validation error when submitting fixed asset with empty name")
+    @DisplayName("Should show validation error when submitting asset with empty name")
     void shouldShowValidationErrorForEmptyAssetName() {
-        navigateTo("/fixed-assets/new");
+        navigateTo("/assets/new");
         waitForPageLoad();
 
-        var nameInput = page.locator("input[name='name']").first();
-        if (nameInput.isVisible()) {
-            nameInput.clear();
-        }
+        var nameInput = page.locator("#name");
+        assertThat(nameInput).isVisible();
+        nameInput.clear();
 
-        var submitBtn = page.locator("button[type='submit']").first();
-        if (submitBtn.isVisible()) {
-            submitBtn.click();
-            waitForPageLoad();
-        }
+        // assets/form.html uses id="btn-simpan"
+        var submitBtn = page.locator("#btn-simpan");
+        assertThat(submitBtn).isVisible();
+        submitBtn.click();
+        waitForPageLoad();
 
-        assertThat(page.locator("body")).isVisible();
+        // Should stay on form page
+        Assertions.assertThat(page.url()).contains("/assets");
     }
 
     @Test
-    @DisplayName("Should show validation error for zero acquisition cost")
-    void shouldShowValidationErrorForZeroAcquisitionCost() {
-        navigateTo("/fixed-assets/new");
+    @DisplayName("Should show validation error for zero purchase cost")
+    void shouldShowValidationErrorForZeroPurchaseCost() {
+        navigateTo("/assets/new");
         waitForPageLoad();
 
-        var costInput = page.locator("input[name='acquisitionCost']").first();
-        if (costInput.isVisible()) {
-            costInput.fill("0");
-        }
+        // Field is called purchaseCost (not acquisitionCost)
+        var costInput = page.locator("#purchaseCost");
+        assertThat(costInput).isVisible();
+        costInput.fill("0");
 
-        var submitBtn = page.locator("button[type='submit']").first();
-        if (submitBtn.isVisible()) {
-            submitBtn.click();
-            waitForPageLoad();
-        }
+        var submitBtn = page.locator("#btn-simpan");
+        assertThat(submitBtn).isVisible();
+        submitBtn.click();
+        waitForPageLoad();
 
-        assertThat(page.locator("body")).isVisible();
+        // Should stay on form due to validation
+        Assertions.assertThat(page.url()).contains("/assets");
     }
 
     // ==================== PRODUCT VALIDATION ====================
@@ -356,16 +343,18 @@ class ValidationTest extends PlaywrightTestBase {
         navigateTo("/products/new");
         waitForPageLoad();
 
-        var codeInput = page.locator("input[name='code']").first();
-        if (codeInput.isVisible()) {
-            codeInput.clear();
-        }
+        var codeInput = page.locator("#code");
+        assertThat(codeInput).isVisible();
+        codeInput.clear();
 
-        var submitBtn = page.locator("button[type='submit']").first();
+        // products/form.html uses id="btn-save"
+        var submitBtn = page.locator("#btn-save");
+        assertThat(submitBtn).isVisible();
         submitBtn.click();
         waitForPageLoad();
 
-        assertThat(page.locator("body")).isVisible();
+        // Should stay on form page
+        Assertions.assertThat(page.url()).contains("/products");
     }
 
     @Test
@@ -374,108 +363,17 @@ class ValidationTest extends PlaywrightTestBase {
         navigateTo("/products/new");
         waitForPageLoad();
 
-        var priceInput = page.locator("input[name='sellingPrice']").first();
-        if (priceInput.isVisible()) {
-            priceInput.fill("-100");
-        }
+        var priceInput = page.locator("#sellingPrice");
+        assertThat(priceInput).isVisible();
+        priceInput.fill("-100");
 
-        var submitBtn = page.locator("button[type='submit']").first();
+        var submitBtn = page.locator("#btn-save");
+        assertThat(submitBtn).isVisible();
         submitBtn.click();
         waitForPageLoad();
 
-        assertThat(page.locator("body")).isVisible();
+        // Should stay on form due to validation
+        Assertions.assertThat(page.url()).contains("/products");
     }
 
-    // ==================== TRANSACTION VALIDATION ====================
-
-    @Test
-    @DisplayName("Should show validation error when submitting transaction with no description")
-    void shouldShowValidationErrorForEmptyTransactionDescription() {
-        navigateTo("/transactions/new");
-        waitForPageLoad();
-
-        var descInput = page.locator("input[name='description'], textarea[name='description']").first();
-        if (descInput.isVisible()) {
-            descInput.clear();
-        }
-
-        var submitBtn = page.locator("button[type='submit']").first();
-        submitBtn.click();
-        waitForPageLoad();
-
-        assertThat(page.locator("body")).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should show validation error for unbalanced journal entry")
-    void shouldShowValidationErrorForUnbalancedJournal() {
-        navigateTo("/transactions/new");
-        waitForPageLoad();
-
-        // Fill some basic info but with unbalanced amounts
-        var descInput = page.locator("input[name='description'], textarea[name='description']").first();
-        if (descInput.isVisible()) {
-            descInput.fill("Test Unbalanced");
-        }
-
-        // This would need actual journal entry rows to be meaningful
-        var submitBtn = page.locator("button[type='submit']").first();
-        submitBtn.click();
-        waitForPageLoad();
-
-        assertThat(page.locator("body")).isVisible();
-    }
-
-    // ==================== CHANGE PASSWORD VALIDATION ====================
-
-    @Test
-    @DisplayName("Should show validation error when current password is wrong")
-    void shouldShowValidationErrorForWrongCurrentPassword() {
-        navigateTo("/self-service/change-password");
-        waitForPageLoad();
-
-        var currentPasswordInput = page.locator("input[name='currentPassword']").first();
-        var newPasswordInput = page.locator("input[name='newPassword']").first();
-        var confirmPasswordInput = page.locator("input[name='confirmPassword']").first();
-
-        if (currentPasswordInput.isVisible()) {
-            currentPasswordInput.fill("WrongPassword123!");
-            if (newPasswordInput.isVisible()) {
-                newPasswordInput.fill("NewValidPassword123!");
-            }
-            if (confirmPasswordInput.isVisible()) {
-                confirmPasswordInput.fill("NewValidPassword123!");
-            }
-        }
-
-        var submitBtn = page.locator("button[type='submit']").first();
-        if (submitBtn.isVisible()) {
-            submitBtn.click();
-            waitForPageLoad();
-        }
-
-        assertThat(page.locator("body")).isVisible();
-    }
-
-    // ==================== SETTINGS VALIDATION ====================
-
-    @Test
-    @DisplayName("Should show validation error for empty company name in settings")
-    void shouldShowValidationErrorForEmptyCompanyName() {
-        navigateTo("/settings/company");
-        waitForPageLoad();
-
-        var nameInput = page.locator("input[name='companyName'], input[name='name']").first();
-        if (nameInput.isVisible()) {
-            nameInput.clear();
-        }
-
-        var submitBtn = page.locator("button[type='submit']").first();
-        if (submitBtn.isVisible()) {
-            submitBtn.click();
-            waitForPageLoad();
-        }
-
-        assertThat(page.locator("body")).isVisible();
-    }
 }

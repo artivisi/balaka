@@ -17,7 +17,7 @@ import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertTha
 
 /**
  * Functional tests for ProductionOrderController.
- * Tests production order list, create, edit, start, complete, cancel operations.
+ * Tests production order list, create, detail, start, complete, cancel operations.
  */
 @DisplayName("Production Order Controller Tests")
 @Import(ServiceTestDataInitializer.class)
@@ -34,57 +34,27 @@ class ProductionOrderControllerFunctionalTest extends PlaywrightTestBase {
         loginAsAdmin();
     }
 
+    // ==================== LIST PAGE ====================
+
     @Test
     @DisplayName("Should display production order list page")
     void shouldDisplayProductionOrderListPage() {
         navigateTo("/inventory/production");
         waitForPageLoad();
 
-        assertThat(page.locator("#page-title, h1").first()).isVisible();
+        assertThat(page.locator("h1, .page-title").first()).isVisible();
     }
 
     @Test
-    @DisplayName("Should search orders by keyword")
-    void shouldSearchOrdersByKeyword() {
+    @DisplayName("Should display new order button")
+    void shouldDisplayNewOrderButton() {
         navigateTo("/inventory/production");
         waitForPageLoad();
 
-        var searchInput = page.locator("input[name='search'], input[name='keyword']").first();
-        if (searchInput.isVisible()) {
-            searchInput.fill("kopi");
-
-            var filterBtn = page.locator("form button[type='submit']").first();
-            if (filterBtn.isVisible()) {
-                filterBtn.click();
-                waitForPageLoad();
-            }
-        }
-
-        assertThat(page.locator("body")).isVisible();
+        assertThat(page.locator("a[href*='/inventory/production/create']").first()).isVisible();
     }
 
-    @Test
-    @DisplayName("Should filter orders by status")
-    void shouldFilterOrdersByStatus() {
-        navigateTo("/inventory/production");
-        waitForPageLoad();
-
-        var statusSelect = page.locator("select[name='status']").first();
-        if (statusSelect.isVisible()) {
-            var options = statusSelect.locator("option");
-            if (options.count() > 1) {
-                statusSelect.selectOption(new String[]{options.nth(1).getAttribute("value")});
-
-                var filterBtn = page.locator("form button[type='submit']").first();
-                if (filterBtn.isVisible()) {
-                    filterBtn.click();
-                    waitForPageLoad();
-                }
-            }
-        }
-
-        assertThat(page.locator("body")).isVisible();
-    }
+    // ==================== NEW ORDER FORM ====================
 
     @Test
     @DisplayName("Should display new production order form")
@@ -92,192 +62,180 @@ class ProductionOrderControllerFunctionalTest extends PlaywrightTestBase {
         navigateTo("/inventory/production/create");
         waitForPageLoad();
 
-        assertThat(page.locator("body")).isVisible();
+        assertThat(page.locator("#bomId")).isVisible();
+        assertThat(page.locator("#quantity")).isVisible();
+        assertThat(page.locator("#orderDate")).isVisible();
     }
 
     @Test
-    @DisplayName("Should create new production order")
+    @DisplayName("Should display BOM selection dropdown")
+    void shouldDisplayBomSelectionDropdown() {
+        navigateTo("/inventory/production/create");
+        waitForPageLoad();
+
+        assertThat(page.locator("#bomId")).isVisible();
+    }
+
+    @Test
+    @DisplayName("Should display quantity input")
+    void shouldDisplayQuantityInput() {
+        navigateTo("/inventory/production/create");
+        waitForPageLoad();
+
+        assertThat(page.locator("#quantity")).isVisible();
+    }
+
+    @Test
+    @DisplayName("Should display order date input")
+    void shouldDisplayOrderDateInput() {
+        navigateTo("/inventory/production/create");
+        waitForPageLoad();
+
+        assertThat(page.locator("#orderDate")).isVisible();
+    }
+
+    @Test
+    @DisplayName("Should display notes textarea")
+    void shouldDisplayNotesTextarea() {
+        navigateTo("/inventory/production/create");
+        waitForPageLoad();
+
+        assertThat(page.locator("#notes")).isVisible();
+    }
+
+    @Test
+    @DisplayName("Should create new production order with valid data")
     void shouldCreateNewProductionOrder() {
         var bom = bomRepository.findAll().stream().findFirst();
-        if (bom.isEmpty()) {
-            return;
-        }
+        if (bom.isEmpty()) return;
 
         navigateTo("/inventory/production/create");
         waitForPageLoad();
 
         // Select BOM
-        var bomSelect = page.locator("select[name='bom.id'], select[name='bomId']").first();
-        if (bomSelect.isVisible()) {
-            bomSelect.selectOption(bom.get().getId().toString());
-        }
+        page.locator("#bomId").selectOption(bom.get().getId().toString());
 
         // Fill quantity
-        var quantityInput = page.locator("input[name='quantity']").first();
-        if (quantityInput.isVisible()) {
-            quantityInput.fill("10");
-        }
+        page.locator("#quantity").fill("10");
 
-        // Fill planned date
-        var plannedDateInput = page.locator("input[name='plannedDate']").first();
-        if (plannedDateInput.isVisible()) {
-            plannedDateInput.fill(LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE));
-        }
+        // Fill order date
+        page.locator("#orderDate").fill(LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE));
 
         // Submit
-        var submitBtn = page.locator("#btn-simpan").first();
-        if (submitBtn.isVisible()) {
-            submitBtn.click();
-            waitForPageLoad();
-        }
+        page.locator("button[type='submit']").first().click();
+        waitForPageLoad();
 
-        assertThat(page.locator("body")).isVisible();
+        // Should redirect to list or detail
+        assertThat(page).hasURL(java.util.regex.Pattern.compile(".*\\/inventory\\/production.*"));
     }
+
+    // ==================== DETAIL PAGE ====================
 
     @Test
     @DisplayName("Should display production order detail page")
     void shouldDisplayProductionOrderDetailPage() {
         var order = orderRepository.findAll().stream().findFirst();
-        if (order.isEmpty()) {
-            return;
-        }
+        if (order.isEmpty()) return;
 
         navigateTo("/inventory/production/" + order.get().getId());
         waitForPageLoad();
 
-        assertThat(page).hasURL(java.util.regex.Pattern.compile(".*\\/inventory\\/production\\/.*"));
+        assertThat(page.getByTestId("order-number")).isVisible();
     }
 
     @Test
-    @DisplayName("Should display production order edit form")
-    void shouldDisplayProductionOrderEditForm() {
-        var order = orderRepository.findAll().stream()
-                .filter(o -> "PLANNED".equals(o.getStatus().name()))
-                .findFirst();
-        if (order.isEmpty()) {
-            return;
-        }
-
-        navigateTo("/inventory/production/" + order.get().getId() + "/edit");
-        waitForPageLoad();
-
-        assertThat(page.locator("body")).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should update production order")
-    void shouldUpdateProductionOrder() {
-        var order = orderRepository.findAll().stream()
-                .filter(o -> "PLANNED".equals(o.getStatus().name()))
-                .findFirst();
-        if (order.isEmpty()) {
-            return;
-        }
-
-        navigateTo("/inventory/production/" + order.get().getId() + "/edit");
-        waitForPageLoad();
-
-        // Update quantity
-        var quantityInput = page.locator("input[name='quantity']").first();
-        if (quantityInput.isVisible()) {
-            quantityInput.fill("20");
-        }
-
-        // Submit
-        var submitBtn = page.locator("#btn-simpan").first();
-        if (submitBtn.isVisible()) {
-            submitBtn.click();
-            waitForPageLoad();
-        }
-
-        assertThat(page.locator("body")).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should start production order")
-    void shouldStartProductionOrder() {
-        var order = orderRepository.findAll().stream()
-                .filter(o -> "PLANNED".equals(o.getStatus().name()))
-                .findFirst();
-        if (order.isEmpty()) {
-            return;
-        }
+    @DisplayName("Should display order quantity on detail page")
+    void shouldDisplayOrderQuantity() {
+        var order = orderRepository.findAll().stream().findFirst();
+        if (order.isEmpty()) return;
 
         navigateTo("/inventory/production/" + order.get().getId());
         waitForPageLoad();
 
-        var startBtn = page.locator("form[action*='/start'] button[type='submit']").first();
-        if (startBtn.isVisible()) {
-            startBtn.click();
-            waitForPageLoad();
-        }
-
-        assertThat(page.locator("body")).isVisible();
+        assertThat(page.getByTestId("order-quantity")).isVisible();
     }
 
     @Test
-    @DisplayName("Should complete production order")
-    void shouldCompleteProductionOrder() {
+    @DisplayName("Should display product name on detail page")
+    void shouldDisplayProductName() {
+        var order = orderRepository.findAll().stream().findFirst();
+        if (order.isEmpty()) return;
+
+        navigateTo("/inventory/production/" + order.get().getId());
+        waitForPageLoad();
+
+        assertThat(page.getByTestId("product-name")).isVisible();
+    }
+
+    // ==================== ORDER ACTIONS ====================
+
+    @Test
+    @DisplayName("Should display start button for draft order")
+    void shouldDisplayStartButtonForDraftOrder() {
+        var order = orderRepository.findAll().stream()
+                .filter(o -> "DRAFT".equals(o.getStatus().name()))
+                .findFirst();
+        if (order.isEmpty()) return;
+
+        navigateTo("/inventory/production/" + order.get().getId());
+        waitForPageLoad();
+
+        assertThat(page.locator("#form-start")).isVisible();
+    }
+
+    @Test
+    @DisplayName("Should display complete button for in-progress order")
+    void shouldDisplayCompleteButtonForInProgressOrder() {
         var order = orderRepository.findAll().stream()
                 .filter(o -> "IN_PROGRESS".equals(o.getStatus().name()))
                 .findFirst();
-        if (order.isEmpty()) {
-            return;
-        }
+        if (order.isEmpty()) return;
 
         navigateTo("/inventory/production/" + order.get().getId());
         waitForPageLoad();
 
-        var completeBtn = page.locator("form[action*='/complete'] button[type='submit']").first();
-        if (completeBtn.isVisible()) {
-            completeBtn.click();
-            waitForPageLoad();
-        }
-
-        assertThat(page.locator("body")).isVisible();
+        assertThat(page.locator("#form-complete")).isVisible();
     }
 
     @Test
-    @DisplayName("Should cancel production order")
-    void shouldCancelProductionOrder() {
+    @DisplayName("Should display cancel button for draft order")
+    void shouldDisplayCancelButtonForDraftOrder() {
         var order = orderRepository.findAll().stream()
-                .filter(o -> "PLANNED".equals(o.getStatus().name()))
+                .filter(o -> "DRAFT".equals(o.getStatus().name()))
                 .findFirst();
-        if (order.isEmpty()) {
-            return;
-        }
+        if (order.isEmpty()) return;
 
         navigateTo("/inventory/production/" + order.get().getId());
         waitForPageLoad();
 
-        var cancelBtn = page.locator("form[action*='/cancel'] button[type='submit']").first();
-        if (cancelBtn.isVisible()) {
-            cancelBtn.click();
-            waitForPageLoad();
-        }
-
-        assertThat(page.locator("body")).isVisible();
+        assertThat(page.locator("#form-cancel")).isVisible();
     }
 
     @Test
-    @DisplayName("Should delete production order")
-    void shouldDeleteProductionOrder() {
+    @DisplayName("Should display delete button for draft order")
+    void shouldDisplayDeleteButtonForDraftOrder() {
         var order = orderRepository.findAll().stream()
-                .filter(o -> "PLANNED".equals(o.getStatus().name()) || "CANCELLED".equals(o.getStatus().name()))
+                .filter(o -> "DRAFT".equals(o.getStatus().name()))
                 .findFirst();
-        if (order.isEmpty()) {
-            return;
-        }
+        if (order.isEmpty()) return;
 
         navigateTo("/inventory/production/" + order.get().getId());
         waitForPageLoad();
 
-        var deleteBtn = page.locator("form[action*='/delete'] button[type='submit']").first();
-        if (deleteBtn.isVisible()) {
-            deleteBtn.click();
-            waitForPageLoad();
-        }
+        assertThat(page.locator("#form-delete")).isVisible();
+    }
 
-        assertThat(page.locator("body")).isVisible();
+    @Test
+    @DisplayName("Should display completed status badge")
+    void shouldDisplayCompletedStatusBadge() {
+        var order = orderRepository.findAll().stream()
+                .filter(o -> "COMPLETED".equals(o.getStatus().name()))
+                .findFirst();
+        if (order.isEmpty()) return;
+
+        navigateTo("/inventory/production/" + order.get().getId());
+        waitForPageLoad();
+
+        assertThat(page.getByTestId("order-status-completed")).isVisible();
     }
 }

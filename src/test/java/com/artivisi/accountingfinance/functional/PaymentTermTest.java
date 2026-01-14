@@ -2,12 +2,13 @@ package com.artivisi.accountingfinance.functional;
 
 import com.artivisi.accountingfinance.functional.service.ServiceTestDataInitializer;
 import com.artivisi.accountingfinance.ui.PlaywrightTestBase;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.Import;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 
 /**
  * Functional tests for PaymentTermController.
@@ -32,27 +33,9 @@ class PaymentTermTest extends PlaywrightTestBase {
         navigateTo("/projects/" + PROJECT_CODE + "/payment-terms/new");
         waitForPageLoad();
 
-        var sequenceInput = page.locator("#sequence");
-        var nameInput = page.locator("#name");
-        var dueTriggerSelect = page.locator("#dueTrigger");
-
-        if (sequenceInput.isVisible()) {
-            assertThat(sequenceInput.isVisible())
-                .as("Sequence input should be visible")
-                .isTrue();
-        }
-
-        if (nameInput.isVisible()) {
-            assertThat(nameInput.isVisible())
-                .as("Name input should be visible")
-                .isTrue();
-        }
-
-        if (dueTriggerSelect.isVisible()) {
-            assertThat(dueTriggerSelect.isVisible())
-                .as("Due trigger select should be visible")
-                .isTrue();
-        }
+        assertThat(page.locator("#sequence")).isVisible();
+        assertThat(page.locator("#name")).isVisible();
+        assertThat(page.locator("#dueTrigger")).isVisible();
     }
 
     @Test
@@ -61,10 +44,7 @@ class PaymentTermTest extends PlaywrightTestBase {
         navigateTo("/projects/" + PROJECT_CODE + "/payment-terms/new");
         waitForPageLoad();
 
-        // Page should have reference to the project
-        assertThat(page.url())
-            .as("URL should contain project code")
-            .contains(PROJECT_CODE);
+        Assertions.assertThat(page.url()).contains(PROJECT_CODE);
     }
 
     @Test
@@ -73,33 +53,17 @@ class PaymentTermTest extends PlaywrightTestBase {
         navigateTo("/projects/" + PROJECT_CODE + "/payment-terms/new");
         waitForPageLoad();
 
-        var sequenceInput = page.locator("#sequence");
-        var nameInput = page.locator("#name");
-        var dueTriggerSelect = page.locator("#dueTrigger");
-        var percentageInput = page.locator("#percentage");
-        var submitBtn = page.locator("#btn-simpan");
+        page.locator("#sequence").fill("99");
+        page.locator("#name").fill("Test Payment Term");
+        page.locator("#dueTrigger").selectOption("ON_SIGNING");
+        page.locator("#percentage").fill("30");
 
-        // Fill the form if elements are visible
-        if (sequenceInput.isVisible()) {
-            sequenceInput.fill("99");
-        }
-        if (nameInput.isVisible()) {
-            nameInput.fill("Test Payment Term");
-        }
-        if (dueTriggerSelect.isVisible()) {
-            dueTriggerSelect.selectOption("ON_SIGNING");
-        }
-        if (percentageInput.isVisible()) {
-            percentageInput.fill("30");
-        }
+        page.locator("#btn-simpan").click();
+        waitForPageLoad();
 
-        if (submitBtn.isVisible()) {
-            submitBtn.click();
-            waitForPageLoad();
-        }
-
-        // Should redirect back to project page or stay on form
-        assertThat(page.locator("body").isVisible()).isTrue();
+        // Should redirect back to project page
+        Assertions.assertThat(page.url()).contains("/projects/");
+        Assertions.assertThat(page.url()).doesNotContain("/payment-terms/new");
     }
 
     @Test
@@ -108,15 +72,11 @@ class PaymentTermTest extends PlaywrightTestBase {
         navigateTo("/projects/" + PROJECT_CODE + "/payment-terms/new");
         waitForPageLoad();
 
-        var submitBtn = page.locator("#btn-simpan");
-
         // Submit empty form (name is required)
-        if (submitBtn.isVisible()) {
-            submitBtn.click();
-        }
+        page.locator("#btn-simpan").click();
 
-        // HTML5 validation will prevent submission or server-side validation will show error
-        assertThat(page.locator("body").isVisible()).isTrue();
+        // HTML5 validation will prevent submission - URL stays the same
+        Assertions.assertThat(page.url()).contains("/payment-terms/new");
     }
 
     // ==================== Payment Term Actions Tests ====================
@@ -124,13 +84,10 @@ class PaymentTermTest extends PlaywrightTestBase {
     @Test
     @DisplayName("Should navigate to project from payment term")
     void shouldNavigateToProjectFromPaymentTerm() {
-        // First, navigate to project page to see payment terms
         navigateTo("/projects/" + PROJECT_CODE);
         waitForPageLoad();
 
-        assertThat(page.url())
-            .as("Should be on project page")
-            .contains("/projects/" + PROJECT_CODE);
+        Assertions.assertThat(page.url()).contains("/projects/" + PROJECT_CODE);
     }
 
     @Test
@@ -139,16 +96,13 @@ class PaymentTermTest extends PlaywrightTestBase {
         navigateTo("/projects/" + PROJECT_CODE);
         waitForPageLoad();
 
-        // Look for link to add payment term
         var addLink = page.locator("a[href*='payment-terms/new']");
-        if (addLink.isVisible()) {
-            addLink.click();
-            waitForPageLoad();
+        assertThat(addLink).isVisible();
 
-            assertThat(page.url())
-                .as("Should navigate to new payment term form")
-                .contains("/payment-terms/new");
-        }
+        addLink.click();
+        waitForPageLoad();
+
+        Assertions.assertThat(page.url()).contains("/payment-terms/new");
     }
 
     // ==================== Payment Term Trigger Tests ====================
@@ -159,14 +113,11 @@ class PaymentTermTest extends PlaywrightTestBase {
         navigateTo("/projects/" + PROJECT_CODE + "/payment-terms/new");
         waitForPageLoad();
 
-        // Get all options from the dueTrigger select
         var dueTriggerSelect = page.locator("#dueTrigger");
-        if (dueTriggerSelect.isVisible()) {
-            var options = page.locator("#dueTrigger option").all();
-            assertThat(options.size())
-                .as("Should have trigger options")
-                .isGreaterThanOrEqualTo(1);
-        }
+        assertThat(dueTriggerSelect).isVisible();
+
+        var options = page.locator("#dueTrigger option").all();
+        Assertions.assertThat(options.size()).isGreaterThanOrEqualTo(1);
     }
 
     @Test
@@ -176,15 +127,12 @@ class PaymentTermTest extends PlaywrightTestBase {
         waitForPageLoad();
 
         var dueTriggerSelect = page.locator("#dueTrigger");
-        if (dueTriggerSelect.isVisible()) {
-            // Try selecting different triggers
-            dueTriggerSelect.selectOption("ON_SIGNING");
-            assertThat(dueTriggerSelect.inputValue())
-                .isEqualTo("ON_SIGNING");
+        assertThat(dueTriggerSelect).isVisible();
 
-            dueTriggerSelect.selectOption("ON_COMPLETION");
-            assertThat(dueTriggerSelect.inputValue())
-                .isEqualTo("ON_COMPLETION");
-        }
+        dueTriggerSelect.selectOption("ON_SIGNING");
+        Assertions.assertThat(dueTriggerSelect.inputValue()).isEqualTo("ON_SIGNING");
+
+        dueTriggerSelect.selectOption("ON_COMPLETION");
+        Assertions.assertThat(dueTriggerSelect.inputValue()).isEqualTo("ON_COMPLETION");
     }
 }

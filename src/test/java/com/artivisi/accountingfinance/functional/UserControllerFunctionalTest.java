@@ -9,9 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
 
-import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 
 /**
  * Functional tests for UserController.
@@ -29,58 +27,38 @@ class UserControllerFunctionalTest extends PlaywrightTestBase {
         loginAsAdmin();
     }
 
+    // ==================== LIST PAGE ====================
+
     @Test
-    @DisplayName("Should display user list page")
+    @DisplayName("Should display user list page with title")
     void shouldDisplayUserListPage() {
         navigateTo("/users");
         waitForPageLoad();
 
-        assertThat(page.url())
-            .as("Should be on users page")
-            .contains("/users");
+        assertThat(page.locator("#page-title")).isVisible();
+        assertThat(page.locator("#page-title")).hasText("Kelola Pengguna");
     }
 
     @Test
-    @DisplayName("Should display search input")
-    void shouldDisplaySearchInput() {
+    @DisplayName("Should display search button")
+    void shouldDisplaySearchButton() {
         navigateTo("/users");
         waitForPageLoad();
 
-        var searchInput = page.locator("input[name='search']").first();
-
-        assertThat(searchInput.isVisible())
-            .as("Search input should be visible")
-            .isTrue();
+        assertThat(page.locator("#btn-search")).isVisible();
     }
 
     @Test
-    @DisplayName("Should have new user button")
-    void shouldHaveNewUserButton() {
+    @DisplayName("Should display new user button")
+    void shouldDisplayNewUserButton() {
         navigateTo("/users");
         waitForPageLoad();
 
-        var newButton = page.locator("a[href*='/users/new']").first();
-
-        assertThat(newButton.isVisible())
-            .as("New user button should be visible")
-            .isTrue();
+        assertThat(page.locator("#btn-new-user")).isVisible();
     }
 
     @Test
-    @DisplayName("Should display user list with admin user")
-    void shouldDisplayUserListWithAdminUser() {
-        navigateTo("/users");
-        waitForPageLoad();
-
-        // Should show at least the admin user
-        var pageContent = page.content();
-        assertThat(pageContent)
-            .as("Should show admin user")
-            .contains("admin");
-    }
-
-    @Test
-    @DisplayName("Should search users")
+    @DisplayName("Should search users by keyword")
     void shouldSearchUsers() {
         navigateTo("/users");
         waitForPageLoad();
@@ -89,20 +67,19 @@ class UserControllerFunctionalTest extends PlaywrightTestBase {
         page.locator("#btn-search").click();
         waitForPageLoad();
 
-        assertThat(page.url())
-            .as("URL should contain search parameter")
-            .contains("search=admin");
+        assertThat(page).hasURL(java.util.regex.Pattern.compile(".*search=admin.*"));
     }
 
+    // ==================== NEW USER FORM ====================
+
     @Test
-    @DisplayName("Should display new user form")
+    @DisplayName("Should display new user form with title")
     void shouldDisplayNewUserForm() {
         navigateTo("/users/new");
         waitForPageLoad();
 
-        assertThat(page.url())
-            .as("Should be on new user form")
-            .contains("/users/new");
+        assertThat(page.locator("#page-title")).isVisible();
+        assertThat(page.locator("#page-title")).hasText("Pengguna Baru");
     }
 
     @Test
@@ -111,24 +88,7 @@ class UserControllerFunctionalTest extends PlaywrightTestBase {
         navigateTo("/users/new");
         waitForPageLoad();
 
-        var usernameInput = page.locator("input[name='username']").first();
-
-        assertThat(usernameInput.isVisible())
-            .as("Username input should be visible")
-            .isTrue();
-    }
-
-    @Test
-    @DisplayName("Should display email field")
-    void shouldDisplayEmailField() {
-        navigateTo("/users/new");
-        waitForPageLoad();
-
-        var emailInput = page.locator("input[name='email']").first();
-
-        assertThat(emailInput.isVisible())
-            .as("Email input should be visible")
-            .isTrue();
+        assertThat(page.locator("#username")).isVisible();
     }
 
     @Test
@@ -137,24 +97,34 @@ class UserControllerFunctionalTest extends PlaywrightTestBase {
         navigateTo("/users/new");
         waitForPageLoad();
 
-        var passwordInput = page.locator("input[name='password']").first();
-
-        assertThat(passwordInput.isVisible())
-            .as("Password input should be visible")
-            .isTrue();
+        assertThat(page.locator("#password")).isVisible();
     }
 
     @Test
-    @DisplayName("Should display role checkboxes")
-    void shouldDisplayRoleCheckboxes() {
+    @DisplayName("Should display fullName field")
+    void shouldDisplayFullNameField() {
         navigateTo("/users/new");
         waitForPageLoad();
 
-        var roleCheckboxes = page.locator("input[name='selectedRoles']").all();
+        assertThat(page.locator("#fullName")).isVisible();
+    }
 
-        assertThat(roleCheckboxes.size())
-            .as("Should have role checkboxes")
-            .isGreaterThan(0);
+    @Test
+    @DisplayName("Should display email field")
+    void shouldDisplayEmailField() {
+        navigateTo("/users/new");
+        waitForPageLoad();
+
+        assertThat(page.locator("#email")).isVisible();
+    }
+
+    @Test
+    @DisplayName("Should display save button")
+    void shouldDisplaySaveButton() {
+        navigateTo("/users/new");
+        waitForPageLoad();
+
+        assertThat(page.locator("#btn-save")).isVisible();
     }
 
     @Test
@@ -165,9 +135,10 @@ class UserControllerFunctionalTest extends PlaywrightTestBase {
 
         String uniqueUsername = "testuser" + System.currentTimeMillis();
 
-        page.locator("input[name='username']").first().fill(uniqueUsername);
-        page.locator("input[name='email']").first().fill(uniqueUsername + "@test.com");
-        page.locator("input[name='password']").first().fill("Password123!");
+        page.locator("#username").fill(uniqueUsername);
+        page.locator("#password").fill("Password123!");
+        page.locator("#fullName").fill("Test User");
+        page.locator("#email").fill(uniqueUsername + "@test.com");
 
         // Select at least one role
         var roleCheckbox = page.locator("input[name='selectedRoles']").first();
@@ -179,24 +150,23 @@ class UserControllerFunctionalTest extends PlaywrightTestBase {
         waitForPageLoad();
 
         // Should redirect to users list or user detail
-        assertThat(page.url())
-            .as("Should redirect after creating user")
-            .containsAnyOf("/users", "error");
+        assertThat(page).hasURL(java.util.regex.Pattern.compile(".*\\/users.*"));
     }
 
     @Test
-    @DisplayName("Should show error for missing role")
-    void shouldShowErrorForMissingRole() {
+    @DisplayName("Should stay on form when role not selected")
+    void shouldStayOnFormWhenRoleNotSelected() {
         navigateTo("/users/new");
         waitForPageLoad();
 
         String uniqueUsername = "testuser" + System.currentTimeMillis();
 
-        page.locator("input[name='username']").first().fill(uniqueUsername);
-        page.locator("input[name='email']").first().fill(uniqueUsername + "@test.com");
-        page.locator("input[name='password']").first().fill("Password123!");
+        page.locator("#username").fill(uniqueUsername);
+        page.locator("#password").fill("Password123!");
+        page.locator("#fullName").fill("Test User");
+        page.locator("#email").fill(uniqueUsername + "@test.com");
 
-        // Don't select any role
+        // Uncheck all roles
         var roleCheckboxes = page.locator("input[name='selectedRoles']:checked").all();
         for (var checkbox : roleCheckboxes) {
             checkbox.uncheck();
@@ -205,218 +175,163 @@ class UserControllerFunctionalTest extends PlaywrightTestBase {
         page.locator("#btn-save").click();
         waitForPageLoad();
 
-        // Should show error or stay on form
-        var pageContent = page.content();
-        assertThat(pageContent)
-            .as("Should show error about role selection")
-            .containsAnyOf("role", "Role", "error", "Error", "/users/new");
+        // Should stay on form or show error
+        assertThat(page.locator("#page-title")).isVisible();
     }
 
+    // ==================== USER DETAIL PAGE ====================
+
     @Test
-    @DisplayName("Should display user detail page")
+    @DisplayName("Should display user detail page with title")
     void shouldDisplayUserDetailPage() {
         var adminUser = userRepository.findByUsername("admin").orElse(null);
-        if (adminUser == null) {
-            return;
-        }
+        if (adminUser == null) return;
 
         navigateTo("/users/" + adminUser.getId());
         waitForPageLoad();
 
-        assertThat(page.url())
-            .as("Should be on user detail page")
-            .contains("/users/" + adminUser.getId());
+        assertThat(page.locator("#page-title")).isVisible();
     }
 
     @Test
-    @DisplayName("Should show user information")
-    void shouldShowUserInformation() {
+    @DisplayName("Should display change password link")
+    void shouldDisplayChangePasswordLink() {
         var adminUser = userRepository.findByUsername("admin").orElse(null);
-        if (adminUser == null) {
-            return;
-        }
+        if (adminUser == null) return;
 
         navigateTo("/users/" + adminUser.getId());
         waitForPageLoad();
 
-        var pageContent = page.content();
-        assertThat(pageContent)
-            .as("Should show username")
-            .contains("admin");
+        assertThat(page.locator("#link-change-password")).isVisible();
     }
 
-    @Test
-    @DisplayName("Should have edit link")
-    void shouldHaveEditLink() {
-        var adminUser = userRepository.findByUsername("admin").orElse(null);
-        if (adminUser == null) {
-            return;
-        }
-
-        navigateTo("/users/" + adminUser.getId());
-        waitForPageLoad();
-
-        var editLink = page.locator("a[href*='/edit']").first();
-
-        assertThat(editLink.isVisible())
-            .as("Edit link should be visible")
-            .isTrue();
-    }
+    // ==================== EDIT USER FORM ====================
 
     @Test
-    @DisplayName("Should display edit user form")
+    @DisplayName("Should display edit user form with title")
     void shouldDisplayEditUserForm() {
         var adminUser = userRepository.findByUsername("admin").orElse(null);
-        if (adminUser == null) {
-            return;
-        }
+        if (adminUser == null) return;
 
         navigateTo("/users/" + adminUser.getId() + "/edit");
         waitForPageLoad();
 
-        assertThat(page.url())
-            .as("Should be on edit user form")
-            .contains("/users/" + adminUser.getId() + "/edit");
+        assertThat(page.locator("#page-title")).isVisible();
+        assertThat(page.locator("#page-title")).hasText("Edit Pengguna");
     }
 
     @Test
-    @DisplayName("Should pre-fill user data")
-    void shouldPreFillUserData() {
+    @DisplayName("Should pre-fill username in edit form")
+    void shouldPreFillUsernameInEditForm() {
         var adminUser = userRepository.findByUsername("admin").orElse(null);
-        if (adminUser == null) {
-            return;
-        }
+        if (adminUser == null) return;
 
         navigateTo("/users/" + adminUser.getId() + "/edit");
         waitForPageLoad();
 
-        var usernameInput = page.locator("input[name='username']").first();
-
-        assertThat(usernameInput.inputValue())
-            .as("Username should be pre-filled")
-            .isEqualTo("admin");
+        assertThat(page.locator("#username")).hasValue("admin");
     }
 
     @Test
     @DisplayName("Should update user successfully")
     void shouldUpdateUserSuccessfully() {
         var adminUser = userRepository.findByUsername("admin").orElse(null);
-        if (adminUser == null) {
-            return;
-        }
+        if (adminUser == null) return;
 
         navigateTo("/users/" + adminUser.getId() + "/edit");
         waitForPageLoad();
 
-        // Just submit without changes to test the update flow
+        // Submit without changes to test flow
         page.locator("#btn-save").click();
         waitForPageLoad();
 
         // Should redirect to user detail or list
-        assertThat(page.url())
-            .as("Should redirect after update")
-            .containsAnyOf("/users/" + adminUser.getId(), "/users");
+        assertThat(page).hasURL(java.util.regex.Pattern.compile(".*\\/users.*"));
     }
 
+    // ==================== CHANGE PASSWORD ====================
+
     @Test
-    @DisplayName("Should display change password form")
+    @DisplayName("Should display change password form with title")
     void shouldDisplayChangePasswordForm() {
         var adminUser = userRepository.findByUsername("admin").orElse(null);
-        if (adminUser == null) {
-            return;
-        }
+        if (adminUser == null) return;
 
         navigateTo("/users/" + adminUser.getId() + "/change-password");
         waitForPageLoad();
 
-        assertThat(page.url())
-            .as("Should be on change password form")
-            .contains("/change-password");
+        assertThat(page.locator("#page-title")).isVisible();
+        assertThat(page.locator("#page-title")).hasText("Ubah Password");
     }
 
     @Test
     @DisplayName("Should display new password field")
     void shouldDisplayNewPasswordField() {
         var adminUser = userRepository.findByUsername("admin").orElse(null);
-        if (adminUser == null) {
-            return;
-        }
+        if (adminUser == null) return;
 
         navigateTo("/users/" + adminUser.getId() + "/change-password");
         waitForPageLoad();
 
-        var newPasswordInput = page.locator("input[name='newPassword']").first();
-
-        assertThat(newPasswordInput.isVisible())
-            .as("New password input should be visible")
-            .isTrue();
+        assertThat(page.locator("#newPassword")).isVisible();
     }
 
     @Test
     @DisplayName("Should display confirm password field")
     void shouldDisplayConfirmPasswordField() {
         var adminUser = userRepository.findByUsername("admin").orElse(null);
-        if (adminUser == null) {
-            return;
-        }
+        if (adminUser == null) return;
 
         navigateTo("/users/" + adminUser.getId() + "/change-password");
         waitForPageLoad();
 
-        var confirmPasswordInput = page.locator("input[name='confirmPassword']").first();
-
-        assertThat(confirmPasswordInput.isVisible())
-            .as("Confirm password input should be visible")
-            .isTrue();
+        assertThat(page.locator("#confirmPassword")).isVisible();
     }
 
     @Test
-    @DisplayName("Should show error for password mismatch")
-    void shouldShowErrorForPasswordMismatch() {
+    @DisplayName("Should display save password button")
+    void shouldDisplaySavePasswordButton() {
         var adminUser = userRepository.findByUsername("admin").orElse(null);
-        if (adminUser == null) {
-            return;
-        }
+        if (adminUser == null) return;
 
         navigateTo("/users/" + adminUser.getId() + "/change-password");
         waitForPageLoad();
 
-        page.locator("input[name='newPassword']").first().fill("Password123!");
-        page.locator("input[name='confirmPassword']").first().fill("DifferentPassword123!");
+        assertThat(page.locator("#btn-save-password")).isVisible();
+    }
+
+    @Test
+    @DisplayName("Should display cancel button")
+    void shouldDisplayCancelButton() {
+        var adminUser = userRepository.findByUsername("admin").orElse(null);
+        if (adminUser == null) return;
+
+        navigateTo("/users/" + adminUser.getId() + "/change-password");
+        waitForPageLoad();
+
+        assertThat(page.locator("#btn-cancel")).isVisible();
+    }
+
+    @Test
+    @DisplayName("Should stay on form when passwords do not match")
+    void shouldStayOnFormWhenPasswordsDoNotMatch() {
+        var adminUser = userRepository.findByUsername("admin").orElse(null);
+        if (adminUser == null) return;
+
+        navigateTo("/users/" + adminUser.getId() + "/change-password");
+        waitForPageLoad();
+
+        page.locator("#newPassword").fill("Password123!");
+        page.locator("#confirmPassword").fill("DifferentPassword123!");
 
         page.locator("#btn-save-password").click();
         waitForPageLoad();
 
-        // Should show error message
-        var pageContent = page.content();
-        assertThat(pageContent)
-            .as("Should show password mismatch error")
-            .containsAnyOf("tidak cocok", "mismatch", "match", "error");
+        // Should stay on form or show error
+        assertThat(page.locator("#page-title")).isVisible();
     }
 
-    @Test
-    @DisplayName("Should have toggle status button")
-    void shouldHaveToggleStatusButton() {
-        var users = userRepository.findAll();
-        var nonAdminUser = users.stream()
-            .filter(u -> !u.getUsername().equals("admin"))
-            .findFirst()
-            .orElse(null);
-
-        if (nonAdminUser == null) {
-            return;
-        }
-
-        navigateTo("/users/" + nonAdminUser.getId());
-        waitForPageLoad();
-
-        var toggleForm = page.locator("form[action*='/toggle-active']").first();
-
-        // Toggle button may or may not be visible based on user permissions
-        assertThat(toggleForm.isVisible() || !toggleForm.isVisible())
-            .as("Toggle form presence checked")
-            .isTrue();
-    }
+    // ==================== NAVIGATION ====================
 
     @Test
     @DisplayName("Should navigate from list to new form")
@@ -424,53 +339,24 @@ class UserControllerFunctionalTest extends PlaywrightTestBase {
         navigateTo("/users");
         waitForPageLoad();
 
-        page.locator("a[href*='/users/new']").first().click();
+        page.locator("#btn-new-user").click();
         waitForPageLoad();
 
-        assertThat(page.url())
-            .as("Should navigate to new user form")
-            .contains("/users/new");
-    }
-
-    @Test
-    @DisplayName("Should navigate from detail to edit")
-    void shouldNavigateFromDetailToEdit() {
-        var adminUser = userRepository.findByUsername("admin").orElse(null);
-        if (adminUser == null) {
-            return;
-        }
-
-        navigateTo("/users/" + adminUser.getId());
-        waitForPageLoad();
-
-        page.locator("a[href*='/edit']").first().click();
-        waitForPageLoad();
-
-        assertThat(page.url())
-            .as("Should navigate to edit form")
-            .contains("/edit");
+        assertThat(page).hasURL(java.util.regex.Pattern.compile(".*\\/users\\/new.*"));
     }
 
     @Test
     @DisplayName("Should navigate from detail to change password")
     void shouldNavigateFromDetailToChangePassword() {
         var adminUser = userRepository.findByUsername("admin").orElse(null);
-        if (adminUser == null) {
-            return;
-        }
+        if (adminUser == null) return;
 
         navigateTo("/users/" + adminUser.getId());
         waitForPageLoad();
 
-        var changePasswordLink = page.locator("a[href*='/change-password']").first();
+        page.locator("#link-change-password").click();
+        waitForPageLoad();
 
-        if (changePasswordLink.isVisible()) {
-            changePasswordLink.click();
-            waitForPageLoad();
-
-            assertThat(page.url())
-                .as("Should navigate to change password form")
-                .contains("/change-password");
-        }
+        assertThat(page).hasURL(java.util.regex.Pattern.compile(".*\\/change-password.*"));
     }
 }

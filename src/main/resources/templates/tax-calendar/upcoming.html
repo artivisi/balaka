@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/main}"
+      lang="id">
+<head>
+    <title>Deadline Pajak Mendatang</title>
+</head>
+<body>
+    <h1 id="page-title" layout:fragment="page-title">Deadline Pajak Mendatang</h1>
+
+    <div layout:fragment="content" class="space-y-6">
+        <!-- Back Link -->
+        <div>
+            <a th:href="@{/tax-calendar}" class="text-gray-600 hover:text-gray-900 flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                </svg>
+                Kembali ke Kalender
+            </a>
+        </div>
+
+        <!-- Overdue Section -->
+        <div th:if="${!overdue.isEmpty()}" class="bg-white rounded-lg shadow">
+            <div class="px-6 py-4 border-b border-gray-200 bg-red-50">
+                <h2 class="text-lg font-semibold text-red-700">Terlambat</h2>
+            </div>
+            <ul class="divide-y divide-gray-200">
+                <li th:each="item : ${overdue}" class="px-6 py-4 flex items-center justify-between">
+                    <div>
+                        <span class="font-medium text-gray-900" th:text="${item.deadline.name}">PPh 21</span>
+                        <span class="text-sm text-gray-500 ml-2" th:text="${item.deadline.description}">Penyetoran</span>
+                    </div>
+                    <span class="text-sm text-red-600" th:text="${#temporals.format(item.dueDate, 'dd MMM yyyy')}">10 Jan 2024</span>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Due Soon Section -->
+        <div th:if="${!dueSoon.isEmpty()}" class="bg-white rounded-lg shadow">
+            <div class="px-6 py-4 border-b border-gray-200 bg-yellow-50">
+                <h2 class="text-lg font-semibold text-yellow-700">Segera Jatuh Tempo</h2>
+            </div>
+            <ul class="divide-y divide-gray-200">
+                <li th:each="item : ${dueSoon}" class="px-6 py-4 flex items-center justify-between">
+                    <div>
+                        <span class="font-medium text-gray-900" th:text="${item.deadline.name}">PPh 21</span>
+                        <span class="text-sm text-gray-500 ml-2" th:text="${item.deadline.description}">Penyetoran</span>
+                    </div>
+                    <span class="text-sm text-yellow-600" th:text="${#temporals.format(item.dueDate, 'dd MMM yyyy')}">15 Jan 2024</span>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Upcoming Section -->
+        <div th:if="${!upcoming.isEmpty()}" class="bg-white rounded-lg shadow">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-lg font-semibold text-gray-900">Akan Datang</h2>
+            </div>
+            <ul class="divide-y divide-gray-200">
+                <li th:each="item : ${upcoming}" class="px-6 py-4 flex items-center justify-between">
+                    <div>
+                        <span class="font-medium text-gray-900" th:text="${item.deadline.name}">PPh 21</span>
+                        <span class="text-sm text-gray-500 ml-2" th:text="${item.deadline.description}">Penyetoran</span>
+                    </div>
+                    <span class="text-sm text-gray-600" th:text="${#temporals.format(item.dueDate, 'dd MMM yyyy')}">20 Jan 2024</span>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Empty State -->
+        <div th:if="${overdue.isEmpty() && dueSoon.isEmpty() && upcoming.isEmpty()}"
+             class="bg-white rounded-lg shadow p-8 text-center">
+            <svg class="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <p class="text-gray-500">Tidak ada deadline pajak mendatang</p>
+        </div>
+    </div>
+</body>
+</html>

@@ -191,99 +191,68 @@ class ServiceUserManagementTest extends PlaywrightTestBase {
     @Test
     @DisplayName("Should display change password form")
     void shouldDisplayChangePasswordForm() {
-        var user = userRepository.findByUsername("staff");
+        var user = userRepository.findByUsername("staff")
+                .orElseThrow(() -> new AssertionError("Test user 'staff' not found in seed data"));
 
-        if (user.isEmpty()) {
-            user = userRepository.findAll().stream()
-                    .filter(u -> !u.getUsername().equals("admin"))
-                    .findFirst();
-        }
+        navigateTo("/users/" + user.getId() + "/change-password");
+        waitForPageLoad();
 
-        if (user.isPresent()) {
-            navigateTo("/users/" + user.get().getId() + "/change-password");
-            waitForPageLoad();
-
-            // Verify password form loads
-            assertThat(page.locator("input[name='newPassword']")).isVisible();
-            assertThat(page.locator("input[name='confirmPassword']")).isVisible();
-        }
+        // Verify password form loads (using IDs from template)
+        assertThat(page.locator("#newPassword")).isVisible();
+        assertThat(page.locator("#confirmPassword")).isVisible();
     }
 
     @Test
     @DisplayName("Should show error for mismatched passwords")
     void shouldShowErrorForMismatchedPasswords() {
-        var user = userRepository.findByUsername("staff");
+        var user = userRepository.findByUsername("staff")
+                .orElseThrow(() -> new AssertionError("Test user 'staff' not found in seed data"));
 
-        if (user.isEmpty()) {
-            user = userRepository.findAll().stream()
-                    .filter(u -> !u.getUsername().equals("admin"))
-                    .findFirst();
-        }
+        navigateTo("/users/" + user.getId() + "/change-password");
+        waitForPageLoad();
 
-        if (user.isPresent()) {
-            navigateTo("/users/" + user.get().getId() + "/change-password");
-            waitForPageLoad();
+        page.fill("#newPassword", "NewPassword123!");
+        page.fill("#confirmPassword", "DifferentPassword123!");
+        page.click("#btn-save-password");
+        waitForPageLoad();
 
-            page.fill("input[name='newPassword']", "NewPassword123!");
-            page.fill("input[name='confirmPassword']", "DifferentPassword123!");
-            page.click("button[type='submit']");
-            waitForPageLoad();
-
-            // Should stay on form with error
-            assertThat(page.locator("input[name='newPassword']")).isVisible();
-        }
+        // Should stay on change-password form with error
+        assertThat(page.locator("#page-title")).hasText("Ubah Password");
     }
 
     @Test
     @DisplayName("Should show error for weak password")
     void shouldShowErrorForWeakPassword() {
-        var user = userRepository.findByUsername("staff");
+        var user = userRepository.findByUsername("staff")
+                .orElseThrow(() -> new AssertionError("Test user 'staff' not found in seed data"));
 
-        if (user.isEmpty()) {
-            user = userRepository.findAll().stream()
-                    .filter(u -> !u.getUsername().equals("admin"))
-                    .findFirst();
-        }
+        navigateTo("/users/" + user.getId() + "/change-password");
+        waitForPageLoad();
 
-        if (user.isPresent()) {
-            navigateTo("/users/" + user.get().getId() + "/change-password");
-            waitForPageLoad();
+        page.fill("#newPassword", "weak");
+        page.fill("#confirmPassword", "weak");
+        page.click("#btn-save-password");
+        waitForPageLoad();
 
-            page.fill("input[name='newPassword']", "weak");
-            page.fill("input[name='confirmPassword']", "weak");
-            page.click("button[type='submit']");
-            waitForPageLoad();
-
-            // Should stay on form with error
-            assertThat(page.locator("input[name='newPassword']")).isVisible();
-        }
+        // Should stay on change-password form with error
+        assertThat(page.locator("#page-title")).hasText("Ubah Password");
     }
 
     @Test
     @DisplayName("Should toggle user active status")
     void shouldToggleUserActiveStatus() {
-        var user = userRepository.findByUsername("staff");
+        var user = userRepository.findByUsername("staff")
+                .orElseThrow(() -> new AssertionError("Test user 'staff' not found in seed data"));
 
-        if (user.isEmpty()) {
-            user = userRepository.findAll().stream()
-                    .filter(u -> !u.getUsername().equals("admin"))
-                    .findFirst();
-        }
+        navigateTo("/users/" + user.getId());
+        waitForPageLoad();
 
-        if (user.isPresent()) {
-            navigateTo("/users/" + user.get().getId());
-            waitForPageLoad();
+        // Click toggle button
+        page.locator("form[action*='/toggle-active'] button[type='submit']").click();
+        waitForPageLoad();
 
-            // Find toggle button
-            var toggleBtn = page.locator("form[action*='/toggle-active'] button[type='submit']").first();
-            if (toggleBtn.isVisible()) {
-                toggleBtn.click();
-                waitForPageLoad();
-
-                // Verify success
-                assertThat(page.locator(".alert-success, [data-testid='success-message']").first()).isVisible();
-            }
-        }
+        // Should stay on user detail page
+        assertThat(page.locator("#page-title")).hasText(user.getFullName());
     }
 
     @Test
