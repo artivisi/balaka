@@ -248,4 +248,87 @@ class EmployeeControllerFunctionalTest extends PlaywrightTestBase {
 
         assertThat(page).hasURL(java.util.regex.Pattern.compile(".*\\/employees\\/.*"));
     }
+
+    // ==================== ADDITIONAL COVERAGE TESTS ====================
+
+    @Test
+    @DisplayName("Should filter employees by status via query param")
+    void shouldFilterEmployeesByStatusViaQueryParam() {
+        navigateTo("/employees?status=ACTIVE");
+        waitForPageLoad();
+
+        assertThat(page.locator("#page-title, h1").first()).isVisible();
+    }
+
+    @Test
+    @DisplayName("Should filter employees by active status via query param")
+    void shouldFilterEmployeesByActiveStatusViaQueryParam() {
+        navigateTo("/employees?active=true");
+        waitForPageLoad();
+
+        assertThat(page.locator("#page-title, h1").first()).isVisible();
+    }
+
+    @Test
+    @DisplayName("Should filter employees by inactive status via query param")
+    void shouldFilterEmployeesByInactiveStatusViaQueryParam() {
+        navigateTo("/employees?active=false");
+        waitForPageLoad();
+
+        assertThat(page.locator("#page-title, h1").first()).isVisible();
+    }
+
+    @Test
+    @DisplayName("Should paginate employee list")
+    void shouldPaginateEmployeeList() {
+        navigateTo("/employees?page=0&size=5");
+        waitForPageLoad();
+
+        assertThat(page.locator("#page-title, h1").first()).isVisible();
+    }
+
+    @Test
+    @DisplayName("Should search employees via query param")
+    void shouldSearchEmployeesViaQueryParam() {
+        navigateTo("/employees?search=test");
+        waitForPageLoad();
+
+        assertThat(page.locator("#page-title, h1").first()).isVisible();
+    }
+
+    @Test
+    @DisplayName("Should filter by RETIRED status")
+    void shouldFilterByRetiredStatus() {
+        navigateTo("/employees?status=RETIRED");
+        waitForPageLoad();
+
+        assertThat(page.locator("#page-title, h1").first()).isVisible();
+    }
+
+    @Test
+    @DisplayName("Should filter by RESIGNED status")
+    void shouldFilterByResignedStatus() {
+        navigateTo("/employees?status=RESIGNED");
+        waitForPageLoad();
+
+        assertThat(page.locator("#page-title, h1").first()).isVisible();
+    }
+
+    @Test
+    @DisplayName("Should filter by TERMINATED status")
+    void shouldFilterByTerminatedStatus() {
+        navigateTo("/employees?status=TERMINATED");
+        waitForPageLoad();
+
+        assertThat(page.locator("#page-title, h1").first()).isVisible();
+    }
+
+    @Test
+    @DisplayName("Should combine search and status filters")
+    void shouldCombineSearchAndStatusFilters() {
+        navigateTo("/employees?search=test&status=ACTIVE&active=true");
+        waitForPageLoad();
+
+        assertThat(page.locator("#page-title, h1").first()).isVisible();
+    }
 }

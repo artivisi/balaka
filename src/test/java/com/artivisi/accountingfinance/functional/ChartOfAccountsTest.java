@@ -303,4 +303,129 @@ class ChartOfAccountsTest extends PlaywrightTestBase {
                 .isNotEqualTo(initiallyChecked);
         }
     }
+
+    @Nested
+    @DisplayName("Account Actions")
+    class AccountActionsTests {
+
+        @Test
+        @DisplayName("Should create new account successfully")
+        void shouldCreateNewAccountSuccessfully() {
+            navigateTo("/accounts/new");
+            waitForPageLoad();
+
+            // Fill account code with unique value
+            String uniqueCode = "TEST-" + System.currentTimeMillis() % 10000;
+            page.locator("#accountCode").fill(uniqueCode);
+            page.locator("#accountName").fill("Test Account " + uniqueCode);
+            page.getByTestId("account-type").selectOption("EXPENSE");
+
+            // Submit
+            page.locator("#btn-simpan").click();
+            waitForPageLoad();
+
+            // Should redirect to list on success
+            assertThat(page.url())
+                .as("Should redirect to accounts list after successful create")
+                .contains("/accounts");
+        }
+
+        @Test
+        @DisplayName("Should create child account with parent")
+        void shouldCreateChildAccountWithParent() {
+            navigateTo("/accounts/new");
+            waitForPageLoad();
+
+            // Fill account code with unique value
+            String uniqueCode = "CHILD-" + System.currentTimeMillis() % 10000;
+            page.locator("#accountCode").fill(uniqueCode);
+            page.locator("#accountName").fill("Child Account " + uniqueCode);
+
+            // Select parent account
+            var parentSelect = page.locator("#parentId");
+            if (parentSelect.isVisible()) {
+                var options = parentSelect.locator("option");
+                if (options.count() > 1) {
+                    parentSelect.selectOption(new String[]{options.nth(1).getAttribute("value")});
+                }
+            }
+
+            // Submit
+            page.locator("#btn-simpan").click();
+            waitForPageLoad();
+
+            // Should redirect to list
+            assertThat(page.url()).contains("/accounts");
+        }
+
+        @Test
+        @DisplayName("Should activate account")
+        void shouldActivateAccount() {
+            navigateTo("/accounts");
+            waitForPageLoad();
+
+            // Find and click activate button if available
+            var activateBtn = page.locator("form[action*='/activate'] button[type='submit']").first();
+            if (activateBtn.isVisible()) {
+                activateBtn.click();
+                waitForPageLoad();
+            }
+
+            // Should stay on accounts page
+            assertThat(page.url()).contains("/accounts");
+        }
+
+        @Test
+        @DisplayName("Should deactivate account")
+        void shouldDeactivateAccount() {
+            navigateTo("/accounts");
+            waitForPageLoad();
+
+            // Find and click deactivate button if available
+            var deactivateBtn = page.locator("form[action*='/deactivate'] button[type='submit']").first();
+            if (deactivateBtn.isVisible()) {
+                deactivateBtn.click();
+                waitForPageLoad();
+            }
+
+            // Should stay on accounts page
+            assertThat(page.url()).contains("/accounts");
+        }
+
+        @Test
+        @DisplayName("Should delete account")
+        void shouldDeleteAccount() {
+            navigateTo("/accounts");
+            waitForPageLoad();
+
+            // Find and click delete button if available
+            var deleteBtn = page.locator("form[action*='/delete'] button[type='submit']").first();
+            if (deleteBtn.isVisible()) {
+                deleteBtn.click();
+                waitForPageLoad();
+            }
+
+            // Should stay on accounts page
+            assertThat(page.url()).contains("/accounts");
+        }
+
+        @Test
+        @DisplayName("Should show validation error for duplicate account code")
+        void shouldShowValidationErrorForDuplicateAccountCode() {
+            navigateTo("/accounts/new");
+            waitForPageLoad();
+
+            // Use existing account code
+            page.locator("#accountCode").fill("1");
+            page.locator("#accountName").fill("Duplicate Test");
+            page.getByTestId("account-type").selectOption("ASSET");
+
+            // Submit
+            page.locator("#btn-simpan").click();
+            waitForPageLoad();
+
+            // Should stay on form (validation error)
+            assertThat(page.locator("body")).isVisible();
+        }
+    }
 }

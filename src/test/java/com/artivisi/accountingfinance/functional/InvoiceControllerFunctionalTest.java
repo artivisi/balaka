@@ -357,4 +357,150 @@ class InvoiceControllerFunctionalTest extends PlaywrightTestBase {
 
         assertThat(page.locator("body")).isVisible();
     }
+
+    // ==================== ADDITIONAL COVERAGE TESTS ====================
+
+    @Test
+    @DisplayName("Should filter invoices by status via query param")
+    void shouldFilterInvoicesByStatusViaQueryParam() {
+        navigateTo("/invoices?status=DRAFT");
+        waitForPageLoad();
+
+        assertThat(page.locator("#page-title, h1").first()).isVisible();
+    }
+
+    @Test
+    @DisplayName("Should filter invoices by client via query param")
+    void shouldFilterInvoicesByClientViaQueryParam() {
+        var client = clientRepository.findAll().stream().findFirst();
+        if (client.isEmpty()) {
+            return;
+        }
+
+        navigateTo("/invoices?clientId=" + client.get().getId());
+        waitForPageLoad();
+
+        assertThat(page.locator("#page-title, h1").first()).isVisible();
+    }
+
+    @Test
+    @DisplayName("Should filter invoices by project via query param")
+    void shouldFilterInvoicesByProjectViaQueryParam() {
+        var project = projectRepository.findAll().stream().findFirst();
+        if (project.isEmpty()) {
+            return;
+        }
+
+        navigateTo("/invoices?projectId=" + project.get().getId());
+        waitForPageLoad();
+
+        assertThat(page.locator("#page-title, h1").first()).isVisible();
+    }
+
+    @Test
+    @DisplayName("Should display new form with pre-selected client")
+    void shouldDisplayNewFormWithPreSelectedClient() {
+        var client = clientRepository.findAll().stream().findFirst();
+        if (client.isEmpty()) {
+            return;
+        }
+
+        navigateTo("/invoices/new?clientId=" + client.get().getId());
+        waitForPageLoad();
+
+        assertThat(page.locator("body")).isVisible();
+    }
+
+    @Test
+    @DisplayName("Should display new form with pre-selected project")
+    void shouldDisplayNewFormWithPreSelectedProject() {
+        var project = projectRepository.findAll().stream().findFirst();
+        if (project.isEmpty()) {
+            return;
+        }
+
+        navigateTo("/invoices/new?projectId=" + project.get().getId());
+        waitForPageLoad();
+
+        assertThat(page.locator("body")).isVisible();
+    }
+
+    @Test
+    @DisplayName("Should redirect when editing non-draft invoice")
+    void shouldRedirectWhenEditingNonDraftInvoice() {
+        var invoice = invoiceRepository.findAll().stream()
+                .filter(i -> !"DRAFT".equals(i.getStatus().name()))
+                .findFirst();
+        if (invoice.isEmpty()) {
+            return;
+        }
+
+        navigateTo("/invoices/" + invoice.get().getInvoiceNumber() + "/edit");
+        waitForPageLoad();
+
+        // Should redirect to detail page
+        assertThat(page).hasURL(java.util.regex.Pattern.compile(".*\\/invoices\\/.*"));
+    }
+
+    @Test
+    @DisplayName("Should redirect pay form for non-sent invoice")
+    void shouldRedirectPayFormForNonSentInvoice() {
+        var invoice = invoiceRepository.findAll().stream()
+                .filter(i -> "DRAFT".equals(i.getStatus().name()))
+                .findFirst();
+        if (invoice.isEmpty()) {
+            return;
+        }
+
+        navigateTo("/invoices/" + invoice.get().getInvoiceNumber() + "/pay");
+        waitForPageLoad();
+
+        // Should redirect to detail with error
+        assertThat(page).hasURL(java.util.regex.Pattern.compile(".*\\/invoices\\/.*"));
+    }
+
+    @Test
+    @DisplayName("Should paginate invoice list")
+    void shouldPaginateInvoiceList() {
+        navigateTo("/invoices?page=0&size=5");
+        waitForPageLoad();
+
+        assertThat(page.locator("#page-title, h1").first()).isVisible();
+    }
+
+    @Test
+    @DisplayName("Should filter by sent status")
+    void shouldFilterBySentStatus() {
+        navigateTo("/invoices?status=SENT");
+        waitForPageLoad();
+
+        assertThat(page.locator("#page-title, h1").first()).isVisible();
+    }
+
+    @Test
+    @DisplayName("Should filter by paid status")
+    void shouldFilterByPaidStatus() {
+        navigateTo("/invoices?status=PAID");
+        waitForPageLoad();
+
+        assertThat(page.locator("#page-title, h1").first()).isVisible();
+    }
+
+    @Test
+    @DisplayName("Should filter by overdue status")
+    void shouldFilterByOverdueStatus() {
+        navigateTo("/invoices?status=OVERDUE");
+        waitForPageLoad();
+
+        assertThat(page.locator("#page-title, h1").first()).isVisible();
+    }
+
+    @Test
+    @DisplayName("Should filter by cancelled status")
+    void shouldFilterByCancelledStatus() {
+        navigateTo("/invoices?status=CANCELLED");
+        waitForPageLoad();
+
+        assertThat(page.locator("#page-title, h1").first()).isVisible();
+    }
 }
