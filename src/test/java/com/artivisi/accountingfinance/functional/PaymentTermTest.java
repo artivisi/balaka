@@ -53,8 +53,10 @@ class PaymentTermTest extends PlaywrightTestBase {
         navigateTo("/projects/" + PROJECT_CODE + "/payment-terms/new");
         waitForPageLoad();
 
-        page.locator("#sequence").fill("99");
-        page.locator("#name").fill("Test Payment Term");
+        // Use unique sequence to avoid conflicts with other tests
+        String uniqueSequence = String.valueOf(System.currentTimeMillis() % 1000 + 100);
+        page.locator("#sequence").fill(uniqueSequence);
+        page.locator("#name").fill("Test Payment Term " + uniqueSequence);
         page.locator("#dueTrigger").selectOption("ON_SIGNING");
         page.locator("#percentage").fill("30");
 

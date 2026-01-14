@@ -61,11 +61,13 @@ class ServiceMilestonePaymentTermTest extends PlaywrightTestBase {
         // Try to fill form if fields exist
         var nameInput = page.locator("input[name='name']").first();
         if (nameInput.isVisible()) {
-            nameInput.fill("Test Milestone - UAT");
+            // Use unique sequence to avoid conflicts with other tests
+            String uniqueSequence = String.valueOf(System.currentTimeMillis() % 1000 + 300);
+            nameInput.fill("Test Milestone - UAT " + uniqueSequence);
 
             var seqInput = page.locator("input[name='sequence']").first();
             if (seqInput.isVisible()) {
-                seqInput.fill("99");
+                seqInput.fill(uniqueSequence);
             }
 
             var dateInput = page.locator("input[name='targetDate']").first();
@@ -202,8 +204,10 @@ class ServiceMilestonePaymentTermTest extends PlaywrightTestBase {
         navigateTo("/projects/" + PROJECT_CODE + "/milestones/new");
         waitForPageLoad();
 
-        page.fill("input[name='name']", "Milestone to Delete");
-        page.fill("input[name='sequence']", "999");
+        // Use unique sequence to avoid conflicts with other tests
+        String uniqueSequence = String.valueOf(System.currentTimeMillis() % 1000 + 400);
+        page.fill("input[name='name']", "Milestone to Delete " + uniqueSequence);
+        page.fill("input[name='sequence']", uniqueSequence);
         page.fill("input[name='targetDate']", LocalDate.now().plusMonths(12).format(DateTimeFormatter.ISO_LOCAL_DATE));
         page.locator("#btn-simpan").click();
         waitForPageLoad();
@@ -216,7 +220,7 @@ class ServiceMilestonePaymentTermTest extends PlaywrightTestBase {
 
         var milestone = milestoneRepository.findByProjectIdOrderBySequenceAsc(project.get().getId())
                 .stream()
-                .filter(m -> m.getName().equals("Milestone to Delete"))
+                .filter(m -> m.getName().startsWith("Milestone to Delete"))
                 .findFirst();
 
         if (milestone.isPresent()) {
@@ -283,11 +287,13 @@ class ServiceMilestonePaymentTermTest extends PlaywrightTestBase {
         // Try to fill form if fields exist
         var nameInput = page.locator("input[name='name']").first();
         if (nameInput.isVisible()) {
-            nameInput.fill("Test Payment - Final Payment");
+            // Use unique sequence to avoid conflicts with other tests
+            String uniqueSequence = String.valueOf(System.currentTimeMillis() % 1000 + 200);
+            nameInput.fill("Test Payment - Final Payment " + uniqueSequence);
 
             var seqInput = page.locator("input[name='sequence']").first();
             if (seqInput.isVisible()) {
-                seqInput.fill("99");
+                seqInput.fill(uniqueSequence);
             }
 
             var amountInput = page.locator("input[name='amount']").first();
