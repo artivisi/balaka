@@ -399,6 +399,22 @@ public class DataImportService {
             milestoneMap.put(m.getProject().getCode() + "_" + m.getSequence(), m);
         }
 
+        // Initialize manufacturing maps
+        productCategoryMap = new HashMap<>();
+        for (ProductCategory pc : productCategoryRepository.findAll()) {
+            productCategoryMap.put(pc.getCode(), pc);
+        }
+
+        productMap = new HashMap<>();
+        for (Product p : productRepository.findAll()) {
+            productMap.put(p.getCode(), p);
+        }
+
+        billOfMaterialMap = new HashMap<>();
+        for (BillOfMaterial bom : billOfMaterialRepository.findAll()) {
+            billOfMaterialMap.put(bom.getCode(), bom);
+        }
+
         // Initialize import functions registry
         initializeImportFunctions();
     }

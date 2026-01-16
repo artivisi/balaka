@@ -13,6 +13,7 @@ import com.artivisi.accountingfinance.functional.page.TrialBalancePage;
 import com.artivisi.accountingfinance.functional.util.CsvLoader;
 import com.artivisi.accountingfinance.functional.util.TransactionRow;
 import com.artivisi.accountingfinance.repository.ChartOfAccountRepository;
+import com.artivisi.accountingfinance.repository.DraftTransactionRepository;
 import com.artivisi.accountingfinance.repository.JournalEntryRepository;
 import com.artivisi.accountingfinance.repository.JournalTemplateRepository;
 import com.artivisi.accountingfinance.repository.TransactionRepository;
@@ -60,6 +61,9 @@ class ServiceReportsTest extends PlaywrightTestBase {
     private JournalEntryRepository journalEntryRepository;
 
     @Autowired
+    private DraftTransactionRepository draftTransactionRepository;
+
+    @Autowired
     private ChartOfAccountRepository accountRepository;
 
     @Autowired
@@ -84,6 +88,8 @@ class ServiceReportsTest extends PlaywrightTestBase {
     @BeforeAll
     void setupTestTransactions() {
         // Clear any existing transactions (in case ServiceTransactionExecutionTest ran first)
+        // Must delete draft transactions first due to FK constraint
+        draftTransactionRepository.deleteAll();
         journalEntryRepository.deleteAll();
         transactionRepository.deleteAll();
 
