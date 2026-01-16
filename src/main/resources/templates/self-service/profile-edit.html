@@ -14,7 +14,7 @@
             <p class="text-sm">Anda hanya dapat mengubah informasi kontak dan rekening bank. Untuk mengubah data lain, silakan hubungi administrator.</p>
         </div>
 
-        <form th:action="@{/self-service/profile/edit}" method="post" class="space-y-6">
+        <form th:action="@{/self-service/profile/edit}" method="post" class="space-y-6" data-testid="profile-edit-form">
             <!-- Contact Info -->
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 <h3 class="text-lg font-semibold text-gray-900 mb-4">Informasi Kontak</h3>
@@ -61,7 +61,7 @@
 
             <!-- Actions -->
             <div class="flex space-x-4">
-                <button type="submit"
+                <button type="submit" data-testid="btn-save-profile"
                         class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
                     Simpan Perubahan
                 </button>
