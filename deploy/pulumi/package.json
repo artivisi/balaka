@@ -2,10 +2,13 @@
   "name": "accounting-finance-infra",
   "main": "index.ts",
   "devDependencies": {
-    "@types/node": "^18"
+    "@types/node": "^22"
   },
   "dependencies": {
-    "@pulumi/pulumi": "^3.0.0",
-    "@pulumi/digitalocean": "^4.0.0"
+    "@pulumi/pulumi": "^3.216.0",
+    "@pulumi/digitalocean": "^4.56.0"
+  },
+  "overrides": {
+    "tar": "7.5.3"
   }
 }
