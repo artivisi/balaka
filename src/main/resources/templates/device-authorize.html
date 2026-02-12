@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Otorisasi Perangkat</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+<div class="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
+    <div class="text-center mb-6">
+        <h1 class="text-2xl font-bold text-gray-900">Otorisasi Perangkat</h1>
+        <p class="text-gray-600 mt-2">Masukkan kode dari aplikasi Anda</p>
+    </div>
+
+    <!-- Success message -->
+    <div th:if="${success}" class="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded">
+        <p th:text="${success}"></p>
+    </div>
+
+    <!-- Error message -->
+    <div th:if="${error}" class="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+        <p th:text="${error}"></p>
+    </div>
+
+    <!-- Code input form -->
+    <form th:if="${!validCode}" method="get" action="/device" class="mb-6">
+        <div class="mb-4">
+            <label for="code" class="block text-sm font-medium text-gray-700 mb-2">
+                Kode Perangkat
+            </label>
+            <input
+                    type="text"
+                    id="code"
+                    name="code"
+                    th:value="${userCode}"
+                    placeholder="XXXX-XXXX"
+                    maxlength="9"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center text-2xl font-mono uppercase"
+                    required
+                    pattern="[A-Z]{4}-[A-Z]{4}">
+        </div>
+        <button type="submit"
+                class="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 focus:ring-4 focus:ring-blue-300">
+            Lanjutkan
+        </button>
+    </form>
+
+    <!-- Authorization confirmation -->
+    <div th:if="${validCode}">
+        <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <p class="text-sm text-gray-700 mb-2">
+                <strong>Kode:</strong> <span class="font-mono text-lg" th:text="${userCode}"></span>
+            </p>
+            <p class="text-sm text-gray-700 mb-2">
+                <strong>Aplikasi:</strong> <span th:text="${clientId}"></span>
+            </p>
+            <p class="text-sm text-gray-700">
+                <strong>Pengguna:</strong> <span th:text="${username}"></span>
+            </p>
+        </div>
+
+        <p class="text-gray-700 mb-6 text-center">
+            Otorisasi perangkat ini akan memberikan akses ke akun akuntansi Anda.
+            Pastikan Anda mengenali aplikasi ini.
+        </p>
+
+        <form method="post" th:action="@{/device/authorize}" class="space-y-4">
+            <input type="hidden" name="userCode" th:value="${userCode}">
+
+            <div>
+                <label for="deviceName" class="block text-sm font-medium text-gray-700 mb-2">
+                    Nama Perangkat (opsional)
+                </label>
+                <input
+                        type="text"
+                        id="deviceName"
+                        name="deviceName"
+                        placeholder="contoh: Claude Code di MacBook"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            </div>
+
+            <button type="submit"
+                    class="w-full bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 focus:ring-4 focus:ring-green-300 font-semibold">
+                ✓ Otorisasi Perangkat
+            </button>
+        </form>
+
+        <form method="post" th:action="@{/device/deny}" class="mt-3">
+            <input type="hidden" name="userCode" th:value="${userCode}">
+            <button type="submit"
+                    class="w-full bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300">
+                Tolak
+            </button>
+        </form>
+    </div>
+
+    <div class="mt-6 text-center text-sm text-gray-500">
+        <a href="/dashboard" class="text-blue-600 hover:text-blue-800">Kembali ke Dashboard</a>
+    </div>
+</div>
+</body>
+</html>

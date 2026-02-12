@@ -21,6 +21,7 @@ import lombok.Setter;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.UUID;
 
 @Entity
@@ -31,7 +32,7 @@ import java.util.UUID;
 public class DraftTransaction {
 
     public enum Source {
-        TELEGRAM, MANUAL, EMAIL
+        TELEGRAM, MANUAL, EMAIL, API
     }
 
     public enum Status {
@@ -79,6 +80,14 @@ public class DraftTransaction {
     @Size(max = 50)
     @Column(name = "receipt_type", length = 50)
     private String receiptType;
+
+    // API fields
+    @Size(max = 50)
+    @Column(name = "api_source", length = 50)
+    private String apiSource; // "claude-code", "gemini-cli", "curl", etc.
+
+    @Column(name = "metadata", columnDefinition = "jsonb")
+    private Map<String, Object> metadata; // items, category, extra data
 
     // Confidence scores (0.0 - 1.0)
     @Column(name = "merchant_confidence", precision = 3, scale = 2)

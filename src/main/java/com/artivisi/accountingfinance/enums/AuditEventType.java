@@ -38,5 +38,8 @@ public enum AuditEventType {
 
     // Payroll (sensitive data)
     PAYROLL_VIEW,
-    PAYROLL_EXPORT
+    PAYROLL_EXPORT,
+
+    // API operations
+    API_CALL
 }
