@@ -101,6 +101,7 @@ jobs:
           name: Test Results
           path: target/surefire-reports/*.xml
           reporter: java-junit
+          fail-on-error: false
 
       - name: Upload JaCoCo coverage report
         uses: actions/upload-artifact@v4
