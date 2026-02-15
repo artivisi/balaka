@@ -97,7 +97,9 @@ class ServiceReportsTest extends PlaywrightTestBase {
         List<TransactionRow> transactions = CsvLoader.loadTransactions("service/transactions.csv");
 
         // Create transactions programmatically using CSV data
+        int txIndex = 0;
         for (TransactionRow txRow : transactions) {
+            txIndex++;
             // Get template by name
             JournalTemplate template = templateRepository.findByTemplateNameAndIsCurrentVersionTrue(txRow.templateName())
                 .orElseThrow(() -> new RuntimeException("Template not found: " + txRow.templateName()));
@@ -107,7 +109,7 @@ class ServiceReportsTest extends PlaywrightTestBase {
 
             // Create transaction
             Transaction tx = createTransaction(template, LocalDate.parse(txRow.date()),
-                txRow.description(), txRow.reference(), amount);
+                txRow.description(), txRow.reference(), amount, txIndex);
 
             // Get debit and credit accounts from CSV
             ChartOfAccount debitAccount = accountRepository.findByAccountCode(txRow.expectedDebitAccount())
@@ -115,9 +117,10 @@ class ServiceReportsTest extends PlaywrightTestBase {
             ChartOfAccount creditAccount = accountRepository.findByAccountCode(txRow.expectedCreditAccount())
                 .orElseThrow(() -> new RuntimeException("Credit account not found: " + txRow.expectedCreditAccount()));
 
-            // Create journal entries
-            createJournalEntry(tx, debitAccount, amount, BigDecimal.ZERO);
-            createJournalEntry(tx, creditAccount, BigDecimal.ZERO, amount);
+            // Create journal entries with journal numbers
+            String journalNumber = String.format("JE-RPT-%04d", txIndex);
+            createJournalEntry(tx, debitAccount, amount, BigDecimal.ZERO, journalNumber + "-01");
+            createJournalEntry(tx, creditAccount, BigDecimal.ZERO, amount, journalNumber + "-02");
         }
     }
 
@@ -133,8 +136,9 @@ class ServiceReportsTest extends PlaywrightTestBase {
         throw new RuntimeException("Cannot parse amount from inputs: " + inputs);
     }
 
-    private Transaction createTransaction(JournalTemplate template, LocalDate date, String description, String reference, BigDecimal amount) {
+    private Transaction createTransaction(JournalTemplate template, LocalDate date, String description, String reference, BigDecimal amount, int index) {
         Transaction tx = new Transaction();
+        tx.setTransactionNumber(String.format("TRX-RPT-%04d", index));
         tx.setTransactionDate(date);
         tx.setDescription(description);
         tx.setReferenceNumber(reference);
@@ -148,8 +152,9 @@ class ServiceReportsTest extends PlaywrightTestBase {
     }
 
     private void createJournalEntry(Transaction transaction, ChartOfAccount account,
-                                     BigDecimal debit, BigDecimal credit) {
+                                     BigDecimal debit, BigDecimal credit, String journalNumber) {
         JournalEntry entry = new JournalEntry();
+        entry.setJournalNumber(journalNumber);
         entry.setTransaction(transaction);
         entry.setAccount(account);
         entry.setDebitAmount(debit);
