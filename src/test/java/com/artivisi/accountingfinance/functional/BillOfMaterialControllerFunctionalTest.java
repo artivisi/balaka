@@ -380,8 +380,8 @@ class BillOfMaterialControllerFunctionalTest extends PlaywrightTestBase {
     @DisplayName("Should create BOM with all fields including description")
     void shouldCreateBOMWithAllFieldsIncludingDescription() {
         var products = productRepository.findAll();
-        if (products.isEmpty()) {
-            throw new AssertionError("Product required for BOM creation test");
+        if (products.size() < 2) {
+            throw new AssertionError("At least 2 products required for BOM creation test");
         }
 
         navigateTo("/inventory/bom/create");
@@ -406,6 +406,14 @@ class BillOfMaterialControllerFunctionalTest extends PlaywrightTestBase {
 
         // Set active
         page.locator("#active").check();
+
+        // Add component (BOM requires at least one)
+        page.locator("#add-component-btn").click();
+        page.waitForSelector(".component-row:not(#component-row-template)");
+        page.locator(".component-row:not(#component-row-template) select[name='componentId[]']").first()
+                .selectOption(products.get(1).getId().toString());
+        page.locator(".component-row:not(#component-row-template) input[name='componentQty[]']").first()
+                .fill("3");
 
         // Submit
         page.locator("#btn-simpan").click();
@@ -546,8 +554,8 @@ class BillOfMaterialControllerFunctionalTest extends PlaywrightTestBase {
     @DisplayName("Should submit create BOM form with all required fields")
     void shouldSubmitCreateBOMFormWithAllRequiredFields() {
         var products = productRepository.findAll();
-        if (products.isEmpty()) {
-            throw new AssertionError("Product required for BOM submission test");
+        if (products.size() < 2) {
+            throw new AssertionError("At least 2 products required for BOM submission test");
         }
 
         navigateTo("/inventory/bom/create");
@@ -572,6 +580,14 @@ class BillOfMaterialControllerFunctionalTest extends PlaywrightTestBase {
 
         // Check active checkbox
         page.locator("#active").check();
+
+        // Add component (BOM requires at least one)
+        page.locator("#add-component-btn").click();
+        page.waitForSelector(".component-row:not(#component-row-template)");
+        page.locator(".component-row:not(#component-row-template) select[name='componentId[]']").first()
+                .selectOption(products.get(1).getId().toString());
+        page.locator(".component-row:not(#component-row-template) input[name='componentQty[]']").first()
+                .fill("1");
 
         // Submit
         page.locator("#btn-simpan").click();
