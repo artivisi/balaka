@@ -63,7 +63,7 @@ jobs:
         run: ./mvnw exec:java -Dexec.mainClass="com.microsoft.playwright.CLI" -Dexec.classpathScope=test -Dexec.args="install --with-deps chromium"
 
       - name: Run all tests with coverage
-        run: ./mvnw clean verify -Djacoco.skip=true
+        run: ./mvnw clean verify
         env:
           MAVEN_OPTS: -Xmx4g -XX:MaxMetaspaceSize=512m
 

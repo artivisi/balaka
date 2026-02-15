@@ -224,11 +224,21 @@ public class TransactionService {
         }
 
         // Check if transaction already has journal entries (created via TemplateExecutionEngine)
-        // In this case, we just need to update their status - accounts are already set
+        // In this case, we just need to validate, assign journal numbers, and update status
         if (!transaction.getJournalEntries().isEmpty()) {
-            // Journal entries were already created during template execution
-            // Just validate balance and update status
             validateJournalBalance(transaction.getJournalEntries());
+
+            // Assign journal numbers to entries that don't have them yet
+            // Journal numbers are assigned at posting time, not at draft creation
+            boolean needsJournalNumber = transaction.getJournalEntries().stream()
+                    .anyMatch(e -> e.getJournalNumber() == null);
+            if (needsJournalNumber) {
+                String journalNumber = generateJournalNumber();
+                int lineIndex = 0;
+                for (JournalEntry entry : transaction.getJournalEntries()) {
+                    entry.setJournalNumber(journalNumber + "-" + String.format("%02d", ++lineIndex));
+                }
+            }
 
             transaction.setStatus(TransactionStatus.POSTED);
             transaction.setPostedAt(LocalDateTime.now());
