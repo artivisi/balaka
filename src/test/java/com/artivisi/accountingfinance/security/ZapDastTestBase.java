@@ -72,7 +72,7 @@ abstract class ZapDastTestBase {
     protected static final int ACTIVE_SCAN_TIMEOUT_MINUTES = QUICK_SCAN ? 5 : 20;
 
     // Timeout for individual ZAP API calls (prevents indefinite blocking in CI)
-    protected static final int ZAP_API_TIMEOUT_SECONDS = 120;
+    protected static final int ZAP_API_TIMEOUT_SECONDS = 60;
 
     @LocalServerPort
     protected int port;
@@ -81,6 +81,9 @@ abstract class ZapDastTestBase {
     protected ClientApi zapClient;
     protected String targetUrl;
     protected HttpClient authenticatedClient;
+
+    // Fail-fast: once ZAP becomes unresponsive, skip remaining tests
+    protected volatile boolean zapResponsive = true;
 
     @BeforeAll
     void setupZap() throws Exception {
@@ -115,16 +118,16 @@ abstract class ZapDastTestBase {
 
     @BeforeEach
     void resetZapSession() throws Exception {
-        // Clear previous scan data between tests while reusing the same container
+        if (!zapResponsive) {
+            fail("ZAP API became unresponsive in a previous test - container was killed");
+        }
         zapApiCall(() -> zapClient.core.newSession("", "true"), "core.newSession");
         authenticatedClient = null;
     }
 
     @AfterAll
     void tearDown() {
-        if (zapContainer != null && zapContainer.isRunning()) {
-            zapContainer.stop();
-        }
+        killZapContainer();
     }
 
 
@@ -239,6 +242,8 @@ abstract class ZapDastTestBase {
      * Execute a ZAP API call with a timeout to prevent indefinite blocking.
      * The ZAP ClientApi uses HttpURLConnection with no configurable timeouts,
      * so we wrap calls in a separate thread with a deadline.
+     * On timeout, marks ZAP as unresponsive and kills the container to unblock
+     * any stuck threads and skip remaining tests.
      */
     protected <T> T zapApiCall(Callable<T> apiCall, String description) throws Exception {
         ExecutorService executor = Executors.newSingleThreadExecutor();
@@ -248,11 +253,30 @@ abstract class ZapDastTestBase {
                 return future.get(ZAP_API_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             } catch (TimeoutException e) {
                 future.cancel(true);
+                log.warn("ZAP API call timed out after {}s: {} - killing container", ZAP_API_TIMEOUT_SECONDS, description);
+                zapResponsive = false;
+                killZapContainer();
                 throw new RuntimeException("ZAP API call timed out after " +
                         ZAP_API_TIMEOUT_SECONDS + "s: " + description, e);
             }
         } finally {
             executor.shutdownNow();
+        }
+    }
+
+    /**
+     * Force-stop the ZAP container to unblock any hanging API calls.
+     * Closing the container drops TCP connections, causing pending
+     * HttpURLConnection.read() calls to fail with IOException.
+     */
+    private void killZapContainer() {
+        try {
+            if (zapContainer != null && zapContainer.isRunning()) {
+                log.warn("Force-stopping ZAP container to unblock hanging API calls");
+                zapContainer.stop();
+            }
+        } catch (Exception e) {
+            log.warn("Error stopping ZAP container: {}", e.getMessage());
         }
     }
 
