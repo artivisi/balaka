@@ -9,6 +9,7 @@ on:
       - 'docs/user-manual/**'
       - 'src/main/resources/templates/**'
       - 'src/test/java/**/manual/**'
+      - 'src/test/java/**/functional/**'
       - '.github/workflows/publish-manual.yml'
 
   workflow_dispatch:
@@ -48,9 +49,9 @@ jobs:
       - name: Install Playwright browsers
         run: ./mvnw exec:java -Dexec.mainClass="com.microsoft.playwright.CLI" -Dexec.classpathScope=test -Dexec.args="install --with-deps chromium"
 
-      - name: Run functional tests (generates screenshots to target/screenshots/)
+      - name: Run functional tests (generates screenshots to target/user-manual/screenshots/)
         if: ${{ github.event.inputs.skip_screenshots != 'true' }}
-        run: ./mvnw test -Dtest="Service*Test,Seller*Test,Mfg*Test,Campus*Test,Ai*Test,BankReconciliation*Test"
+        run: ./mvnw test -Dtest="Service*Test,Seller*Test,Mfg*Test,Campus*Test,Coffee*Test,Ai*Test,AnalysisReportTest,BankReconciliation*Test"
 
       - name: Generate user manual
         run: ./mvnw exec:java -Dexec.mainClass="com.artivisi.accountingfinance.manual.UserManualGenerator" -Dexec.classpathScope=test
