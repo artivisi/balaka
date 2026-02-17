@@ -75,7 +75,9 @@ Please authorize this device:
   Code: MBJN-KRFJ
 ```
 
-Buka URL tersebut di browser, login, dan masukkan kode.
+Buka URL tersebut di browser, login, dan masukkan kode:
+
+![Halaman Otorisasi Device](screenshots/ai-transaction/00-device-authorization.png)
 
 **Langkah otorisasi:**
 1. Login dengan username dan password Anda
@@ -255,7 +257,9 @@ Content-Type: application/json
 
 ### Verifikasi di Web UI
 
-Setelah transaksi diposting, Anda dapat melihatnya di halaman Transaksi.
+Setelah transaksi diposting, Anda dapat melihatnya di halaman Transaksi:
+
+![Daftar Transaksi](screenshots/ai-transaction/04-transactions-list.png)
 
 Transaksi yang dibuat via AI akan memiliki:
 - **Transaction Number**: TRX-2026-0001 (auto-generated)
@@ -755,17 +759,35 @@ Klik tombol **Hapus** di halaman detail untuk menghapus laporan (soft delete). L
 
 Metrik utama: Pendapatan Bulanan, Beban Operasional, Laba Bersih, Margin Laba, Saldo Kas, Rasio Beban/Pendapatan.
 
+![Daftar Laporan - Jasa IT](screenshots/analysis-reports/list.png)
+
+![Detail Laporan - Jasa IT (Header dan Metrik)](screenshots/analysis-reports/detail-top.png)
+
+![Detail Laporan - Jasa IT (Temuan dan Rekomendasi)](screenshots/analysis-reports/detail-bottom.png)
+
 ##### Toko Online / E-Commerce
 
 Metrik utama: Penjualan Bersih, HPP (Harga Pokok), Laba Kotor, Gross Margin, Biaya Marketplace, Biaya Pengiriman.
+
+![Daftar Laporan - Toko Online](screenshots/analysis-reports/seller-list.png)
+
+![Detail Laporan - Toko Online](screenshots/analysis-reports/seller-detail.png)
 
 ##### Kedai Kopi / F&B
 
 Metrik utama: Pendapatan, Food Cost %, Labor Cost %, Prime Cost %, Laba Bersih, Net Margin.
 
+![Daftar Laporan - Kedai Kopi](screenshots/analysis-reports/coffee-list.png)
+
+![Detail Laporan - Kedai Kopi](screenshots/analysis-reports/coffee-detail.png)
+
 ##### Kampus / Pendidikan
 
 Metrik utama: Pendapatan Total, Pendapatan SPP, Biaya Dosen & Akademik, Rasio Beasiswa, Surplus Operasional, Margin Operasional.
+
+![Daftar Laporan - Kampus](screenshots/analysis-reports/campus-list.png)
+
+![Detail Laporan - Kampus](screenshots/analysis-reports/campus-detail.png)
 
 ### Contoh Alur Lengkap
 

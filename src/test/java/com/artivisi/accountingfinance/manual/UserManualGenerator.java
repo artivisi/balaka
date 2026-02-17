@@ -198,7 +198,7 @@ public class UserManualGenerator {
             // 14. BANTUAN AI
             new SectionGroup("bantuan-ai", "Bantuan AI", "M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z", List.of(
                 new Section("bantuan-ai", "Bantuan AI untuk Pencatatan Transaksi", "13-bantuan-ai.md", List.of("ai-transaction/00-device-authorization", "ai-transaction/04-transactions-list")),
-                new Section("publikasi-analisis", "Publikasi Laporan Analisis", "13-bantuan-ai.md", List.of("analysis-reports/list", "analysis-reports/detail-top", "analysis-reports/detail-bottom", "analysis-reports/seller-list", "analysis-reports/seller-detail", "analysis-reports/coffee-list", "analysis-reports/coffee-detail", "analysis-reports/campus-list", "analysis-reports/campus-detail"))
+                new Section("publikasi-analisis", "Publikasi Laporan Analisis", "13-bantuan-ai.md", List.of("analysis-reports/list", "analysis-reports/detail-top", "analysis-reports/detail-bottom"))
             ))
         );
     }

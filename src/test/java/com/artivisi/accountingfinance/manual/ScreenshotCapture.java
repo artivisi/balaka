@@ -58,24 +58,12 @@ public class ScreenshotCapture {
                     "Daftar transaksi yang dibuat via AI assistant", "bantuan-ai"),
 
             // Analysis Reports (screenshots taken by AnalysisReportTest)
-            new PageDefinition("analysis-reports/list", "Daftar Laporan - Jasa IT", "/analysis-reports", true,
+            new PageDefinition("analysis-reports/list", "Daftar Laporan Analisis AI", "/analysis-reports", true,
                     "Daftar laporan analisis yang dipublikasikan oleh AI tools", "analisis-ai"),
-            new PageDefinition("analysis-reports/detail-top", "Detail Laporan - Jasa IT (Header dan Metrik)", "/analysis-reports", true,
+            new PageDefinition("analysis-reports/detail-top", "Detail Laporan Analisis (Header + Metrik)", "/analysis-reports", true,
                     "Header laporan, ringkasan eksekutif, dan indikator utama", "analisis-ai"),
-            new PageDefinition("analysis-reports/detail-bottom", "Detail Laporan - Jasa IT (Temuan dan Rekomendasi)", "/analysis-reports", true,
-                    "Temuan, rekomendasi, dan penilaian risiko", "analisis-ai"),
-            new PageDefinition("analysis-reports/seller-list", "Daftar Laporan - Toko Online", "/analysis-reports", true,
-                    "Daftar laporan analisis untuk industri toko online / e-commerce", "analisis-ai"),
-            new PageDefinition("analysis-reports/seller-detail", "Detail Laporan - Toko Online", "/analysis-reports", true,
-                    "Detail laporan analisis toko online dengan metrik margin dan marketplace", "analisis-ai"),
-            new PageDefinition("analysis-reports/coffee-list", "Daftar Laporan - Kedai Kopi", "/analysis-reports", true,
-                    "Daftar laporan analisis untuk industri kedai kopi / F&B", "analisis-ai"),
-            new PageDefinition("analysis-reports/coffee-detail", "Detail Laporan - Kedai Kopi", "/analysis-reports", true,
-                    "Detail laporan analisis kedai kopi dengan metrik food cost dan labor cost", "analisis-ai"),
-            new PageDefinition("analysis-reports/campus-list", "Daftar Laporan - Kampus", "/analysis-reports", true,
-                    "Daftar laporan analisis untuk industri pendidikan / kampus", "analisis-ai"),
-            new PageDefinition("analysis-reports/campus-detail", "Detail Laporan - Kampus", "/analysis-reports", true,
-                    "Detail laporan analisis kampus dengan metrik SPP dan beasiswa", "analisis-ai")
+            new PageDefinition("analysis-reports/detail-bottom", "Detail Laporan Analisis (Temuan + Rekomendasi)", "/analysis-reports", true,
+                    "Temuan, rekomendasi, dan penilaian risiko", "analisis-ai")
         );
     }
 
