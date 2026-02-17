@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Indonesian accounting application for small businesses. Spring Boot 4.0 + Thymeleaf + PostgreSQL.
+Indonesian accounting application for small businesses. Spring Boot 4.0 + Thymeleaf + PostgreSQL. Licensed under Apache License 2.0.
 
 ## Current Status
 
@@ -25,6 +25,7 @@ Indonesian accounting application for small businesses. Spring Boot 4.0 + Thymel
   - 6.9: 🔄 Partial (DevSecOps - container security, API fuzzing pending)
   - 6.10: ✅ Complete (Security Documentation)
 - **Phase 7:** ⏳ Not Started (API Foundation)
+- **Phase 9:** ✅ Complete (Bank Reconciliation)
 - See `docs/06-implementation-plan.md` for full plan
 
 ## Key Files
@@ -37,13 +38,13 @@ Indonesian accounting application for small businesses. Spring Boot 4.0 + Thymel
 | Tax Compliance | `docs/04-tax-compliance.md` |
 | Implementation Plan | `docs/06-implementation-plan.md` |
 | ADRs | `docs/adr/` |
-| User Manual | `docs/user-manual/*.md` (15 files, 12-section structure) |
+| User Manual | `docs/user-manual/*.md` (16 files, 14-section structure) |
 | Security Exclusions | `spotbugs-exclude.xml` (SpotBugs false positives with justifications) |
 | Entities | `src/main/java/.../entity/` |
 | Services | `src/main/java/.../service/` |
 | Controllers | `src/main/java/.../controller/` |
 | Templates | `src/main/resources/templates/` |
-| Migrations (Production) | `src/main/resources/db/migration/` (V001-V004) |
+| Migrations (Production) | `src/main/resources/db/migration/` (V001-V007) |
 | Test Migrations (Integration) | `src/test/resources/db/test/integration/` (V900-V912) |
 | Industry Seed Packs | `industry-seed/{it-service,online-seller}/` (loaded via DataImportService) |
 | Functional Tests | `src/test/java/.../functional/` |
@@ -90,7 +91,7 @@ Indonesian accounting application for small businesses. Spring Boot 4.0 + Thymel
 ## Database
 
 - PostgreSQL via Testcontainers (tests)
-- Production migrations: V001-V004 (schema + minimal bootstrap)
+- Production migrations: V001-V007 (schema + minimal bootstrap + bank recon)
 - Test data:
   - Functional tests: NO migrations - all data loaded via `@TestConfiguration` initializers from industry-seed/ packs
   - Integration tests: V900-V912 (preloaded data for unit/service/security tests)
@@ -106,36 +107,21 @@ User → Controller (MVC) → Service → Repository → PostgreSQL
 
 ## Current Focus
 
-Phase 6 (Security Hardening) in progress!
+Phase 9 (Bank Reconciliation) complete. Phase 6 (Security Hardening) partially complete.
 
-Phase 5 highlights (complete):
-- Product and ProductCategory entities with FIFO/Weighted Average costing
-- Inventory transactions: Purchase, Sale, Adjustment, Production In/Out
-- FIFO layers and weighted average cost calculation
-- BOM (Bill of Materials) for simple production
-- Production orders with component consumption and finished goods receipt
-- Auto-COGS calculation on sales with margin analysis
-- Product profitability reports
-- Coffee shop industry seed pack (17 CSV files: products, BOMs, production orders, inventory)
-- Playwright functional tests (44 manufacturing tests, all using data-testid)
-- DataImportService supports manufacturing/inventory data import
+Phase 9 highlights (complete):
+- Bank statement import (CSV parsing with configurable parsers for BCA, Mandiri, BNI, BSI, CIMB)
+- Custom parser config for unsupported banks
+- Auto-matching: 3-pass algorithm (Exact → Fuzzy Date → Keyword)
+- Manual match, Bank-Only, Book-Only classification
+- Reconciliation reports (print/export)
+- 4 enums, 5 entities, 5 repositories, 4 services, 2 controllers, ~10 templates
+- V006 (schema) + V007 (seed) migrations
+- 5 permissions: VIEW, IMPORT, MATCH, COMPLETE, CONFIG
+- 16 Playwright functional tests passing
+- User manual: ✅ Complete (14-rekonsiliasi-bank.md with 10 screenshots)
 
-Phase 6 highlights (in progress):
-- Field-level encryption (AES-256-GCM) for PII fields
-- Document storage encryption with backward compatibility
-- Password complexity enforcement (12+ chars, mixed case, numbers, special)
-- Account lockout (5 attempts, 30-minute lockout)
-- Rate limiting on login and API endpoints
-- Comprehensive security audit logging
-- Data masking for sensitive fields in UI
-- GDPR/UU PDP compliance (DSAR export, anonymization)
-- DevSecOps: CodeQL, SonarCloud, OWASP Dependency-Check, ZAP DAST
-- Security regression tests (Playwright + JUnit)
-- SpotBugs/FindSecBugs audit: ✅ 0 issues (164→0, fixed 33 real vulnerabilities, documented 140 Spring DI false positives)
-- OWASP ZAP DAST: ✅ 0 HIGH, 0 MEDIUM (graybox testing with 111 endpoints from controller mappings)
-- CSP headers: nonce-based, filter writes directly for all dispatcher types (REQUEST, ERROR, FORWARD, INCLUDE, ASYNC)
-
-User Manual (12-section structure complete):
+User Manual (14-section structure):
 - 01-setup-awal.md: Setup & Administration
 - 02-tutorial-akuntansi.md: Basic Accounting Tutorial (crown jewel)
 - 03-aset-tetap.md: Fixed Assets & Depreciation
@@ -148,19 +134,7 @@ User Manual (12-section structure complete):
 - 10-industri-pendidikan.md: Education
 - 11-keamanan-kepatuhan.md: Security & Compliance
 - 12-lampiran-*.md: Appendices (glosarium, template, amortisasi, akun)
-
-Manufacturing Tests Status:
-- Coffee shop seed pack: ✅ Complete (industry-seed/coffee-shop/)
-- Functional tests: ✅ 44 tests passing (MfgBomTest, MfgProductionTest, MfgCostingTest, etc.)
-- Test pattern: All using data-testid locators (zero text/CSS/positional locators)
-- Test data initializer: CoffeeTestDataInitializer loads seed pack
-- User manual: ✅ Complete (09-industri-manufaktur.md)
-
-Campus/Education Tests Status:
-- Campus seed pack: ✅ Complete (industry-seed/campus/)
-- Functional tests: ✅ 19 tests passing (CampusBillingTest, CampusPaymentTest, CampusScholarshipTest, CampusReportsTest)
-- Test pattern: All using data-testid locators (zero text/CSS/positional locators)
-- Test data initializer: CampusTestDataInitializer loads seed pack
-- User manual: ✅ Complete (10-industri-pendidikan.md with 9 screenshots)
+- 13-bantuan-ai.md: AI-Assisted Transactions
+- 14-rekonsiliasi-bank.md: Bank Reconciliation
 
 See `docs/06-implementation-plan.md` for full plan
