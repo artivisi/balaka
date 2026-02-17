@@ -19,6 +19,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -75,12 +76,20 @@ public class BearerTokenAuthenticationFilter extends OncePerRequestFilter {
                 dt.updateLastUsed(getClientIpAddress(request));
                 deviceTokenRepository.save(dt);
 
-                // Create authentication
+                // Create authentication with role and scope authorities
+                List<SimpleGrantedAuthority> authorities = new ArrayList<>();
+                authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
+                if (dt.getScopes() != null) {
+                    for (String scope : dt.getScopes().split(",")) {
+                        authorities.add(new SimpleGrantedAuthority("SCOPE_" + scope.trim()));
+                    }
+                }
+
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(
                                 user.getUsername(),
                                 null,
-                                List.of(new SimpleGrantedAuthority("ROLE_USER"))
+                                authorities
                         );
 
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));

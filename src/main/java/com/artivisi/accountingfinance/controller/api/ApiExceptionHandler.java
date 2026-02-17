@@ -5,6 +5,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -42,6 +43,21 @@ public class ApiExceptionHandler {
         );
 
         log.warn("API validation error: {}", fieldErrors);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+
+    /**
+     * Handle missing required request parameters.
+     */
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ErrorResponse> handleMissingParam(MissingServletRequestParameterException ex) {
+        ErrorResponse error = new ErrorResponse(
+                "MISSING_PARAMETER",
+                "Required parameter '" + ex.getParameterName() + "' is missing",
+                null
+        );
+
+        log.warn("API missing parameter: {}", ex.getParameterName());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 
