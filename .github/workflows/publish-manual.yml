@@ -50,7 +50,7 @@ jobs:
 
       - name: Run functional tests (generates screenshots to target/screenshots/)
         if: ${{ github.event.inputs.skip_screenshots != 'true' }}
-        run: ./mvnw test -Dtest="Service*Test,Seller*Test,Mfg*Test,Campus*Test,Ai*Test"
+        run: ./mvnw test -Dtest="Service*Test,Seller*Test,Mfg*Test,Campus*Test,Ai*Test,BankReconciliation*Test"
 
       - name: Generate user manual
         run: ./mvnw exec:java -Dexec.mainClass="com.artivisi.accountingfinance.manual.UserManualGenerator" -Dexec.classpathScope=test

@@ -185,7 +185,17 @@ public class UserManualGenerator {
                 new Section("referensi-akun", "Referensi Akun", "12-lampiran-akun.md", List.of("accounts-list"))
             )),
 
-            // 13. BANTUAN AI
+            // 13. REKONSILIASI BANK
+            new SectionGroup("rekonsiliasi-bank", "Rekonsiliasi Bank", "M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z", List.of(
+                new Section("konsep-rekonsiliasi", "Konsep Rekonsiliasi Bank", "14-rekonsiliasi-bank.md", List.of("bank-recon/landing-page")),
+                new Section("konfigurasi-parser", "Konfigurasi Parser Bank", "14-rekonsiliasi-bank.md", List.of("bank-recon/parser-configs", "bank-recon/parser-config-form")),
+                new Section("import-mutasi", "Import Mutasi Bank", "14-rekonsiliasi-bank.md", List.of("bank-recon/import-form", "bank-recon/statements-list", "bank-recon/statement-detail")),
+                new Section("proses-rekonsiliasi", "Proses Rekonsiliasi", "14-rekonsiliasi-bank.md", List.of("bank-recon/recon-form", "bank-recon/recon-detail", "bank-recon/recon-auto-match")),
+                new Section("laporan-rekonsiliasi", "Laporan Rekonsiliasi", "14-rekonsiliasi-bank.md", List.of("bank-recon/recon-report")),
+                new Section("contoh-kasus-rekon", "Contoh Kasus Lengkap", "14-rekonsiliasi-bank.md", List.of())
+            )),
+
+            // 14. BANTUAN AI
             new SectionGroup("bantuan-ai", "Bantuan AI", "M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z", List.of(
                 new Section("bantuan-ai", "Bantuan AI untuk Pencatatan Transaksi", "13-bantuan-ai.md", List.of("ai-transaction/00-device-authorization", "ai-transaction/04-transactions-list"))
             ))
