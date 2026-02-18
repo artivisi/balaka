@@ -478,6 +478,7 @@ Token yang diterbitkan melalui Device Flow secara otomatis memiliki scope beriku
 - `analysis:read` — membaca laporan keuangan
 - `analysis:write` — mempublikasikan laporan analisis
 - `transactions:post` — posting transaksi DRAFT
+- `data:import` — import data dari file ZIP
 
 Tanpa scope yang sesuai, request akan ditolak dengan HTTP 403.
 
@@ -842,6 +843,94 @@ Metrik utama:
 
 ---
 
+## Inisialisasi Data Klien Baru
+
+Untuk onboarding klien baru, AI membaca laporan keuangan klien (XLS/PDF neraca, laba rugi), mengekstrak struktur Chart of Accounts dan template jurnal, lalu menginisialisasi aplikasi secara programatis via `POST /api/data-import`.
+
+### Alur Kerja
+
+```
+1. AI menerima file XLS/PDF laporan keuangan klien
+   ↓
+2. AI mengekstrak struktur COA, template jurnal, dan data awal
+   ↓
+3. AI menghasilkan file CSV sesuai format yang diharapkan
+   ↓
+4. AI membuat ZIP dari file-file CSV tersebut
+   ↓
+5. AI mengirim ZIP ke POST /api/data-import
+   ↓
+6. Aplikasi memproses ZIP: truncate tabel yang ada data CSV-nya, lalu import
+   ↓
+7. Klien baru siap menggunakan aplikasi dengan COA dan template yang sesuai
+```
+
+### Format CSV
+
+ZIP berisi file CSV dengan nama berurut (dependency order). File yang paling umum untuk onboarding klien baru:
+
+**`01_company_config.csv`** — Konfigurasi perusahaan (1 baris data):
+
+```
+company_name,company_address,company_phone,company_email,tax_id,npwp,nitku,fiscal_year_start_month,currency_code,signing_officer_name,signing_officer_title,company_logo_path,established_date,is_pkp,pkp_since,industry
+```
+
+**`02_chart_of_accounts.csv`** — Daftar akun:
+
+```
+account_code,account_name,account_type,parent_code,normal_balance,active,is_permanent
+```
+
+- `account_type`: `ASSET`, `LIABILITY`, `EQUITY`, `REVENUE`, `EXPENSE`
+- `normal_balance`: `DEBIT` atau `CREDIT`
+- `parent_code`: kosong jika akun top-level, isi kode parent jika sub-akun
+
+**`04_journal_templates.csv`** — Template jurnal:
+
+```
+template_name,category,cash_flow_category,template_type,description,is_system,active,version,usage_count,last_used_at,semantic_description,keywords,example_merchants,typical_amount_min,typical_amount_max,merchant_patterns
+```
+
+- `category`: `REVENUE`, `EXPENSE`, `TRANSFER`, `ADJUSTMENT`, `PAYROLL`, `TAX`, `RECEIVABLE`, `PAYABLE`, `ASSET_PURCHASE`, `ASSET_DEPRECIATION`
+- `cash_flow_category`: `OPERATING`, `INVESTING`, `FINANCING`
+- `template_type`: `SIMPLE`, `VARIABLE`, `SPLIT`, `MULTI_LINE`
+- `keywords`, `example_merchants`, `merchant_patterns`: nilai dipisahkan dengan `|` (pipe)
+
+**`05_journal_template_lines.csv`** — Baris template jurnal:
+
+```
+template_name,line_order,account_code,account_hint,position,formula,description
+```
+
+- `position`: `DEBIT` atau `CREDIT`
+- `formula`: `AMOUNT` (nilai penuh), `AMOUNT * 0.11` (PPN 11%), dsb.
+
+### Contoh Penggunaan API
+
+```bash
+curl -X POST https://akunting.example.com/api/data-import \
+  -H "Authorization: Bearer {accessToken}" \
+  -F "file=@seed-data.zip"
+```
+
+Response (HTTP 201):
+
+```json
+{
+  "totalRecords": 45,
+  "documentCount": 0,
+  "durationMs": 1234
+}
+```
+
+### Referensi
+
+- Lihat direktori `industry-seed/` di source code untuk contoh lengkap seed data per industri (it-service, online-seller, coffee-shop)
+- Import mengganti (truncate) data pada tabel yang memiliki CSV di dalam ZIP. Tabel tanpa CSV di ZIP tidak terpengaruh
+- File CSV boleh hanya berisi header (tanpa data) — tabel tersebut akan dilewati
+
+---
+
 ## Contoh Interaksi dengan AI
 
 ### Skenario 1: Struk Kopi Starbucks
@@ -1025,6 +1114,12 @@ User dapat melihat dan mencabut device token di halaman Settings:
 |--------|----------|-----------|
 | POST | `/api/transactions/{id}/post` | Post satu transaksi DRAFT |
 | POST | `/api/transactions/bulk-post` | Batch post transaksi DRAFT |
+
+**Manajemen Data (scope: `data:import`):**
+
+| Method | Endpoint | Deskripsi |
+|--------|----------|-----------|
+| POST | `/api/data-import` | Import data dari file ZIP (COA, template, transaksi) |
 
 ### Authentication
 
