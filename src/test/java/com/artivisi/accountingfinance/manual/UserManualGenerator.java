@@ -297,7 +297,16 @@ public class UserManualGenerator {
 
                 // Parse markdown content - extract only this specific section
                 String fullMarkdown = readMarkdownFile(section.markdownFile());
-                String sectionContent = extractSectionContent(fullMarkdown, section.title());
+                // Collect sibling section titles (other sections using the same markdown file)
+                Set<String> siblingTitles = new HashSet<>();
+                for (SectionGroup g : getSectionGroups()) {
+                    for (Section s : g.sections()) {
+                        if (s.markdownFile().equals(section.markdownFile()) && !s.title().equals(section.title())) {
+                            siblingTitles.add(s.title());
+                        }
+                    }
+                }
+                String sectionContent = extractSectionContent(fullMarkdown, section.title(), siblingTitles);
                 String contentHtml = convertMarkdownToHtml(sectionContent);
 
                 // Build screenshots HTML
@@ -353,17 +362,28 @@ public class UserManualGenerator {
     
     /**
      * Extract a specific H2 section from the markdown content.
-     * Special handling for sections that should aggregate multiple H2 sections.
-     * If sectionTitle matches the file's H1 title exactly, returns content before first H2.
-     * Otherwise, returns the content between the specified H2 heading and the next H2 heading (or end of file).
-     * If no H2 match is found, tries to find content from H1 to a specific H2 (for aggregate sections).
+     *
+     * Extraction rules (applied in order):
+     * 1. Try exact H2 match → return that H2's content (up to next H2)
+     * 2. If sectionTitle matches the file's H1 title → return ALL content EXCEPT
+     *    H2 sections that have their own section definitions (siblingTitles).
+     *    This prevents duplicate rendering when multiple sections reference the same file.
+     * 3. Fallback: aggregate intro content plus H2s that aren't sibling sections.
+     *
+     * IMPORTANT: When adding sections to UserManualGenerator.getSectionGroups(),
+     * if multiple sections reference the same markdown file, each section title
+     * must correspond to a specific H2 heading in that file. The first section
+     * (which typically matches the H1 or acts as the "catch-all") will automatically
+     * EXCLUDE H2 content that belongs to sibling sections. This prevents the
+     * recurring "duplicate section rendering" bug.
+     *
+     * @param siblingTitles titles of other sections that reference the same markdown file
      */
-    private String extractSectionContent(String markdown, String sectionTitle) {
+    private String extractSectionContent(String markdown, String sectionTitle, Set<String> siblingTitles) {
         if (sectionTitle == null || sectionTitle.isEmpty()) {
-            // If no specific section title provided, return full content
             return markdown;
         }
-        
+
         // Get the H1 title
         Pattern h1Pattern = Pattern.compile("^#\\s+([^\\n]+)", Pattern.MULTILINE);
         Matcher h1Matcher = h1Pattern.matcher(markdown);
@@ -371,64 +391,47 @@ public class UserManualGenerator {
         if (h1Matcher.find()) {
             h1Title = h1Matcher.group(1).trim();
         }
-        
+
         // Split by H2 headings to get all sections
         String[] sections = markdown.split("(?m)^## ");
-        
+
         // First, try to find exact H2 match
         for (int i = 1; i < sections.length; i++) {
             String section = sections[i];
             String firstLine = section.split("\n", 2)[0].trim();
-            
-            // Match the section title using flexible matching
+
             if (titlesMatch(sectionTitle, firstLine)) {
-                // Return content after the heading, including subsections (###)
                 String[] parts = section.split("\n", 2);
                 return parts.length > 1 ? parts[1].trim() : "";
             }
         }
-        
-        // Check if section title exactly matches H1 title - if so, return FULL content
-        if (sectionTitle.equalsIgnoreCase(h1Title.trim())) {
-            // Return full markdown content (entire document)
-            return markdown;
-        }
-        
-        // For sections like "Konsep Dasar Akuntansi" that should aggregate content
-        // from the start until a specific H2, try to find the stopping point
-        // by looking for an H2 that matches part of the next expected section
+
+        // H1 match or fallback: return content EXCLUDING sibling H2 sections.
+        // This handles both:
+        //   - Section title matching H1 (e.g., "Bantuan AI untuk Pencatatan Transaksi")
+        //   - Aggregate sections (e.g., "Konsep Dasar Akuntansi")
         if (sections.length > 1) {
-            // Return content from after H1 until the first H2
-            // This handles cases where a section should include intro content plus first few H2s
-            String[] parts = markdown.split("(?m)^## ", 2);
-            if (parts.length > 1) {
-                // Get intro content (after H1, before first H2)
-                String intro = parts[0].replaceFirst("^#\\s+[^\\n]+\\n*", "").trim();
-                
-                // Add the first few H2 sections until we hit a section that should be separate
-                StringBuilder aggregated = new StringBuilder(intro);
-                
-                for (int i = 1; i < sections.length; i++) {
-                    String section = sections[i];
-                    String h2Title = section.split("\n", 2)[0].trim();
-                    
-                    // Stop aggregating if we find a section that should be standalone
-                    // (like "Siklus Akuntansi", "Transaksi Harian", etc.)
-                    if (h2Title.contains("Siklus") || h2Title.contains("Transaksi") || 
-                        h2Title.contains("Jurnal") || h2Title.contains("Penyesuaian") || 
-                        h2Title.contains("Laporan") || h2Title.contains("Tutup Buku")) {
-                        break;
-                    }
-                    
-                    // Include this H2 section in the aggregate
-                    aggregated.append("\n\n---\n\n## ").append(section);
+            // Get intro content (after H1, before first H2)
+            String intro = sections[0].replaceFirst("^#\\s+[^\\n]+\\n*", "").trim();
+            StringBuilder aggregated = new StringBuilder(intro);
+
+            for (int i = 1; i < sections.length; i++) {
+                String section = sections[i];
+                String h2Title = section.split("\n", 2)[0].trim();
+
+                // Skip H2 sections that have their own section definitions
+                boolean isSibling = siblingTitles.stream()
+                        .anyMatch(st -> titlesMatch(st, h2Title));
+                if (isSibling) {
+                    continue;
                 }
-                
-                return aggregated.toString();
+
+                aggregated.append("\n\n## ").append(section);
             }
+
+            return aggregated.toString();
         }
-        
-        // Section not found - return empty
+
         return "";
     }
     
@@ -667,26 +670,40 @@ public class UserManualGenerator {
                         toggleGroup('pengantar');
                     });
 
+                    // Navigate to section: scroll, expand sidebar group, update URL hash
+                    function navigateToSection(targetId, smooth) {
+                        const target = document.getElementById(targetId);
+                        if (!target) return;
+
+                        // Expand the sidebar group containing this section
+                        const groups = document.querySelectorAll('[id^="group-"]');
+                        groups.forEach(group => {
+                            const links = group.querySelectorAll('a[href="#' + targetId + '"]');
+                            if (links.length > 0 && group.style.maxHeight === '0px') {
+                                const groupId = group.id.replace('group-', '');
+                                toggleGroup(groupId);
+                            }
+                        });
+
+                        target.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'start' });
+                        history.replaceState(null, '', '#' + targetId);
+                    }
+
                     // Smooth scroll for anchor links
                     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
                         anchor.addEventListener('click', function (e) {
                             e.preventDefault();
                             const targetId = this.getAttribute('href').substring(1);
-                            const target = document.getElementById(targetId);
-                            if (target) {
-                                // Find and expand the parent group if collapsed
-                                const groups = document.querySelectorAll('[id^="group-"]');
-                                groups.forEach(group => {
-                                    const links = group.querySelectorAll('a[href="#' + targetId + '"]');
-                                    if (links.length > 0 && group.style.maxHeight === '0px') {
-                                        const groupId = group.id.replace('group-', '');
-                                        toggleGroup(groupId);
-                                    }
-                                });
-                                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                            }
+                            navigateToSection(targetId, true);
                         });
                     });
+
+                    // On page load, navigate to hash target if present
+                    if (window.location.hash) {
+                        const targetId = window.location.hash.substring(1);
+                        // Delay to ensure layout is ready
+                        setTimeout(() => navigateToSection(targetId, false), 100);
+                    }
                 </script>
             </body>
             </html>

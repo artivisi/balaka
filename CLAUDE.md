@@ -40,6 +40,7 @@ Indonesian accounting application for small businesses. Spring Boot 4.0 + Thymel
 | Implementation Plan | `docs/06-implementation-plan.md` |
 | ADRs | `docs/adr/` |
 | User Manual | `docs/user-manual/*.md` (16 files, 14-section structure) |
+| User Manual Guidelines | `docs/user-manual-creation-guidelines.md` (section extraction rules, duplicate prevention) |
 | Security Exclusions | `spotbugs-exclude.xml` (SpotBugs false positives with justifications) |
 | Entities | `src/main/java/.../entity/` |
 | Services | `src/main/java/.../service/` |
