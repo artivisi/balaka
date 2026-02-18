@@ -409,6 +409,14 @@ Pada halaman detail template, metadata ditampilkan sebagai card **Metadata AI** 
 
 Card ini hanya muncul jika minimal satu field metadata terisi.
 
+![Metadata AI pada Detail Template](screenshots/service/templates-metadata-detail.png)
+
+### Form Edit Metadata
+
+Buka bagian **Metadata AI** (collapsible) pada form edit template untuk mengisi atau mengubah metadata.
+
+![Form Metadata AI](screenshots/service/templates-metadata-form.png)
+
 ### Cara AI Menggunakan Metadata
 
 Lihat [Bantuan AI](13-bantuan-ai.md#template-journal-dengan-metadata) untuk penjelasan cara AI matching template berdasarkan metadata.

@@ -333,6 +333,10 @@ class JournalTemplateControllerFunctionalTest extends PlaywrightTestBase {
         if (template.get().getKeywords() != null && template.get().getKeywords().length > 0) {
             assertThat(page.locator("[data-testid='keywords-badges']")).isVisible();
         }
+
+        // Capture screenshot for user manual - scroll to metadata card
+        page.locator("[data-testid='metadata-ai-card']").scrollIntoViewIfNeeded();
+        takeManualScreenshot("service/templates-metadata-detail");
     }
 
     @Test
@@ -352,6 +356,10 @@ class JournalTemplateControllerFunctionalTest extends PlaywrightTestBase {
         // Open the metadata section
         page.locator("[data-testid='metadata-ai-section'] summary").click();
         page.waitForTimeout(300);
+
+        // Capture screenshot of metadata form section for user manual
+        page.locator("[data-testid='metadata-ai-section']").scrollIntoViewIfNeeded();
+        takeManualScreenshot("service/templates-metadata-form");
 
         // Fill metadata fields
         page.locator("#semanticDescription").click();
