@@ -107,6 +107,14 @@ public class JournalTemplateService {
         existing.setDescription(templateData.getDescription());
         existing.setVersion(existing.getVersion() + 1);
 
+        // AI semantic metadata
+        existing.setSemanticDescription(templateData.getSemanticDescription());
+        existing.setKeywords(templateData.getKeywords());
+        existing.setExampleMerchants(templateData.getExampleMerchants());
+        existing.setTypicalAmountMin(templateData.getTypicalAmountMin());
+        existing.setTypicalAmountMax(templateData.getTypicalAmountMax());
+        existing.setMerchantPatterns(templateData.getMerchantPatterns());
+
         // Clear and recreate lines (safe since not in use)
         existing.clearLines();
         for (JournalTemplateLine line : templateData.getLines()) {
@@ -157,6 +165,14 @@ public class JournalTemplateService {
         newVersion.setIsCurrentVersion(true);
         newVersion.setUsageCount(existing.getUsageCount());
         newVersion.setLastUsedAt(existing.getLastUsedAt());
+
+        // AI semantic metadata
+        newVersion.setSemanticDescription(templateData.getSemanticDescription());
+        newVersion.setKeywords(templateData.getKeywords());
+        newVersion.setExampleMerchants(templateData.getExampleMerchants());
+        newVersion.setTypicalAmountMin(templateData.getTypicalAmountMin());
+        newVersion.setTypicalAmountMax(templateData.getTypicalAmountMax());
+        newVersion.setMerchantPatterns(templateData.getMerchantPatterns());
 
         // Copy lines to new version
         for (JournalTemplateLine line : templateData.getLines()) {

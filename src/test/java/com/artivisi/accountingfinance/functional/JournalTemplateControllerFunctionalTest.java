@@ -1,7 +1,6 @@
 package com.artivisi.accountingfinance.functional;
 
 import com.artivisi.accountingfinance.functional.service.ServiceTestDataInitializer;
-import com.artivisi.accountingfinance.repository.ChartOfAccountRepository;
 import com.artivisi.accountingfinance.repository.JournalTemplateRepository;
 import com.artivisi.accountingfinance.ui.PlaywrightTestBase;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,9 +21,6 @@ class JournalTemplateControllerFunctionalTest extends PlaywrightTestBase {
 
     @Autowired
     private JournalTemplateRepository templateRepository;
-
-    @Autowired
-    private ChartOfAccountRepository coaRepository;
 
     @BeforeEach
     void setupAndLogin() {
@@ -313,5 +309,119 @@ class JournalTemplateControllerFunctionalTest extends PlaywrightTestBase {
         waitForPageLoad();
 
         assertThat(page.locator("body")).isVisible();
+    }
+
+    @Test
+    @DisplayName("Should display AI metadata in detail page")
+    void shouldDisplayAiMetadataInDetail() {
+        // Find a template that has AI metadata (from seed data)
+        var template = templateRepository.findAll().stream()
+                .filter(t -> t.getSemanticDescription() != null && !t.getSemanticDescription().isEmpty())
+                .findFirst();
+        if (template.isEmpty()) {
+            return;
+        }
+
+        navigateTo("/templates/" + template.get().getId());
+        waitForPageLoad();
+
+        // Verify metadata card is visible
+        assertThat(page.locator("[data-testid='metadata-ai-card']")).isVisible();
+        assertThat(page.locator("[data-testid='semantic-description']")).isVisible();
+
+        // Verify keywords badges are displayed
+        if (template.get().getKeywords() != null && template.get().getKeywords().length > 0) {
+            assertThat(page.locator("[data-testid='keywords-badges']")).isVisible();
+        }
+    }
+
+    @Test
+    @DisplayName("Should edit AI metadata in template form")
+    void shouldEditAiMetadata() {
+        // Find a template to edit
+        var template = templateRepository.findAll().stream()
+                .filter(t -> Boolean.TRUE.equals(t.getActive()) && !Boolean.TRUE.equals(t.getIsSystem()))
+                .findFirst();
+        if (template.isEmpty()) {
+            return;
+        }
+
+        navigateTo("/templates/" + template.get().getId() + "/edit");
+        waitForPageLoad();
+
+        // Open the metadata section
+        page.locator("[data-testid='metadata-ai-section'] summary").click();
+        page.waitForTimeout(300);
+
+        // Fill metadata fields
+        page.locator("#semanticDescription").click();
+        page.locator("#semanticDescription").fill("Test semantic description for automation");
+        page.locator("#keywordsText").click();
+        page.locator("#keywordsText").fill("test, automation, metadata");
+        page.locator("#exampleMerchantsText").click();
+        page.locator("#exampleMerchantsText").fill("Merchant A, Merchant B");
+        page.locator("#typicalAmountMin").click();
+        page.locator("#typicalAmountMin").fill("100000");
+        page.locator("#typicalAmountMax").click();
+        page.locator("#typicalAmountMax").fill("5000000");
+        page.locator("#merchantPatternsText").click();
+        page.locator("#merchantPatternsText").fill(".*test.*, .*auto.*");
+
+        // Submit form
+        page.locator("#btn-simpan").click();
+        waitForPageLoad();
+
+        // After update, may redirect to detail of new version or same ID
+        // Verify metadata is displayed
+        assertThat(page.locator("[data-testid='metadata-ai-card']")).isVisible();
+        assertThat(page.locator("[data-testid='semantic-description']")).containsText("Test semantic description for automation");
+        assertThat(page.locator("[data-testid='keywords-badges']")).isVisible();
+        assertThat(page.locator("[data-testid='example-merchants-badges']")).isVisible();
+        assertThat(page.locator("[data-testid='amount-range']")).isVisible();
+        assertThat(page.locator("[data-testid='merchant-patterns-badges']")).isVisible();
+    }
+
+    @Test
+    @DisplayName("Should create template with AI metadata")
+    void shouldCreateTemplateWithMetadata() {
+        navigateTo("/templates/new");
+        waitForPageLoad();
+
+        // Fill required fields
+        page.locator("input[name='templateName']").fill("Test Metadata Template " + System.currentTimeMillis());
+        page.locator("select[name='category']").selectOption("EXPENSE");
+        page.locator("select[name='cashFlowCategory']").selectOption("OPERATING");
+
+        // Set journal lines using leaf accounts from the account select options
+        var accountOptions = page.locator("select[name='lines[0].accountId'] option[value]");
+        if (accountOptions.count() < 2) {
+            return;
+        }
+
+        // Pick first two non-empty account options
+        String firstAccountId = accountOptions.nth(1).getAttribute("value");
+        String secondAccountId = accountOptions.nth(2).getAttribute("value");
+
+        // Set first line (debit)
+        page.locator("select[name='lines[0].accountId']").selectOption(firstAccountId);
+        // Set second line (credit)
+        page.locator("[data-testid='btn-credit-1']").click();
+        page.locator("select[name='lines[1].accountId']").selectOption(secondAccountId);
+
+        // Open metadata section and fill
+        page.locator("[data-testid='metadata-ai-section'] summary").click();
+        page.locator("#semanticDescription").fill("New template with metadata");
+        page.locator("#keywordsText").fill("new, test, create");
+        page.locator("#typicalAmountMin").fill("50000");
+        page.locator("#typicalAmountMax").fill("1000000");
+
+        // Submit
+        page.locator("#btn-simpan").click();
+        waitForPageLoad();
+
+        // Verify metadata persists on detail page
+        assertThat(page.locator("[data-testid='metadata-ai-card']")).isVisible();
+        assertThat(page.locator("[data-testid='semantic-description']")).containsText("New template with metadata");
+        assertThat(page.locator("[data-testid='keywords-badges']")).isVisible();
     }
 }

@@ -8,6 +8,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -33,5 +34,13 @@ public record JournalTemplateDto(
 
         @Valid
         @Size(min = 2, message = "Template must have at least 2 lines")
-        List<JournalTemplateLineDto> lines
+        List<JournalTemplateLineDto> lines,
+
+        // AI semantic metadata
+        String semanticDescription,
+        String keywordsText,
+        String exampleMerchantsText,
+        BigDecimal typicalAmountMin,
+        BigDecimal typicalAmountMax,
+        String merchantPatternsText
 ) {}

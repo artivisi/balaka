@@ -207,7 +207,7 @@ public class JournalTemplateController {
         JournalTemplate template = mapDtoToEntity(dto);
         JournalTemplate updated = journalTemplateService.update(id, template);
         redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Template berhasil diperbarui (versi " + updated.getVersion() + ")");
-        return "redirect:/templates/" + id;
+        return "redirect:/templates/" + updated.getId();
     }
 
     @PostMapping("/{id}/delete")
@@ -393,6 +393,14 @@ public class JournalTemplateController {
         template.setDescription(dto.description());
         template.setActive(!Boolean.FALSE.equals(dto.active()));
 
+        // AI semantic metadata
+        template.setSemanticDescription(dto.semanticDescription());
+        template.setKeywords(parseCommaSeparated(dto.keywordsText()));
+        template.setExampleMerchants(parseCommaSeparated(dto.exampleMerchantsText()));
+        template.setTypicalAmountMin(dto.typicalAmountMin());
+        template.setTypicalAmountMax(dto.typicalAmountMax());
+        template.setMerchantPatterns(parseCommaSeparated(dto.merchantPatternsText()));
+
         if (dto.lines() != null) {
             int order = 1;
             for (JournalTemplateLineDto lineDto : dto.lines()) {
@@ -415,5 +423,20 @@ public class JournalTemplateController {
         }
 
         return template;
+    }
+
+    private String[] parseCommaSeparated(String text) {
+        if (text == null || text.isBlank()) {
+            return null;
+        }
+        String[] parts = text.split(",");
+        List<String> result = new java.util.ArrayList<>();
+        for (String part : parts) {
+            String trimmed = part.trim();
+            if (!trimmed.isEmpty()) {
+                result.add(trimmed);
+            }
+        }
+        return result.isEmpty() ? null : result.toArray(new String[0]);
     }
 }

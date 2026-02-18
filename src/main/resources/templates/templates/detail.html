@@ -224,6 +224,63 @@
                 </div>
             </div>
 
+            <!-- Metadata AI Card -->
+            <div th:if="${template.semanticDescription != null or template.keywords != null or template.exampleMerchants != null or template.typicalAmountMin != null or template.typicalAmountMax != null or template.merchantPatterns != null}"
+                 data-testid="metadata-ai-card"
+                 class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+                <div class="p-6 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">Metadata AI</h2>
+                </div>
+
+                <div class="p-6 space-y-4">
+                    <!-- Semantic Description -->
+                    <div th:if="${template.semanticDescription != null and !#strings.isEmpty(template.semanticDescription)}">
+                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Deskripsi Semantik</p>
+                        <p class="text-sm text-gray-900" data-testid="semantic-description" th:text="${template.semanticDescription}">Deskripsi</p>
+                    </div>
+
+                    <!-- Keywords -->
+                    <div th:if="${template.keywords != null and template.keywords.length > 0}">
+                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Keywords</p>
+                        <div class="flex flex-wrap gap-1" data-testid="keywords-badges">
+                            <span th:each="keyword : ${template.keywords}"
+                                  class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"
+                                  th:text="${keyword}">keyword</span>
+                        </div>
+                    </div>
+
+                    <!-- Example Merchants -->
+                    <div th:if="${template.exampleMerchants != null and template.exampleMerchants.length > 0}">
+                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Contoh Merchant</p>
+                        <div class="flex flex-wrap gap-1" data-testid="example-merchants-badges">
+                            <span th:each="merchant : ${template.exampleMerchants}"
+                                  class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                                  th:text="${merchant}">merchant</span>
+                        </div>
+                    </div>
+
+                    <!-- Amount Range -->
+                    <div th:if="${template.typicalAmountMin != null or template.typicalAmountMax != null}">
+                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Rentang Nominal</p>
+                        <p class="text-sm text-gray-900 font-mono" data-testid="amount-range">
+                            <span th:if="${template.typicalAmountMin != null}" th:text="'Rp ' + ${#numbers.formatInteger(template.typicalAmountMin, 1, 'POINT')}">Rp 0</span>
+                            <span th:if="${template.typicalAmountMin != null and template.typicalAmountMax != null}"> - </span>
+                            <span th:if="${template.typicalAmountMax != null}" th:text="'Rp ' + ${#numbers.formatInteger(template.typicalAmountMax, 1, 'POINT')}">Rp 0</span>
+                        </p>
+                    </div>
+
+                    <!-- Merchant Patterns -->
+                    <div th:if="${template.merchantPatterns != null and template.merchantPatterns.length > 0}">
+                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Pola Merchant</p>
+                        <div class="flex flex-wrap gap-1" data-testid="merchant-patterns-badges">
+                            <code th:each="pattern : ${template.merchantPatterns}"
+                                  class="px-2 py-0.5 bg-gray-100 rounded text-xs font-mono text-gray-700"
+                                  th:text="${pattern}">pattern</code>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Formula Reference Card -->
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
                 <div class="p-6 border-b border-gray-200">

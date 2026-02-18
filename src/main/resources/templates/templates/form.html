@@ -347,6 +347,87 @@
                     </div>
                 </div>
 
+                <!-- AI Metadata Section -->
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+                    <details data-testid="metadata-ai-section">
+                        <summary class="p-6 cursor-pointer select-none">
+                            <h2 class="text-lg font-semibold text-gray-900 inline">Metadata AI</h2>
+                            <span class="text-sm text-gray-500 ml-2">Metadata untuk analisis AI</span>
+                        </summary>
+                        <div class="px-6 pb-6 border-t border-gray-200 pt-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <!-- Semantic Description -->
+                                <div class="md:col-span-2">
+                                    <label for="semanticDescription" class="block text-sm font-medium text-gray-700 mb-1">
+                                        Deskripsi Semantik
+                                    </label>
+                                    <textarea id="semanticDescription" name="semanticDescription" rows="3"
+                                              placeholder="Penjelasan kapan dan bagaimana template ini digunakan..."
+                                              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm resize-none"
+                                              th:text="${template?.semanticDescription} ?: ${sourceTemplate?.semanticDescription}"></textarea>
+                                </div>
+
+                                <!-- Keywords -->
+                                <div>
+                                    <label for="keywordsText" class="block text-sm font-medium text-gray-700 mb-1">
+                                        Keywords
+                                    </label>
+                                    <input type="text" id="keywordsText" name="keywordsText"
+                                           th:value="${template?.keywords != null ? #strings.arrayJoin(template.keywords, ', ') : (sourceTemplate?.keywords != null ? #strings.arrayJoin(sourceTemplate.keywords, ', ') : '')}"
+                                           placeholder="listrik, pln, token, utility"
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+                                </div>
+
+                                <!-- Example Merchants -->
+                                <div>
+                                    <label for="exampleMerchantsText" class="block text-sm font-medium text-gray-700 mb-1">
+                                        Contoh Merchant
+                                    </label>
+                                    <input type="text" id="exampleMerchantsText" name="exampleMerchantsText"
+                                           th:value="${template?.exampleMerchants != null ? #strings.arrayJoin(template.exampleMerchants, ', ') : (sourceTemplate?.exampleMerchants != null ? #strings.arrayJoin(sourceTemplate.exampleMerchants, ', ') : '')}"
+                                           placeholder="PLN, PLN Mobile, Tokopedia PLN"
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+                                </div>
+
+                                <!-- Amount Range -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                                        Rentang Nominal
+                                    </label>
+                                    <div class="flex items-center space-x-2">
+                                        <div class="relative flex-1">
+                                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">Rp</span>
+                                            <input type="number" id="typicalAmountMin" name="typicalAmountMin"
+                                                   th:value="${template?.typicalAmountMin} ?: ${sourceTemplate?.typicalAmountMin}"
+                                                   placeholder="Min"
+                                                   class="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+                                        </div>
+                                        <span class="text-gray-400">-</span>
+                                        <div class="relative flex-1">
+                                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">Rp</span>
+                                            <input type="number" id="typicalAmountMax" name="typicalAmountMax"
+                                                   th:value="${template?.typicalAmountMax} ?: ${sourceTemplate?.typicalAmountMax}"
+                                                   placeholder="Max"
+                                                   class="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Merchant Patterns -->
+                                <div>
+                                    <label for="merchantPatternsText" class="block text-sm font-medium text-gray-700 mb-1">
+                                        Pola Merchant
+                                    </label>
+                                    <input type="text" id="merchantPatternsText" name="merchantPatternsText"
+                                           th:value="${template?.merchantPatterns != null ? #strings.arrayJoin(template.merchantPatterns, ', ') : (sourceTemplate?.merchantPatterns != null ? #strings.arrayJoin(sourceTemplate.merchantPatterns, ', ') : '')}"
+                                           placeholder=".*pln.*, .*listrik.*"
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm font-mono">
+                                </div>
+                            </div>
+                        </div>
+                    </details>
+                </div>
+
                 <!-- Additional Settings (only for edit mode) -->
                 <div th:if="${isEdit}" class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
                     <div class="p-6">
