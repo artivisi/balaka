@@ -110,7 +110,7 @@ User → Controller (MVC) → Service → Repository → PostgreSQL
 
 ## Current Release
 
-**2026.02-RELEASE** deployed to production (akunting.artivisi.id). See `docs/releases/2026.02-RELEASE.md` for release notes.
+**2026.02.2-RELEASE** deployed to production (akunting.artivisi.id). See `docs/releases/2026.02.2-RELEASE.md` for release notes.
 
 ## Current Focus
 
