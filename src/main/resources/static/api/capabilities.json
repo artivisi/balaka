@@ -286,10 +286,10 @@
         },
         {
           "method": "GET",
-          "path": "/api/analysis/drafts",
+          "path": "/api/analysis/drafts?page={}&size={}",
           "scope": "analysis:read",
-          "description": "Pending draft transactions",
-          "response": "DraftsDto: items[id, status, merchantName, amount, confidence], pendingCount"
+          "description": "Pending draft transactions (paginated, default page=0, size=20)",
+          "response": "DraftsDto: items[id, status, merchantName, amount, confidence], totalElements, totalPages, currentPage, pageSize"
         },
         {
           "method": "GET",
@@ -334,10 +334,10 @@
         },
         {
           "method": "GET",
-          "path": "/api/analysis/reports",
+          "path": "/api/analysis/reports?page={}&size={}",
           "scope": "analysis:read",
-          "description": "List all published analysis reports (newest first)",
-          "response": "AnalysisResponse<ReportListDto>: reports[], totalCount"
+          "description": "List published analysis reports, newest first (paginated, default page=0, size=20)",
+          "response": "AnalysisResponse<ReportListDto>: reports[], totalElements, totalPages, currentPage, pageSize"
         }
       ]
     },

@@ -286,10 +286,13 @@ class FinancialAnalysisApiTest extends PlaywrightTestBase {
 
         JsonNode data = body.get("data");
         assertThat(data.has("items")).isTrue();
-        assertThat(data.has("pendingCount")).isTrue();
+        assertThat(data.has("totalElements")).isTrue();
+        assertThat(data.has("totalPages")).isTrue();
+        assertThat(data.has("currentPage")).isTrue();
+        assertThat(data.has("pageSize")).isTrue();
         assertThat(data.get("items").isArray()).isTrue();
 
-        log.info("Drafts test passed - {} pending drafts", data.get("pendingCount"));
+        log.info("Drafts test passed - {} total drafts", data.get("totalElements"));
     }
 
     @Test

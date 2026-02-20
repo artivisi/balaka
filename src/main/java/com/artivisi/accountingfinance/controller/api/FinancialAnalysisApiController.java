@@ -371,12 +371,14 @@ public class FinancialAnalysisApiController {
     }
 
     @GetMapping("/drafts")
-    public ResponseEntity<AnalysisResponse<DraftsDto>> getDrafts() {
+    public ResponseEntity<AnalysisResponse<DraftsDto>> getDrafts(
+            @RequestParam(required = false, defaultValue = "0") int page,
+            @RequestParam(required = false, defaultValue = "20") int size) {
 
-        List<DraftTransaction> pendingDrafts = draftTransactionRepository
-                .findByStatus(DraftTransaction.Status.PENDING);
+        Page<DraftTransaction> draftsPage = draftTransactionRepository
+                .findByStatus(DraftTransaction.Status.PENDING, PageRequest.of(page, size));
 
-        List<DraftItemDto> items = pendingDrafts.stream()
+        List<DraftItemDto> items = draftsPage.getContent().stream()
                 .map(d -> new DraftItemDto(
                         d.getId(),
                         d.getStatus().name(),
@@ -392,13 +394,14 @@ public class FinancialAnalysisApiController {
                         d.getCreatedAt()))
                 .toList();
 
-        DraftsDto data = new DraftsDto(items, (long) items.size());
+        DraftsDto data = new DraftsDto(items,
+                draftsPage.getTotalElements(), draftsPage.getTotalPages(), page, size);
 
-        auditAccess("drafts", Map.of());
+        auditAccess("drafts", Map.of("page", String.valueOf(page), "size", String.valueOf(size)));
 
         return ResponseEntity.ok(new AnalysisResponse<>(
                 "drafts", LocalDateTime.now(),
-                Map.of(),
+                Map.of("page", String.valueOf(page), "size", String.valueOf(size)),
                 data,
                 Map.of("currency", "IDR",
                         "description", "Pending draft transactions awaiting review. "
@@ -442,19 +445,25 @@ public class FinancialAnalysisApiController {
     }
 
     @GetMapping("/reports")
-    public ResponseEntity<AnalysisResponse<ReportListDto>> listReports() {
+    public ResponseEntity<AnalysisResponse<ReportListDto>> listReports(
+            @RequestParam(required = false, defaultValue = "0") int page,
+            @RequestParam(required = false, defaultValue = "20") int size) {
 
-        List<ReportDto> reports = analysisReportRepository.findAllByOrderByCreatedAtDesc().stream()
+        Page<AnalysisReport> reportsPage = analysisReportRepository
+                .findAllByOrderByCreatedAtDesc(PageRequest.of(page, size));
+
+        List<ReportDto> reports = reportsPage.getContent().stream()
                 .map(this::toReportDto)
                 .toList();
 
-        auditAccess("list-reports", Map.of());
+        auditAccess("list-reports", Map.of("page", String.valueOf(page), "size", String.valueOf(size)));
 
         return ResponseEntity.ok(new AnalysisResponse<>(
                 "analysis-reports", LocalDateTime.now(),
-                Map.of(),
-                new ReportListDto(reports, (long) reports.size()),
-                Map.of("description", "All published analysis reports, newest first.")));
+                Map.of("page", String.valueOf(page), "size", String.valueOf(size)),
+                new ReportListDto(reports,
+                        reportsPage.getTotalElements(), reportsPage.getTotalPages(), page, size),
+                Map.of("description", "Published analysis reports, newest first.")));
     }
 
     @GetMapping("/transactions")
@@ -708,7 +717,10 @@ public class FinancialAnalysisApiController {
 
     public record DraftsDto(
             List<DraftItemDto> items,
-            long pendingCount
+            long totalElements,
+            int totalPages,
+            int currentPage,
+            int pageSize
     ) {}
 
     public record DraftItemDto(
@@ -763,7 +775,10 @@ public class FinancialAnalysisApiController {
 
     public record ReportListDto(
             List<ReportDto> reports,
-            long totalCount
+            long totalElements,
+            int totalPages,
+            int currentPage,
+            int pageSize
     ) {}
 
     // --- Transaction DTOs ---
