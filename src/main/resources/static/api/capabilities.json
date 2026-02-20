@@ -1,0 +1,687 @@
+{
+  "application": "Aplikasi Akunting",
+  "description": "Indonesian accounting application for small businesses",
+  "authentication": {
+    "type": "OAuth 2.0 Device Authorization (RFC 8628)",
+    "steps": [
+      {
+        "step": 1,
+        "action": "POST /api/device/code",
+        "body": { "clientId": "your-app-name" },
+        "description": "Request device code. Returns deviceCode, userCode, verificationUri"
+      },
+      {
+        "step": 2,
+        "action": "User opens verificationUri in browser, enters userCode, logs in, authorizes device"
+      },
+      {
+        "step": 3,
+        "action": "POST /api/device/token",
+        "body": { "deviceCode": "from-step-1" },
+        "description": "Poll every 5s until authorized. Returns accessToken (Bearer)"
+      }
+    ],
+    "tokenUsage": "Set header: Authorization: Bearer <accessToken>",
+    "tokenExpiry": "30 days",
+    "scopes": [
+      { "scope": "drafts:create", "description": "Create draft transactions from receipt/text" },
+      { "scope": "drafts:approve", "description": "Approve or reject draft transactions" },
+      { "scope": "drafts:read", "description": "Read draft transaction details" },
+      { "scope": "analysis:read", "description": "Read all financial analysis reports" },
+      { "scope": "analysis:write", "description": "Publish AI-generated analysis reports" },
+      { "scope": "transactions:post", "description": "Post draft transactions to ledger" },
+      { "scope": "data:import", "description": "Import bulk data via ZIP" }
+    ]
+  },
+  "endpointGroups": [
+    {
+      "name": "Draft Transactions",
+      "description": "Create and manage AI-parsed transaction drafts",
+      "endpoints": [
+        {
+          "method": "POST",
+          "path": "/api/drafts/from-receipt",
+          "scope": "drafts:create",
+          "description": "Create draft from OCR-parsed receipt data",
+          "requestBody": {
+            "merchant": "string (required)",
+            "amount": "number (required)",
+            "transactionDate": "yyyy-MM-dd (required)",
+            "currency": "string (required)",
+            "confidence": "0.0-1.0 (required)",
+            "source": "string (required)",
+            "items": "string[] (optional)",
+            "category": "string (optional)",
+            "imageBase64": "string (optional)",
+            "rawText": "string (optional)"
+          },
+          "response": "DraftResponse: draftId, status, merchant, amount, suggestedTemplate, confidence, needsClarification"
+        },
+        {
+          "method": "POST",
+          "path": "/api/drafts/from-text",
+          "scope": "drafts:create",
+          "description": "Create draft from AI-parsed text input",
+          "requestBody": {
+            "merchant": "string (required)",
+            "amount": "number (required)",
+            "transactionDate": "yyyy-MM-dd (required)",
+            "currency": "string (required)",
+            "confidence": "0.0-1.0 (required)",
+            "source": "string (required)",
+            "rawText": "string (optional)",
+            "category": "string (optional)"
+          },
+          "response": "DraftResponse: draftId, status, merchant, amount, suggestedTemplate, confidence, needsClarification"
+        },
+        {
+          "method": "GET",
+          "path": "/api/drafts/{id}",
+          "scope": "drafts:read",
+          "description": "Get draft transaction by ID",
+          "response": "DraftResponse: draftId, status, merchant, amount, suggestedTemplate, confidence"
+        },
+        {
+          "method": "POST",
+          "path": "/api/drafts/{id}/approve",
+          "scope": "drafts:approve",
+          "description": "Approve draft and create transaction",
+          "requestBody": {
+            "templateId": "UUID (required)",
+            "amount": "number (optional, override)",
+            "description": "string (optional, override)"
+          },
+          "response": "DraftResponse: draftId, status=APPROVED, transactionId"
+        },
+        {
+          "method": "POST",
+          "path": "/api/drafts/{id}/reject",
+          "scope": "drafts:approve",
+          "description": "Reject draft transaction",
+          "requestBody": {
+            "reason": "string (optional)"
+          },
+          "response": "DraftResponse: draftId, status=REJECTED"
+        },
+        {
+          "method": "GET",
+          "path": "/api/drafts/templates",
+          "scope": "drafts:read",
+          "description": "List available journal templates with AI-friendly metadata",
+          "response": "List<TemplateDto>: id, name, category, description, semanticDescription, keywords, exampleMerchants, typicalAmountMin/Max"
+        },
+        {
+          "method": "GET",
+          "path": "/api/drafts/accounts",
+          "scope": "drafts:read",
+          "description": "List chart of accounts (leaf accounts only)",
+          "response": "List<AccountDto>: id, code, name, type"
+        }
+      ]
+    },
+    {
+      "name": "Transactions",
+      "description": "Direct transaction posting (bypass draft workflow)",
+      "endpoints": [
+        {
+          "method": "POST",
+          "path": "/api/transactions",
+          "scope": "transactions:post",
+          "description": "Create and post transaction directly",
+          "requestBody": {
+            "merchant": "string (required)",
+            "amount": "number (required)",
+            "transactionDate": "yyyy-MM-dd (required)",
+            "templateId": "UUID (required)",
+            "source": "string (required)",
+            "userApproved": "boolean (required, must be true)",
+            "description": "string (optional)",
+            "referenceNumber": "string (optional)"
+          },
+          "response": "TransactionResponse: transactionId, transactionNumber, status, amount, journalEntries"
+        },
+        {
+          "method": "POST",
+          "path": "/api/transactions/{id}/post",
+          "scope": "transactions:post",
+          "description": "Post a single DRAFT transaction to ledger",
+          "response": "TransactionResponse: transactionId, transactionNumber, status=POSTED"
+        },
+        {
+          "method": "POST",
+          "path": "/api/transactions/bulk-post",
+          "scope": "transactions:post",
+          "description": "Bulk post multiple DRAFT transactions",
+          "requestBody": {
+            "transactionIds": "UUID[] (required)"
+          },
+          "response": "BulkPostResponse: results[], successCount, failureCount"
+        }
+      ]
+    },
+    {
+      "name": "Templates",
+      "description": "Journal template management",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/templates",
+          "scope": "drafts:read",
+          "description": "List all journal templates",
+          "response": "List<TemplateDto>: id, name, category, description, semanticDescription, keywords"
+        },
+        {
+          "method": "GET",
+          "path": "/api/templates/{id}",
+          "scope": "drafts:read",
+          "description": "Get single template by ID",
+          "response": "TemplateDto: id, name, category, description, semanticDescription, keywords, exampleMerchants"
+        },
+        {
+          "method": "POST",
+          "path": "/api/templates",
+          "scope": "drafts:create",
+          "description": "Create new journal template",
+          "requestBody": {
+            "templateName": "string (required)",
+            "category": "INCOME|EXPENSE|TRANSFER|ADJUSTMENT (required)",
+            "description": "string (required)"
+          },
+          "response": "TemplateDto: id, name, category, description"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/templates/{id}",
+          "scope": "drafts:create",
+          "description": "Update existing template",
+          "requestBody": {
+            "templateName": "string",
+            "category": "string",
+            "description": "string"
+          },
+          "response": "TemplateDto"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/templates/{id}",
+          "scope": "drafts:create",
+          "description": "Soft-delete template",
+          "response": "204 No Content"
+        }
+      ]
+    },
+    {
+      "name": "Financial Analysis",
+      "description": "Read-only financial data for AI analysis",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/analysis/company",
+          "scope": "analysis:read",
+          "description": "Get company configuration (name, industry, currency, tax status)",
+          "response": "CompanyDto: companyName, industry, currencyCode, fiscalYearStartMonth, isPkp, npwp"
+        },
+        {
+          "method": "GET",
+          "path": "/api/analysis/snapshot?month={yyyy-MM}",
+          "scope": "analysis:read",
+          "description": "Monthly KPI snapshot (revenue, expense, profit, cash balance)",
+          "response": "SnapshotDto: revenue, expense, netProfit, cashBalance, transactionCount, cashBankItems"
+        },
+        {
+          "method": "GET",
+          "path": "/api/analysis/trial-balance?asOfDate={yyyy-MM-dd}",
+          "scope": "analysis:read",
+          "description": "Trial balance as of date",
+          "response": "TrialBalanceDto: items[accountCode, accountName, debitBalance, creditBalance], totalDebit, totalCredit"
+        },
+        {
+          "method": "GET",
+          "path": "/api/analysis/income-statement?startDate={}&endDate={}",
+          "scope": "analysis:read",
+          "description": "Income statement for date range",
+          "response": "IncomeStatementDto: revenueItems, expenseItems, totalRevenue, totalExpense, netIncome"
+        },
+        {
+          "method": "GET",
+          "path": "/api/analysis/balance-sheet?asOfDate={yyyy-MM-dd}",
+          "scope": "analysis:read",
+          "description": "Balance sheet as of date",
+          "response": "BalanceSheetDto: assetItems, liabilityItems, equityItems, totalAssets, totalLiabilities, totalEquity"
+        },
+        {
+          "method": "GET",
+          "path": "/api/analysis/cash-flow?startDate={}&endDate={}",
+          "scope": "analysis:read",
+          "description": "Cash flow statement for date range",
+          "response": "CashFlowDto: operatingItems, investingItems, financingItems, netCashChange"
+        },
+        {
+          "method": "GET",
+          "path": "/api/analysis/tax-summary?startDate={}&endDate={}",
+          "scope": "analysis:read",
+          "description": "Tax account summary (PPN, PPh)",
+          "response": "TaxSummaryDto: items[accountCode, label, balance], totalBalance"
+        },
+        {
+          "method": "GET",
+          "path": "/api/analysis/receivables?asOfDate={yyyy-MM-dd}",
+          "scope": "analysis:read",
+          "description": "Accounts receivable (Piutang)",
+          "response": "ReceivablesPayablesDto: items[accountCode, accountName, balance], totalBalance"
+        },
+        {
+          "method": "GET",
+          "path": "/api/analysis/payables?asOfDate={yyyy-MM-dd}",
+          "scope": "analysis:read",
+          "description": "Accounts payable (Hutang Usaha)",
+          "response": "ReceivablesPayablesDto: items[accountCode, accountName, balance], totalBalance"
+        },
+        {
+          "method": "GET",
+          "path": "/api/analysis/accounts",
+          "scope": "analysis:read",
+          "description": "Chart of accounts (leaf/transactable only)",
+          "response": "AccountsDto: accounts[id, code, name, type, normalBalance]"
+        },
+        {
+          "method": "GET",
+          "path": "/api/analysis/drafts",
+          "scope": "analysis:read",
+          "description": "Pending draft transactions",
+          "response": "DraftsDto: items[id, status, merchantName, amount, confidence], pendingCount"
+        },
+        {
+          "method": "GET",
+          "path": "/api/analysis/transactions?status={}&category={}&startDate={}&endDate={}&search={}&page={}&size={}",
+          "scope": "analysis:read",
+          "description": "Search/filter posted transactions (paginated)",
+          "response": "TransactionsDto: transactions[], totalElements, totalPages, currentPage, pageSize"
+        },
+        {
+          "method": "GET",
+          "path": "/api/analysis/transactions/{id}",
+          "scope": "analysis:read",
+          "description": "Transaction detail with journal entries",
+          "response": "TransactionDetailDto: id, transactionNumber, amount, journalEntries[accountCode, debitAmount, creditAmount]"
+        }
+      ]
+    },
+    {
+      "name": "Analysis Reports",
+      "description": "Publish and retrieve AI-generated analysis reports",
+      "endpoints": [
+        {
+          "method": "POST",
+          "path": "/api/analysis/reports",
+          "scope": "analysis:write",
+          "description": "Publish structured analysis report",
+          "requestBody": {
+            "title": "string (required)",
+            "reportType": "string (required, e.g. monthly-analysis)",
+            "industry": "string (optional)",
+            "executiveSummary": "string (optional)",
+            "metrics": "List<Map> (optional)",
+            "findings": "List<Map> (optional)",
+            "recommendations": "List<Map> (optional)",
+            "risks": "List<Map> (optional)",
+            "periodStart": "yyyy-MM-dd (optional)",
+            "periodEnd": "yyyy-MM-dd (optional)",
+            "aiSource": "string (optional)",
+            "aiModel": "string (optional)"
+          },
+          "response": "AnalysisResponse<ReportDto>: reportId, title, reportType, createdAt"
+        },
+        {
+          "method": "GET",
+          "path": "/api/analysis/reports",
+          "scope": "analysis:read",
+          "description": "List all published analysis reports (newest first)",
+          "response": "AnalysisResponse<ReportListDto>: reports[], totalCount"
+        }
+      ]
+    },
+    {
+      "name": "Data Import",
+      "description": "Bulk data import via ZIP file. Primary use case: onboarding new clients by extracting Chart of Accounts and journal templates from existing financial reports (PDF/XLS), converting to CSV, and uploading as ZIP. Import truncates tables that have matching CSV files in the ZIP; tables without a CSV in the ZIP are unaffected. CSV files with only headers (no data rows) are skipped.",
+      "endpoints": [
+        {
+          "method": "POST",
+          "path": "/api/data-import",
+          "scope": "data:import",
+          "description": "Import seed data from ZIP (multipart/form-data, param: file)",
+          "requestBody": {
+            "file": "ZIP file (required, multipart/form-data)"
+          },
+          "response": "ImportResultDto: totalRecords, documentCount, durationMs"
+        }
+      ],
+      "csvFiles": [
+        {
+          "filename": "01_company_config.csv",
+          "description": "Company configuration (1 row)",
+          "columns": "company_name,company_address,company_phone,company_email,tax_id,npwp,nitku,fiscal_year_start_month,currency_code,signing_officer_name,signing_officer_title,company_logo_path,established_date,is_pkp,pkp_since,industry",
+          "notes": "Essential for new client setup. industry: it-service|online-seller|coffee-shop|campus"
+        },
+        {
+          "filename": "02_chart_of_accounts.csv",
+          "description": "Chart of Accounts",
+          "columns": "account_code,account_name,account_type,parent_code,normal_balance,active,is_permanent",
+          "notes": "account_type: ASSET|LIABILITY|EQUITY|REVENUE|EXPENSE. normal_balance: DEBIT|CREDIT. parent_code: empty for top-level, parent's code for sub-accounts"
+        },
+        {
+          "filename": "04_journal_templates.csv",
+          "description": "Journal templates",
+          "columns": "template_name,category,cash_flow_category,template_type,description,is_system,active,version,usage_count,last_used_at,semantic_description,keywords,example_merchants,typical_amount_min,typical_amount_max,merchant_patterns",
+          "notes": "category: REVENUE|EXPENSE|TRANSFER|ADJUSTMENT|PAYROLL|TAX|RECEIVABLE|PAYABLE|ASSET_PURCHASE|ASSET_DEPRECIATION. cash_flow_category: OPERATING|INVESTING|FINANCING. template_type: SIMPLE|VARIABLE|SPLIT|MULTI_LINE. Pipe-delimited multi-values: keywords, example_merchants, merchant_patterns"
+        },
+        {
+          "filename": "05_journal_template_lines.csv",
+          "description": "Template journal entry lines",
+          "columns": "template_name,line_order,account_code,account_hint,position,formula,description",
+          "notes": "position: DEBIT|CREDIT. formula: AMOUNT (full value), AMOUNT * 0.11 (PPN 11%), etc."
+        },
+        {
+          "filename": "03_salary_components.csv",
+          "description": "Salary components",
+          "notes": "Optional. For payroll setup."
+        },
+        {
+          "filename": "07_clients.csv",
+          "description": "Client/customer master data",
+          "notes": "Optional. For service/project-based businesses."
+        },
+        {
+          "filename": "08_projects.csv",
+          "description": "Projects",
+          "notes": "Optional. References clients."
+        },
+        {
+          "filename": "11_fiscal_periods.csv",
+          "description": "Fiscal periods",
+          "notes": "Optional. Defines accounting periods."
+        },
+        {
+          "filename": "12_tax_deadlines.csv",
+          "description": "Tax filing deadlines",
+          "notes": "Optional. Indonesian tax calendar."
+        },
+        {
+          "filename": "13_company_bank_accounts.csv",
+          "description": "Bank accounts",
+          "notes": "Optional. For bank reconciliation."
+        },
+        {
+          "filename": "14_merchant_mappings.csv",
+          "description": "Merchant-to-template mappings",
+          "notes": "Optional. Maps merchant names to journal templates for AI auto-matching."
+        },
+        {
+          "filename": "18_transactions.csv",
+          "description": "Historical transactions",
+          "notes": "Optional. For migrating existing transaction data."
+        },
+        {
+          "filename": "34_asset_categories.csv",
+          "description": "Fixed asset categories",
+          "notes": "Optional. For fixed asset management."
+        },
+        {
+          "filename": "35_product_categories.csv",
+          "description": "Product categories",
+          "notes": "Optional. For inventory/manufacturing."
+        },
+        {
+          "filename": "36_products.csv",
+          "description": "Product master data",
+          "notes": "Optional. For inventory/manufacturing."
+        },
+        {
+          "filename": "37_bill_of_materials.csv",
+          "description": "Bill of materials",
+          "notes": "Optional. For manufacturing/production."
+        }
+      ]
+    },
+    {
+      "name": "Bank Reconciliation",
+      "description": "Bank statement import, matching, and reconciliation",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/bank-reconciliation/parser-configs",
+          "scope": "analysis:read",
+          "description": "List active bank statement parser configurations",
+          "response": "List<ParserConfigDto>: id, bankType, configName, description"
+        },
+        {
+          "method": "POST",
+          "path": "/api/bank-reconciliation/parser-configs",
+          "scope": "analysis:write",
+          "description": "Create bank statement parser config",
+          "requestBody": {
+            "bankType": "BCA|MANDIRI|BNI|BRI|CUSTOM (required)",
+            "configName": "string (required)",
+            "description": "string (optional)"
+          },
+          "response": "ParserConfigDto: id, bankType, configName"
+        },
+        {
+          "method": "POST",
+          "path": "/api/bank-reconciliation/statements/import",
+          "scope": "data:import",
+          "description": "Import bank statement CSV (multipart/form-data)",
+          "requestBody": {
+            "bankAccountId": "UUID (required)",
+            "parserConfigId": "UUID (required)",
+            "periodStart": "yyyy-MM-dd (required)",
+            "periodEnd": "yyyy-MM-dd (required)",
+            "openingBalance": "number (optional)",
+            "closingBalance": "number (optional)",
+            "file": "CSV file (required)"
+          },
+          "response": "StatementDto: id, bankAccountId, periodStart, periodEnd, totalItems, totalDebit, totalCredit"
+        },
+        {
+          "method": "GET",
+          "path": "/api/bank-reconciliation/statements/{id}",
+          "scope": "analysis:read",
+          "description": "Get bank statement details",
+          "response": "StatementDto"
+        },
+        {
+          "method": "GET",
+          "path": "/api/bank-reconciliation/statements/{id}/items?matchStatus={}",
+          "scope": "analysis:read",
+          "description": "List statement line items (optionally filter by matchStatus)",
+          "response": "List<StatementItemDto>: id, lineNumber, date, description, debitAmount, creditAmount, matchStatus"
+        },
+        {
+          "method": "POST",
+          "path": "/api/bank-reconciliation/reconciliations",
+          "scope": "analysis:write",
+          "description": "Create new reconciliation from bank statement",
+          "requestBody": {
+            "bankStatementId": "UUID (required)",
+            "notes": "string (optional)"
+          },
+          "response": "ReconciliationDto: id, status, matchedCount, unmatchedBankCount, unmatchedBookCount"
+        },
+        {
+          "method": "GET",
+          "path": "/api/bank-reconciliation/reconciliations/{id}",
+          "scope": "analysis:read",
+          "description": "Get reconciliation details",
+          "response": "ReconciliationDto"
+        },
+        {
+          "method": "POST",
+          "path": "/api/bank-reconciliation/reconciliations/{id}/auto-match",
+          "scope": "analysis:write",
+          "description": "Run 3-pass auto-matching (Exact, Fuzzy Date, Keyword)",
+          "response": "{matchCount: number}"
+        },
+        {
+          "method": "POST",
+          "path": "/api/bank-reconciliation/reconciliations/{id}/match",
+          "scope": "analysis:write",
+          "description": "Manual match: link statement item to book transaction",
+          "requestBody": {
+            "statementItemId": "UUID (required)",
+            "transactionId": "UUID (required)"
+          },
+          "response": "200 OK"
+        },
+        {
+          "method": "POST",
+          "path": "/api/bank-reconciliation/reconciliations/{id}/mark-bank-only",
+          "scope": "analysis:write",
+          "description": "Mark statement item as bank-only (no book counterpart)",
+          "requestBody": {
+            "statementItemId": "UUID (required)",
+            "notes": "string (optional)"
+          },
+          "response": "200 OK"
+        },
+        {
+          "method": "POST",
+          "path": "/api/bank-reconciliation/reconciliations/{id}/mark-book-only",
+          "scope": "analysis:write",
+          "description": "Mark book transaction as book-only (no bank counterpart)",
+          "requestBody": {
+            "transactionId": "UUID (required)",
+            "notes": "string (optional)"
+          },
+          "response": "200 OK"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/bank-reconciliation/reconciliations/{id}/items/{itemId}",
+          "scope": "analysis:write",
+          "description": "Unmatch a reconciliation item",
+          "response": "204 No Content"
+        },
+        {
+          "method": "POST",
+          "path": "/api/bank-reconciliation/reconciliations/{id}/create-transaction",
+          "scope": "analysis:write",
+          "description": "Create book transaction from unmatched statement item",
+          "requestBody": {
+            "statementItemId": "UUID (required)",
+            "templateId": "UUID (required)",
+            "description": "string (optional)"
+          },
+          "response": "200 OK"
+        },
+        {
+          "method": "POST",
+          "path": "/api/bank-reconciliation/reconciliations/{id}/complete",
+          "scope": "analysis:write",
+          "description": "Complete reconciliation (locks it)",
+          "response": "200 OK"
+        },
+        {
+          "method": "GET",
+          "path": "/api/bank-reconciliation/reconciliations/{id}/unmatched-book",
+          "scope": "analysis:read",
+          "description": "List book transactions not matched to any statement item",
+          "response": "List<UnmatchedBookTxnDto>: id, transactionDate, description, amount"
+        },
+        {
+          "method": "GET",
+          "path": "/api/bank-reconciliation/reconciliations/{id}/summary",
+          "scope": "analysis:read",
+          "description": "Reconciliation summary report",
+          "response": "Map: matched/unmatched counts, balance comparison"
+        },
+        {
+          "method": "GET",
+          "path": "/api/bank-reconciliation/reconciliations/{id}/statement",
+          "scope": "analysis:read",
+          "description": "Reconciliation statement report",
+          "response": "Map: full reconciliation statement with adjustments"
+        },
+        {
+          "method": "GET",
+          "path": "/api/bank-reconciliation/reconciliations/{id}/outstanding",
+          "scope": "analysis:read",
+          "description": "Outstanding (unmatched) reconciliation items",
+          "response": "List<ReconciliationItem>"
+        }
+      ]
+    }
+  ],
+  "workflows": [
+    {
+      "name": "Receipt-Based Transaction",
+      "steps": [
+        "POST /api/drafts/from-receipt",
+        "Show user the draft + suggested template",
+        "POST /api/drafts/{id}/approve"
+      ]
+    },
+    {
+      "name": "Text-Based Transaction",
+      "steps": [
+        "POST /api/drafts/from-text",
+        "Show user the draft + suggested template",
+        "POST /api/drafts/{id}/approve"
+      ]
+    },
+    {
+      "name": "Direct Transaction (User Pre-Approved)",
+      "steps": [
+        "GET /api/templates (find matching template)",
+        "POST /api/transactions (with userApproved=true)"
+      ]
+    },
+    {
+      "name": "Financial Analysis",
+      "steps": [
+        "GET /api/analysis/company (determine industry)",
+        "GET /api/analysis/snapshot?month=yyyy-MM",
+        "GET /api/analysis/income-statement, balance-sheet, cash-flow, etc.",
+        "POST /api/analysis/reports (publish structured analysis)"
+      ]
+    },
+    {
+      "name": "Bank Reconciliation",
+      "steps": [
+        "GET /api/bank-reconciliation/parser-configs",
+        "POST /api/bank-reconciliation/statements/import",
+        "POST /api/bank-reconciliation/reconciliations",
+        "POST /api/bank-reconciliation/reconciliations/{id}/auto-match",
+        "Review unmatched items, manual match or mark bank/book-only",
+        "POST /api/bank-reconciliation/reconciliations/{id}/complete"
+      ]
+    },
+    {
+      "name": "New Client Onboarding from Financial Reports",
+      "steps": [
+        "Receive client's existing financial reports (PDF/XLS: neraca, laba rugi, buku besar)",
+        "Extract Chart of Accounts structure, journal templates, and initial data",
+        "Generate CSV files matching expected format (see csvFiles in Data Import group)",
+        "Minimum required: 01_company_config.csv, 02_chart_of_accounts.csv, 04_journal_templates.csv, 05_journal_template_lines.csv",
+        "Package CSVs into ZIP file",
+        "POST /api/data-import (multipart/form-data, param: file)"
+      ]
+    },
+    {
+      "name": "Bulk Data Import",
+      "steps": [
+        "Prepare ZIP with CSV files (numbered in dependency order: 01_, 02_, etc.)",
+        "POST /api/data-import (multipart/form-data)"
+      ]
+    }
+  ],
+  "industries": ["it-service", "online-seller", "coffee-shop", "campus"],
+  "errorCodes": {
+    "VALIDATION_ERROR": "400 - Request body validation failed",
+    "MISSING_PARAMETER": "400 - Required query parameter missing",
+    "UNAUTHORIZED": "401 - Missing or invalid Bearer token",
+    "FORBIDDEN": "403 - Token lacks required scope",
+    "NOT_FOUND": "404 - Resource not found",
+    "CONFLICT": "409 - Duplicate or state conflict",
+    "INTERNAL_ERROR": "500 - Unexpected server error"
+  }
+}

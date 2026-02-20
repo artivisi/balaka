@@ -39,6 +39,8 @@ public class SecurityConfig {
                 auth.requestMatchers("/css/**", "/js/**", "/img/**", "/themes/**", "/webjars/**").permitAll()
                     .requestMatchers("/login", "/error").permitAll()
                     .requestMatchers("/api/telegram/webhook").permitAll()
+                    // Static API capabilities descriptor (unauthenticated)
+                    .requestMatchers("/api/capabilities.json").permitAll()
                     // Device flow endpoints (unauthenticated)
                     .requestMatchers("/api/device/**").permitAll()
                     .requestMatchers("/device/**").permitAll();
