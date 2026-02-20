@@ -3,6 +3,7 @@ package com.artivisi.accountingfinance.controller;
 import com.artivisi.accountingfinance.entity.ChartOfAccount;
 import com.artivisi.accountingfinance.entity.CompanyBankAccount;
 import com.artivisi.accountingfinance.entity.CompanyConfig;
+import com.artivisi.accountingfinance.entity.DeviceToken;
 import com.artivisi.accountingfinance.entity.SecurityAuditLog;
 import com.artivisi.accountingfinance.entity.TelegramUserLink;
 import com.artivisi.accountingfinance.entity.User;
@@ -12,6 +13,7 @@ import com.artivisi.accountingfinance.repository.UserRepository;
 import com.artivisi.accountingfinance.service.ChartOfAccountService;
 import com.artivisi.accountingfinance.service.CompanyBankAccountService;
 import com.artivisi.accountingfinance.service.CompanyConfigService;
+import com.artivisi.accountingfinance.service.DeviceAuthService;
 import com.artivisi.accountingfinance.service.DocumentStorageService;
 import com.artivisi.accountingfinance.service.SecurityAuditService;
 import com.artivisi.accountingfinance.service.TelegramBotService;
@@ -74,6 +76,7 @@ public class SettingsController {
     private final CompanyConfigService companyConfigService;
     private final CompanyBankAccountService bankAccountService;
     private final ChartOfAccountService chartOfAccountService;
+    private final DeviceAuthService deviceAuthService;
     private final DocumentStorageService documentStorageService;
     private final TelegramBotService telegramBotService;
     private final TelegramUserLinkRepository telegramLinkRepository;
@@ -457,6 +460,62 @@ public class SettingsController {
 
         redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Akun Telegram berhasil diputus");
         return "redirect:/settings/telegram";
+    }
+
+    // ==================== Device Token Management ====================
+
+    @GetMapping("/devices")
+    public String deviceTokens(Authentication authentication, Model model) {
+        String username = authentication.getName();
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new EntityNotFoundException(ERR_USER_NOT_FOUND));
+
+        List<DeviceToken> tokens = deviceAuthService.getActiveTokens(user);
+        model.addAttribute("deviceTokens", tokens);
+        model.addAttribute(ATTR_CURRENT_PAGE, PAGE_DEVICES);
+
+        return "settings/devices";
+    }
+
+    @PostMapping("/devices/{id}/revoke")
+    public String revokeDeviceToken(
+            @PathVariable UUID id,
+            Authentication authentication,
+            RedirectAttributes redirectAttributes) {
+
+        String username = authentication.getName();
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new EntityNotFoundException(ERR_USER_NOT_FOUND));
+
+        List<DeviceToken> userTokens = deviceAuthService.getActiveTokens(user);
+        boolean belongsToUser = userTokens.stream().anyMatch(t -> t.getId().equals(id));
+        if (!belongsToUser) {
+            redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, "Token tidak ditemukan");
+            return "redirect:/settings/devices";
+        }
+
+        deviceAuthService.revokeToken(id, username);
+        securityAuditService.log(AuditEventType.SETTINGS_CHANGE,
+                "Device token revoked: " + id);
+        redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Sesi perangkat berhasil dicabut");
+        return "redirect:/settings/devices";
+    }
+
+    @PostMapping("/devices/revoke-all")
+    public String revokeAllDeviceTokens(
+            Authentication authentication,
+            RedirectAttributes redirectAttributes) {
+
+        String username = authentication.getName();
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new EntityNotFoundException(ERR_USER_NOT_FOUND));
+
+        int count = deviceAuthService.revokeAllTokens(user, username);
+        securityAuditService.log(AuditEventType.SETTINGS_CHANGE,
+                "All device tokens revoked: " + count + " tokens");
+        redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE,
+                count + " sesi perangkat berhasil dicabut");
+        return "redirect:/settings/devices";
     }
 
     // ==================== About ====================

@@ -254,6 +254,9 @@
                             <a sec:authorize="hasAuthority('SECURITY_SETTINGS_VIEW')" id="nav-security-settings" th:href="@{/settings/security}"
                                th:classappend="${#strings.equals(currentPage, 'security-settings')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
                                class="flex items-center px-3 py-2 rounded-lg transition-colors">Keamanan</a>
+                            <a sec:authorize="hasAuthority('SETTINGS_VIEW')" id="nav-devices" th:href="@{/settings/devices}"
+                               th:classappend="${#strings.equals(currentPage, 'devices')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
+                               class="flex items-center px-3 py-2 rounded-lg transition-colors">Perangkat API</a>
                             <a sec:authorize="hasAuthority('AUDIT_LOG_VIEW')" id="nav-audit-log" th:href="@{/audit-log}"
                                th:classappend="${#strings.equals(currentPage, 'audit-log')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
                                class="flex items-center px-3 py-2 rounded-lg transition-colors">Log Audit</a>
@@ -468,6 +471,8 @@
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Import Data</a>
                             <a sec:authorize="hasAuthority('SECURITY_SETTINGS_VIEW')" th:href="@{/settings/security}"
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Keamanan</a>
+                            <a sec:authorize="hasAuthority('SETTINGS_VIEW')" th:href="@{/settings/devices}"
+                               class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Perangkat API</a>
                             <a sec:authorize="hasAuthority('AUDIT_LOG_VIEW')" th:href="@{/audit-log}"
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Log Audit</a>
                         </div>

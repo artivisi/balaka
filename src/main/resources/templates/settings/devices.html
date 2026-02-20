@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/main}"
+      lang="id">
+<head>
+    <title>Perangkat API</title>
+</head>
+<body>
+    <h1 id="page-title" layout:fragment="page-title">Perangkat API</h1>
+
+    <div id="device-management-content" layout:fragment="content">
+        <!-- Back Link -->
+        <div class="mb-4">
+            <a th:href="@{/settings}" class="inline-flex items-center text-sm text-gray-600 hover:text-gray-900">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+                Kembali ke Pengaturan
+            </a>
+        </div>
+
+        <!-- Success Message -->
+        <div th:if="${successMessage}" class="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg">
+            <div class="flex items-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                <span th:text="${successMessage}">Success message</span>
+            </div>
+        </div>
+
+        <!-- Error Message -->
+        <div th:if="${errorMessage}" class="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+            <div class="flex items-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+                <span th:text="${errorMessage}">Error message</span>
+            </div>
+        </div>
+
+        <div class="max-w-4xl">
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-semibold text-gray-900">Sesi Perangkat Aktif</h2>
+                    <form th:if="${!#lists.isEmpty(deviceTokens)}"
+                          id="form-revoke-all"
+                          th:action="@{/settings/devices/revoke-all}" method="post" class="inline">
+                        <button type="submit"
+                                class="px-3 py-1 text-sm border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors">
+                            Cabut Semua
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Empty State -->
+                <div th:if="${#lists.isEmpty(deviceTokens)}" id="empty-state" class="text-sm text-gray-400 py-8 text-center">
+                    Tidak ada sesi perangkat aktif
+                </div>
+
+                <!-- Token Table -->
+                <div th:if="${!#lists.isEmpty(deviceTokens)}" class="overflow-x-auto">
+                    <table id="device-tokens-table" class="min-w-full text-sm">
+                        <thead>
+                            <tr class="text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th class="px-3 py-2">Perangkat</th>
+                                <th class="px-3 py-2">Client ID</th>
+                                <th class="px-3 py-2">Scope</th>
+                                <th class="px-3 py-2">Status</th>
+                                <th class="px-3 py-2">Dibuat</th>
+                                <th class="px-3 py-2">Terakhir Digunakan</th>
+                                <th class="px-3 py-2">IP Terakhir</th>
+                                <th class="px-3 py-2">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="token : ${deviceTokens}" class="border-t border-gray-100">
+                                <td class="px-3 py-2" th:text="${token.deviceName != null ? token.deviceName : '-'}">Device</td>
+                                <td class="px-3 py-2 font-mono text-xs" th:text="${token.clientId}">client-id</td>
+                                <td class="px-3 py-2 text-xs" th:text="${token.scopes != null ? token.scopes : '-'}">scopes</td>
+                                <td class="px-3 py-2">
+                                    <span th:if="${token.valid}"
+                                          class="px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-700">Aktif</span>
+                                    <span th:unless="${token.valid}"
+                                          class="px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-500">Kedaluwarsa</span>
+                                </td>
+                                <td class="px-3 py-2" th:text="|${#temporals.format(token.createdAt, 'dd/MM/yyyy HH:mm')}|">01/01/2026 10:00</td>
+                                <td class="px-3 py-2" th:text="${token.lastUsedAt != null ? #temporals.format(token.lastUsedAt, 'dd/MM/yyyy HH:mm') : '-'}">-</td>
+                                <td class="px-3 py-2 font-mono text-xs" th:text="${token.lastUsedIp != null ? token.lastUsedIp : '-'}">-</td>
+                                <td class="px-3 py-2">
+                                    <form class="form-revoke-session inline"
+                                          th:action="@{/settings/devices/{id}/revoke(id=${token.id})}" method="post">
+                                        <button type="submit"
+                                                class="px-2 py-1 text-xs border border-red-300 text-red-600 rounded hover:bg-red-50 transition-colors">
+                                            Cabut
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <th:block layout:fragment="scripts">
+        <script th:inline="javascript" th:attr="nonce=${cspNonce}">
+            document.getElementById('form-revoke-all')?.addEventListener('submit', function(e) {
+                if (!confirm('Yakin ingin mencabut semua sesi perangkat?')) e.preventDefault();
+            });
+            document.querySelectorAll('.form-revoke-session').forEach(function(form) {
+                form.addEventListener('submit', function(e) {
+                    if (!confirm('Yakin ingin mencabut sesi perangkat ini?')) e.preventDefault();
+                });
+            });
+        </script>
+    </th:block>
+</body>
+</html>
