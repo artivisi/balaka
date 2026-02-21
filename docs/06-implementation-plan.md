@@ -21,6 +21,9 @@
 | **7** | API Foundation | ✅ Complete |
 | **8** | Bank Reconciliation | ✅ Complete |
 | **9** | Analytics & Insights | ✅ Complete |
+| **10** | Aging Reports & Customer Statements | ⏳ Not Started |
+| **11** | Recurring Transactions | ⏳ Not Started |
+| **12** | WhatsApp Notifications | ⏳ Not Started |
 | **—** | Future Enhancements | As needed |
 
 ---
@@ -1089,6 +1092,75 @@ Additive is ~3x simpler. Role switching only needed for strict audit trails or c
 - [x] Tag-based reports (summary by tag)
 
 **Phase 9 Deliverable:** ✅ Complete — Configurable smart alerts with 7 evaluator types, daily evaluation, dashboard widget, and flexible transaction tagging.
+
+---
+
+## Phase 10: Aging Reports & Customer Statements
+
+**Goal:** Receivables/payables aging analysis and printable per-client statements
+
+### 10.1 Aging Reports
+- [ ] Receivables aging report (current, 30d, 60d, 90d, >90d buckets)
+- [ ] Payables aging report (same buckets)
+- [ ] Aging by client/vendor
+- [ ] Date range selection (aging as-of date)
+- [ ] PDF/Excel export
+- [ ] Functional tests
+- [ ] User manual
+
+### 10.2 Customer/Vendor Statements
+- [ ] Per-client statement (outstanding invoices, payments received, balance)
+- [ ] Per-vendor statement (outstanding bills, payments made, balance)
+- [ ] Date range filter
+- [ ] Printable format (PDF, suitable for sending to client as payment reminder)
+- [ ] Functional tests
+- [ ] User manual
+
+---
+
+## Phase 11: Recurring Transactions
+
+**Goal:** Auto-posting scheduled transactions for predictable recurring expenses/revenues
+
+### 11.1 Recurring Schedule
+- [ ] RecurringTransaction entity (template, frequency, start/end date, next_run, status)
+- [ ] Frequency options: daily, weekly, monthly, quarterly, yearly
+- [ ] Recurring transaction CRUD UI
+- [ ] Preview next N occurrences
+- [ ] Pause/resume schedule
+
+### 11.2 Auto-Posting
+- [ ] Scheduler job (daily, creates and posts transactions on due date)
+- [ ] Skip weekends/holidays option
+- [ ] Notification on auto-post (dashboard widget)
+- [ ] Error handling (log failures, retry next day)
+- [ ] Functional tests
+- [ ] User manual
+
+---
+
+## Phase 12: WhatsApp Notifications
+
+**Goal:** Send invoice reminders and alert notifications via WhatsApp
+
+### 12.1 WhatsApp Integration
+- [ ] WhatsApp Business API provider integration (Wablas/Fonnte or official API)
+- [ ] Provider configuration (API key, sender number)
+- [ ] Message template management
+- [ ] Send test message
+
+### 12.2 Invoice Reminders
+- [ ] Auto-send reminder for overdue invoices
+- [ ] Configurable reminder schedule (e.g., 7d before due, on due date, 7d after)
+- [ ] Per-client phone number (from Client entity)
+- [ ] Opt-out per client
+
+### 12.3 Alert Notifications
+- [ ] Send smart alert events via WhatsApp to configured recipients
+- [ ] Configurable: which alert types trigger WhatsApp notification
+- [ ] Recipient list management
+- [ ] Functional tests
+- [ ] User manual
 
 ---
 
