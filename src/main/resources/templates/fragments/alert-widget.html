@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="id">
+<head><title>Alert Widget Fragment</title></head>
+<body>
+    <!-- Alert Widget Fragment -->
+    <div th:fragment="widget" id="alert-widget-content" class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <div class="flex items-center justify-between mb-3">
+            <h2 class="text-sm font-semibold text-gray-900">Peringatan</h2>
+            <a th:href="@{/alerts}" class="text-xs text-primary-600 hover:text-primary-800">Lihat Semua</a>
+        </div>
+
+        <!-- No active alerts -->
+        <th:block th:if="${activeCount == 0}">
+            <div class="text-center py-4 text-gray-500">
+                <svg class="w-8 h-8 mx-auto mb-2 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <p class="text-sm">Tidak ada peringatan aktif</p>
+            </div>
+        </th:block>
+
+        <!-- Summary stats -->
+        <th:block th:if="${activeCount > 0}">
+            <div class="grid grid-cols-3 gap-2 mb-3">
+                <div class="text-center p-2 rounded-lg" th:classappend="${criticalCount > 0} ? 'bg-red-50' : 'bg-gray-50'">
+                    <div class="text-lg font-bold" th:classappend="${criticalCount > 0} ? 'text-red-600' : 'text-gray-900'" th:text="${criticalCount}">0</div>
+                    <div class="text-xs" th:classappend="${criticalCount > 0} ? 'text-red-500' : 'text-gray-500'">Kritis</div>
+                </div>
+                <div class="text-center p-2 rounded-lg" th:classappend="${warningCount > 0} ? 'bg-yellow-50' : 'bg-gray-50'">
+                    <div class="text-lg font-bold" th:classappend="${warningCount > 0} ? 'text-yellow-600' : 'text-gray-900'" th:text="${warningCount}">0</div>
+                    <div class="text-xs" th:classappend="${warningCount > 0} ? 'text-yellow-500' : 'text-gray-500'">Peringatan</div>
+                </div>
+                <div class="text-center p-2 bg-gray-50 rounded-lg">
+                    <div class="text-lg font-bold text-gray-900" th:text="${infoCount}">0</div>
+                    <div class="text-xs text-gray-500">Info</div>
+                </div>
+            </div>
+
+            <!-- Recent alerts list -->
+            <th:block th:if="${!recentAlerts.isEmpty()}">
+                <div class="border-t border-gray-100 pt-2 space-y-2">
+                    <div th:each="alert : ${recentAlerts}"
+                         class="flex items-start gap-2 py-1.5 px-2 rounded"
+                         th:classappend="${alert.severity.name() == 'CRITICAL'} ? 'bg-red-50' : ''">
+                        <span class="inline-block w-2 h-2 rounded-full mt-1.5 flex-shrink-0"
+                              th:classappend="${alert.severity.name() == 'CRITICAL'} ? 'bg-red-500' : (${alert.severity.name() == 'WARNING'} ? 'bg-yellow-500' : 'bg-blue-500')"></span>
+                        <div class="min-w-0 flex-1">
+                            <div class="text-xs font-medium text-gray-900 truncate" th:text="${alert.alertRule.alertType.indonesianName}">Kas Rendah</div>
+                            <div class="text-xs text-gray-500 truncate" th:text="${alert.message}">Message</div>
+                        </div>
+                    </div>
+                </div>
+            </th:block>
+
+            <!-- Action button for critical alerts -->
+            <th:block th:if="${criticalCount > 0}">
+                <div class="mt-3 pt-2 border-t border-gray-100">
+                    <a th:href="@{/alerts}" class="block w-full text-center py-2 px-3 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors">
+                        Lihat Peringatan Kritis
+                    </a>
+                </div>
+            </th:block>
+        </th:block>
+    </div>
+</body>
+</html>

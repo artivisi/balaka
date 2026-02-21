@@ -149,6 +149,11 @@ public final class Permission {
     public static final String TAG_EDIT = "TAG_EDIT";
     public static final String TAG_DELETE = "TAG_DELETE";
 
+    // Smart Alerts
+    public static final String ALERT_VIEW = "ALERT_VIEW";
+    public static final String ALERT_CONFIG = "ALERT_CONFIG";
+    public static final String ALERT_ACKNOWLEDGE = "ALERT_ACKNOWLEDGE";
+
     // Bank Reconciliation
     public static final String BANK_RECONCILIATION_VIEW = "BANK_RECONCILIATION_VIEW";
     public static final String BANK_RECONCILIATION_IMPORT = "BANK_RECONCILIATION_IMPORT";
@@ -196,6 +201,7 @@ public final class Permission {
                 CALCULATOR_USE,
                 BANK_RECONCILIATION_VIEW, BANK_RECONCILIATION_IMPORT, BANK_RECONCILIATION_MATCH, BANK_RECONCILIATION_COMPLETE, BANK_RECONCILIATION_CONFIG,
                 ANALYSIS_REPORT_VIEW,
+                ALERT_VIEW, ALERT_CONFIG, ALERT_ACKNOWLEDGE,
                 TAG_VIEW, TAG_CREATE, TAG_EDIT, TAG_DELETE,
                 DATA_IMPORT,
                 SETTINGS_VIEW, SETTINGS_EDIT,
@@ -229,6 +235,7 @@ public final class Permission {
                 CALCULATOR_USE,
                 BANK_RECONCILIATION_VIEW, BANK_RECONCILIATION_IMPORT, BANK_RECONCILIATION_MATCH, BANK_RECONCILIATION_COMPLETE, BANK_RECONCILIATION_CONFIG,
                 ANALYSIS_REPORT_VIEW,
+                ALERT_VIEW, ALERT_CONFIG, ALERT_ACKNOWLEDGE,
                 TAG_VIEW, TAG_CREATE, TAG_EDIT, TAG_DELETE,
                 DATA_IMPORT,
                 SETTINGS_VIEW, SETTINGS_EDIT,
@@ -259,6 +266,7 @@ public final class Permission {
                 PAYROLL_VIEW, PAYROLL_CREATE, PAYROLL_APPROVE, PAYROLL_POST, PAYROLL_EXPORT,
                 BANK_RECONCILIATION_VIEW, BANK_RECONCILIATION_IMPORT, BANK_RECONCILIATION_MATCH, BANK_RECONCILIATION_COMPLETE,
                 ANALYSIS_REPORT_VIEW,
+                ALERT_VIEW, ALERT_ACKNOWLEDGE,
                 TAG_VIEW, TAG_CREATE, TAG_EDIT,
                 CALCULATOR_USE,
                 SETTINGS_VIEW, // Read-only access to settings (can view, but only edit own Telegram)
@@ -282,6 +290,7 @@ public final class Permission {
                 PRODUCT_VIEW, INVENTORY_VIEW,
                 BANK_RECONCILIATION_VIEW,
                 ANALYSIS_REPORT_VIEW,
+                ALERT_VIEW,
                 TAG_VIEW,
                 CALCULATOR_USE,
                 SETTINGS_VIEW, // Read-only access to settings (can view, but only edit own Telegram)
@@ -311,6 +320,7 @@ public final class Permission {
                 PAYROLL_VIEW, PAYROLL_EXPORT,
                 BANK_RECONCILIATION_VIEW,
                 ANALYSIS_REPORT_VIEW,
+                ALERT_VIEW,
                 TAG_VIEW,
                 CALCULATOR_USE,
                 AUDIT_LOG_VIEW,

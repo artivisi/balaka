@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      layout:decorate="~{layouts/main}"
+      lang="id">
+<head>
+    <title>Riwayat Peringatan</title>
+</head>
+<body>
+    <h1 layout:fragment="page-title" id="page-title">Riwayat Peringatan</h1>
+
+    <div layout:fragment="content">
+        <!-- Tab navigation -->
+        <div class="flex gap-2 mb-6 border-b border-gray-200">
+            <a th:href="@{/alerts}" class="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700">Aktif</a>
+            <a sec:authorize="hasAuthority('ALERT_CONFIG')" th:href="@{/alerts/config}" class="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700">Konfigurasi</a>
+            <a th:href="@{/alerts/history}" class="px-4 py-2 text-sm font-medium text-primary-600 border-b-2 border-primary-600">Riwayat</a>
+        </div>
+
+        <!-- Filters -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
+            <form th:action="@{/alerts/history}" method="get" class="flex flex-wrap gap-3 items-end"
+                  hx-get="/alerts/history" hx-target="#alert-history-content" hx-swap="innerHTML"
+                  hx-push-url="true" hx-trigger="change from:select">
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1">Tipe</label>
+                    <select name="alertType" class="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-primary-500">
+                        <option value="">Semua</option>
+                        <option th:each="type : ${alertTypes}" th:value="${type.name()}" th:text="${type.indonesianName}"
+                                th:selected="${selectedAlertType != null and selectedAlertType.name() == type.name()}">Type</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1">Severity</label>
+                    <select name="severity" class="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-primary-500">
+                        <option value="">Semua</option>
+                        <option th:each="sev : ${severities}" th:value="${sev.name()}" th:text="${sev.indonesianName}"
+                                th:selected="${selectedSeverity != null and selectedSeverity.name() == sev.name()}">Sev</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1">Status</label>
+                    <select name="acknowledged" class="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-primary-500">
+                        <option value="">Semua</option>
+                        <option value="false" th:selected="${selectedAcknowledged != null and !selectedAcknowledged}">Belum Dikonfirmasi</option>
+                        <option value="true" th:selected="${selectedAcknowledged != null and selectedAcknowledged}">Sudah Dikonfirmasi</option>
+                    </select>
+                </div>
+            </form>
+        </div>
+
+        <!-- Table content -->
+        <div id="alert-history-content">
+            <div th:replace="~{alerts/fragments/alert-history-table :: table}"></div>
+        </div>
+    </div>
+</body>
+</html>

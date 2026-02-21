@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="id">
+<head><title>Alert History Table Fragment</title></head>
+<body>
+    <div th:fragment="table">
+        <!-- Empty state -->
+        <div th:if="${events.isEmpty()}" class="text-center py-8 text-gray-500">
+            <p class="text-sm">Tidak ada riwayat peringatan</p>
+        </div>
+
+        <!-- Table -->
+        <div th:unless="${events.isEmpty()}" class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Waktu</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipe</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Severity</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Pesan</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    <tr th:each="event : ${events}">
+                        <td class="px-4 py-3 text-sm text-gray-600 whitespace-nowrap" th:text="|${#temporals.format(event.triggeredAt, 'dd MMM yyyy HH:mm')}|">21 Feb 2026</td>
+                        <td class="px-4 py-3 text-sm text-gray-900" th:text="${event.alertRule.alertType.indonesianName}">Kas Rendah</td>
+                        <td class="px-4 py-3">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
+                                  th:classappend="${event.severity.name() == 'CRITICAL'} ? 'bg-red-100 text-red-800' : (${event.severity.name() == 'WARNING'} ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800')"
+                                  th:text="${event.severity.indonesianName}">Warning</span>
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-600 max-w-md truncate" th:text="${event.message}">Message</td>
+                        <td class="px-4 py-3 text-sm">
+                            <span th:if="${event.acknowledgedAt != null}" class="text-green-600" th:text="|Dikonfirmasi oleh ${event.acknowledgedBy}|">Dikonfirmasi</span>
+                            <span th:unless="${event.acknowledgedAt != null}" class="text-orange-600">Belum dikonfirmasi</span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- Pagination -->
+            <div th:if="${events.totalPages > 1}" class="px-4 py-3 border-t border-gray-200 flex items-center justify-between">
+                <div class="text-sm text-gray-500" th:text="|Halaman ${events.number + 1} dari ${events.totalPages} (${events.totalElements} total)|">Page info</div>
+                <div class="flex gap-2">
+                    <a th:unless="${events.first}" th:href="@{/alerts/history(page=${events.number - 1}, alertType=${selectedAlertType}, severity=${selectedSeverity}, acknowledged=${selectedAcknowledged})}"
+                       class="px-3 py-1 text-sm border border-gray-300 rounded-lg hover:bg-gray-50">Sebelumnya</a>
+                    <a th:unless="${events.last}" th:href="@{/alerts/history(page=${events.number + 1}, alertType=${selectedAlertType}, severity=${selectedSeverity}, acknowledged=${selectedAcknowledged})}"
+                       class="px-3 py-1 text-sm border border-gray-300 rounded-lg hover:bg-gray-50">Berikutnya</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

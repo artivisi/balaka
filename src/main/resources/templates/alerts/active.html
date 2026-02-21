@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      layout:decorate="~{layouts/main}"
+      lang="id">
+<head>
+    <title>Peringatan Aktif</title>
+</head>
+<body>
+    <h1 layout:fragment="page-title" id="page-title">Peringatan Aktif</h1>
+
+    <div layout:fragment="content">
+        <!-- Success message -->
+        <div th:if="${successMessage}" class="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-green-800 text-sm" th:text="${successMessage}"></div>
+
+        <!-- Tab navigation -->
+        <div class="flex gap-2 mb-6 border-b border-gray-200">
+            <a th:href="@{/alerts}" class="px-4 py-2 text-sm font-medium text-primary-600 border-b-2 border-primary-600">Aktif</a>
+            <a sec:authorize="hasAuthority('ALERT_CONFIG')" th:href="@{/alerts/config}" class="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700">Konfigurasi</a>
+            <a th:href="@{/alerts/history}" class="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700">Riwayat</a>
+        </div>
+
+        <!-- Empty state -->
+        <div th:if="${#lists.isEmpty(alerts)}" class="text-center py-12">
+            <svg class="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <p class="text-gray-500">Tidak ada peringatan aktif</p>
+        </div>
+
+        <!-- Alert cards -->
+        <div th:if="${!#lists.isEmpty(alerts)}" class="space-y-3">
+            <div th:each="alert : ${alerts}"
+                 class="bg-white rounded-lg shadow-sm border p-4"
+                 th:classappend="${alert.severity.name() == 'CRITICAL'} ? 'border-red-300' : (${alert.severity.name() == 'WARNING'} ? 'border-yellow-300' : 'border-blue-300')">
+                <div class="flex items-start justify-between">
+                    <div class="flex items-start gap-3 flex-1">
+                        <!-- Severity badge -->
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium mt-0.5"
+                              th:classappend="${alert.severity.name() == 'CRITICAL'} ? 'bg-red-100 text-red-800' : (${alert.severity.name() == 'WARNING'} ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800')"
+                              th:text="${alert.severity.indonesianName}">Kritis</span>
+                        <div class="flex-1">
+                            <div class="text-sm font-medium text-gray-900" th:text="${alert.alertRule.alertType.indonesianName}">Kas Rendah</div>
+                            <div class="text-sm text-gray-600 mt-1" th:text="${alert.message}">Saldo kas di bawah ambang batas</div>
+                            <div class="text-xs text-gray-400 mt-2" th:text="|${#temporals.format(alert.triggeredAt, 'dd MMM yyyy HH:mm')}|">21 Feb 2026 08:00</div>
+                        </div>
+                    </div>
+                    <!-- Acknowledge button -->
+                    <form sec:authorize="hasAuthority('ALERT_ACKNOWLEDGE')" th:action="@{'/alerts/' + ${alert.id} + '/acknowledge'}" method="post" class="ml-3 flex-shrink-0">
+                        <button type="submit" class="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
+                            Konfirmasi
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

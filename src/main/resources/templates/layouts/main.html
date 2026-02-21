@@ -131,6 +131,9 @@
                             <a sec:authorize="hasAuthority('ANALYSIS_REPORT_VIEW')" id="nav-analysis-reports" th:href="@{/analysis-reports}"
                                th:classappend="${#strings.equals(currentPage, 'analysis-reports')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
                                class="flex items-center px-3 py-2 rounded-lg transition-colors">Analisis AI</a>
+                            <a sec:authorize="hasAuthority('ALERT_VIEW')" id="nav-alerts" th:href="@{/alerts}"
+                               th:classappend="${currentPage != null and currentPage.startsWith('alert')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
+                               class="flex items-center px-3 py-2 rounded-lg transition-colors">Peringatan</a>
                         </div>
                     </details>
 
@@ -369,6 +372,8 @@
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Export Pajak</a>
                             <a sec:authorize="hasAuthority('ANALYSIS_REPORT_VIEW')" th:href="@{/analysis-reports}"
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Analisis AI</a>
+                            <a sec:authorize="hasAuthority('ALERT_VIEW')" th:href="@{/alerts}"
+                               class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Peringatan</a>
                         </div>
                     </details>
 

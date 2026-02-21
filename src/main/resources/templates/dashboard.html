@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
       layout:decorate="~{layouts/main}"
       lang="id">
 <head>
@@ -196,6 +197,36 @@
                 <div id="amortization-widget"
                      hx-get="/dashboard/amortization-widget"
                      hx-trigger="load, amortizationUpdated from:body"
+                     hx-swap="innerHTML"
+                     class="flex-shrink-0">
+                    <!-- Loading skeleton -->
+                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 animate-pulse">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="h-4 bg-gray-200 rounded w-20"></div>
+                            <div class="h-3 bg-gray-200 rounded w-16"></div>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2">
+                            <div class="text-center p-2 bg-gray-100 rounded-lg">
+                                <div class="h-5 bg-gray-200 rounded w-6 mx-auto mb-1"></div>
+                                <div class="h-3 bg-gray-200 rounded w-10 mx-auto"></div>
+                            </div>
+                            <div class="text-center p-2 bg-gray-100 rounded-lg">
+                                <div class="h-5 bg-gray-200 rounded w-6 mx-auto mb-1"></div>
+                                <div class="h-3 bg-gray-200 rounded w-10 mx-auto"></div>
+                            </div>
+                            <div class="text-center p-2 bg-gray-100 rounded-lg">
+                                <div class="h-5 bg-gray-200 rounded w-6 mx-auto mb-1"></div>
+                                <div class="h-3 bg-gray-200 rounded w-10 mx-auto"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Alert Widget - Loaded via HTMX -->
+                <div id="alert-widget"
+                     sec:authorize="hasAuthority('ALERT_VIEW')"
+                     hx-get="/dashboard/alerts"
+                     hx-trigger="load, alertsUpdated from:body"
                      hx-swap="innerHTML"
                      class="flex-shrink-0">
                     <!-- Loading skeleton -->

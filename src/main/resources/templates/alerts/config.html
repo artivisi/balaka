@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      layout:decorate="~{layouts/main}"
+      lang="id">
+<head>
+    <title>Konfigurasi Peringatan</title>
+</head>
+<body>
+    <h1 layout:fragment="page-title" id="page-title">Konfigurasi Peringatan</h1>
+
+    <div layout:fragment="content">
+        <!-- Success message -->
+        <div th:if="${successMessage}" class="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-green-800 text-sm" th:text="${successMessage}"></div>
+
+        <!-- Tab navigation -->
+        <div class="flex gap-2 mb-6 border-b border-gray-200">
+            <a th:href="@{/alerts}" class="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700">Aktif</a>
+            <a th:href="@{/alerts/config}" class="px-4 py-2 text-sm font-medium text-primary-600 border-b-2 border-primary-600">Konfigurasi</a>
+            <a th:href="@{/alerts/history}" class="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700">Riwayat</a>
+        </div>
+
+        <!-- Rules as cards (avoids form-inside-table HTML issue) -->
+        <div class="space-y-3">
+            <div th:each="rule : ${rules}" class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                <form th:action="@{'/alerts/config/' + ${rule.id}}" method="post">
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+                        <!-- Type and description -->
+                        <div class="flex-1">
+                            <div class="text-sm font-medium text-gray-900" th:text="${rule.alertType.indonesianName}">Kas Rendah</div>
+                            <div class="text-xs text-gray-500" th:text="${rule.alertType.name()}">CASH_LOW</div>
+                            <div class="text-sm text-gray-600 mt-1" th:text="${rule.description}">Deskripsi</div>
+                        </div>
+
+                        <!-- Threshold -->
+                        <div class="flex items-center gap-2">
+                            <div th:if="${rule.alertType.name() == 'PROJECT_COST_OVERRUN'}" class="text-sm text-gray-500">
+                                -
+                                <input type="hidden" name="threshold" th:value="${rule.threshold}">
+                            </div>
+                            <div th:unless="${rule.alertType.name() == 'PROJECT_COST_OVERRUN'}" class="flex items-center gap-1">
+                                <span th:if="${rule.alertType.name() == 'CASH_LOW' or rule.alertType.name() == 'RECEIVABLE_OVERDUE'}" class="text-xs text-gray-500">Rp</span>
+                                <input type="number" name="threshold" step="0.01"
+                                       th:value="${rule.threshold}"
+                                       class="w-32 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-primary-500 focus:border-primary-500">
+                                <span th:if="${rule.alertType.name() == 'EXPENSE_SPIKE' or rule.alertType.name() == 'PROJECT_MARGIN_DROP' or rule.alertType.name() == 'CLIENT_CONCENTRATION'}" class="text-xs text-gray-500">%</span>
+                                <span th:if="${rule.alertType.name() == 'COLLECTION_SLOWDOWN'}" class="text-xs text-gray-500">hari</span>
+                            </div>
+                        </div>
+
+                        <!-- Enabled toggle -->
+                        <div class="flex items-center gap-2">
+                            <label class="text-xs text-gray-500">Aktif</label>
+                            <input type="checkbox" name="enabled" value="true"
+                                   th:checked="${rule.enabled}"
+                                   class="h-4 w-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500">
+                        </div>
+
+                        <!-- Save button -->
+                        <button type="submit" class="px-3 py-1.5 text-xs font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors flex-shrink-0">
+                            Simpan
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
