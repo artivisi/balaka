@@ -1115,7 +1115,7 @@ Additive is ~3x simpler. Role switching only needed for strict audit trails or c
 ### 10.2 Vendor Bill (Faktur Pembelian)
 - [ ] Bill entity (vendor/supplier, bill_number, bill_date, due_date, amount, status)
 - [ ] BillLine entity (description, quantity, unit_price, tax, amount)
-- [ ] Vendor entity (or reuse Client with type flag)
+- [ ] Vendor entity (dedicated table — separate from Client, different data needs: default expense account, tax withholding)
 - [ ] Bill CRUD UI
 - [ ] Bill status workflow: DRAFT → APPROVED → PARTIAL → PAID / OVERDUE / CANCELLED
 - [ ] Link bill to purchase transaction
