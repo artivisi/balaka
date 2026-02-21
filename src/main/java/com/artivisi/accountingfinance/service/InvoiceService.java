@@ -2,12 +2,15 @@ package com.artivisi.accountingfinance.service;
 
 import com.artivisi.accountingfinance.entity.Client;
 import com.artivisi.accountingfinance.entity.Invoice;
+import com.artivisi.accountingfinance.entity.InvoiceLine;
+import com.artivisi.accountingfinance.entity.Product;
 import com.artivisi.accountingfinance.entity.Project;
 import com.artivisi.accountingfinance.entity.ProjectPaymentTerm;
 import com.artivisi.accountingfinance.entity.Transaction;
 import com.artivisi.accountingfinance.enums.InvoiceStatus;
 import com.artivisi.accountingfinance.repository.ClientRepository;
 import com.artivisi.accountingfinance.repository.InvoiceRepository;
+import com.artivisi.accountingfinance.repository.ProductRepository;
 import com.artivisi.accountingfinance.repository.ProjectPaymentTermRepository;
 import com.artivisi.accountingfinance.repository.ProjectRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -33,6 +36,7 @@ public class InvoiceService {
     private final ClientRepository clientRepository;
     private final ProjectRepository projectRepository;
     private final ProjectPaymentTermRepository paymentTermRepository;
+    private final ProductRepository productRepository;
 
     public Invoice findById(UUID id) {
         return invoiceRepository.findById(id)
@@ -70,6 +74,11 @@ public class InvoiceService {
 
     @Transactional
     public Invoice create(Invoice invoice) {
+        return create(invoice, null);
+    }
+
+    @Transactional
+    public Invoice create(Invoice invoice, List<InvoiceLine> lines) {
         // Generate invoice number if not provided
         if (invoice.getInvoiceNumber() == null || invoice.getInvoiceNumber().isBlank()) {
             invoice.setInvoiceNumber(generateInvoiceNumber());
@@ -104,6 +113,18 @@ public class InvoiceService {
         }
 
         invoice.setStatus(InvoiceStatus.DRAFT);
+
+        if (lines != null && !lines.isEmpty()) {
+            for (int i = 0; i < lines.size(); i++) {
+                InvoiceLine line = lines.get(i);
+                line.setInvoice(invoice);
+                line.setLineOrder(i);
+                resolveLineProduct(line);
+            }
+            invoice.getLines().addAll(lines);
+            invoice.recalculateFromLines();
+        }
+
         return invoiceRepository.save(invoice);
     }
 
@@ -142,6 +163,11 @@ public class InvoiceService {
 
     @Transactional
     public Invoice update(UUID id, Invoice updatedInvoice) {
+        return update(id, updatedInvoice, null);
+    }
+
+    @Transactional
+    public Invoice update(UUID id, Invoice updatedInvoice, List<InvoiceLine> lines) {
         Invoice existing = findById(id);
 
         if (existing.getStatus() != InvoiceStatus.DRAFT) {
@@ -174,8 +200,22 @@ public class InvoiceService {
 
         existing.setInvoiceDate(updatedInvoice.getInvoiceDate());
         existing.setDueDate(updatedInvoice.getDueDate());
-        existing.setAmount(updatedInvoice.getAmount());
         existing.setNotes(updatedInvoice.getNotes());
+
+        // Handle line items
+        existing.getLines().clear();
+        if (lines != null && !lines.isEmpty()) {
+            for (int i = 0; i < lines.size(); i++) {
+                InvoiceLine line = lines.get(i);
+                line.setInvoice(existing);
+                line.setLineOrder(i);
+                resolveLineProduct(line);
+            }
+            existing.getLines().addAll(lines);
+            existing.recalculateFromLines();
+        } else {
+            existing.setAmount(updatedInvoice.getAmount());
+        }
 
         return invoiceRepository.save(existing);
     }
@@ -208,8 +248,9 @@ public class InvoiceService {
     public Invoice markAsPaid(UUID id) {
         Invoice invoice = findById(id);
 
-        if (invoice.getStatus() != InvoiceStatus.SENT && invoice.getStatus() != InvoiceStatus.OVERDUE) {
-            throw new IllegalStateException("Only sent or overdue invoices can be marked as paid");
+        if (invoice.getStatus() != InvoiceStatus.SENT && invoice.getStatus() != InvoiceStatus.OVERDUE
+                && invoice.getStatus() != InvoiceStatus.PARTIAL) {
+            throw new IllegalStateException("Only sent, overdue, or partial invoices can be marked as paid");
         }
 
         invoice.setStatus(InvoiceStatus.PAID);
@@ -221,8 +262,9 @@ public class InvoiceService {
     public Invoice linkTransactionAndMarkPaid(UUID invoiceId, Transaction transaction) {
         Invoice invoice = findById(invoiceId);
 
-        if (invoice.getStatus() != InvoiceStatus.SENT && invoice.getStatus() != InvoiceStatus.OVERDUE) {
-            throw new IllegalStateException("Only sent or overdue invoices can be marked as paid");
+        if (invoice.getStatus() != InvoiceStatus.SENT && invoice.getStatus() != InvoiceStatus.OVERDUE
+                && invoice.getStatus() != InvoiceStatus.PARTIAL) {
+            throw new IllegalStateException("Only sent, overdue, or partial invoices can be marked as paid");
         }
 
         invoice.setTransaction(transaction);
@@ -273,6 +315,16 @@ public class InvoiceService {
         Integer maxSeq = invoiceRepository.findMaxSequenceByPrefix(prefix + "%");
         int nextSeq = (maxSeq == null ? 0 : maxSeq) + 1;
         return prefix + String.format("%04d", nextSeq);
+    }
+
+    private void resolveLineProduct(InvoiceLine line) {
+        if (line.getProduct() != null && line.getProduct().getId() != null) {
+            Product product = productRepository.findById(line.getProduct().getId())
+                    .orElseThrow(() -> new EntityNotFoundException("Product not found"));
+            line.setProduct(product);
+        } else {
+            line.setProduct(null);
+        }
     }
 
     private LocalDate calculateDueDate(ProjectPaymentTerm paymentTerm) {

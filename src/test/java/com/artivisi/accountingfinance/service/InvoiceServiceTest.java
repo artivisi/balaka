@@ -412,7 +412,7 @@ class InvoiceServiceTest {
 
             assertThatThrownBy(() -> invoiceService.markAsPaid(invoice.getId()))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("Only sent or overdue invoices can be marked as paid");
+                .hasMessageContaining("Only sent, overdue, or partial invoices can be marked as paid");
         }
 
         @Test
@@ -473,7 +473,7 @@ class InvoiceServiceTest {
 
             assertThatThrownBy(() -> invoiceService.linkTransactionAndMarkPaid(invoice.getId(), transaction))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("Only sent or overdue invoices can be marked as paid");
+                .hasMessageContaining("Only sent, overdue, or partial invoices can be marked as paid");
         }
     }
 

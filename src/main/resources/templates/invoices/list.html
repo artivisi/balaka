@@ -90,6 +90,7 @@
                         <td class="px-6 py-4 text-center">
                             <span th:if="${invoice.status.name() == 'DRAFT'}" class="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600">Draf</span>
                             <span th:if="${invoice.status.name() == 'SENT'}" class="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">Terkirim</span>
+                            <span th:if="${invoice.status.name() == 'PARTIAL'}" class="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">Sebagian</span>
                             <span th:if="${invoice.status.name() == 'PAID'}" class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">Lunas</span>
                             <span th:if="${invoice.status.name() == 'OVERDUE'}" class="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800">Jatuh Tempo</span>
                             <span th:if="${invoice.status.name() == 'CANCELLED'}" class="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-500">Dibatalkan</span>

@@ -24,6 +24,7 @@
             <div class="flex items-center gap-2">
                 <span th:if="${invoice.status.name() == 'DRAFT'}" class="px-3 py-1 text-sm font-medium rounded-full bg-gray-100 text-gray-600">Draf</span>
                 <span th:if="${invoice.status.name() == 'SENT'}" class="px-3 py-1 text-sm font-medium rounded-full bg-blue-100 text-blue-800">Terkirim</span>
+                <span th:if="${invoice.status.name() == 'PARTIAL'}" class="px-3 py-1 text-sm font-medium rounded-full bg-yellow-100 text-yellow-800">Sebagian</span>
                 <span th:if="${invoice.status.name() == 'PAID'}" class="px-3 py-1 text-sm font-medium rounded-full bg-green-100 text-green-800">Lunas</span>
                 <span th:if="${invoice.status.name() == 'OVERDUE'}" class="px-3 py-1 text-sm font-medium rounded-full bg-red-100 text-red-800">Jatuh Tempo</span>
                 <span th:if="${invoice.status.name() == 'CANCELLED'}" class="px-3 py-1 text-sm font-medium rounded-full bg-gray-100 text-gray-500">Dibatalkan</span>
@@ -45,6 +46,10 @@
                 <div>
                     <p class="text-gray-500">Jumlah</p>
                     <p class="font-medium text-lg" th:text="'Rp ' + ${#numbers.formatDecimal(invoice.amount, 0, 'COMMA', 0, 'POINT')}">Rp 0</p>
+                </div>
+                <div th:if="${invoice.taxAmount != null && invoice.taxAmount > 0}">
+                    <p class="text-gray-500">PPN</p>
+                    <p class="font-medium" th:text="'Rp ' + ${#numbers.formatDecimal(invoice.taxAmount, 0, 'COMMA', 0, 'POINT')}">Rp 0</p>
                 </div>
                 <div th:if="${invoice.sentAt}">
                     <p class="text-gray-500">Dikirim</p>
@@ -73,6 +78,47 @@
                     <p class="font-medium" th:text="${invoice.paymentTerm.name}">DP 30%</p>
                 </div>
             </div>
+        </div>
+
+        <!-- Line Items -->
+        <div class="bg-white rounded-lg shadow p-6" th:if="${!invoice.lines.isEmpty()}">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Item Invoice</h3>
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">No</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Deskripsi</th>
+                        <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Qty</th>
+                        <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Harga Satuan</th>
+                        <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">PPN</th>
+                        <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Jumlah</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    <tr th:each="line, iter : ${invoice.lines}">
+                        <td class="px-4 py-2 text-sm" th:text="${iter.count}">1</td>
+                        <td class="px-4 py-2 text-sm" th:text="${line.description}">Description</td>
+                        <td class="px-4 py-2 text-sm text-right" th:text="${#numbers.formatDecimal(line.quantity, 0, 'COMMA', 2, 'POINT')}">1</td>
+                        <td class="px-4 py-2 text-sm text-right" th:text="'Rp ' + ${#numbers.formatDecimal(line.unitPrice, 0, 'COMMA', 0, 'POINT')}">Rp 0</td>
+                        <td class="px-4 py-2 text-sm text-right" th:text="${line.taxRate != null ? #numbers.formatDecimal(line.taxRate, 0, 'COMMA', 2, 'POINT') + '%' : '-'}">0%</td>
+                        <td class="px-4 py-2 text-sm text-right font-medium" th:text="'Rp ' + ${#numbers.formatDecimal(line.amount, 0, 'COMMA', 0, 'POINT')}">Rp 0</td>
+                    </tr>
+                </tbody>
+                <tfoot class="bg-gray-50">
+                    <tr>
+                        <td colspan="5" class="px-4 py-2 text-sm text-right font-medium">Subtotal</td>
+                        <td class="px-4 py-2 text-sm text-right font-medium" th:text="'Rp ' + ${#numbers.formatDecimal(invoice.amount, 0, 'COMMA', 0, 'POINT')}">Rp 0</td>
+                    </tr>
+                    <tr th:if="${invoice.taxAmount != null && invoice.taxAmount > 0}">
+                        <td colspan="5" class="px-4 py-2 text-sm text-right font-medium">PPN</td>
+                        <td class="px-4 py-2 text-sm text-right font-medium" th:text="'Rp ' + ${#numbers.formatDecimal(invoice.taxAmount, 0, 'COMMA', 0, 'POINT')}">Rp 0</td>
+                    </tr>
+                    <tr>
+                        <td colspan="5" class="px-4 py-2 text-right font-bold">Total</td>
+                        <td class="px-4 py-2 text-right font-bold text-lg" th:text="'Rp ' + ${#numbers.formatDecimal(invoice.amount + invoice.taxAmount, 0, 'COMMA', 0, 'POINT')}">Rp 0</td>
+                    </tr>
+                </tfoot>
+            </table>
         </div>
 
         <!-- Actions -->
@@ -104,8 +150,8 @@
                     </button>
                 </form>
 
-                <!-- Mark as Paid (sent or overdue) - redirects to transaction form -->
-                <a th:if="${invoice.status.name() == 'SENT' || invoice.status.name() == 'OVERDUE'}"
+                <!-- Mark as Paid (sent, overdue, or partial) - redirects to transaction form -->
+                <a th:if="${invoice.status.name() == 'SENT' || invoice.status.name() == 'OVERDUE' || invoice.status.name() == 'PARTIAL'}"
                    th:href="@{/invoices/{invoiceNumber}/pay(invoiceNumber=${invoice.invoiceNumber})}"
                    class="px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors">
                     Tandai Lunas

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      layout:decorate="~{layouts/main}"
+      lang="id">
+<head>
+    <title>Daftar Vendor</title>
+</head>
+<body>
+    <h1 id="page-title" layout:fragment="page-title">Daftar Vendor</h1>
+
+    <div layout:fragment="content" class="space-y-6" data-testid="vendor-list">
+        <!-- Filters & Actions -->
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <form th:action="@{/vendors}" method="get" class="flex flex-wrap items-center gap-2">
+                <input type="text" name="search" th:value="${search}"
+                       class="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                       placeholder="Cari vendor...">
+                <select name="active" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                    <option value="">Semua Status</option>
+                    <option value="true" th:selected="${selectedActive != null && selectedActive}">Aktif</option>
+                    <option value="false" th:selected="${selectedActive != null && !selectedActive}">Nonaktif</option>
+                </select>
+                <button type="submit" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm">
+                    Filter
+                </button>
+                <a th:href="@{/vendors}" class="px-4 py-2 text-gray-500 hover:text-gray-700 text-sm">Reset</a>
+            </form>
+            <a sec:authorize="hasAuthority('VENDOR_CREATE')" th:href="@{/vendors/new}" id="btn-new-vendor"
+               class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-center">
+                + Vendor Baru
+            </a>
+        </div>
+
+        <!-- Vendor Table -->
+        <div class="bg-white rounded-lg shadow overflow-hidden" data-testid="vendor-table">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kode</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kontak</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Telepon</th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    <tr th:if="${vendors.empty}">
+                        <td colspan="6" class="px-6 py-8 text-center text-gray-500">Belum ada vendor</td>
+                    </tr>
+                    <tr th:each="vendor : ${vendors}" class="hover:bg-gray-50">
+                        <td class="px-6 py-4">
+                            <a th:href="@{/vendors/{code}(code=${vendor.code})}" class="text-primary-600 hover:underline font-mono" th:text="${vendor.code}">V001</a>
+                        </td>
+                        <td class="px-6 py-4 text-sm font-medium" th:text="${vendor.name}">Vendor Name</td>
+                        <td class="px-6 py-4 text-sm" th:text="${vendor.contactPerson != null ? vendor.contactPerson : '-'}">Contact</td>
+                        <td class="px-6 py-4 text-sm" th:text="${vendor.phone != null ? vendor.phone : '-'}">Phone</td>
+                        <td class="px-6 py-4 text-center">
+                            <span th:if="${vendor.active}" class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">Aktif</span>
+                            <span th:unless="${vendor.active}" class="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-500">Nonaktif</span>
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            <a th:href="@{/vendors/{code}(code=${vendor.code})}" class="text-primary-600 hover:underline text-sm">Detail</a>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        <div th:if="${vendors.totalPages > 1}" class="flex items-center justify-between">
+            <p class="text-sm text-gray-500">
+                Menampilkan <span th:text="${vendors.number * vendors.size + 1}">1</span> -
+                <span th:text="${vendors.number * vendors.size + vendors.numberOfElements}">20</span> dari
+                <span th:text="${vendors.totalElements}">100</span> vendor
+            </p>
+            <div class="flex items-center gap-2">
+                <a th:if="${vendors.hasPrevious()}"
+                   th:href="@{/vendors(page=${vendors.number - 1}, active=${selectedActive}, search=${search})}"
+                   class="px-3 py-1 border rounded hover:bg-gray-50">&laquo; Prev</a>
+                <a th:if="${vendors.hasNext()}"
+                   th:href="@{/vendors(page=${vendors.number + 1}, active=${selectedActive}, search=${search})}"
+                   class="px-3 py-1 border rounded hover:bg-gray-50">Next &raquo;</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

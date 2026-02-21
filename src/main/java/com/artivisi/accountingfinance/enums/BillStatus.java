@@ -1,8 +1,8 @@
 package com.artivisi.accountingfinance.enums;
 
-public enum InvoiceStatus {
+public enum BillStatus {
     DRAFT("Draft", "Draf"),
-    SENT("Sent", "Terkirim"),
+    APPROVED("Approved", "Disetujui"),
     PARTIAL("Partial", "Sebagian"),
     PAID("Paid", "Lunas"),
     OVERDUE("Overdue", "Jatuh Tempo"),
@@ -11,7 +11,7 @@ public enum InvoiceStatus {
     private final String englishName;
     private final String indonesianName;
 
-    InvoiceStatus(String englishName, String indonesianName) {
+    BillStatus(String englishName, String indonesianName) {
         this.englishName = englishName;
         this.indonesianName = indonesianName;
     }

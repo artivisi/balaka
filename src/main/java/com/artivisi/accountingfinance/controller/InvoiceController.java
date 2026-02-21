@@ -3,11 +3,13 @@ package com.artivisi.accountingfinance.controller;
 import com.artivisi.accountingfinance.entity.CompanyBankAccount;
 import com.artivisi.accountingfinance.entity.CompanyConfig;
 import com.artivisi.accountingfinance.entity.Invoice;
+import com.artivisi.accountingfinance.entity.InvoiceLine;
 import com.artivisi.accountingfinance.enums.InvoiceStatus;
 import com.artivisi.accountingfinance.service.ClientService;
 import com.artivisi.accountingfinance.service.CompanyBankAccountService;
 import com.artivisi.accountingfinance.service.CompanyConfigService;
 import com.artivisi.accountingfinance.service.InvoiceService;
+import com.artivisi.accountingfinance.service.ProductService;
 import com.artivisi.accountingfinance.service.ProjectService;
 import com.artivisi.accountingfinance.util.AmountToWordsUtil;
 import jakarta.validation.Valid;
@@ -26,6 +28,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 import static com.artivisi.accountingfinance.controller.ViewConstants.*;
@@ -47,6 +52,7 @@ public class InvoiceController {
     private final InvoiceService invoiceService;
     private final ClientService clientService;
     private final ProjectService projectService;
+    private final ProductService productService;
     private final CompanyConfigService companyConfigService;
     private final CompanyBankAccountService bankAccountService;
 
@@ -95,9 +101,7 @@ public class InvoiceController {
         }
 
         model.addAttribute(ATTR_INVOICE, invoice);
-        model.addAttribute(ATTR_CLIENTS, clientService.findActiveClients());
-        model.addAttribute(ATTR_PROJECTS, projectService.findActiveProjects());
-        model.addAttribute(ATTR_CURRENT_PAGE, PAGE_INVOICES);
+        populateFormModel(model);
         return VIEW_FORM;
     }
 
@@ -105,25 +109,26 @@ public class InvoiceController {
     public String create(
             @Valid @ModelAttribute(ATTR_INVOICE) Invoice invoice,
             BindingResult bindingResult,
+            @RequestParam(value = "lineDescription", required = false) List<String> descriptions,
+            @RequestParam(value = "lineQuantity", required = false) List<BigDecimal> quantities,
+            @RequestParam(value = "lineUnitPrice", required = false) List<BigDecimal> unitPrices,
+            @RequestParam(value = "lineTaxRate", required = false) List<BigDecimal> taxRates,
             Model model,
             RedirectAttributes redirectAttributes) {
 
         if (bindingResult.hasErrors()) {
-            model.addAttribute(ATTR_CLIENTS, clientService.findActiveClients());
-            model.addAttribute(ATTR_PROJECTS, projectService.findActiveProjects());
-            model.addAttribute(ATTR_CURRENT_PAGE, PAGE_INVOICES);
+            populateFormModel(model);
             return VIEW_FORM;
         }
 
         try {
-            Invoice saved = invoiceService.create(invoice);
+            List<InvoiceLine> lines = buildInvoiceLines(descriptions, quantities, unitPrices, taxRates);
+            Invoice saved = invoiceService.create(invoice, lines);
             redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Invoice berhasil dibuat");
             return REDIRECT_INVOICES_PREFIX + saved.getInvoiceNumber();
         } catch (IllegalArgumentException e) {
             bindingResult.rejectValue("invoiceNumber", "duplicate", e.getMessage());
-            model.addAttribute(ATTR_CLIENTS, clientService.findActiveClients());
-            model.addAttribute(ATTR_PROJECTS, projectService.findActiveProjects());
-            model.addAttribute(ATTR_CURRENT_PAGE, PAGE_INVOICES);
+            populateFormModel(model);
             return VIEW_FORM;
         }
     }
@@ -146,9 +151,7 @@ public class InvoiceController {
         }
 
         model.addAttribute(ATTR_INVOICE, invoice);
-        model.addAttribute(ATTR_CLIENTS, clientService.findActiveClients());
-        model.addAttribute(ATTR_PROJECTS, projectService.findActiveProjects());
-        model.addAttribute(ATTR_CURRENT_PAGE, PAGE_INVOICES);
+        populateFormModel(model);
         return VIEW_FORM;
     }
 
@@ -157,21 +160,24 @@ public class InvoiceController {
             @PathVariable String invoiceNumber,
             @Valid @ModelAttribute(ATTR_INVOICE) Invoice invoice,
             BindingResult bindingResult,
+            @RequestParam(value = "lineDescription", required = false) List<String> descriptions,
+            @RequestParam(value = "lineQuantity", required = false) List<BigDecimal> quantities,
+            @RequestParam(value = "lineUnitPrice", required = false) List<BigDecimal> unitPrices,
+            @RequestParam(value = "lineTaxRate", required = false) List<BigDecimal> taxRates,
             Model model,
             RedirectAttributes redirectAttributes) {
 
         if (bindingResult.hasErrors()) {
             Invoice existing = invoiceService.findByInvoiceNumber(invoiceNumber);
             invoice.setId(existing.getId());
-            model.addAttribute(ATTR_CLIENTS, clientService.findActiveClients());
-            model.addAttribute(ATTR_PROJECTS, projectService.findActiveProjects());
-            model.addAttribute(ATTR_CURRENT_PAGE, PAGE_INVOICES);
+            populateFormModel(model);
             return VIEW_FORM;
         }
 
         try {
             Invoice existing = invoiceService.findByInvoiceNumber(invoiceNumber);
-            invoiceService.update(existing.getId(), invoice);
+            List<InvoiceLine> lines = buildInvoiceLines(descriptions, quantities, unitPrices, taxRates);
+            invoiceService.update(existing.getId(), invoice, lines);
             redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Invoice berhasil diperbarui");
             return REDIRECT_INVOICES_PREFIX + invoice.getInvoiceNumber();
         } catch (IllegalArgumentException | IllegalStateException e) {
@@ -182,9 +188,7 @@ public class InvoiceController {
             }
             Invoice existing = invoiceService.findByInvoiceNumber(invoiceNumber);
             invoice.setId(existing.getId());
-            model.addAttribute(ATTR_CLIENTS, clientService.findActiveClients());
-            model.addAttribute(ATTR_PROJECTS, projectService.findActiveProjects());
-            model.addAttribute(ATTR_CURRENT_PAGE, PAGE_INVOICES);
+            populateFormModel(model);
             return VIEW_FORM;
         }
     }
@@ -205,8 +209,9 @@ public class InvoiceController {
     public String payForm(@PathVariable String invoiceNumber, RedirectAttributes redirectAttributes) {
         Invoice invoice = invoiceService.findByInvoiceNumber(invoiceNumber);
 
-        if (invoice.getStatus() != InvoiceStatus.SENT && invoice.getStatus() != InvoiceStatus.OVERDUE) {
-            redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, "Hanya invoice terkirim atau jatuh tempo yang dapat dibayar");
+        if (invoice.getStatus() != InvoiceStatus.SENT && invoice.getStatus() != InvoiceStatus.OVERDUE
+                && invoice.getStatus() != InvoiceStatus.PARTIAL) {
+            redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, "Hanya invoice terkirim, jatuh tempo, atau sebagian yang dapat dibayar");
             return REDIRECT_INVOICES_PREFIX + invoiceNumber;
         }
 
@@ -264,5 +269,42 @@ public class InvoiceController {
         model.addAttribute("amountInWords", AmountToWordsUtil.toWords(invoice.getAmount()));
 
         return "invoices/print";
+    }
+
+    private void populateFormModel(Model model) {
+        model.addAttribute(ATTR_CLIENTS, clientService.findActiveClients());
+        model.addAttribute(ATTR_PROJECTS, projectService.findActiveProjects());
+        model.addAttribute(ATTR_PRODUCTS, productService.findAllActive());
+        model.addAttribute(ATTR_CURRENT_PAGE, PAGE_INVOICES);
+    }
+
+    private List<InvoiceLine> buildInvoiceLines(
+            List<String> descriptions,
+            List<BigDecimal> quantities,
+            List<BigDecimal> unitPrices,
+            List<BigDecimal> taxRates) {
+
+        List<InvoiceLine> lines = new ArrayList<>();
+        if (descriptions == null || descriptions.isEmpty()) {
+            return lines;
+        }
+
+        for (int i = 0; i < descriptions.size(); i++) {
+            String desc = descriptions.get(i);
+            if (desc == null || desc.isBlank()) continue;
+
+            InvoiceLine line = new InvoiceLine();
+            line.setDescription(desc);
+            line.setQuantity(quantities != null && i < quantities.size() && quantities.get(i) != null
+                    ? quantities.get(i) : BigDecimal.ONE);
+            line.setUnitPrice(unitPrices != null && i < unitPrices.size() && unitPrices.get(i) != null
+                    ? unitPrices.get(i) : BigDecimal.ZERO);
+            line.setTaxRate(taxRates != null && i < taxRates.size() ? taxRates.get(i) : null);
+
+            line.calculateAmounts();
+            lines.add(line);
+        }
+
+        return lines;
     }
 }

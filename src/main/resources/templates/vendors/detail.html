@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      layout:decorate="~{layouts/main}"
+      lang="id">
+<head>
+    <title>Detail Vendor</title>
+</head>
+<body>
+    <h1 id="page-title" layout:fragment="page-title">Detail Vendor</h1>
+
+    <div layout:fragment="content" class="space-y-6" data-testid="vendor-detail">
+        <!-- Header -->
+        <div class="flex items-start justify-between">
+            <div>
+                <h2 class="text-xl font-semibold text-gray-900" th:text="${vendor.name}">Vendor Name</h2>
+                <p class="text-sm text-gray-500 mt-1 font-mono" th:text="${vendor.code}">V001</p>
+            </div>
+            <div class="flex items-center gap-2">
+                <span th:if="${vendor.active}" class="px-3 py-1 text-sm font-medium rounded-full bg-green-100 text-green-800">Aktif</span>
+                <span th:unless="${vendor.active}" class="px-3 py-1 text-sm font-medium rounded-full bg-gray-100 text-gray-500">Nonaktif</span>
+            </div>
+        </div>
+
+        <!-- Info Card -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Informasi Vendor</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div th:if="${vendor.contactPerson}">
+                    <p class="text-gray-500">Kontak</p>
+                    <p class="font-medium" th:text="${vendor.contactPerson}">Contact</p>
+                </div>
+                <div th:if="${vendor.email}">
+                    <p class="text-gray-500">Email</p>
+                    <p class="font-medium" th:text="${vendor.email}">email@vendor.com</p>
+                </div>
+                <div th:if="${vendor.phone}">
+                    <p class="text-gray-500">Telepon</p>
+                    <p class="font-medium" th:text="${vendor.phone}">021-xxx</p>
+                </div>
+                <div th:if="${vendor.paymentTermDays}">
+                    <p class="text-gray-500">Termin Pembayaran</p>
+                    <p class="font-medium" th:text="|${vendor.paymentTermDays} hari|">30 hari</p>
+                </div>
+                <div th:if="${vendor.defaultExpenseAccount}">
+                    <p class="text-gray-500">Akun Beban Default</p>
+                    <p class="font-medium" th:text="|${vendor.defaultExpenseAccount.accountCode} - ${vendor.defaultExpenseAccount.accountName}|">5001 - Beban</p>
+                </div>
+                <div>
+                    <p class="text-gray-500">Dibuat</p>
+                    <p class="font-medium" th:text="${#temporals.format(vendor.createdAt, 'dd MMM yyyy HH:mm')}">01 Jan 2025</p>
+                </div>
+                <div class="md:col-span-3" th:if="${vendor.address}">
+                    <p class="text-gray-500">Alamat</p>
+                    <p class="font-medium" th:text="${vendor.address}">Address</p>
+                </div>
+                <div class="md:col-span-3" th:if="${vendor.notes}">
+                    <p class="text-gray-500">Catatan</p>
+                    <p class="font-medium" th:text="${vendor.notes}">Notes</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tax Info -->
+        <div class="bg-white rounded-lg shadow p-6" th:if="${vendor.npwp != null or vendor.nitku != null or vendor.nik != null}">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Informasi Pajak</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div th:if="${vendor.npwp}">
+                    <p class="text-gray-500">NPWP</p>
+                    <p class="font-medium font-mono" th:text="${vendor.npwp}">00.000.000.0-000.000</p>
+                </div>
+                <div th:if="${vendor.nitku}">
+                    <p class="text-gray-500">NITKU</p>
+                    <p class="font-medium font-mono" th:text="${vendor.nitku}">0000000000000000000000</p>
+                </div>
+                <div th:if="${vendor.nik}">
+                    <p class="text-gray-500">NIK</p>
+                    <p class="font-medium font-mono" th:text="${vendor.nik}">0000000000000000</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bank Info -->
+        <div class="bg-white rounded-lg shadow p-6" th:if="${vendor.bankName != null or vendor.bankAccountNumber != null}">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Informasi Bank</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div th:if="${vendor.bankName}">
+                    <p class="text-gray-500">Bank</p>
+                    <p class="font-medium" th:text="${vendor.bankName}">BCA</p>
+                </div>
+                <div th:if="${vendor.bankAccountNumber}">
+                    <p class="text-gray-500">Nomor Rekening</p>
+                    <p class="font-medium font-mono" th:text="${vendor.bankAccountNumber}">1234567890</p>
+                </div>
+                <div th:if="${vendor.bankAccountName}">
+                    <p class="text-gray-500">Atas Nama</p>
+                    <p class="font-medium" th:text="${vendor.bankAccountName}">PT Vendor</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex items-center justify-between">
+            <a th:href="@{/vendors}" class="px-4 py-2 text-gray-600 hover:text-gray-900">
+                &larr; Kembali ke Daftar
+            </a>
+            <div class="flex items-center gap-2">
+                <a sec:authorize="hasAuthority('VENDOR_EDIT')"
+                   th:href="@{/vendors/{code}/edit(code=${vendor.code})}"
+                   class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                    Edit
+                </a>
+                <form th:if="${vendor.active}" id="form-deactivate"
+                      sec:authorize="hasAuthority('VENDOR_DELETE')"
+                      th:action="@{/vendors/{code}/deactivate(code=${vendor.code})}"
+                      method="post" class="inline">
+                    <button type="submit" class="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">
+                        Nonaktifkan
+                    </button>
+                </form>
+                <form th:unless="${vendor.active}" id="form-activate"
+                      sec:authorize="hasAuthority('VENDOR_EDIT')"
+                      th:action="@{/vendors/{code}/activate(code=${vendor.code})}"
+                      method="post" class="inline">
+                    <button type="submit" class="px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors">
+                        Aktifkan
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <th:block layout:fragment="scripts">
+        <script th:inline="javascript" th:attr="nonce=${cspNonce}">
+            document.getElementById('form-deactivate')?.addEventListener('submit', function(e) {
+                if (!confirm('Nonaktifkan vendor ini?')) {
+                    e.preventDefault();
+                }
+            });
+        </script>
+    </th:block>
+</body>
+</html>

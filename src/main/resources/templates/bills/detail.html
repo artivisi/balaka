@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      layout:decorate="~{layouts/main}"
+      lang="id">
+<head>
+    <title>Detail Tagihan</title>
+</head>
+<body>
+    <h1 id="page-title" layout:fragment="page-title">Detail Tagihan</h1>
+
+    <div layout:fragment="content" class="space-y-6" data-testid="bill-detail">
+        <!-- Header -->
+        <div class="flex items-start justify-between">
+            <div>
+                <h2 class="text-xl font-semibold text-gray-900 font-mono" th:text="${bill.billNumber}">BILL-001</h2>
+                <p class="text-sm text-gray-500 mt-1">
+                    <a th:href="@{/vendors/{code}(code=${bill.vendor.code})}" class="text-primary-600 hover:underline" th:text="${bill.vendor.name}">Vendor Name</a>
+                </p>
+                <p class="text-sm text-gray-500" th:if="${bill.vendorInvoiceNumber}">
+                    No. Faktur Vendor: <span class="font-mono" th:text="${bill.vendorInvoiceNumber}">INV-001</span>
+                </p>
+            </div>
+            <div class="flex items-center gap-2">
+                <span th:if="${bill.status.name() == 'DRAFT'}" class="px-3 py-1 text-sm font-medium rounded-full bg-gray-100 text-gray-600">Draf</span>
+                <span th:if="${bill.status.name() == 'APPROVED'}" class="px-3 py-1 text-sm font-medium rounded-full bg-blue-100 text-blue-800">Disetujui</span>
+                <span th:if="${bill.status.name() == 'PARTIAL'}" class="px-3 py-1 text-sm font-medium rounded-full bg-yellow-100 text-yellow-800">Sebagian</span>
+                <span th:if="${bill.status.name() == 'PAID'}" class="px-3 py-1 text-sm font-medium rounded-full bg-green-100 text-green-800">Lunas</span>
+                <span th:if="${bill.status.name() == 'OVERDUE'}" class="px-3 py-1 text-sm font-medium rounded-full bg-red-100 text-red-800">Jatuh Tempo</span>
+                <span th:if="${bill.status.name() == 'CANCELLED'}" class="px-3 py-1 text-sm font-medium rounded-full bg-gray-100 text-gray-500">Dibatalkan</span>
+            </div>
+        </div>
+
+        <!-- Info Card -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Informasi Tagihan</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div>
+                    <p class="text-gray-500">Tanggal Tagihan</p>
+                    <p class="font-medium" th:text="${#temporals.format(bill.billDate, 'dd MMMM yyyy')}">01 January 2025</p>
+                </div>
+                <div>
+                    <p class="text-gray-500">Jatuh Tempo</p>
+                    <p class="font-medium" th:classappend="${bill.overdue} ? 'text-red-600' : ''" th:text="${#temporals.format(bill.dueDate, 'dd MMMM yyyy')}">15 January 2025</p>
+                </div>
+                <div>
+                    <p class="text-gray-500">Jumlah</p>
+                    <p class="font-medium text-lg" th:text="'Rp ' + ${#numbers.formatDecimal(bill.amount, 0, 'COMMA', 0, 'POINT')}">Rp 0</p>
+                </div>
+                <div th:if="${bill.taxAmount != null && bill.taxAmount > 0}">
+                    <p class="text-gray-500">PPN</p>
+                    <p class="font-medium" th:text="'Rp ' + ${#numbers.formatDecimal(bill.taxAmount, 0, 'COMMA', 0, 'POINT')}">Rp 0</p>
+                </div>
+                <div th:if="${bill.approvedAt}">
+                    <p class="text-gray-500">Disetujui</p>
+                    <p class="font-medium" th:text="|${#temporals.format(bill.approvedAt, 'dd MMM yyyy HH:mm')} oleh ${bill.approvedBy}|">01 Jan 2025</p>
+                </div>
+                <div th:if="${bill.paidAt}">
+                    <p class="text-gray-500">Dibayar</p>
+                    <p class="font-medium text-green-600" th:text="${#temporals.format(bill.paidAt, 'dd MMM yyyy HH:mm')}">15 Jan 2025</p>
+                </div>
+                <div>
+                    <p class="text-gray-500">Dibuat</p>
+                    <p class="font-medium" th:text="${#temporals.format(bill.createdAt, 'dd MMM yyyy HH:mm')}">01 Jan 2025</p>
+                </div>
+                <div class="md:col-span-3" th:if="${bill.notes}">
+                    <p class="text-gray-500">Catatan</p>
+                    <p class="font-medium" th:text="${bill.notes}">Notes</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Line Items -->
+        <div class="bg-white rounded-lg shadow p-6" th:if="${!bill.lines.isEmpty()}">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Item Tagihan</h3>
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">No</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Deskripsi</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Akun Beban</th>
+                        <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Qty</th>
+                        <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Harga Satuan</th>
+                        <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">PPN</th>
+                        <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Jumlah</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    <tr th:each="line, iter : ${bill.lines}">
+                        <td class="px-4 py-2 text-sm" th:text="${iter.count}">1</td>
+                        <td class="px-4 py-2 text-sm" th:text="${line.description}">Description</td>
+                        <td class="px-4 py-2 text-sm" th:text="${line.expenseAccount != null ? line.expenseAccount.accountCode + ' - ' + line.expenseAccount.accountName : '-'}">-</td>
+                        <td class="px-4 py-2 text-sm text-right" th:text="${#numbers.formatDecimal(line.quantity, 0, 'COMMA', 2, 'POINT')}">1</td>
+                        <td class="px-4 py-2 text-sm text-right" th:text="'Rp ' + ${#numbers.formatDecimal(line.unitPrice, 0, 'COMMA', 0, 'POINT')}">Rp 0</td>
+                        <td class="px-4 py-2 text-sm text-right" th:text="${line.taxRate != null ? #numbers.formatDecimal(line.taxRate, 0, 'COMMA', 2, 'POINT') + '%' : '-'}">0%</td>
+                        <td class="px-4 py-2 text-sm text-right font-medium" th:text="'Rp ' + ${#numbers.formatDecimal(line.amount, 0, 'COMMA', 0, 'POINT')}">Rp 0</td>
+                    </tr>
+                </tbody>
+                <tfoot class="bg-gray-50">
+                    <tr>
+                        <td colspan="6" class="px-4 py-2 text-sm text-right font-medium">Subtotal</td>
+                        <td class="px-4 py-2 text-sm text-right font-medium" th:text="'Rp ' + ${#numbers.formatDecimal(bill.amount, 0, 'COMMA', 0, 'POINT')}">Rp 0</td>
+                    </tr>
+                    <tr th:if="${bill.taxAmount != null && bill.taxAmount > 0}">
+                        <td colspan="6" class="px-4 py-2 text-sm text-right font-medium">PPN</td>
+                        <td class="px-4 py-2 text-sm text-right font-medium" th:text="'Rp ' + ${#numbers.formatDecimal(bill.taxAmount, 0, 'COMMA', 0, 'POINT')}">Rp 0</td>
+                    </tr>
+                    <tr>
+                        <td colspan="6" class="px-4 py-2 text-right font-bold">Total</td>
+                        <td class="px-4 py-2 text-right font-bold text-lg" th:text="'Rp ' + ${#numbers.formatDecimal(bill.amount + bill.taxAmount, 0, 'COMMA', 0, 'POINT')}">Rp 0</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex items-center justify-between">
+            <a th:href="@{/bills}" class="px-4 py-2 text-gray-600 hover:text-gray-900">
+                &larr; Kembali ke Daftar
+            </a>
+            <div class="flex items-center gap-2">
+                <!-- Edit (only draft) -->
+                <a th:if="${bill.status.name() == 'DRAFT'}"
+                   sec:authorize="hasAuthority('BILL_EDIT')"
+                   th:href="@{/bills/{billNumber}/edit(billNumber=${bill.billNumber})}"
+                   class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                    Edit
+                </a>
+
+                <!-- Approve (only draft) -->
+                <form th:if="${bill.status.name() == 'DRAFT'}" id="form-approve"
+                      sec:authorize="hasAuthority('BILL_APPROVE')"
+                      th:action="@{/bills/{billNumber}/approve(billNumber=${bill.billNumber})}"
+                      method="post" class="inline">
+                    <button type="submit" class="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">
+                        Setujui
+                    </button>
+                </form>
+
+                <!-- Mark as Paid (approved or overdue or partial) -->
+                <form th:if="${bill.status.name() == 'APPROVED' || bill.status.name() == 'OVERDUE' || bill.status.name() == 'PARTIAL'}" id="form-paid"
+                      sec:authorize="hasAuthority('BILL_MARK_PAID')"
+                      th:action="@{/bills/{billNumber}/mark-paid(billNumber=${bill.billNumber})}"
+                      method="post" class="inline">
+                    <button type="submit" class="px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors">
+                        Tandai Lunas
+                    </button>
+                </form>
+
+                <!-- Cancel (not paid) -->
+                <form th:if="${bill.status.name() != 'PAID' && bill.status.name() != 'CANCELLED'}" id="form-cancel"
+                      th:action="@{/bills/{billNumber}/cancel(billNumber=${bill.billNumber})}"
+                      method="post" class="inline">
+                    <button type="submit" class="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">
+                        Batalkan
+                    </button>
+                </form>
+
+                <!-- Delete (draft or cancelled) -->
+                <form th:if="${bill.status.name() == 'DRAFT' || bill.status.name() == 'CANCELLED'}" id="form-delete"
+                      th:action="@{/bills/{billNumber}/delete(billNumber=${bill.billNumber})}"
+                      method="post" class="inline">
+                    <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+                        Hapus
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <th:block layout:fragment="scripts">
+        <script th:inline="javascript" th:attr="nonce=${cspNonce}">
+            document.getElementById('form-approve')?.addEventListener('submit', function(e) {
+                if (!confirm('Setujui tagihan ini?')) {
+                    e.preventDefault();
+                }
+            });
+            document.getElementById('form-paid')?.addEventListener('submit', function(e) {
+                if (!confirm('Tandai tagihan ini sebagai lunas?')) {
+                    e.preventDefault();
+                }
+            });
+            document.getElementById('form-cancel')?.addEventListener('submit', function(e) {
+                if (!confirm('Batalkan tagihan ini?')) {
+                    e.preventDefault();
+                }
+            });
+            document.getElementById('form-delete')?.addEventListener('submit', function(e) {
+                if (!confirm('Hapus tagihan ini?')) {
+                    e.preventDefault();
+                }
+            });
+        </script>
+    </th:block>
+</body>
+</html>

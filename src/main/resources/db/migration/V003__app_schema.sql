@@ -401,6 +401,7 @@ CREATE TABLE invoices (
     invoice_date DATE NOT NULL,
     due_date DATE NOT NULL,
     amount DECIMAL(19, 2) NOT NULL,
+    tax_amount DECIMAL(19, 2) NOT NULL DEFAULT 0,
     status VARCHAR(20) NOT NULL DEFAULT 'DRAFT',
     sent_at TIMESTAMP,
     paid_at TIMESTAMP,
@@ -415,6 +416,63 @@ CREATE INDEX idx_invoices_client ON invoices(id_client);
 CREATE INDEX idx_invoices_project ON invoices(id_project);
 CREATE INDEX idx_invoices_status ON invoices(status);
 CREATE INDEX idx_invoices_due_date ON invoices(due_date);
+
+-- ============================================
+-- Vendors
+-- ============================================
+
+CREATE TABLE vendors (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    code VARCHAR(50) NOT NULL UNIQUE,
+    name VARCHAR(255) NOT NULL,
+    contact_person VARCHAR(255),
+    email VARCHAR(255),
+    phone VARCHAR(50),
+    address TEXT,
+    notes TEXT,
+    npwp VARCHAR(20),
+    nitku VARCHAR(22),
+    nik VARCHAR(16),
+    id_type VARCHAR(10) DEFAULT 'TIN',
+    id_default_expense_account UUID REFERENCES chart_of_accounts(id),
+    payment_term_days INTEGER,
+    bank_name VARCHAR(100),
+    bank_account_number VARCHAR(50),
+    bank_account_name VARCHAR(255),
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_vendors_code ON vendors(code);
+CREATE INDEX idx_vendors_active ON vendors(active);
+
+-- ============================================
+-- Bills (Vendor Invoices)
+-- ============================================
+
+CREATE TABLE bills (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    bill_number VARCHAR(50) NOT NULL UNIQUE,
+    id_vendor UUID NOT NULL REFERENCES vendors(id),
+    vendor_invoice_number VARCHAR(100),
+    bill_date DATE NOT NULL,
+    due_date DATE NOT NULL,
+    amount DECIMAL(19, 2) NOT NULL,
+    tax_amount DECIMAL(19, 2) NOT NULL DEFAULT 0,
+    status VARCHAR(20) NOT NULL DEFAULT 'DRAFT',
+    approved_at TIMESTAMP,
+    approved_by VARCHAR(100),
+    paid_at TIMESTAMP,
+    id_transaction UUID REFERENCES transactions(id),
+    notes TEXT,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_bills_vendor ON bills(id_vendor);
+CREATE INDEX idx_bills_status ON bills(status);
+CREATE INDEX idx_bills_due_date ON bills(due_date);
 
 -- ============================================
 -- Amortization Schedules
@@ -1081,6 +1139,49 @@ CREATE INDEX idx_products_code ON products(code);
 CREATE INDEX idx_products_name ON products(name);
 CREATE INDEX idx_products_category ON products(id_category);
 CREATE INDEX idx_products_active ON products(active);
+
+-- ============================================
+-- Invoice Lines
+-- ============================================
+
+CREATE TABLE invoice_lines (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id_invoice UUID NOT NULL REFERENCES invoices(id) ON DELETE CASCADE,
+    id_product UUID REFERENCES products(id),
+    description TEXT NOT NULL,
+    quantity DECIMAL(19, 2) NOT NULL DEFAULT 1,
+    unit_price DECIMAL(19, 2) NOT NULL,
+    tax_rate DECIMAL(5, 2),
+    tax_amount DECIMAL(19, 2) NOT NULL DEFAULT 0,
+    amount DECIMAL(19, 2) NOT NULL,
+    line_order INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_invoice_lines_invoice ON invoice_lines(id_invoice);
+
+-- ============================================
+-- Bill Lines
+-- ============================================
+
+CREATE TABLE bill_lines (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id_bill UUID NOT NULL REFERENCES bills(id) ON DELETE CASCADE,
+    id_expense_account UUID REFERENCES chart_of_accounts(id),
+    id_product UUID REFERENCES products(id),
+    description TEXT NOT NULL,
+    quantity DECIMAL(19, 2) NOT NULL DEFAULT 1,
+    unit_price DECIMAL(19, 2) NOT NULL,
+    tax_rate DECIMAL(5, 2),
+    tax_amount DECIMAL(19, 2) NOT NULL DEFAULT 0,
+    amount DECIMAL(19, 2) NOT NULL,
+    line_order INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_bill_lines_bill ON bill_lines(id_bill);
 
 -- ============================================
 -- Inventory Balances (Phase 5 - Inventory)

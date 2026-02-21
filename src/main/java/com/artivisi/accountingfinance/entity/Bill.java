@@ -1,6 +1,6 @@
 package com.artivisi.accountingfinance.entity;
 
-import com.artivisi.accountingfinance.enums.InvoiceStatus;
+import com.artivisi.accountingfinance.enums.BillStatus;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -32,37 +32,33 @@ import java.util.List;
 import java.util.UUID;
 
 @Entity
-@Table(name = "invoices")
+@Table(name = "bills")
 @Getter
 @Setter
 @NoArgsConstructor
-public class Invoice {
+public class Bill {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", updatable = false, nullable = false)
     private UUID id;
 
-    @Size(max = 50, message = "Nomor invoice maksimal 50 karakter")
-    @Column(name = "invoice_number", nullable = false, unique = true, length = 50)
-    private String invoiceNumber;
+    @Size(max = 50, message = "Nomor tagihan maksimal 50 karakter")
+    @Column(name = "bill_number", nullable = false, unique = true, length = 50)
+    private String billNumber;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_client", nullable = false)
-    private Client client;
+    @JoinColumn(name = "id_vendor", nullable = false)
+    private Vendor vendor;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_project")
-    private Project project;
+    @Size(max = 100, message = "Nomor faktur vendor maksimal 100 karakter")
+    @Column(name = "vendor_invoice_number", length = 100)
+    private String vendorInvoiceNumber;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_payment_term")
-    private ProjectPaymentTerm paymentTerm;
-
-    @NotNull(message = "Tanggal invoice wajib diisi")
-    @Column(name = "invoice_date", nullable = false)
+    @NotNull(message = "Tanggal tagihan wajib diisi")
+    @Column(name = "bill_date", nullable = false)
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-    private LocalDate invoiceDate;
+    private LocalDate billDate;
 
     @NotNull(message = "Tanggal jatuh tempo wajib diisi")
     @Column(name = "due_date", nullable = false)
@@ -71,23 +67,24 @@ public class Invoice {
 
     @NotNull(message = "Jumlah wajib diisi")
     @Column(name = "amount", nullable = false, precision = 19, scale = 2)
-    private BigDecimal amount;
+    private BigDecimal amount = BigDecimal.ZERO;
 
     @Column(name = "tax_amount", nullable = false, precision = 19, scale = 2)
     private BigDecimal taxAmount = BigDecimal.ZERO;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
-    private InvoiceStatus status = InvoiceStatus.DRAFT;
+    private BillStatus status = BillStatus.DRAFT;
 
-    @Column(name = "sent_at")
-    private LocalDateTime sentAt;
+    @Column(name = "approved_at")
+    private LocalDateTime approvedAt;
+
+    @Size(max = 100)
+    @Column(name = "approved_by", length = 100)
+    private String approvedBy;
 
     @Column(name = "paid_at")
     private LocalDateTime paidAt;
-
-    @Column(name = "id_journal_entry")
-    private UUID journalEntryId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_transaction")
@@ -96,9 +93,9 @@ public class Invoice {
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;
 
-    @OneToMany(mappedBy = "invoice", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "bill", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("lineOrder ASC")
-    private List<InvoiceLine> lines = new ArrayList<>();
+    private List<BillLine> lines = new ArrayList<>();
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -119,34 +116,30 @@ public class Invoice {
     }
 
     public boolean isDraft() {
-        return status == InvoiceStatus.DRAFT;
+        return status == BillStatus.DRAFT;
     }
 
-    public boolean isSent() {
-        return status == InvoiceStatus.SENT;
-    }
-
-    public boolean isPartial() {
-        return status == InvoiceStatus.PARTIAL;
+    public boolean isApproved() {
+        return status == BillStatus.APPROVED;
     }
 
     public boolean isPaid() {
-        return status == InvoiceStatus.PAID;
+        return status == BillStatus.PAID;
     }
 
     public boolean isOverdue() {
-        return status == InvoiceStatus.OVERDUE ||
-                ((status == InvoiceStatus.SENT || status == InvoiceStatus.PARTIAL) && dueDate != null && LocalDate.now().isAfter(dueDate));
+        return status == BillStatus.OVERDUE ||
+                (status == BillStatus.APPROVED && dueDate != null && LocalDate.now().isAfter(dueDate));
     }
 
     public boolean isCancelled() {
-        return status == InvoiceStatus.CANCELLED;
+        return status == BillStatus.CANCELLED;
     }
 
     public void recalculateFromLines() {
         BigDecimal totalAmount = BigDecimal.ZERO;
         BigDecimal totalTax = BigDecimal.ZERO;
-        for (InvoiceLine line : lines) {
+        for (BillLine line : lines) {
             line.calculateAmounts();
             totalAmount = totalAmount.add(line.getAmount());
             totalTax = totalTax.add(line.getTaxAmount());

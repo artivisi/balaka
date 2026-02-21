@@ -378,9 +378,64 @@
 
         .status-draft { background: #f3f4f6; color: #4b5563; }
         .status-sent { background: #dbeafe; color: #1d4ed8; }
+        .status-partial { background: #fef9c3; color: #854d0e; }
         .status-paid { background: #dcfce7; color: #166534; }
         .status-overdue { background: #fee2e2; color: #b91c1c; }
         .status-cancelled { background: #f3f4f6; color: #4b5563; }
+
+        /* Line Items Table */
+        .line-items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 5mm;
+        }
+
+        .line-items-table th {
+            background: #f9fafb;
+            font-size: 8pt;
+            font-weight: 600;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 3mm 2mm;
+            text-align: left;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .line-items-table th.text-right {
+            text-align: right;
+        }
+
+        .line-items-table td {
+            font-size: 10pt;
+            padding: 2.5mm 2mm;
+            border-bottom: 1px solid #e5e7eb;
+            color: #374151;
+        }
+
+        .line-items-table td.text-right {
+            text-align: right;
+        }
+
+        .line-items-table td.font-medium {
+            font-weight: 500;
+        }
+
+        .line-items-table tfoot td {
+            border-bottom: none;
+            padding: 2mm 2mm;
+        }
+
+        .line-items-table tfoot tr:last-child td {
+            font-size: 12pt;
+            font-weight: 700;
+            border-top: 2px solid #1f2937;
+            padding-top: 3mm;
+        }
+
+        .line-items-section {
+            margin-bottom: 8mm;
+        }
 
         /* Helpers */
         .mt-3mm { margin-top: 3mm; }
@@ -422,6 +477,7 @@
                 <div class="mt-3mm">
                     <span th:if="${invoice.status.name() == 'DRAFT'}" class="status-badge status-draft">Draf</span>
                     <span th:if="${invoice.status.name() == 'SENT'}" class="status-badge status-sent">Terkirim</span>
+                    <span th:if="${invoice.status.name() == 'PARTIAL'}" class="status-badge status-partial">Sebagian</span>
                     <span th:if="${invoice.status.name() == 'PAID'}" class="status-badge status-paid">Lunas</span>
                     <span th:if="${invoice.status.name() == 'OVERDUE'}" class="status-badge status-overdue">Jatuh Tempo</span>
                     <span th:if="${invoice.status.name() == 'CANCELLED'}" class="status-badge status-cancelled">Dibatalkan</span>
@@ -467,6 +523,46 @@
             <div th:if="${invoice.paymentTerm}" class="project-term">
                 Termin: <span th:text="${invoice.paymentTerm.name}">DP 30%</span>
             </div>
+        </div>
+
+        <!-- Line Items (if any) -->
+        <div th:if="${invoice.lines != null && !invoice.lines.isEmpty()}" class="line-items-section">
+            <table class="line-items-table">
+                <thead>
+                    <tr>
+                        <th style="width: 8%">No</th>
+                        <th>Deskripsi</th>
+                        <th class="text-right" style="width: 10%">Qty</th>
+                        <th class="text-right" style="width: 18%">Harga Satuan</th>
+                        <th class="text-right" style="width: 10%">PPN</th>
+                        <th class="text-right" style="width: 18%">Jumlah</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="line, iter : ${invoice.lines}">
+                        <td th:text="${iter.count}">1</td>
+                        <td th:text="${line.description}">Description</td>
+                        <td class="text-right" th:text="${#numbers.formatDecimal(line.quantity, 0, 'COMMA', 2, 'POINT')}">1</td>
+                        <td class="text-right" th:text="'Rp ' + ${#numbers.formatDecimal(line.unitPrice, 0, 'COMMA', 0, 'POINT')}">Rp 0</td>
+                        <td class="text-right" th:text="${line.taxRate != null ? #numbers.formatDecimal(line.taxRate, 0, 'COMMA', 2, 'POINT') + '%' : '-'}">-</td>
+                        <td class="text-right font-medium" th:text="'Rp ' + ${#numbers.formatDecimal(line.amount, 0, 'COMMA', 0, 'POINT')}">Rp 0</td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="5" class="text-right font-medium">Subtotal</td>
+                        <td class="text-right font-medium" th:text="'Rp ' + ${#numbers.formatDecimal(invoice.amount, 0, 'COMMA', 0, 'POINT')}">Rp 0</td>
+                    </tr>
+                    <tr th:if="${invoice.taxAmount != null && invoice.taxAmount > 0}">
+                        <td colspan="5" class="text-right font-medium">PPN</td>
+                        <td class="text-right font-medium" th:text="'Rp ' + ${#numbers.formatDecimal(invoice.taxAmount, 0, 'COMMA', 0, 'POINT')}">Rp 0</td>
+                    </tr>
+                    <tr>
+                        <td colspan="5" class="text-right">Total</td>
+                        <td class="text-right" th:text="'Rp ' + ${#numbers.formatDecimal(invoice.amount + invoice.taxAmount, 0, 'COMMA', 0, 'POINT')}">Rp 0</td>
+                    </tr>
+                </tfoot>
+            </table>
         </div>
 
         <!-- Amount Section -->

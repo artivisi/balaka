@@ -4,24 +4,24 @@
       layout:decorate="~{layouts/main}"
       lang="id">
 <head>
-    <title th:text="${invoice.id != null} ? 'Edit Invoice' : 'Invoice Baru'">Invoice</title>
+    <title th:text="${bill.id != null} ? 'Edit Tagihan' : 'Tagihan Baru'">Tagihan</title>
 </head>
 <body>
-    <h1 id="page-title" layout:fragment="page-title" th:text="${invoice.id != null} ? 'Edit Invoice' : 'Invoice Baru'">Invoice</h1>
+    <h1 id="page-title" layout:fragment="page-title" th:text="${bill.id != null} ? 'Edit Tagihan' : 'Tagihan Baru'">Tagihan</h1>
 
     <div layout:fragment="content" class="max-w-4xl">
         <!-- Breadcrumb -->
         <nav class="flex items-center space-x-2 text-sm text-gray-500 mb-6">
-            <a th:href="@{/invoices}" class="hover:text-primary-600 transition-colors">Invoice</a>
+            <a th:href="@{/bills}" class="hover:text-primary-600 transition-colors">Tagihan</a>
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
             </svg>
-            <span class="text-gray-900" th:text="${invoice.id != null} ? 'Edit Invoice' : 'Invoice Baru'">Invoice</span>
+            <span class="text-gray-900" th:text="${bill.id != null} ? 'Edit Tagihan' : 'Tagihan Baru'">Tagihan</span>
         </nav>
 
-        <div class="bg-white rounded-lg shadow p-6" x-data="invoiceForm()">
-            <form th:action="${invoice.id != null} ? @{/invoices/{invoiceNumber}(invoiceNumber=${invoice.invoiceNumber})} : @{/invoices/new}"
-                  th:object="${invoice}"
+        <div class="bg-white rounded-lg shadow p-6" x-data="billForm()">
+            <form th:action="${bill.id != null} ? @{/bills/{billNumber}(billNumber=${bill.billNumber})} : @{/bills/new}"
+                  th:object="${bill}"
                   method="post" class="space-y-6">
 
                 <!-- Validation Errors -->
@@ -32,64 +32,52 @@
                     </ul>
                 </div>
 
-                <!-- Invoice Number -->
-                <div>
-                    <label for="invoiceNumber" class="block text-sm font-medium text-gray-700 mb-1">Nomor Invoice</label>
-                    <input type="text" id="invoiceNumber" th:field="*{invoiceNumber}"
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 font-mono"
-                           th:classappend="${#fields.hasErrors('invoiceNumber')} ? 'border-red-500' : ''"
-                           placeholder="Auto-generated jika kosong">
-                    <p class="mt-1 text-xs text-gray-500">Kosongkan untuk nomor otomatis (format: INV-YYYYMM-XXXX)</p>
-                    <p th:if="${#fields.hasErrors('invoiceNumber')}" th:errors="*{invoiceNumber}" class="mt-1 text-sm text-red-500"></p>
-                </div>
-
-                <!-- Client -->
-                <div>
-                    <label for="client" class="block text-sm font-medium text-gray-700 mb-1">Klien *</label>
-                    <select id="client" th:field="*{client.id}"
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
-                            th:classappend="${#fields.hasErrors('client')} ? 'border-red-500' : ''"
-                            required>
-                        <option value="">-- Pilih Klien --</option>
-                        <option th:each="c : ${clients}" th:value="${c.id}" th:text="${c.name}">Client</option>
-                    </select>
-                    <p th:if="${#fields.hasErrors('client')}" th:errors="*{client}" class="mt-1 text-sm text-red-500"></p>
-                </div>
-
-                <!-- Project (Optional) -->
-                <div>
-                    <label for="project" class="block text-sm font-medium text-gray-700 mb-1">Proyek</label>
-                    <select id="project" th:field="*{project.id}"
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
-                        <option value="">-- Tanpa Proyek --</option>
-                        <option th:each="p : ${projects}" th:value="${p.id}" th:text="${p.code + ' - ' + p.name}">Project</option>
-                    </select>
-                </div>
-
-                <!-- Dates -->
+                <!-- Bill Number & Vendor -->
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label for="invoiceDate" class="block text-sm font-medium text-gray-700 mb-1">Tanggal Invoice *</label>
-                        <input type="date" id="invoiceDate" th:field="*{invoiceDate}"
+                        <label for="billNumber" class="block text-sm font-medium text-gray-700 mb-1">Nomor Tagihan</label>
+                        <input type="text" id="billNumber" th:field="*{billNumber}"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 font-mono"
+                               placeholder="Auto-generated jika kosong">
+                        <p class="mt-1 text-xs text-gray-500">Kosongkan untuk nomor otomatis (format: BILL-YYYYMM-XXXX)</p>
+                    </div>
+                    <div>
+                        <label for="vendor" class="block text-sm font-medium text-gray-700 mb-1">Vendor *</label>
+                        <select id="vendor" th:field="*{vendor.id}"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                                required>
+                            <option value="">-- Pilih Vendor --</option>
+                            <option th:each="v : ${vendors}" th:value="${v.id}" th:text="${v.name}">Vendor</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Vendor Invoice Number & Dates -->
+                <div class="grid grid-cols-3 gap-4">
+                    <div>
+                        <label for="vendorInvoiceNumber" class="block text-sm font-medium text-gray-700 mb-1">No. Faktur Vendor</label>
+                        <input type="text" id="vendorInvoiceNumber" th:field="*{vendorInvoiceNumber}"
                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
-                               th:classappend="${#fields.hasErrors('invoiceDate')} ? 'border-red-500' : ''"
+                               placeholder="Nomor dari vendor">
+                    </div>
+                    <div>
+                        <label for="billDate" class="block text-sm font-medium text-gray-700 mb-1">Tanggal Tagihan *</label>
+                        <input type="date" id="billDate" th:field="*{billDate}"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
                                required>
-                        <p th:if="${#fields.hasErrors('invoiceDate')}" th:errors="*{invoiceDate}" class="mt-1 text-sm text-red-500"></p>
                     </div>
                     <div>
                         <label for="dueDate" class="block text-sm font-medium text-gray-700 mb-1">Jatuh Tempo *</label>
                         <input type="date" id="dueDate" th:field="*{dueDate}"
                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
-                               th:classappend="${#fields.hasErrors('dueDate')} ? 'border-red-500' : ''"
                                required>
-                        <p th:if="${#fields.hasErrors('dueDate')}" th:errors="*{dueDate}" class="mt-1 text-sm text-red-500"></p>
                     </div>
                 </div>
 
                 <!-- Line Items -->
                 <div class="border-t pt-4">
                     <div class="flex items-center justify-between mb-3">
-                        <h3 class="text-sm font-medium text-gray-900">Item Invoice</h3>
+                        <h3 class="text-sm font-medium text-gray-900">Item Tagihan</h3>
                         <button type="button" @click="addLine()"
                                 class="px-3 py-1 text-sm bg-primary-100 text-primary-700 rounded hover:bg-primary-200">
                             + Tambah Item
@@ -99,12 +87,20 @@
                     <div class="space-y-3">
                         <template x-for="(line, index) in lines" :key="index">
                             <div class="grid grid-cols-12 gap-2 items-start p-3 bg-gray-50 rounded-lg">
-                                <div class="col-span-5">
+                                <div class="col-span-4">
                                     <label class="block text-xs text-gray-500 mb-1">Deskripsi *</label>
                                     <input type="text" :name="'lineDescription'" x-model="line.description"
                                            class="w-full px-3 py-2 border border-gray-300 rounded text-sm" required>
                                 </div>
                                 <div class="col-span-2">
+                                    <label class="block text-xs text-gray-500 mb-1">Akun Beban</label>
+                                    <select :name="'lineExpenseAccountId'" x-model="line.expenseAccountId"
+                                            class="w-full px-3 py-2 border border-gray-300 rounded text-sm">
+                                        <option value="">--</option>
+                                        <option th:each="a : ${expenseAccounts}" th:value="${a.id}" th:text="${a.accountCode + ' - ' + a.accountName}">Account</option>
+                                    </select>
+                                </div>
+                                <div class="col-span-1">
                                     <label class="block text-xs text-gray-500 mb-1">Qty</label>
                                     <input type="number" :name="'lineQuantity'" x-model="line.quantity"
                                            @input="calcLine(line)"
@@ -155,14 +151,6 @@
                             </div>
                         </div>
                     </div>
-
-                    <!-- Fallback: direct amount if no lines -->
-                    <div class="mt-4" x-show="lines.length === 0">
-                        <label for="amount" class="block text-sm font-medium text-gray-700 mb-1">Jumlah (Rp) *</label>
-                        <input type="number" id="amount" th:field="*{amount}"
-                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
-                               placeholder="0" min="0" step="1000">
-                    </div>
                 </div>
 
                 <!-- Notes -->
@@ -175,7 +163,7 @@
 
                 <!-- Actions -->
                 <div class="flex items-center justify-end gap-3 pt-4 border-t">
-                    <a th:href="@{/invoices}"
+                    <a th:href="@{/bills}"
                        class="px-4 py-2 text-gray-600 hover:text-gray-900">Batal</a>
                     <button id="btn-simpan" type="submit"
                             class="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
@@ -188,20 +176,21 @@
 
     <th:block layout:fragment="scripts">
         <script th:inline="javascript" th:attr="nonce=${cspNonce}">
-            function invoiceForm() {
-                const existingLines = /*[[${invoice.lines}]]*/ [];
+            function billForm() {
+                const existingLines = /*[[${bill.lines}]]*/ [];
                 return {
                     lines: existingLines.length > 0
                         ? existingLines.map(l => ({
                             description: l.description || '',
+                            expenseAccountId: l.expenseAccount ? l.expenseAccount.id : '',
                             quantity: l.quantity || 1,
                             unitPrice: l.unitPrice || 0,
                             taxRate: l.taxRate || '',
                             amount: l.amount || 0
                         }))
-                        : [],
+                        : [{ description: '', expenseAccountId: '', quantity: 1, unitPrice: 0, taxRate: '', amount: 0 }],
                     addLine() {
-                        this.lines.push({ description: '', quantity: 1, unitPrice: 0, taxRate: '', amount: 0 });
+                        this.lines.push({ description: '', expenseAccountId: '', quantity: 1, unitPrice: 0, taxRate: '', amount: 0 });
                     },
                     removeLine(index) {
                         this.lines.splice(index, 1);

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      layout:decorate="~{layouts/main}"
+      lang="id">
+<head>
+    <title>Daftar Tagihan</title>
+</head>
+<body>
+    <h1 id="page-title" layout:fragment="page-title">Daftar Tagihan</h1>
+
+    <div layout:fragment="content" class="space-y-6" data-testid="bill-list">
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="bg-white rounded-lg shadow p-4">
+                <p class="text-sm text-gray-500">Draf</p>
+                <p class="text-2xl font-semibold text-gray-900" th:text="${draftCount}">0</p>
+            </div>
+            <div class="bg-white rounded-lg shadow p-4">
+                <p class="text-sm text-gray-500">Disetujui</p>
+                <p class="text-2xl font-semibold text-blue-600" th:text="${approvedCount}">0</p>
+            </div>
+            <div class="bg-white rounded-lg shadow p-4">
+                <p class="text-sm text-gray-500">Jatuh Tempo</p>
+                <p class="text-2xl font-semibold text-red-600" th:text="${overdueCount}">0</p>
+            </div>
+            <div class="bg-white rounded-lg shadow p-4">
+                <p class="text-sm text-gray-500">Lunas</p>
+                <p class="text-2xl font-semibold text-green-600" th:text="${paidCount}">0</p>
+            </div>
+        </div>
+
+        <!-- Filters & Actions -->
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <form th:action="@{/bills}" method="get" class="flex flex-wrap items-center gap-2">
+                <select name="status" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                    <option value="">Semua Status</option>
+                    <option th:each="s : ${statuses}" th:value="${s}" th:text="${s.indonesianName}"
+                            th:selected="${selectedStatus != null && selectedStatus.name() == s.name()}">Status</option>
+                </select>
+                <select name="vendorId" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                    <option value="">Semua Vendor</option>
+                    <option th:each="v : ${vendors}" th:value="${v.id}" th:text="${v.name}"
+                            th:selected="${selectedVendorId != null && selectedVendorId == v.id}">Vendor</option>
+                </select>
+                <button type="submit" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm">
+                    Filter
+                </button>
+                <a th:href="@{/bills}" class="px-4 py-2 text-gray-500 hover:text-gray-700 text-sm">Reset</a>
+            </form>
+            <a sec:authorize="hasAuthority('BILL_CREATE')" th:href="@{/bills/new}" id="btn-new-bill"
+               class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-center">
+                + Tagihan Baru
+            </a>
+        </div>
+
+        <!-- Bill Table -->
+        <div class="bg-white rounded-lg shadow overflow-hidden" data-testid="bill-table">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">No. Tagihan</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Vendor</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">No. Faktur Vendor</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tanggal</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Jatuh Tempo</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Jumlah</th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    <tr th:if="${bills.empty}">
+                        <td colspan="8" class="px-6 py-8 text-center text-gray-500">Belum ada tagihan</td>
+                    </tr>
+                    <tr th:each="bill : ${bills}" class="hover:bg-gray-50">
+                        <td class="px-6 py-4">
+                            <a th:href="@{/bills/{billNumber}(billNumber=${bill.billNumber})}" class="text-primary-600 hover:underline font-mono" th:text="${bill.billNumber}">BILL-001</a>
+                        </td>
+                        <td class="px-6 py-4 text-sm" th:text="${bill.vendor.name}">Vendor</td>
+                        <td class="px-6 py-4 text-sm" th:text="${bill.vendorInvoiceNumber != null ? bill.vendorInvoiceNumber : '-'}">-</td>
+                        <td class="px-6 py-4 text-sm" th:text="${#temporals.format(bill.billDate, 'dd MMM yyyy')}">01 Jan 2025</td>
+                        <td class="px-6 py-4 text-sm" th:classappend="${bill.overdue} ? 'text-red-600 font-medium' : ''" th:text="${#temporals.format(bill.dueDate, 'dd MMM yyyy')}">15 Jan 2025</td>
+                        <td class="px-6 py-4 text-sm text-right font-medium" th:text="'Rp ' + ${#numbers.formatDecimal(bill.amount, 0, 'COMMA', 0, 'POINT')}">Rp 0</td>
+                        <td class="px-6 py-4 text-center">
+                            <span th:if="${bill.status.name() == 'DRAFT'}" class="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600">Draf</span>
+                            <span th:if="${bill.status.name() == 'APPROVED'}" class="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">Disetujui</span>
+                            <span th:if="${bill.status.name() == 'PARTIAL'}" class="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">Sebagian</span>
+                            <span th:if="${bill.status.name() == 'PAID'}" class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">Lunas</span>
+                            <span th:if="${bill.status.name() == 'OVERDUE'}" class="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800">Jatuh Tempo</span>
+                            <span th:if="${bill.status.name() == 'CANCELLED'}" class="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-500">Dibatalkan</span>
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            <a th:href="@{/bills/{billNumber}(billNumber=${bill.billNumber})}" class="text-primary-600 hover:underline text-sm">Detail</a>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        <div th:if="${bills.totalPages > 1}" class="flex items-center justify-between">
+            <p class="text-sm text-gray-500">
+                Menampilkan <span th:text="${bills.number * bills.size + 1}">1</span> -
+                <span th:text="${bills.number * bills.size + bills.numberOfElements}">20</span> dari
+                <span th:text="${bills.totalElements}">100</span> tagihan
+            </p>
+            <div class="flex items-center gap-2">
+                <a th:if="${bills.hasPrevious()}"
+                   th:href="@{/bills(page=${bills.number - 1}, status=${selectedStatus}, vendorId=${selectedVendorId})}"
+                   class="px-3 py-1 border rounded hover:bg-gray-50">&laquo; Prev</a>
+                <a th:if="${bills.hasNext()}"
+                   th:href="@{/bills(page=${bills.number + 1}, status=${selectedStatus}, vendorId=${selectedVendorId})}"
+                   class="px-3 py-1 border rounded hover:bg-gray-50">Next &raquo;</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -157,6 +157,32 @@
                             <a sec:authorize="hasAuthority('CLIENT_VIEW')" id="nav-klien" th:href="@{/clients}"
                                th:classappend="${#strings.equals(currentPage, 'clients')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
                                class="flex items-center px-3 py-2 rounded-lg transition-colors">Klien</a>
+                            <a sec:authorize="hasAuthority('INVOICE_VIEW')" id="nav-invoices" th:href="@{/invoices}"
+                               th:classappend="${#strings.equals(currentPage, 'invoices')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
+                               class="flex items-center px-3 py-2 rounded-lg transition-colors">Faktur</a>
+                        </div>
+                    </details>
+
+                    <!-- Pembelian Group -->
+                    <details class="space-y-1">
+                        <summary id="nav-group-pembelian" class="flex items-center justify-between w-full px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">
+                            <span class="flex items-center">
+                                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z"/>
+                                </svg>
+                                Pembelian
+                            </span>
+                            <svg class="w-4 h-4 chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </summary>
+                        <div class="pl-4 space-y-1">
+                            <a sec:authorize="hasAuthority('VENDOR_VIEW')" id="nav-vendors" th:href="@{/vendors}"
+                               th:classappend="${#strings.equals(currentPage, 'vendors')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
+                               class="flex items-center px-3 py-2 rounded-lg transition-colors">Vendor</a>
+                            <a sec:authorize="hasAuthority('BILL_VIEW')" id="nav-bills" th:href="@{/bills}"
+                               th:classappend="${#strings.equals(currentPage, 'bills')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
+                               class="flex items-center px-3 py-2 rounded-lg transition-colors">Tagihan</a>
                         </div>
                     </details>
 
@@ -395,6 +421,29 @@
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Daftar Proyek</a>
                             <a sec:authorize="hasAuthority('CLIENT_VIEW')" th:href="@{/clients}"
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Klien</a>
+                            <a sec:authorize="hasAuthority('INVOICE_VIEW')" th:href="@{/invoices}"
+                               class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Faktur</a>
+                        </div>
+                    </details>
+
+                    <!-- Mobile Pembelian -->
+                    <details class="space-y-1">
+                        <summary class="flex items-center justify-between w-full px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">
+                            <span class="flex items-center">
+                                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z"/>
+                                </svg>
+                                Pembelian
+                            </span>
+                            <svg class="w-4 h-4 chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </summary>
+                        <div class="pl-4 space-y-1">
+                            <a sec:authorize="hasAuthority('VENDOR_VIEW')" th:href="@{/vendors}"
+                               class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Vendor</a>
+                            <a sec:authorize="hasAuthority('BILL_VIEW')" th:href="@{/bills}"
+                               class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Tagihan</a>
                         </div>
                     </details>
 

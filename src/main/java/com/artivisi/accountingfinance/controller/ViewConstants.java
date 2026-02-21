@@ -66,6 +66,12 @@ public final class ViewConstants {
     public static final String PAGE_ALERT_CONFIG = "alert-config";
     public static final String PAGE_ALERT_HISTORY = "alert-history";
 
+    // Current page values - Vendors
+    public static final String PAGE_VENDORS = "vendors";
+
+    // Current page values - Bills
+    public static final String PAGE_BILLS = "bills";
+
     // Current page values - Bank Reconciliation
     public static final String PAGE_BANK_RECONCILIATION = "bank-reconciliation";
     public static final String PAGE_BANK_RECON_PARSER_CONFIGS = "bank-recon-parser-configs";
@@ -89,6 +95,20 @@ public final class ViewConstants {
     public static final String VIEW_PAYROLL_FORM = "payroll/form";
     public static final String VIEW_PAYROLL_DETAIL = "payroll/detail";
     public static final String VIEW_SALARY_COMPONENTS_FORM = "salary-components/form";
+
+    // View paths - Vendors
+    public static final String VIEW_VENDORS_LIST = "vendors/list";
+    public static final String VIEW_VENDORS_FORM = "vendors/form";
+    public static final String VIEW_VENDORS_DETAIL = "vendors/detail";
+
+    // View paths - Bills
+    public static final String VIEW_BILLS_LIST = "bills/list";
+    public static final String VIEW_BILLS_FORM = "bills/form";
+    public static final String VIEW_BILLS_DETAIL = "bills/detail";
+
+    // Redirect prefixes - Vendors and Bills
+    public static final String REDIRECT_VENDORS = "redirect:/vendors/";
+    public static final String REDIRECT_BILLS = "redirect:/bills/";
 
     // Redirect prefixes - Bank Reconciliation
     public static final String REDIRECT_BANK_RECON = "redirect:/bank-reconciliation/";
