@@ -21,8 +21,8 @@
 | **7** | API Foundation | ✅ Complete |
 | **8** | Bank Reconciliation | ✅ Complete |
 | **9** | Analytics & Insights | ✅ Complete |
-| **10** | Invoice & Bill Management | ⏳ Not Started |
-| **11** | Recurring Transactions | ⏳ Not Started |
+| **10** | Invoice & Bill Management | ✅ Complete |
+| **11** | Recurring Transactions | ✅ Complete |
 | **12** | WhatsApp Notifications | ⏳ Not Started |
 | **—** | Future Enhancements | As needed |
 
@@ -1095,7 +1095,7 @@ Additive is ~3x simpler. Role switching only needed for strict audit trails or c
 
 ---
 
-## Phase 10: Invoice & Bill Management
+## Phase 10: Invoice & Bill Management ✅
 
 **Goal:** Standalone invoice/bill cycle with line items, payment tracking, and aging reports
 
@@ -1161,7 +1161,7 @@ Additive is ~3x simpler. Role switching only needed for strict audit trails or c
 
 ---
 
-## Phase 11: Recurring Transactions
+## Phase 11: Recurring Transactions ✅
 
 **Goal:** Auto-posting scheduled transactions for predictable recurring expenses/revenues
 
