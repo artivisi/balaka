@@ -61,6 +61,9 @@ class PaymentTermTest extends PlaywrightTestBase {
         page.locator("#percentage").fill("30");
 
         page.locator("#btn-simpan").click();
+
+        // Wait for redirect back to project page (away from /new)
+        page.waitForURL(url -> !url.contains("/payment-terms/new"), new com.microsoft.playwright.Page.WaitForURLOptions().setTimeout(10000));
         waitForPageLoad();
 
         // Should redirect back to project page

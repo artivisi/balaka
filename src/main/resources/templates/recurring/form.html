@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/main}"
+      lang="id">
+<head>
+    <title th:text="${isEdit} ? 'Edit Transaksi Berulang' : 'Transaksi Berulang Baru'">Transaksi Berulang</title>
+</head>
+<body>
+    <h1 id="page-title" layout:fragment="page-title" th:text="${isEdit} ? 'Edit Transaksi Berulang' : 'Transaksi Berulang Baru'">Transaksi Berulang</h1>
+
+    <div layout:fragment="content" class="max-w-4xl">
+        <!-- Breadcrumb -->
+        <nav class="flex items-center space-x-2 text-sm text-gray-500 mb-6">
+            <a th:href="@{/recurring}" class="hover:text-primary-600 transition-colors">Transaksi Berulang</a>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+            </svg>
+            <span class="text-gray-900" th:text="${isEdit} ? 'Edit' : 'Baru'">Baru</span>
+        </nav>
+
+        <div class="bg-white rounded-lg shadow p-6" x-data="recurringForm()">
+            <form th:action="${isEdit} ? @{/recurring/{id}(id=${recurring.id})} : @{/recurring/new}"
+                  method="post" class="space-y-6">
+
+                <!-- Name & Template -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Nama *</label>
+                        <input type="text" id="name" name="name" th:value="${recurring.name}"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                               placeholder="Contoh: Sewa Kantor Bulanan" required>
+                    </div>
+                    <div>
+                        <label for="journalTemplateId" class="block text-sm font-medium text-gray-700 mb-1">Template Jurnal *</label>
+                        <select id="journalTemplateId" name="journalTemplateId"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                                required>
+                            <option value="">-- Pilih Template --</option>
+                            <option th:each="t : ${templates}" th:value="${t.id}" th:text="${t.templateName}"
+                                    th:selected="${recurring.journalTemplate != null && recurring.journalTemplate.id == t.id}">Template</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Amount & Description -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="amount" class="block text-sm font-medium text-gray-700 mb-1">Jumlah (Rp) *</label>
+                        <input type="number" id="amount" name="amount" th:value="${recurring.amount}"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                               step="1" min="0" required>
+                    </div>
+                    <div>
+                        <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Deskripsi *</label>
+                        <input type="text" id="description" name="description" th:value="${recurring.description}"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                               placeholder="Deskripsi transaksi" required>
+                    </div>
+                </div>
+
+                <!-- Frequency & Day -->
+                <div class="grid grid-cols-3 gap-4">
+                    <div>
+                        <label for="frequency" class="block text-sm font-medium text-gray-700 mb-1">Frekuensi *</label>
+                        <select id="frequency" name="frequency" x-model="frequency" @change="onFrequencyChange()"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                                required>
+                            <option th:each="f : ${frequencies}" th:value="${f}" th:text="${f.indonesianName}"
+                                    th:selected="${recurring.frequency != null && recurring.frequency.name() == f.name()}">Frekuensi</option>
+                        </select>
+                    </div>
+                    <div x-show="showDayOfMonth">
+                        <label for="dayOfMonth" class="block text-sm font-medium text-gray-700 mb-1">Tanggal</label>
+                        <input type="number" id="dayOfMonth" name="dayOfMonth" th:value="${recurring.dayOfMonth}"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                               min="1" max="28" placeholder="1-28">
+                        <p class="mt-1 text-xs text-gray-500">Tanggal 1-28 dalam bulan</p>
+                    </div>
+                    <div x-show="showDayOfWeek">
+                        <label for="dayOfWeek" class="block text-sm font-medium text-gray-700 mb-1">Hari</label>
+                        <select id="dayOfWeek" name="dayOfWeek"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
+                            <option value="">-- Pilih Hari --</option>
+                            <option value="1" th:selected="${recurring.dayOfWeek != null && recurring.dayOfWeek == 1}">Senin</option>
+                            <option value="2" th:selected="${recurring.dayOfWeek != null && recurring.dayOfWeek == 2}">Selasa</option>
+                            <option value="3" th:selected="${recurring.dayOfWeek != null && recurring.dayOfWeek == 3}">Rabu</option>
+                            <option value="4" th:selected="${recurring.dayOfWeek != null && recurring.dayOfWeek == 4}">Kamis</option>
+                            <option value="5" th:selected="${recurring.dayOfWeek != null && recurring.dayOfWeek == 5}">Jumat</option>
+                            <option value="6" th:selected="${recurring.dayOfWeek != null && recurring.dayOfWeek == 6}">Sabtu</option>
+                            <option value="7" th:selected="${recurring.dayOfWeek != null && recurring.dayOfWeek == 7}">Minggu</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Dates -->
+                <div class="grid grid-cols-3 gap-4">
+                    <div>
+                        <label for="startDate" class="block text-sm font-medium text-gray-700 mb-1">Tanggal Mulai *</label>
+                        <input type="date" id="startDate" name="startDate" th:value="${recurring.startDate}"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                               required>
+                    </div>
+                    <div>
+                        <label for="endDate" class="block text-sm font-medium text-gray-700 mb-1">Tanggal Selesai</label>
+                        <input type="date" id="endDate" name="endDate" th:value="${recurring.endDate}"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
+                        <p class="mt-1 text-xs text-gray-500">Kosongkan jika tanpa batas</p>
+                    </div>
+                    <div>
+                        <label for="maxOccurrences" class="block text-sm font-medium text-gray-700 mb-1">Maks. Eksekusi</label>
+                        <input type="number" id="maxOccurrences" name="maxOccurrences" th:value="${recurring.maxOccurrences}"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                               min="1" placeholder="Tanpa batas">
+                        <p class="mt-1 text-xs text-gray-500">Kosongkan jika tanpa batas</p>
+                    </div>
+                </div>
+
+                <!-- Options -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="flex items-center space-x-3">
+                        <input type="checkbox" id="skipWeekends" name="skipWeekends" value="true"
+                               th:checked="${recurring.skipWeekends}"
+                               class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
+                        <label for="skipWeekends" class="text-sm text-gray-700">Lewati akhir pekan (Sabtu/Minggu)</label>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <input type="checkbox" id="autoPost" name="autoPost" value="true"
+                               th:checked="${recurring.autoPost == null || recurring.autoPost}"
+                               class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
+                        <label for="autoPost" class="text-sm text-gray-700">Posting otomatis (atau simpan sebagai Draft)</label>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex items-center justify-end gap-3 pt-4 border-t">
+                    <a th:href="@{/recurring}"
+                       class="px-4 py-2 text-gray-600 hover:text-gray-900">Batal</a>
+                    <button id="btn-simpan" type="submit"
+                            class="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+                        Simpan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <th:block layout:fragment="scripts">
+        <script th:inline="javascript" th:attr="nonce=${cspNonce}">
+            function recurringForm() {
+                const initialFrequency = /*[[${recurring.frequency?.name() ?: 'MONTHLY'}]]*/ 'MONTHLY';
+                return {
+                    frequency: initialFrequency,
+                    get showDayOfMonth() {
+                        return this.frequency === 'MONTHLY' || this.frequency === 'QUARTERLY' || this.frequency === 'YEARLY';
+                    },
+                    get showDayOfWeek() {
+                        return this.frequency === 'WEEKLY';
+                    },
+                    onFrequencyChange() {
+                        // clear irrelevant fields
+                    }
+                };
+            }
+        </script>
+    </th:block>
+</body>
+</html>

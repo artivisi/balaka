@@ -212,7 +212,16 @@ public class UserManualGenerator {
                 new Section("contoh-alur-lengkap", "Contoh Alur Lengkap", "16-faktur-tagihan.md", List.of())
             )),
 
-            // 17. LAMPIRAN (last)
+            // 17. TRANSAKSI BERULANG
+            new SectionGroup("transaksi-berulang", "Transaksi Berulang", "M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15", List.of(
+                new Section("konsep-transaksi-berulang", "Konsep Transaksi Berulang", "17-transaksi-berulang.md", List.of()),
+                new Section("membuat-transaksi-berulang", "Membuat Transaksi Berulang", "17-transaksi-berulang.md", List.of()),
+                new Section("detail-pengelolaan", "Detail dan Pengelolaan", "17-transaksi-berulang.md", List.of("recurring/detail")),
+                new Section("eksekusi-otomatis", "Eksekusi Otomatis (Scheduler)", "17-transaksi-berulang.md", List.of()),
+                new Section("hak-akses-recurring", "Hak Akses", "17-transaksi-berulang.md", List.of())
+            )),
+
+            // 18. LAMPIRAN (last)
             new SectionGroup("lampiran", "Lampiran", "M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4", List.of(
                 new Section("glosarium", "Glosarium", "12-lampiran-glosarium.md", List.of()),
                 new Section("referensi-template", "Referensi Template", "12-lampiran-template.md", List.of("service/templates-list", "service/templates-metadata-detail", "service/templates-metadata-form")),

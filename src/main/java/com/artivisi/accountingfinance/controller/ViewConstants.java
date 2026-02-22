@@ -80,6 +80,9 @@ public final class ViewConstants {
     // Current page values - Bills
     public static final String PAGE_BILLS = "bills";
 
+    // Current page values - Recurring Transactions
+    public static final String PAGE_RECURRING = "recurring";
+
     // Current page values - Bank Reconciliation
     public static final String PAGE_BANK_RECONCILIATION = "bank-reconciliation";
     public static final String PAGE_BANK_RECON_PARSER_CONFIGS = "bank-recon-parser-configs";
@@ -123,6 +126,9 @@ public final class ViewConstants {
     public static final String REDIRECT_BANK_RECON_PARSER_CONFIGS = "redirect:/bank-reconciliation/parser-configs";
     public static final String REDIRECT_BANK_RECON_STATEMENTS = "redirect:/bank-reconciliation/statements";
     public static final String REDIRECT_BANK_RECON_RECONCILIATIONS = "redirect:/bank-reconciliation/reconciliations";
+
+    // Redirect prefixes - Recurring Transactions
+    public static final String REDIRECT_RECURRING = "redirect:/recurring";
 
     // Redirect prefixes
     public static final String REDIRECT_INVOICES = "redirect:/invoices/";

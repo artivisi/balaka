@@ -99,6 +99,10 @@ public class ScreenshotCapture {
             new PageDefinition("10-vendor-statement", "Laporan Vendor", "/statements/vendor", true,
                     "Laporan per vendor dengan saldo berjalan", "faktur-tagihan"),
 
+            // Recurring Transactions (screenshot taken by RecurringTransactionTest)
+            new PageDefinition("recurring/detail", "Detail Transaksi Berulang", "/recurring", true,
+                    "Halaman detail transaksi berulang dengan jadwal dan riwayat eksekusi", "transaksi-berulang"),
+
             // Smart Alerts
             new PageDefinition("alerts/config", "Konfigurasi Peringatan", "/alerts/config", true,
                     "Halaman konfigurasi aturan peringatan: ambang batas dan status aktif", "peringatan"),

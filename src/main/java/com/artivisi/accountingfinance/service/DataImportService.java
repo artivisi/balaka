@@ -232,7 +232,9 @@ public class DataImportService {
             "transaction_sequences", "asset_categories",
             // Manufacturing tables
             "product_categories", "products", "bill_of_materials", "bill_of_material_lines",
-            "production_orders", "inventory_transactions", "inventory_fifo_layers", "inventory_balances"
+            "production_orders", "inventory_transactions", "inventory_fifo_layers", "inventory_balances",
+            // Recurring transaction tables
+            "recurring_transactions", "recurring_transaction_account_mappings", "recurring_transaction_logs"
     );
 
     // Mapping from CSV filename to table name(s) that should be truncated
@@ -243,12 +245,14 @@ public class DataImportService {
             Map.entry("02_chart_of_accounts.csv", List.of(
                     "journal_entries", "transaction_account_mappings", "transaction_variables", "tax_transaction_details",
                     "transactions", "amortization_entries", "amortization_schedules",
+                    "recurring_transaction_account_mappings",
                     "documents", "chart_of_accounts")),
             Map.entry("03_salary_components.csv", List.of("employee_salary_components", "salary_components")),
             // Template change invalidates transactions, merchant mappings, payment terms
             Map.entry("04_journal_templates.csv", List.of(
                     "journal_entries", "transaction_account_mappings", "transaction_variables", "tax_transaction_details",
                     "transactions", "merchant_mappings", "project_payment_terms",
+                    "recurring_transaction_logs", "recurring_transaction_account_mappings", "recurring_transactions",
                     "user_template_preferences", "journal_template_tags", "journal_template_lines", "journal_templates")),
             Map.entry("07_clients.csv", List.of("invoices", "projects", "clients")),
             Map.entry("08_projects.csv", List.of("project_payment_terms", "project_milestones", "projects")),
@@ -258,7 +262,7 @@ public class DataImportService {
             Map.entry("14_merchant_mappings.csv", List.of("merchant_mappings")),
             Map.entry("15_employees.csv", List.of("payroll_details", "employee_salary_components", "employees")),
             Map.entry("17_invoices.csv", List.of("invoices")),
-            Map.entry("18_transactions.csv", List.of("journal_entries", "transaction_account_mappings", "transaction_variables", "tax_transaction_details", "documents", "transactions")),
+            Map.entry("18_transactions.csv", List.of("journal_entries", "transaction_account_mappings", "transaction_variables", "tax_transaction_details", "recurring_transaction_logs", "documents", "transactions")),
             Map.entry("21_payroll_runs.csv", List.of("payroll_details", "payroll_runs")),
             Map.entry("23_amortization_schedules.csv", List.of("amortization_entries", "amortization_schedules")),
             Map.entry("27_draft_transactions.csv", List.of("draft_transactions")),

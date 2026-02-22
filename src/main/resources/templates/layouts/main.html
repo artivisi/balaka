@@ -105,6 +105,9 @@
                             <a sec:authorize="hasAuthority('BANK_RECONCILIATION_VIEW')" id="nav-bank-recon" th:href="@{/bank-reconciliation}"
                                th:classappend="${currentPage != null && currentPage.startsWith('bank-recon')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
                                class="flex items-center px-3 py-2 rounded-lg transition-colors">Rekonsiliasi Bank</a>
+                            <a sec:authorize="hasAuthority('RECURRING_VIEW')" id="nav-recurring" th:href="@{/recurring}"
+                               th:classappend="${#strings.equals(currentPage, 'recurring')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
+                               class="flex items-center px-3 py-2 rounded-lg transition-colors">Transaksi Berulang</a>
                         </div>
                     </details>
 
@@ -381,6 +384,8 @@
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Aset Tetap</a>
                             <a sec:authorize="hasAuthority('BANK_RECONCILIATION_VIEW')" th:href="@{/bank-reconciliation}"
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Rekonsiliasi Bank</a>
+                            <a sec:authorize="hasAuthority('RECURRING_VIEW')" th:href="@{/recurring}"
+                               class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Transaksi Berulang</a>
                         </div>
                     </details>
 

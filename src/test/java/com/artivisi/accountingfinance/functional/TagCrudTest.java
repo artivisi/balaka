@@ -70,6 +70,9 @@ class TagCrudTest extends PlaywrightTestBase {
         page.locator("#name").fill("Marketing");
         page.locator("#description").fill("Departemen Marketing");
         page.locator("#btn-save").click();
+
+        // Wait for redirect back to tag list (away from /new)
+        page.waitForURL(url -> !url.contains("/new"), new com.microsoft.playwright.Page.WaitForURLOptions().setTimeout(10000));
         waitForPageLoad();
 
         assertThat(page.locator("body")).containsText("berhasil ditambahkan");

@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      layout:decorate="~{layouts/main}"
+      lang="id">
+<head>
+    <title>Detail Transaksi Berulang</title>
+</head>
+<body>
+    <h1 id="page-title" layout:fragment="page-title">Detail Transaksi Berulang</h1>
+
+    <div layout:fragment="content" class="space-y-6" data-testid="recurring-detail">
+        <!-- Success Message -->
+        <div th:if="${successMessage}" class="p-4 bg-green-50 border border-green-200 rounded-lg">
+            <p class="text-sm text-green-600" th:text="${successMessage}"></p>
+        </div>
+
+        <!-- Header -->
+        <div class="flex items-start justify-between">
+            <div>
+                <h2 class="text-xl font-semibold text-gray-900" th:text="${recurring.name}">Nama</h2>
+                <p class="text-sm text-gray-500 mt-1" th:text="${recurring.journalTemplate.templateName}">Template</p>
+            </div>
+            <div class="flex items-center gap-2">
+                <span th:if="${recurring.status.name() == 'ACTIVE'}" class="px-3 py-1 text-sm font-medium rounded-full bg-green-100 text-green-800">Aktif</span>
+                <span th:if="${recurring.status.name() == 'PAUSED'}" class="px-3 py-1 text-sm font-medium rounded-full bg-yellow-100 text-yellow-800">Dijeda</span>
+                <span th:if="${recurring.status.name() == 'COMPLETED'}" class="px-3 py-1 text-sm font-medium rounded-full bg-gray-100 text-gray-600">Selesai</span>
+            </div>
+        </div>
+
+        <!-- Info Card -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Informasi</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div>
+                    <p class="text-gray-500">Jumlah</p>
+                    <p class="font-medium text-lg" th:text="'Rp ' + ${#numbers.formatDecimal(recurring.amount, 0, 'COMMA', 0, 'POINT')}">Rp 0</p>
+                </div>
+                <div>
+                    <p class="text-gray-500">Frekuensi</p>
+                    <p class="font-medium" th:text="${recurring.frequency.indonesianName}">Bulanan</p>
+                </div>
+                <div>
+                    <p class="text-gray-500">Deskripsi</p>
+                    <p class="font-medium" th:text="${recurring.description}">Description</p>
+                </div>
+                <div>
+                    <p class="text-gray-500">Tanggal Mulai</p>
+                    <p class="font-medium" th:text="${#temporals.format(recurring.startDate, 'dd MMMM yyyy')}">01 January 2025</p>
+                </div>
+                <div>
+                    <p class="text-gray-500">Tanggal Selesai</p>
+                    <p class="font-medium" th:text="${recurring.endDate != null ? #temporals.format(recurring.endDate, 'dd MMMM yyyy') : 'Tanpa batas'}">-</p>
+                </div>
+                <div>
+                    <p class="text-gray-500">Jadwal Berikut</p>
+                    <p class="font-medium" th:text="${recurring.nextRunDate != null ? #temporals.format(recurring.nextRunDate, 'dd MMMM yyyy') : '-'}">-</p>
+                </div>
+                <div>
+                    <p class="text-gray-500">Terakhir Dijalankan</p>
+                    <p class="font-medium" th:text="${recurring.lastRunDate != null ? #temporals.format(recurring.lastRunDate, 'dd MMMM yyyy') : 'Belum pernah'}">-</p>
+                </div>
+                <div>
+                    <p class="text-gray-500">Total Eksekusi</p>
+                    <p class="font-medium" th:text="${recurring.totalRuns}">0</p>
+                </div>
+                <div>
+                    <p class="text-gray-500">Maks. Eksekusi</p>
+                    <p class="font-medium" th:text="${recurring.maxOccurrences != null ? recurring.maxOccurrences : 'Tanpa batas'}">-</p>
+                </div>
+                <div th:if="${recurring.dayOfMonth != null}">
+                    <p class="text-gray-500">Tanggal dalam Bulan</p>
+                    <p class="font-medium" th:text="${recurring.dayOfMonth}">1</p>
+                </div>
+                <div>
+                    <p class="text-gray-500">Lewati Akhir Pekan</p>
+                    <p class="font-medium" th:text="${recurring.skipWeekends ? 'Ya' : 'Tidak'}">Tidak</p>
+                </div>
+                <div>
+                    <p class="text-gray-500">Posting Otomatis</p>
+                    <p class="font-medium" th:text="${recurring.autoPost ? 'Ya (langsung posting)' : 'Tidak (simpan sebagai draft)'}">Ya</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Preview Next Occurrences -->
+        <div class="bg-white rounded-lg shadow p-6" th:if="${!preview.isEmpty()}" data-testid="recurring-preview">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Jadwal 5 Eksekusi Berikutnya</h3>
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
+                <div th:each="date : ${preview}" class="bg-gray-50 rounded-lg p-3 text-center">
+                    <p class="text-sm font-medium text-gray-900" th:text="${#temporals.format(date, 'dd MMM yyyy')}">01 Jan 2025</p>
+                    <p class="text-xs text-gray-500 mt-1" th:text="${#temporals.format(date, 'EEEE')}">Senin</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Execution Log -->
+        <div class="bg-white rounded-lg shadow p-6" data-testid="recurring-logs">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Riwayat Eksekusi</h3>
+            <div th:if="${logs.isEmpty()}" class="text-center text-gray-500 py-4">
+                Belum ada riwayat eksekusi
+            </div>
+            <table th:if="${!logs.isEmpty()}" class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tanggal Jadwal</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Dijalankan</th>
+                        <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Transaksi</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Keterangan</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    <tr th:each="log : ${logs}">
+                        <td class="px-4 py-2 text-sm" th:text="${#temporals.format(log.scheduledDate, 'dd MMM yyyy')}">01 Jan 2025</td>
+                        <td class="px-4 py-2 text-sm" th:text="${log.executedAt != null ? #temporals.format(log.executedAt, 'dd MMM yyyy HH:mm') : '-'}">-</td>
+                        <td class="px-4 py-2 text-center">
+                            <span th:if="${log.status.name() == 'SUCCESS'}" class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">Berhasil</span>
+                            <span th:if="${log.status.name() == 'FAILED'}" class="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800">Gagal</span>
+                            <span th:if="${log.status.name() == 'SKIPPED'}" class="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">Dilewati</span>
+                        </td>
+                        <td class="px-4 py-2 text-sm">
+                            <a th:if="${log.transaction != null}" th:href="@{/transactions/{id}(id=${log.transaction.id})}" class="text-primary-600 hover:underline font-mono" th:text="${log.transaction.transactionNumber ?: 'Draft'}">TRX-001</a>
+                            <span th:if="${log.transaction == null}">-</span>
+                        </td>
+                        <td class="px-4 py-2 text-sm text-gray-500" th:text="${log.errorMessage ?: '-'}">-</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex items-center justify-between">
+            <a th:href="@{/recurring}" class="px-4 py-2 text-gray-600 hover:text-gray-900">
+                &larr; Kembali ke Daftar
+            </a>
+            <div class="flex items-center gap-2">
+                <!-- Edit -->
+                <a th:if="${recurring.status.name() != 'COMPLETED'}"
+                   sec:authorize="hasAuthority('RECURRING_EDIT')"
+                   th:href="@{/recurring/{id}/edit(id=${recurring.id})}"
+                   class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                    Edit
+                </a>
+
+                <!-- Pause (only active) -->
+                <form th:if="${recurring.status.name() == 'ACTIVE'}" id="form-pause"
+                      sec:authorize="hasAuthority('RECURRING_EDIT')"
+                      th:action="@{/recurring/{id}/pause(id=${recurring.id})}"
+                      method="post" class="inline">
+                    <button type="submit" class="px-4 py-2 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 transition-colors">
+                        Jeda
+                    </button>
+                </form>
+
+                <!-- Resume (only paused) -->
+                <form th:if="${recurring.status.name() == 'PAUSED'}" id="form-resume"
+                      sec:authorize="hasAuthority('RECURRING_EDIT')"
+                      th:action="@{/recurring/{id}/resume(id=${recurring.id})}"
+                      method="post" class="inline">
+                    <button type="submit" class="px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors">
+                        Lanjutkan
+                    </button>
+                </form>
+
+                <!-- Complete (active or paused) -->
+                <form th:if="${recurring.status.name() != 'COMPLETED'}" id="form-complete"
+                      sec:authorize="hasAuthority('RECURRING_EDIT')"
+                      th:action="@{/recurring/{id}/complete(id=${recurring.id})}"
+                      method="post" class="inline">
+                    <button type="submit" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                        Selesaikan
+                    </button>
+                </form>
+
+                <!-- Delete -->
+                <form id="form-delete"
+                      sec:authorize="hasAuthority('RECURRING_DELETE')"
+                      th:action="@{/recurring/{id}/delete(id=${recurring.id})}"
+                      method="post" class="inline">
+                    <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+                        Hapus
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <th:block layout:fragment="scripts">
+        <script th:inline="javascript" th:attr="nonce=${cspNonce}">
+            document.getElementById('form-pause')?.addEventListener('submit', function(e) {
+                if (!confirm('Jeda transaksi berulang ini?')) {
+                    e.preventDefault();
+                }
+            });
+            document.getElementById('form-complete')?.addEventListener('submit', function(e) {
+                if (!confirm('Selesaikan transaksi berulang ini? Tidak akan ada eksekusi lagi.')) {
+                    e.preventDefault();
+                }
+            });
+            document.getElementById('form-delete')?.addEventListener('submit', function(e) {
+                if (!confirm('Hapus transaksi berulang ini?')) {
+                    e.preventDefault();
+                }
+            });
+        </script>
+    </th:block>
+</body>
+</html>

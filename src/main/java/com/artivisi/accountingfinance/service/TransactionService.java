@@ -442,6 +442,39 @@ public class TransactionService {
     }
 
     @Transactional
+    public Transaction createFromRecurring(UUID templateId, LocalDate transactionDate,
+                                            BigDecimal amount, String description, String createdBy,
+                                            Map<UUID, UUID> accountMappings) {
+        JournalTemplate template = journalTemplateService.findByIdWithLines(templateId);
+
+        Transaction transaction = new Transaction();
+        transaction.setTransactionNumber(null);
+        transaction.setTransactionDate(transactionDate);
+        transaction.setJournalTemplate(template);
+        transaction.setAmount(amount);
+        transaction.setDescription(description);
+        transaction.setStatus(TransactionStatus.DRAFT);
+        transaction.setCreatedBy(createdBy);
+
+        if (accountMappings != null && !accountMappings.isEmpty()) {
+            for (JournalTemplateLine line : template.getLines()) {
+                UUID overrideAccountId = accountMappings.get(line.getId());
+                if (overrideAccountId != null) {
+                    ChartOfAccount account = chartOfAccountRepository.findById(overrideAccountId)
+                            .orElseThrow(() -> new EntityNotFoundException("Account not found"));
+                    TransactionAccountMapping mapping = new TransactionAccountMapping();
+                    mapping.setTemplateLine(line);
+                    mapping.setAccount(account);
+                    transaction.addAccountMapping(mapping);
+                }
+            }
+        }
+
+        journalTemplateService.recordUsage(template.getId());
+        return transactionRepository.save(transaction);
+    }
+
+    @Transactional
     public Transaction createFromDraft(DraftTransaction draft, UUID templateId,
                                         String description, BigDecimal amount, String createdBy) {
         JournalTemplate template = journalTemplateService.findByIdWithLines(templateId);
