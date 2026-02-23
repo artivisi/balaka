@@ -368,7 +368,7 @@ public class RecurringTransactionService {
                     // Align to quarter boundary (Jan, Apr, Jul, Oct)
                     int monthInQuarter = (d.getMonthValue() - 1) % 3;
                     if (monthInQuarter != 0) {
-                        d = d.plusMonths(3 - monthInQuarter);
+                        d = d.plusMonths(3L - monthInQuarter);
                         d = d.withDayOfMonth(Math.min(dayOfMonth, d.lengthOfMonth()));
                     }
                     yield d;
