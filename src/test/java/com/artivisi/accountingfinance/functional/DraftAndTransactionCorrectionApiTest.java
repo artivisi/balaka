@@ -416,6 +416,52 @@ class DraftAndTransactionCorrectionApiTest extends PlaywrightTestBase {
         }
     }
 
+    @Nested
+    @DisplayName("GET /api/templates")
+    class GetTemplates {
+
+        @Test
+        @DisplayName("Should return template lines in GET /api/templates/{id}")
+        void shouldReturnTemplateLinesInGetById() throws Exception {
+            String templateId = getFirstTemplateId();
+
+            APIResponse response = apiContext.get("/api/templates/" + templateId,
+                    RequestOptions.create()
+                            .setHeader("Authorization", "Bearer " + accessToken));
+
+            assertThat(response.ok()).isTrue();
+
+            JsonNode body = objectMapper.readTree(response.text());
+            assertThat(body.has("lines")).isTrue();
+            JsonNode lines = body.get("lines");
+            assertThat(lines.isArray()).isTrue();
+            assertThat(lines.size()).isGreaterThanOrEqualTo(2);
+
+            // Verify line structure
+            JsonNode firstLine = lines.get(0);
+            assertThat(firstLine.has("lineOrder")).isTrue();
+            assertThat(firstLine.has("position")).isTrue();
+            assertThat(firstLine.has("formula")).isTrue();
+        }
+
+        @Test
+        @DisplayName("Should return template lines in GET /api/templates list")
+        void shouldReturnTemplateLinesInList() throws Exception {
+            APIResponse response = apiContext.get("/api/templates",
+                    RequestOptions.create()
+                            .setHeader("Authorization", "Bearer " + accessToken));
+
+            assertThat(response.ok()).isTrue();
+
+            JsonNode templates = objectMapper.readTree(response.text());
+            assertThat(templates.size()).isGreaterThan(0);
+
+            JsonNode firstTemplate = templates.get(0);
+            assertThat(firstTemplate.has("lines")).isTrue();
+            assertThat(firstTemplate.get("lines").size()).isGreaterThanOrEqualTo(2);
+        }
+    }
+
     // ========== Helper methods ==========
 
     private String createPendingDraft(String merchant, int amount) throws Exception {

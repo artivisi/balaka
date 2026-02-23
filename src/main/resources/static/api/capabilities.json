@@ -204,14 +204,14 @@
           "path": "/api/templates",
           "scope": "drafts:read",
           "description": "List all journal templates",
-          "response": "List<TemplateDto>: id, name, category, description, semanticDescription, keywords"
+          "response": "List<TemplateDto>: id, name, category, description, semanticDescription, keywords, lines[lineOrder, position, accountId, accountCode, accountName, accountHint, formula, description]"
         },
         {
           "method": "GET",
           "path": "/api/templates/{id}",
           "scope": "drafts:read",
-          "description": "Get single template by ID",
-          "response": "TemplateDto: id, name, category, description, semanticDescription, keywords, exampleMerchants"
+          "description": "Get single template by ID with lines",
+          "response": "TemplateDto: id, name, category, description, semanticDescription, keywords, exampleMerchants, lines[lineOrder, position, accountId, accountCode, accountName, accountHint, formula, description]"
         },
         {
           "method": "POST",

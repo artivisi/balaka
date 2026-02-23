@@ -50,7 +50,7 @@ public class TemplateApiController {
     public ResponseEntity<List<TemplateDto>> listTemplates() {
         log.info("API: List all templates");
 
-        List<JournalTemplate> templates = journalTemplateService.findAll();
+        List<JournalTemplate> templates = journalTemplateService.findAllWithLines();
         List<TemplateDto> dtos = templates.stream()
                 .map(this::toTemplateDto)
                 .toList();
@@ -66,7 +66,7 @@ public class TemplateApiController {
     public ResponseEntity<TemplateDto> getTemplate(@PathVariable UUID id) {
         log.info("API: Get template {}", LogSanitizer.sanitize(id.toString()));
 
-        JournalTemplate template = journalTemplateService.findById(id);
+        JournalTemplate template = journalTemplateService.findByIdWithLines(id);
         return ResponseEntity.ok(toTemplateDto(template));
     }
 
@@ -159,6 +159,13 @@ public class TemplateApiController {
      * Convert JournalTemplate to TemplateDto with enhanced metadata.
      */
     private TemplateDto toTemplateDto(JournalTemplate t) {
+        List<TemplateLineDto> lineDtos = List.of();
+        if (t.getLines() != null) {
+            lineDtos = t.getLines().stream()
+                    .map(this::toTemplateLineDto)
+                    .toList();
+        }
+
         return new TemplateDto(
                 t.getId(),
                 t.getTemplateName(),
@@ -169,7 +176,22 @@ public class TemplateApiController {
                 t.getExampleMerchants() != null ? List.of(t.getExampleMerchants()) : List.of(),
                 t.getTypicalAmountMin(),
                 t.getTypicalAmountMax(),
-                t.getMerchantPatterns() != null ? List.of(t.getMerchantPatterns()) : List.of()
+                t.getMerchantPatterns() != null ? List.of(t.getMerchantPatterns()) : List.of(),
+                lineDtos
+        );
+    }
+
+    private TemplateLineDto toTemplateLineDto(JournalTemplateLine line) {
+        ChartOfAccount account = line.getAccount();
+        return new TemplateLineDto(
+                line.getLineOrder(),
+                line.getPosition().name(),
+                account != null ? account.getId() : null,
+                account != null ? account.getAccountCode() : null,
+                account != null ? account.getAccountName() : null,
+                line.getAccountHint(),
+                line.getFormula(),
+                line.getDescription()
         );
     }
 
@@ -197,6 +219,18 @@ public class TemplateApiController {
             List<String> exampleMerchants,
             BigDecimal typicalAmountMin,
             BigDecimal typicalAmountMax,
-            List<String> merchantPatterns
+            List<String> merchantPatterns,
+            List<TemplateLineDto> lines
+    ) {}
+
+    public record TemplateLineDto(
+            Integer lineOrder,
+            String position,
+            UUID accountId,
+            String accountCode,
+            String accountName,
+            String accountHint,
+            String formula,
+            String description
     ) {}
 }
