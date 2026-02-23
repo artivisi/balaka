@@ -13,6 +13,7 @@ import com.artivisi.accountingfinance.entity.Document;
 import com.artivisi.accountingfinance.entity.DraftTransaction;
 import com.artivisi.accountingfinance.entity.JournalEntry;
 import com.artivisi.accountingfinance.entity.JournalTemplate;
+import com.artivisi.accountingfinance.entity.JournalTemplateLine;
 import com.artivisi.accountingfinance.entity.MerchantMapping;
 import com.artivisi.accountingfinance.entity.Transaction;
 import com.artivisi.accountingfinance.repository.DocumentRepository;
@@ -231,7 +232,7 @@ public class TransactionApiService {
     }
 
     /**
-     * Update a DRAFT transaction (template, description, amount, date).
+     * Update a DRAFT transaction (template, description, amount, date, account overrides).
      */
     public TransactionResponse updateTransaction(UUID transactionId, UpdateTransactionRequest request) {
         Transaction transaction = transactionService.findById(transactionId);
@@ -244,6 +245,20 @@ public class TransactionApiService {
             JournalTemplate template = journalTemplateService.findByIdWithLines(request.templateId());
             transaction.setJournalTemplate(template);
             journalTemplateService.recordUsage(template.getId());
+
+            // Apply account overrides for the new template
+            Map<UUID, UUID> accountMappings = resolveLineAccountOverrides(template, request.lineAccountOverrides());
+            if (!accountMappings.isEmpty()) {
+                transactionService.replaceAccountMappings(transaction, accountMappings);
+            }
+        } else if (request.lineAccountOverrides() != null && !request.lineAccountOverrides().isEmpty()) {
+            // Apply account overrides to existing template
+            JournalTemplate template = journalTemplateService.findByIdWithLines(
+                    transaction.getJournalTemplate().getId());
+            Map<UUID, UUID> accountMappings = resolveLineAccountOverrides(template, request.lineAccountOverrides());
+            if (!accountMappings.isEmpty()) {
+                transactionService.replaceAccountMappings(transaction, accountMappings);
+            }
         }
         if (request.description() != null) {
             transaction.setDescription(request.description());
@@ -282,6 +297,25 @@ public class TransactionApiService {
 
         DraftTransaction draft = draftTransactionService.reject(draftId, reason, username);
         return buildDraftResponse(draft);
+    }
+
+    /**
+     * Convert lineOrder-based account overrides to templateLineId-based mappings.
+     * API accepts lineOrder (1, 2, 3...) for ergonomics; internal code uses template line UUIDs.
+     */
+    private Map<UUID, UUID> resolveLineAccountOverrides(JournalTemplate template, Map<Integer, UUID> lineAccountOverrides) {
+        if (lineAccountOverrides == null || lineAccountOverrides.isEmpty()) {
+            return Map.of();
+        }
+
+        Map<UUID, UUID> accountMappings = new HashMap<>();
+        for (JournalTemplateLine line : template.getLines()) {
+            UUID accountId = lineAccountOverrides.get(line.getLineOrder());
+            if (accountId != null) {
+                accountMappings.put(line.getId(), accountId);
+            }
+        }
+        return accountMappings;
     }
 
     /**
@@ -510,8 +544,11 @@ public class TransactionApiService {
         // Record template usage
         journalTemplateService.recordUsage(template.getId());
 
+        // Resolve lineOrder-based overrides to templateLineId-based mappings
+        Map<UUID, UUID> accountMappings = resolveLineAccountOverrides(template, request.lineAccountOverrides());
+
         // Save transaction (creates in DRAFT status)
-        Transaction saved = transactionService.create(transaction, null, null);
+        Transaction saved = transactionService.create(transaction, accountMappings, null);
 
         // Post transaction immediately
         Transaction posted = transactionService.post(saved.getId(), username != null ? username : "API");

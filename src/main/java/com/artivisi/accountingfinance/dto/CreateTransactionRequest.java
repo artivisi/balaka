@@ -9,6 +9,7 @@ import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -47,7 +48,14 @@ public record CreateTransactionRequest(
         @Size(max = 50, message = "Source must not exceed 50 characters")
         String source,
 
-        Boolean userApproved
+        Boolean userApproved,
+
+        /**
+         * Map of template lineOrder to accountId.
+         * Used to specify accounts for template lines that have accountHint instead of a fixed account.
+         * Example: {"2": "e7e8f9a0-..."} sets the account for line 2.
+         */
+        Map<Integer, UUID> lineAccountOverrides
 ) {
 
     /**

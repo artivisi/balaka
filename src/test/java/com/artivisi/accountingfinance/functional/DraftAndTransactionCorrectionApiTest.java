@@ -264,6 +264,48 @@ class DraftAndTransactionCorrectionApiTest extends PlaywrightTestBase {
         }
 
         @Test
+        @DisplayName("Should update DRAFT transaction with lineAccountOverrides")
+        void shouldUpdateWithLineAccountOverrides() throws Exception {
+            String transactionId = createDraftTransaction();
+            String accountId = getFirstAccountId();
+
+            Map<String, Object> update = new HashMap<>();
+            update.put("lineAccountOverrides", Map.of(2, accountId));
+
+            APIResponse response = apiContext.put("/api/transactions/" + transactionId,
+                    RequestOptions.create()
+                            .setHeader("Content-Type", "application/json")
+                            .setHeader("Authorization", "Bearer " + accessToken)
+                            .setData(update));
+
+            assertThat(response.ok())
+                    .as("Update with lineAccountOverrides failed: %d %s", response.status(), response.text())
+                    .isTrue();
+        }
+
+        @Test
+        @DisplayName("Should reclassify template with lineAccountOverrides")
+        void shouldReclassifyWithLineAccountOverrides() throws Exception {
+            String transactionId = createDraftTransaction();
+            String templateId = getSecondTemplateId();
+            String accountId = getFirstAccountId();
+
+            Map<String, Object> update = new HashMap<>();
+            update.put("templateId", templateId);
+            update.put("lineAccountOverrides", Map.of(1, accountId, 2, accountId));
+
+            APIResponse response = apiContext.put("/api/transactions/" + transactionId,
+                    RequestOptions.create()
+                            .setHeader("Content-Type", "application/json")
+                            .setHeader("Authorization", "Bearer " + accessToken)
+                            .setData(update));
+
+            assertThat(response.ok())
+                    .as("Reclassify with overrides failed: %d %s", response.status(), response.text())
+                    .isTrue();
+        }
+
+        @Test
         @DisplayName("Should reject future transaction date")
         void shouldRejectFutureDate() throws Exception {
             String transactionId = createDraftTransaction();
@@ -296,6 +338,36 @@ class DraftAndTransactionCorrectionApiTest extends PlaywrightTestBase {
             assertThat(response.status())
                     .as("Delete failed: %d %s", response.status(), response.text())
                     .isEqualTo(204);
+        }
+
+        @Test
+        @DisplayName("Should create and post transaction with lineAccountOverrides")
+        void shouldPostWithLineAccountOverrides() throws Exception {
+            String templateId = getFirstTemplateId();
+            String accountId = getFirstAccountId();
+
+            Map<String, Object> request = new HashMap<>();
+            request.put("templateId", templateId);
+            request.put("merchant", "Override Test Merchant");
+            request.put("amount", 75000);
+            request.put("transactionDate", "2026-02-12");
+            request.put("description", "Transaction with account overrides");
+            request.put("source", "correction-test");
+            request.put("userApproved", true);
+            request.put("lineAccountOverrides", Map.of(1, accountId, 2, accountId));
+
+            APIResponse response = apiContext.post("/api/transactions",
+                    RequestOptions.create()
+                            .setHeader("Content-Type", "application/json")
+                            .setHeader("Authorization", "Bearer " + accessToken)
+                            .setData(request));
+
+            assertThat(response.status())
+                    .as("Create with overrides failed: %d %s", response.status(), response.text())
+                    .isEqualTo(201);
+
+            JsonNode body = objectMapper.readTree(response.text());
+            assertThat(body.get("status").asText()).isEqualTo("POSTED");
         }
 
         @Test
@@ -431,6 +503,21 @@ class DraftAndTransactionCorrectionApiTest extends PlaywrightTestBase {
         assertThat(templates.size()).isGreaterThan(0);
 
         return templates.get(0).get("id").asText();
+    }
+
+    private String getFirstAccountId() throws Exception {
+        APIResponse response = apiContext.get("/api/analysis/accounts",
+                RequestOptions.create()
+                        .setHeader("Authorization", "Bearer " + accessToken));
+
+        assertThat(response.ok()).isTrue();
+
+        JsonNode body = objectMapper.readTree(response.text());
+        JsonNode accounts = body.get("data").get("accounts");
+        assertThat(accounts.isArray()).isTrue();
+        assertThat(accounts.size()).isGreaterThan(0);
+
+        return accounts.get(0).get("id").asText();
     }
 
     private String getSecondTemplateId() throws Exception {

@@ -361,6 +361,30 @@ public class TransactionService {
         return transactionRepository.save(transaction);
     }
 
+    /**
+     * Replace account mappings on a DRAFT transaction.
+     * Clears existing mappings and creates new ones from the provided map.
+     * @param transaction the transaction to update
+     * @param accountMappings map of template line ID to account ID
+     */
+    @Transactional
+    public void replaceAccountMappings(Transaction transaction, Map<UUID, UUID> accountMappings) {
+        JournalTemplate template = journalTemplateService.findByIdWithLines(transaction.getJournalTemplate().getId());
+
+        transaction.clearAccountMappings();
+        for (JournalTemplateLine line : template.getLines()) {
+            UUID overrideAccountId = accountMappings.get(line.getId());
+            if (overrideAccountId != null) {
+                ChartOfAccount account = chartOfAccountRepository.findById(overrideAccountId)
+                        .orElseThrow(() -> new EntityNotFoundException("Account not found: " + overrideAccountId));
+                TransactionAccountMapping mapping = new TransactionAccountMapping();
+                mapping.setTemplateLine(line);
+                mapping.setAccount(account);
+                transaction.addAccountMapping(mapping);
+            }
+        }
+    }
+
     @Transactional
     public void delete(UUID id) {
         Transaction transaction = findById(id);

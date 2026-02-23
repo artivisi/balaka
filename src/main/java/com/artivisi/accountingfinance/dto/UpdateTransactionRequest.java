@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -23,5 +24,12 @@ public record UpdateTransactionRequest(
         BigDecimal amount,
 
         @JsonFormat(pattern = "yyyy-MM-dd")
-        LocalDate transactionDate
+        LocalDate transactionDate,
+
+        /**
+         * Map of template lineOrder to accountId.
+         * Used to specify accounts for template lines that have accountHint instead of a fixed account.
+         * Example: {"2": "e7e8f9a0-..."} sets the account for line 2.
+         */
+        Map<Integer, UUID> lineAccountOverrides
 ) {}

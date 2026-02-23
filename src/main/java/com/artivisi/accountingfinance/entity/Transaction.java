@@ -149,6 +149,10 @@ public class Transaction extends BaseEntity {
         mapping.setTransaction(this);
     }
 
+    public void clearAccountMappings() {
+        accountMappings.clear();
+    }
+
     public void addVariable(TransactionVariable variable) {
         variables.add(variable);
         variable.setTransaction(this);

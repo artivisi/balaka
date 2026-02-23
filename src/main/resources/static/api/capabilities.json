@@ -150,7 +150,8 @@
             "source": "string (required)",
             "userApproved": "boolean (required, must be true)",
             "description": "string (optional)",
-            "referenceNumber": "string (optional)"
+            "referenceNumber": "string (optional)",
+            "lineAccountOverrides": "Map<int,UUID> (optional). Maps template lineOrder to accountId for lines with accountHint. Example: {\"2\": \"uuid-of-bank-account\"}"
           },
           "response": "TransactionResponse: transactionId, transactionNumber, status, amount, journalEntries"
         },
@@ -158,12 +159,13 @@
           "method": "PUT",
           "path": "/api/transactions/{id}",
           "scope": "transactions:post",
-          "description": "Update a DRAFT transaction (reclassify template, fix description/amount/date). Only DRAFT status allowed.",
+          "description": "Update a DRAFT transaction (reclassify template, fix description/amount/date, specify accounts for hint-based lines). Only DRAFT status allowed.",
           "requestBody": {
             "templateId": "UUID (optional, reclassify to different template)",
             "description": "string (optional, fix remarks)",
             "amount": "number (optional, correct amount)",
-            "transactionDate": "yyyy-MM-dd (optional, fix date)"
+            "transactionDate": "yyyy-MM-dd (optional, fix date)",
+            "lineAccountOverrides": "Map<int,UUID> (optional). Maps template lineOrder to accountId for lines with accountHint. Example: {\"2\": \"uuid-of-bank-account\"}"
           },
           "response": "TransactionResponse: transactionId, transactionNumber, status, amount, journalEntries"
         },
