@@ -1,8 +1,14 @@
 package com.artivisi.accountingfinance.controller.api;
 
+import com.artivisi.accountingfinance.dto.CreateTemplateRequest;
+import com.artivisi.accountingfinance.entity.ChartOfAccount;
 import com.artivisi.accountingfinance.entity.JournalTemplate;
+import com.artivisi.accountingfinance.entity.JournalTemplateLine;
+import com.artivisi.accountingfinance.enums.TemplateType;
+import com.artivisi.accountingfinance.repository.ChartOfAccountRepository;
 import com.artivisi.accountingfinance.security.LogSanitizer;
 import com.artivisi.accountingfinance.service.JournalTemplateService;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,6 +40,7 @@ import java.util.UUID;
 public class TemplateApiController {
 
     private final JournalTemplateService journalTemplateService;
+    private final ChartOfAccountRepository chartOfAccountRepository;
 
     /**
      * List all available journal templates with enhanced metadata.
@@ -68,13 +75,15 @@ public class TemplateApiController {
      * POST /api/templates
      */
     @PostMapping
-    public ResponseEntity<TemplateDto> createTemplate(@Valid @RequestBody JournalTemplate template) {
+    public ResponseEntity<TemplateDto> createTemplate(@Valid @RequestBody CreateTemplateRequest request) {
         String username = getCurrentUsername();
         log.info("API: Create template by {}", username);
 
+        JournalTemplate template = buildTemplateFromRequest(request);
         template.setCreatedBy(username);
-        JournalTemplate created = journalTemplateService.create(template);
+        addLinesToTemplate(template, request.lines());
 
+        JournalTemplate created = journalTemplateService.create(template);
         return ResponseEntity.status(HttpStatus.CREATED).body(toTemplateDto(created));
     }
 
@@ -85,12 +94,15 @@ public class TemplateApiController {
     @PutMapping("/{id}")
     public ResponseEntity<TemplateDto> updateTemplate(
             @PathVariable UUID id,
-            @Valid @RequestBody JournalTemplate template) {
+            @Valid @RequestBody CreateTemplateRequest request) {
 
         String username = getCurrentUsername();
         log.info("API: Update template {} by {}", id, username);
 
-        JournalTemplate updated = journalTemplateService.update(id, template);
+        JournalTemplate templateData = buildTemplateFromRequest(request);
+        addLinesToTemplate(templateData, request.lines());
+
+        JournalTemplate updated = journalTemplateService.update(id, templateData);
         return ResponseEntity.ok(toTemplateDto(updated));
     }
 
@@ -105,6 +117,42 @@ public class TemplateApiController {
 
         journalTemplateService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    private JournalTemplate buildTemplateFromRequest(CreateTemplateRequest request) {
+        JournalTemplate template = new JournalTemplate();
+        template.setTemplateName(request.templateName());
+        template.setCategory(request.category());
+        template.setCashFlowCategory(request.cashFlowCategory());
+        template.setTemplateType(request.templateType() != null ? request.templateType() : TemplateType.SIMPLE);
+        template.setDescription(request.description());
+        template.setSemanticDescription(request.semanticDescription());
+        template.setKeywords(request.keywords());
+        template.setExampleMerchants(request.exampleMerchants());
+        template.setTypicalAmountMin(request.typicalAmountMin());
+        template.setTypicalAmountMax(request.typicalAmountMax());
+        template.setMerchantPatterns(request.merchantPatterns());
+        return template;
+    }
+
+    private void addLinesToTemplate(JournalTemplate template, List<CreateTemplateRequest.TemplateLine> lines) {
+        for (CreateTemplateRequest.TemplateLine lineReq : lines) {
+            JournalTemplateLine line = new JournalTemplateLine();
+            line.setLineOrder(lineReq.lineOrder());
+            line.setPosition(lineReq.position());
+            line.setFormula(lineReq.formula());
+            line.setAccountHint(lineReq.accountHint());
+            line.setDescription(lineReq.description());
+
+            if (lineReq.accountId() != null) {
+                ChartOfAccount account = chartOfAccountRepository.findById(lineReq.accountId())
+                        .orElseThrow(() -> new EntityNotFoundException(
+                                "Account not found: " + lineReq.accountId()));
+                line.setAccount(account);
+            }
+
+            template.addLine(line);
+        }
     }
 
     /**

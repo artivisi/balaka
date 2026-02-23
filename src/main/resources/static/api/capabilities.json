@@ -228,7 +228,7 @@
             "typicalAmountMin": "number (optional)",
             "typicalAmountMax": "number (optional)",
             "merchantPatterns": "string[] (optional, regex patterns)",
-            "lines": "TemplateLine[] (required, min 2). Each: {lineOrder: int (required), position: DEBIT|CREDIT (required), formula: string (required, e.g. 'AMOUNT', 'AMOUNT * 0.11'), accountHint: string (optional, describes which account to use), description: string (optional)}"
+            "lines": "TemplateLine[] (required, min 2). Each: {lineOrder: int (required), position: DEBIT|CREDIT (required), formula: string (required, e.g. 'AMOUNT', 'AMOUNT * 0.11'), accountId: UUID (optional, link to specific account), accountHint: string (optional, describes which account to use), description: string (optional)}"
           },
           "response": "TemplateDto: id, name, category, description",
           "example": {
