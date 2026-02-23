@@ -100,6 +100,12 @@ Each exclusion must have a justification comment explaining the mitigation.
         <Bug pattern="CRLF_INJECTION_LOGS"/>
     </Match>
 
+    <!-- TransactionApiController: All log statements use LogSanitizer.sanitize() -->
+    <Match>
+        <Class name="com.artivisi.accountingfinance.controller.api.TransactionApiController"/>
+        <Bug pattern="CRLF_INJECTION_LOGS"/>
+    </Match>
+
     <!-- TransactionApiService: All log statements use LogSanitizer.sanitize() -->
     <Match>
         <Class name="com.artivisi.accountingfinance.service.TransactionApiService"/>

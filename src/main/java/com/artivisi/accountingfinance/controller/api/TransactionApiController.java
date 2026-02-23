@@ -6,6 +6,7 @@ import com.artivisi.accountingfinance.dto.UpdateTransactionRequest;
 import com.artivisi.accountingfinance.entity.JournalEntry;
 import com.artivisi.accountingfinance.entity.Transaction;
 import com.artivisi.accountingfinance.enums.AuditEventType;
+import com.artivisi.accountingfinance.security.LogSanitizer;
 import com.artivisi.accountingfinance.service.SecurityAuditService;
 import com.artivisi.accountingfinance.service.TemplateExecutionEngine;
 import com.artivisi.accountingfinance.service.TransactionApiService;
@@ -146,7 +147,7 @@ public class TransactionApiController {
     @GetMapping("/{id}/journal-preview")
     @PreAuthorize("hasAuthority('SCOPE_transactions:post')")
     public ResponseEntity<JournalPreviewResponse> getJournalPreview(@PathVariable UUID id) {
-        log.info("API: Journal preview for transaction id={}", id);
+        log.info("API: Journal preview for transaction id={}", LogSanitizer.sanitize(id.toString()));
 
         TemplateExecutionEngine.PreviewResult preview = transactionApiService.previewJournalEntries(id);
 
