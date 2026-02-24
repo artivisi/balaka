@@ -609,6 +609,56 @@ class DraftAndTransactionCorrectionApiTest extends PlaywrightTestBase {
     }
 
     @Nested
+    @DisplayName("POST /api/transactions/{id}/void")
+    class VoidTransaction {
+
+        @Test
+        @DisplayName("Should void a POSTED transaction")
+        void shouldVoidPostedTransaction() throws Exception {
+            String transactionId = createAndPostTransaction();
+
+            Map<String, Object> voidRequest = Map.of(
+                    "reason", "INPUT_ERROR",
+                    "notes", "Wrong account used"
+            );
+
+            APIResponse response = apiContext.post("/api/transactions/" + transactionId + "/void",
+                    RequestOptions.create()
+                            .setHeader("Content-Type", "application/json")
+                            .setHeader("Authorization", "Bearer " + accessToken)
+                            .setData(voidRequest));
+
+            assertThat(response.ok())
+                    .as("Void failed: %d %s", response.status(), response.text())
+                    .isTrue();
+
+            JsonNode body = objectMapper.readTree(response.text());
+            assertThat(body.get("status").asText()).isEqualTo("VOID");
+            assertThat(body.get("transactionId").asText()).isEqualTo(transactionId);
+        }
+
+        @Test
+        @DisplayName("Should reject void on DRAFT transaction")
+        void shouldRejectVoidOnDraftTransaction() throws Exception {
+            String transactionId = createDraftTransaction();
+
+            Map<String, Object> voidRequest = Map.of(
+                    "reason", "DUPLICATE"
+            );
+
+            APIResponse response = apiContext.post("/api/transactions/" + transactionId + "/void",
+                    RequestOptions.create()
+                            .setHeader("Content-Type", "application/json")
+                            .setHeader("Authorization", "Bearer " + accessToken)
+                            .setData(voidRequest));
+
+            assertThat(response.status())
+                    .as("Expected error but got %d: %s", response.status(), response.text())
+                    .isGreaterThanOrEqualTo(400);
+        }
+    }
+
+    @Nested
     @DisplayName("GET /api/templates")
     class GetTemplates {
 

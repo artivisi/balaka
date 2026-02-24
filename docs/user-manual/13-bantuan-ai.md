@@ -533,6 +533,9 @@ Skenario 3: Koreksi setelah approve, sebelum post
 
 Skenario 4: Hapus dan buat ulang
   DELETE /api/transactions/{id}  →  (buat draft/transaksi baru)
+
+Skenario 5: Void transaksi yang sudah POSTED
+  POST /api/transactions/{id}/void  →  (status jadi VOID, reversing entries dibuat otomatis)
 ```
 
 ---
@@ -1391,6 +1394,7 @@ Setiap user dapat melihat dan mencabut device token miliknya sendiri di halaman 
 | PUT | `/api/transactions/{id}` | Koreksi transaksi DRAFT (termasuk accountSlots) |
 | DELETE | `/api/transactions/{id}` | Hapus transaksi DRAFT |
 | POST | `/api/transactions/{id}/post` | Post satu transaksi DRAFT |
+| POST | `/api/transactions/{id}/void` | Void transaksi POSTED (buat reversing entries) |
 | GET | `/api/transactions/{id}/journal-preview` | Preview jurnal entries sebelum posting |
 | POST | `/api/transactions/bulk-post` | Batch post transaksi DRAFT |
 
@@ -1482,7 +1486,8 @@ Anda bisa:
 1. **Koreksi draft**: AI menggunakan `PATCH /api/drafts/{id}` untuk memperbaiki draft sebelum approve
 2. **Koreksi transaksi DRAFT**: AI menggunakan `PUT /api/transactions/{id}` untuk reklasifikasi template sebelum posting
 3. **Hapus dan buat ulang**: AI menggunakan `DELETE /api/transactions/{id}` lalu buat transaksi baru
-4. **Edit di web**: Setelah posted, edit transaksi di web UI
+4. **Void transaksi POSTED**: AI menggunakan `POST /api/transactions/{id}/void` untuk membatalkan transaksi yang sudah posted (reversing entries dibuat otomatis)
+5. **Edit di web**: Setelah posted, edit transaksi di web UI
 
 ### Apakah bisa batch import banyak transaksi?
 

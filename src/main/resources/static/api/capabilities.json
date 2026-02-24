@@ -209,6 +209,17 @@
         },
         {
           "method": "POST",
+          "path": "/api/transactions/{id}/void",
+          "scope": "transactions:post",
+          "description": "Void a POSTED transaction. Creates reversing journal entries. Only POSTED status allowed.",
+          "requestBody": {
+            "reason": "INPUT_ERROR|DUPLICATE|CANCELLED|OTHER (required)",
+            "notes": "string (optional)"
+          },
+          "response": "TransactionResponse: transactionId, transactionNumber, status=VOID"
+        },
+        {
+          "method": "POST",
           "path": "/api/transactions/bulk-post",
           "scope": "transactions:post",
           "description": "Bulk post multiple DRAFT transactions",
@@ -799,6 +810,12 @@
       "name": "Delete Bad Draft Transaction",
       "steps": [
         "DELETE /api/transactions/{id} (only DRAFT status)"
+      ]
+    },
+    {
+      "name": "Void Posted Transaction",
+      "steps": [
+        "POST /api/transactions/{id}/void (with reason: INPUT_ERROR|DUPLICATE|CANCELLED|OTHER)"
       ]
     }
   ],

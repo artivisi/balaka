@@ -3,6 +3,7 @@ package com.artivisi.accountingfinance.controller.api;
 import com.artivisi.accountingfinance.dto.CreateTransactionRequest;
 import com.artivisi.accountingfinance.dto.TransactionResponse;
 import com.artivisi.accountingfinance.dto.UpdateTransactionRequest;
+import com.artivisi.accountingfinance.dto.VoidTransactionDto;
 import com.artivisi.accountingfinance.entity.JournalEntry;
 import com.artivisi.accountingfinance.entity.Transaction;
 import com.artivisi.accountingfinance.enums.AuditEventType;
@@ -138,6 +139,31 @@ public class TransactionApiController {
         ));
 
         return ResponseEntity.ok(toTransactionResponse(posted));
+    }
+
+    /**
+     * Void a POSTED transaction.
+     * POST /api/transactions/{id}/void
+     */
+    @PostMapping("/{id}/void")
+    @PreAuthorize("hasAuthority('SCOPE_transactions:post')")
+    public ResponseEntity<TransactionResponse> voidTransaction(
+            @PathVariable UUID id,
+            @Valid @RequestBody VoidTransactionDto request) {
+
+        String username = getCurrentUsername();
+        log.info("API: Void transaction id={}, reason={}, user={}", id, request.reason(), username);
+
+        Transaction voided = transactionService.voidTransaction(id, request.reason(), request.notes(), username);
+
+        auditApiCall(Map.of(
+                "action", "void",
+                "transactionId", id.toString(),
+                "reason", request.reason().name(),
+                KEY_SOURCE, "api"
+        ));
+
+        return ResponseEntity.ok(toTransactionResponse(voided));
     }
 
     /**
