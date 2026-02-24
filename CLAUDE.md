@@ -24,7 +24,8 @@ Indonesian accounting application for small businesses. Spring Boot 4.0 + Thymel
 - **AI Analysis Reports:** ✅ Complete (structured report publishing with per-industry KPIs)
 - **Phase 10:** ✅ Complete (Invoice & Bill Management — invoices, vendor bills, bill API, payment tracking, aging reports, customer/vendor statements)
 - **Phase 11:** ✅ Complete (Recurring Transactions — templates, scheduling, auto-posting)
-- **Phase 12:** ⏳ Not Started (WhatsApp Notifications)
+- **Phase 12:** ⏳ Not Started (Tax Data Management — tax detail entry UI/API, client management, fiscal periods, PPN formula fix, rekonsiliasi fiskal)
+- **Phase 13:** ⏳ Not Started (WhatsApp Notifications)
 - See `docs/06-implementation-plan.md` for full plan
 
 ## Key Files
@@ -112,7 +113,7 @@ User → Controller (MVC) → Service → Repository → PostgreSQL
 
 ## Current Focus
 
-Phases 0-11 complete. Next: Phase 12 (WhatsApp Notifications).
+Phases 0-11 complete. Next: Phase 12 (Tax Data Management — fix PPN formula, tax detail entry UI/API, client management, fiscal periods, rekonsiliasi fiskal).
 
 User Manual (15-section structure, published at artivisi.com/aplikasi-akunting/):
 - 01-setup-awal.md through 15-peringatan.md

@@ -23,7 +23,8 @@
 | **9** | Analytics & Insights | ✅ Complete |
 | **10** | Invoice & Bill Management | ✅ Complete |
 | **11** | Recurring Transactions | ✅ Complete |
-| **12** | WhatsApp Notifications | ⏳ Not Started |
+| **12** | Tax Data Management | ⏳ Not Started |
+| **13** | WhatsApp Notifications | ⏳ Not Started |
 | **—** | Future Enhancements | As needed |
 
 ---
@@ -1182,23 +1183,228 @@ Additive is ~3x simpler. Role switching only needed for strict audit trails or c
 
 ---
 
-## Phase 12: WhatsApp Notifications
+## Phase 12: Tax Data Management
+
+**Goal:** Complete the tax data entry pipeline so all tax-related data (faktur pajak, bukti potong, client NPWP, fiscal periods) can be managed from within the app, eliminating reliance on external PDFs and Coretax as data sources.
+
+**Context:** Phase 2 built the tax reporting and export infrastructure (TaxTransactionDetail entity, CoretaxExportService, tax calendar, tax reports). However, the data *input* path was never built — there is no UI or API to populate `tax_transaction_details`, no client management UI, and no fiscal period management UI. For FY2025, all tax data had to be cross-referenced manually from Coretax PDFs.
+
+### Revenue Tax Workflow — FP Code 04 (Regular Client)
+
+Applies to: Client-A, Client-B, BCA, Client-C, and other non-BUMN clients.
+
+ArtiVisi collects PPN from client and remits it to state. Client withholds PPh 23.
+
+**Example: Harga Jual 100,000,000**
+- DPP = 100,000,000 × 11/12 = 91,666,667
+- PPN = DPP × 12% = 11,000,000
+- PPh 23 = 2% × DPP = 1,833,333
+- Client pays = 100,000,000 + 11,000,000 - 1,833,333 = 109,166,667
+
+**Step 1: Issue proforma invoice** (outside app)
+- Send proforma/tagihan to client after work delivery
+- No accounting entry in app
+
+**Step 2: Client pays** (days to months later)
+- Bank receives 109,166,667
+
+**Step 3: Record in app** (on payment date)
+- Post transaction using "Pendapatan Jasa + PPN + PPh 23" template:
+  - DR Bank 109,166,667
+  - DR Kredit Pajak PPh 23 1,833,333
+  - CR Pendapatan 100,000,000
+  - CR Hutang PPN 11,000,000
+- Phase 12.4 auto-creates TaxTransactionDetail (taxType, DPP, PPN)
+
+**Step 4: Issue Faktur Pajak in Coretax** (same day or next day)
+- Create FP in Coretax → get FP number
+- Issue real invoice + FP to client
+
+**Step 5: Attach tax documents via API** (Claude Code)
+- Parse FP PDF → post structured data to `POST /api/transactions/{id}/tax-details`
+- Upload FP PDF to `POST /api/transactions/{id}/documents`
+- Bupot arrives later (weeks/months) → update tax detail with bupot number + upload bupot PDF
+
+**Step 6: Monthly PPN payment** (by 15th of next month)
+- Post "Setor PPN" transaction: DR Hutang PPN / CR Bank
+- Export e-Faktur Excel from app → file SPT Masa PPN in Coretax
+- Mark tax calendar as completed
+
+**Step 7: Annual**
+- Accumulated Kredit Pajak PPh 23 → offset against PPh Badan in SPT Tahunan
+
+### Revenue Tax Workflow — FP Code 03 (BUMN Client)
+
+Applies to: BNI, Client-E, and other BUMN/government entities.
+
+Key difference: **BUMN is pemungut PPN** — they withhold PPN and remit it directly to the state. ArtiVisi does NOT receive or pay PPN for these invoices. Client also withholds PPh 23.
+
+**Example: Harga Jual 100,000,000**
+- DPP = 100,000,000 × 11/12 = 91,666,667
+- PPN = DPP × 12% = 11,000,000 (withheld by BUMN, not paid to ArtiVisi)
+- PPh 23 = 2% × DPP = 1,833,333
+- Client pays = 100,000,000 - 1,833,333 = 98,166,667 (no PPN in payment)
+
+**Step 1-2: Same** (proforma invoice outside app, wait for payment)
+
+**Step 3: Record in app** (on payment date)
+- Post transaction using "Pendapatan Jasa BUMN (FP 03)" template:
+  - DR Bank 98,166,667
+  - DR Kredit Pajak PPh 23 1,833,333
+  - CR Pendapatan 100,000,000
+- No Hutang PPN entry — BUMN handles PPN remittance
+
+**Step 4-5: Same** (issue FP in Coretax, Claude Code attaches FP/bupot data + PDFs)
+
+**Step 6: Monthly PPN filing** (by 20th of next month)
+- FP 03 invoices reported in SPT Masa PPN as "dipungut pemungut" (not payable by ArtiVisi)
+- No PPN payment needed for these invoices
+
+**Step 7: Same** (annual kredit pajak PPh 23 offset)
+
+### 12.1 Fix PPN Template Formula
+- [ ] Current formula `amount × 11/111` is incorrect for 2025 PPN (DPP Nilai Lain regime)
+- [ ] Correct formula: `DPP = amount × 11/12`, `PPN = DPP × 12%` (equivalent to `amount × 11%`)
+- [ ] Update all PPN-related journal templates (Pendapatan Jasa + PPN, Penjualan Barang + PPN, Beban dengan PPN)
+- [ ] Update seed data in V004 and industry seed packs
+- [ ] Functional tests for corrected PPN calculation
+- [ ] Document the DPP Nilai Lain formula in user manual section 04-perpajakan.md
+
+### 12.2 Tax Transaction Detail Entry (Web UI)
+- [ ] Tax detail form on transaction detail page (inline or modal)
+- [ ] Fields: fakturNumber, fakturDate, transactionCode (01/02/03/04/07/08), dpp, ppn, ppnbm
+- [ ] Fields: bupotNumber, taxObjectCode (dropdown from TaxObjectCode enum), grossAmount, taxRate, taxAmount
+- [ ] Fields: counterpartyNpwp, counterpartyNitku, counterpartyName, counterpartyAddress, counterpartyIdType
+- [ ] Auto-populate counterparty fields from Client/Vendor when linked
+- [ ] Auto-populate DPP/PPN from transaction amount using template formula
+- [ ] Validation: fakturNumber uniqueness, NPWP format, required fields per taxType
+- [ ] List view: show tax detail status (has detail / missing) on transaction list
+- [ ] Bulk entry support: batch-attach tax details to multiple transactions
+- [ ] Permission: TAX_EXPORT (reuse existing)
+- [ ] Functional tests
+
+### 12.3 Tax Transaction Detail API
+- [ ] `POST /api/transactions/{id}/tax-details` — attach tax detail to existing transaction
+- [ ] `PUT /api/transactions/{id}/tax-details` — update tax detail
+- [ ] `GET /api/transactions/{id}/tax-details` — get tax detail for transaction
+- [ ] `DELETE /api/transactions/{id}/tax-details` — remove tax detail
+- [ ] Bulk endpoint: `POST /api/tax-details/bulk` — attach details to multiple transactions
+- [ ] `POST /api/transactions/{id}/documents` — upload document attachment (multipart file upload)
+- [ ] `GET /api/transactions/{id}/documents` — list attached documents
+- [ ] `GET /api/transactions/{id}/documents/{docId}` — download document
+- [ ] OAuth scope: `transactions:post` (reuse existing)
+- [ ] Functional tests
+- [ ] Update capabilities.json
+
+### 12.4 Auto-populate Tax Details from Templates
+- [ ] When posting a transaction via PPN template → auto-create TaxTransactionDetail with taxType=PPN_KELUARAN or PPN_MASUKAN
+- [ ] When posting via PPh 23 template → auto-create TaxTransactionDetail with taxType=PPH_23
+- [ ] When posting via PPh 4(2) template → auto-create TaxTransactionDetail with taxType=PPH_42
+- [ ] Auto-fill DPP, PPN/taxAmount from computed journal amounts
+- [ ] Auto-fill counterparty from linked Client/Vendor (if transaction has project/invoice reference)
+- [ ] Leave fakturNumber/bupotNumber blank (user fills in after receiving from Coretax)
+- [ ] Functional tests
+
+### 12.5 Client Management UI
+- [ ] Client list page with search and filters (active/inactive)
+- [ ] Client form: code, name, npwp, nitku, nik, idType, contactPerson, email, phone, address
+- [ ] Client detail page with linked projects, invoices, and tax transaction summary
+- [ ] NPWP format validation (16 digits)
+- [ ] Import clients from CSV
+- [ ] Permission: PROJECT_VIEW / PROJECT_EDIT (reuse existing, clients are in same domain)
+- [ ] Sidebar link in Master Data group
+- [ ] Functional tests
+- [ ] User manual update
+
+### 12.6 Fiscal Period Management UI
+- [ ] Fiscal period list page (12 months per year, with status badges)
+- [ ] Open/close period workflow (OPEN → MONTH_CLOSED → TAX_FILED)
+- [ ] FiscalPeriodService: create periods for a year, update status, enforce locking
+- [ ] Block transaction posting in closed periods
+- [ ] Block period close if unposted drafts exist
+- [ ] Year selector
+- [ ] Permission: SETTINGS_VIEW / SETTINGS_EDIT
+- [ ] Functional tests
+- [ ] User manual update
+
+### 12.7 Tax Report Enhancements
+- [ ] PPN detail report: per-faktur breakdown (FP number, client, DPP, PPN, date) from tax_transaction_details
+- [ ] PPh 23 detail report: per-bupot breakdown (bupot number, client, gross, rate, tax) from tax_transaction_details
+- [ ] Cross-check report: app PPN vs Coretax FP amounts (highlight mismatches)
+- [ ] Rekonsiliasi Fiskal worksheet: commercial P&L → koreksi fiskal → taxable income
+- [ ] PPh Badan calculator: PKP × rate (with Pasal 31E 50% discount for revenue < 4.8B), kredit pajak offset
+- [ ] PDF/Excel export for all new reports
+- [ ] Functional tests
+
+### 12.8 Tax Calendar Data & Deadline Updates
+- [ ] Update seed data: payment deadlines from 10th → 15th (per PMK 81/2024)
+- [ ] Update PPN reporting deadline reference
+- [ ] Migration to update existing tax_deadlines rows in production
+- [ ] User manual update for section 04-perpajakan.md
+
+### 12.9 Retrofit 2025 Data
+
+After Phase 12 features are deployed, clean up and repost all 2025 transactions with correct PPN formula and complete tax details. Direct database deletion (not void) to avoid audit trail clutter.
+
+**Pre-requisites:**
+- Phase 12.1 (PPN formula fix) deployed
+- Phase 12.3 (tax detail API + document API) deployed
+- Phase 12.5 (client management) deployed
+- Full production database backup
+
+**Step 1: Populate client master data**
+- [ ] Create clients from FP counterparty data via UI or API: Client-A (0402405385016000), BNI (0010016061093000), Client-B (0840399323012000), Client-E (0010611903051000), Client-C (0406194035043000), BCA (0013084496091000), Client-F
+- [ ] Include NPWP, NITKU, addresses extracted from FP PDFs
+
+**Step 2: Clean up existing transactions**
+- [ ] Backup production database
+- [ ] Delete all voided transactions (existing miscategorized voids — cleanup)
+- [ ] Delete 22 revenue transactions posted with wrong PPN formula (`11/111`)
+- [ ] Delete cascades to: journal_entries, journal_entry_lines, tax_transaction_details, transaction_documents
+- [ ] Verify account balances are zeroed out for affected accounts
+
+**Step 3: Repost with correct data** (Claude Code batch via API)
+- [ ] Repost all 2025 revenue transactions using corrected PPN templates
+- [ ] FP 04 invoices: use "Pendapatan Jasa + PPN + PPh 23" template (DR Bank, DR Kredit PPh 23, CR Pendapatan, CR Hutang PPN)
+- [ ] FP 03 invoices (BUMN): use "Pendapatan Jasa BUMN" template (DR Bank, DR Kredit PPh 23, CR Pendapatan — no Hutang PPN)
+- [ ] Repost all non-revenue transactions (expenses, tax payments, transfers, etc.) — these are unaffected by PPN formula but reposted for clean journal numbering
+
+**Step 4: Attach tax details** (Claude Code batch via API)
+- [ ] Parse 18 FP PDFs from `faktur-pajak/` folder
+- [ ] Match each FP to the corresponding new transaction (by amount, date, client)
+- [ ] Post structured FP data to `POST /api/transactions/{id}/tax-details`
+- [ ] Upload FP PDFs to `POST /api/transactions/{id}/documents`
+- [ ] Parse and attach bupot PDFs (once collected from clients)
+
+**Step 5: Verify**
+- [ ] Balance sheet matches expected balances
+- [ ] Income statement totals unchanged (revenue same, PPN split corrected)
+- [ ] Hutang PPN ledger matches sum of FP PPN amounts
+- [ ] Kredit Pajak PPh 23 ledger matches sum of bupot amounts
+- [ ] Coretax e-Faktur export produces correct data
+- [ ] Tax summary report reconciles
+
+**Phase 12 Deliverable:** Complete tax data management — entry UI/API for tax transaction details, client management, fiscal periods, corrected PPN formula, auto-population from templates, enhanced tax reports including rekonsiliasi fiskal, and retrofitted 2025 data.
+
+---
+
+## Phase 13: WhatsApp Notifications
 
 **Goal:** Send invoice reminders and alert notifications via WhatsApp
 
-### 12.1 WhatsApp Integration
+### 13.1 WhatsApp Integration
 - [ ] WhatsApp Business API provider integration (Wablas/Fonnte or official API)
 - [ ] Provider configuration (API key, sender number)
 - [ ] Message template management
 - [ ] Send test message
 
-### 12.2 Invoice Reminders
+### 13.2 Invoice Reminders
 - [ ] Auto-send reminder for overdue invoices
 - [ ] Configurable reminder schedule (e.g., 7d before due, on due date, 7d after)
 - [ ] Per-client phone number (from Client entity)
 - [ ] Opt-out per client
 
-### 12.3 Alert Notifications
+### 13.3 Alert Notifications
 - [ ] Send smart alert events via WhatsApp to configured recipients
 - [ ] Configurable: which alert types trigger WhatsApp notification
 - [ ] Recipient list management
