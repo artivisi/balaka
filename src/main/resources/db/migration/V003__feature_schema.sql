@@ -424,3 +424,25 @@ CREATE INDEX idx_recurring_status ON recurring_transactions(status) WHERE delete
 CREATE INDEX idx_recurring_logs_recurring ON recurring_transaction_logs(id_recurring_transaction);
 CREATE INDEX idx_recurring_logs_scheduled ON recurring_transaction_logs(scheduled_date DESC);
 CREATE INDEX idx_recurring_account_mappings_recurring ON recurring_transaction_account_mappings(id_recurring_transaction);
+
+-- ============================================
+-- Fiscal Adjustments (Koreksi Fiskal)
+-- ============================================
+
+CREATE TABLE fiscal_adjustments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    year INTEGER NOT NULL,
+    description VARCHAR(500) NOT NULL,
+    adjustment_category VARCHAR(20) NOT NULL,
+    adjustment_direction VARCHAR(20) NOT NULL,
+    amount DECIMAL(15, 2) NOT NULL,
+    account_code VARCHAR(20),
+    notes TEXT,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    CONSTRAINT chk_fiscal_adj_category CHECK (adjustment_category IN ('PERMANENT', 'TEMPORARY')),
+    CONSTRAINT chk_fiscal_adj_direction CHECK (adjustment_direction IN ('POSITIVE', 'NEGATIVE')),
+    CONSTRAINT chk_fiscal_adj_amount CHECK (amount > 0)
+);
+
+CREATE INDEX idx_fiscal_adjustments_year ON fiscal_adjustments(year);

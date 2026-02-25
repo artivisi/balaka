@@ -79,6 +79,17 @@ public interface TaxTransactionDetailRepository extends JpaRepository<TaxTransac
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate);
 
+    // For PPh 23 detail report (per-bupot)
+    @Query("SELECT t FROM TaxTransactionDetail t " +
+            "JOIN t.transaction trx " +
+            "WHERE t.taxType = 'PPH_23' " +
+            "AND trx.transactionDate BETWEEN :startDate AND :endDate " +
+            "AND trx.status = 'POSTED' " +
+            "ORDER BY trx.transactionDate ASC, t.bupotNumber ASC")
+    List<TaxTransactionDetail> findPPh23ByDateRange(
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate);
+
     boolean existsByFakturNumber(String fakturNumber);
 
     boolean existsByFakturNumberAndIdNot(String fakturNumber, UUID id);

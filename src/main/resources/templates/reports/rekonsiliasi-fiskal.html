@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/main}"
+      lang="id">
+<head>
+    <title>Rekonsiliasi Fiskal</title>
+</head>
+<body>
+    <h1 id="page-title" layout:fragment="page-title">Rekonsiliasi Fiskal</h1>
+
+    <div id="rekonsiliasi-fiskal-content" layout:fragment="content" class="h-full flex flex-col overflow-y-auto">
+        <div class="max-w-5xl">
+            <!-- Breadcrumb -->
+            <nav class="flex items-center space-x-2 text-sm text-gray-500 mb-6">
+                <a th:href="@{/reports}" class="hover:text-primary-600 transition-colors">Laporan</a>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+                <span class="text-gray-900">Rekonsiliasi Fiskal</span>
+            </nav>
+
+            <!-- Filter Section -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+                <form th:action="@{/reports/rekonsiliasi-fiskal}" method="get" class="flex flex-wrap items-end gap-4">
+                    <div class="w-32">
+                        <label for="year" class="block text-sm font-medium text-gray-700 mb-1">Tahun</label>
+                        <input type="number" id="year" name="year" th:value="${year}" min="2000" max="2100"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+                    </div>
+                    <div>
+                        <button id="btn-generate" type="submit"
+                                class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors">
+                            Tampilkan
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Flash Messages -->
+            <div th:if="${successMessage}" class="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-800" th:text="${successMessage}"></div>
+
+            <div th:if="${report != null}" class="space-y-6">
+                <!-- Report Header with Export -->
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h2 id="report-title" class="text-lg font-bold text-gray-900">REKONSILIASI FISKAL</h2>
+                                <p class="text-sm text-gray-600">Fiscal Reconciliation Worksheet</p>
+                                <p id="report-year" class="text-sm text-gray-500 mt-1" th:text="|Tahun Pajak: ${year}|">Tahun Pajak</p>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <a id="btn-export-pdf" th:href="@{/reports/rekonsiliasi-fiskal/export/pdf(year=${year})}"
+                                   class="px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors">
+                                    PDF
+                                </a>
+                                <a id="btn-export-excel" th:href="@{/reports/rekonsiliasi-fiskal/export/excel(year=${year})}"
+                                   class="px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors">
+                                    Excel
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section A: Commercial P&L Summary -->
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                    <div class="px-6 py-3 bg-blue-50 border-b border-blue-200">
+                        <h3 class="text-sm font-semibold text-blue-800">A. Laba Rugi Komersial</h3>
+                    </div>
+                    <div class="p-6 space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-600">Pendapatan</span>
+                            <span id="total-revenue" class="font-mono text-sm"
+                                  th:text="${#numbers.formatDecimal(report.incomeStatement.totalRevenue, 1, 'POINT', 0, 'COMMA')}">0</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-600">Beban</span>
+                            <span id="total-expense" class="font-mono text-sm"
+                                  th:text="'(' + ${#numbers.formatDecimal(report.incomeStatement.totalExpense, 1, 'POINT', 0, 'COMMA')} + ')'">0</span>
+                        </div>
+                        <div class="flex justify-between items-center pt-3 border-t border-gray-300">
+                            <span class="text-sm font-semibold text-gray-800">Laba Bersih Komersial</span>
+                            <span id="commercial-net-income" class="font-mono text-sm font-semibold"
+                                  th:text="${#numbers.formatDecimal(report.commercialNetIncome, 1, 'POINT', 0, 'COMMA')}">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section B: Koreksi Fiskal -->
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                    <div class="px-6 py-3 bg-amber-50 border-b border-amber-200">
+                        <h3 class="text-sm font-semibold text-amber-800">B. Koreksi Fiskal</h3>
+                    </div>
+
+                    <!-- Existing Adjustments Table -->
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Uraian</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Kategori</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Arah</th>
+                                    <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Jumlah</th>
+                                    <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adjustment-items" class="bg-white divide-y divide-gray-200">
+                                <tr th:each="adj : ${report.adjustments}" class="hover:bg-gray-50">
+                                    <td class="px-4 py-2 text-sm">
+                                        <span th:text="${adj.description}"></span>
+                                        <span th:if="${adj.accountCode != null}" class="text-xs text-gray-400 ml-1" th:text="'(' + ${adj.accountCode} + ')'"></span>
+                                    </td>
+                                    <td class="px-4 py-2 text-sm" th:text="${adj.adjustmentCategory.indonesianName}"></td>
+                                    <td class="px-4 py-2 text-sm">
+                                        <span class="px-2 py-0.5 text-xs rounded-full"
+                                              th:classappend="${adj.adjustmentDirection.name() == 'POSITIVE'} ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'"
+                                              th:text="${adj.adjustmentDirection.indonesianName}"></span>
+                                    </td>
+                                    <td class="px-4 py-2 text-sm text-right font-mono"
+                                        th:classappend="${adj.adjustmentDirection.name() == 'POSITIVE'} ? 'text-red-600' : 'text-green-600'"
+                                        th:text="${(adj.adjustmentDirection.name() == 'NEGATIVE' ? '(' : '') + #numbers.formatDecimal(adj.amount, 1, 'POINT', 0, 'COMMA') + (adj.adjustmentDirection.name() == 'NEGATIVE' ? ')' : '')}">0</td>
+                                    <td class="px-4 py-2 text-center">
+                                        <form th:action="@{/reports/rekonsiliasi-fiskal/adjustments/{id}/delete(id=${adj.id})}" method="post" class="inline">
+                                            <input type="hidden" name="year" th:value="${year}">
+                                            <button type="submit" class="text-red-600 hover:text-red-800 text-xs"
+                                                    onclick="return confirm('Hapus koreksi fiskal ini?')">Hapus</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                <tr th:if="${#lists.isEmpty(report.adjustments)}">
+                                    <td colspan="5" class="px-4 py-4 text-center text-sm text-gray-500">Belum ada koreksi fiskal</td>
+                                </tr>
+                            </tbody>
+                            <tfoot class="bg-amber-50">
+                                <tr class="font-semibold">
+                                    <td colspan="3" class="px-4 py-2 text-sm text-amber-800">Koreksi Positif</td>
+                                    <td id="total-positive" class="px-4 py-2 text-sm text-right font-mono text-red-600"
+                                        th:text="${#numbers.formatDecimal(report.totalPositiveAdjustment, 1, 'POINT', 0, 'COMMA')}">0</td>
+                                    <td></td>
+                                </tr>
+                                <tr class="font-semibold">
+                                    <td colspan="3" class="px-4 py-2 text-sm text-amber-800">Koreksi Negatif</td>
+                                    <td id="total-negative" class="px-4 py-2 text-sm text-right font-mono text-green-600"
+                                        th:text="'(' + ${#numbers.formatDecimal(report.totalNegativeAdjustment, 1, 'POINT', 0, 'COMMA')} + ')'">0</td>
+                                    <td></td>
+                                </tr>
+                                <tr class="font-semibold border-t-2 border-amber-300">
+                                    <td colspan="3" class="px-4 py-2 text-sm text-amber-900">Koreksi Fiskal Neto</td>
+                                    <td id="net-adjustment" class="px-4 py-2 text-sm text-right font-mono text-amber-900"
+                                        th:text="${#numbers.formatDecimal(report.netAdjustment, 1, 'POINT', 0, 'COMMA')}">0</td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    <!-- Add Adjustment Form -->
+                    <div class="px-6 py-4 bg-gray-50 border-t border-gray-200">
+                        <h4 class="text-sm font-medium text-gray-700 mb-3">Tambah Koreksi Fiskal</h4>
+                        <form id="add-adjustment-form" th:action="@{/reports/rekonsiliasi-fiskal/adjustments}" method="post"
+                              class="grid grid-cols-1 md:grid-cols-6 gap-3 items-end">
+                            <input type="hidden" name="year" th:value="${year}">
+                            <div class="md:col-span-2">
+                                <label for="adj-description" class="block text-xs font-medium text-gray-600 mb-1">Uraian</label>
+                                <input type="text" id="adj-description" name="description" required
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="Biaya entertainment">
+                            </div>
+                            <div>
+                                <label for="adj-category" class="block text-xs font-medium text-gray-600 mb-1">Kategori</label>
+                                <select id="adj-category" name="adjustmentCategory" required
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                                    <option th:each="cat : ${categories}" th:value="${cat.name()}" th:text="${cat.indonesianName}"></option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="adj-direction" class="block text-xs font-medium text-gray-600 mb-1">Arah</label>
+                                <select id="adj-direction" name="adjustmentDirection" required
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                                    <option th:each="dir : ${directions}" th:value="${dir.name()}" th:text="${dir.indonesianName}"></option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="adj-amount" class="block text-xs font-medium text-gray-600 mb-1">Jumlah</label>
+                                <input type="number" id="adj-amount" name="amount" required min="1" step="1"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="0">
+                            </div>
+                            <div>
+                                <button id="btn-add-adjustment" type="submit"
+                                        class="w-full px-4 py-2 text-sm font-medium text-white bg-amber-600 rounded-lg hover:bg-amber-700 transition-colors">
+                                    Tambah
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Section C: PKP & PPh Badan -->
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                    <div class="px-6 py-3 bg-red-50 border-b border-red-200">
+                        <h3 class="text-sm font-semibold text-red-800">C. Penghasilan Kena Pajak & PPh Badan</h3>
+                    </div>
+                    <div class="p-6 space-y-3">
+                        <!-- PKP Calculation -->
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-600">Laba Bersih Komersial</span>
+                            <span class="font-mono text-sm"
+                                  th:text="${#numbers.formatDecimal(report.commercialNetIncome, 1, 'POINT', 0, 'COMMA')}">0</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-600">Koreksi Fiskal Neto</span>
+                            <span class="font-mono text-sm"
+                                  th:text="${#numbers.formatDecimal(report.netAdjustment, 1, 'POINT', 0, 'COMMA')}">0</span>
+                        </div>
+                        <div class="flex justify-between items-center pt-3 border-t border-gray-300">
+                            <span class="text-sm font-semibold text-gray-800">Penghasilan Kena Pajak (PKP)</span>
+                            <span id="pkp" class="font-mono text-sm font-semibold"
+                                  th:text="${#numbers.formatDecimal(report.pkp, 1, 'POINT', 0, 'COMMA')}">0</span>
+                        </div>
+
+                        <!-- PPh Badan -->
+                        <div class="mt-4 pt-4 border-t border-gray-200 space-y-3">
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm text-gray-600">Metode Perhitungan</span>
+                                <span id="calculation-method" class="text-xs text-gray-500" th:text="${report.pphBadan.calculationMethod}"></span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm font-semibold text-gray-800">PPh Badan Terutang</span>
+                                <span id="pph-terutang" class="font-mono text-sm font-semibold"
+                                      th:text="${#numbers.formatDecimal(report.pphBadan.pphTerutang, 1, 'POINT', 0, 'COMMA')}">0</span>
+                            </div>
+                        </div>
+
+                        <!-- Kredit Pajak -->
+                        <div class="mt-4 pt-4 border-t border-gray-200 space-y-3">
+                            <h4 class="text-sm font-medium text-gray-700">Kredit Pajak</h4>
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm text-gray-600">PPh 23 yang dipotong pihak lain</span>
+                                <span id="kredit-pph23" class="font-mono text-sm"
+                                      th:text="'(' + ${#numbers.formatDecimal(report.pphBadan.kreditPajakPPh23, 1, 'POINT', 0, 'COMMA')} + ')'">0</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm text-gray-600">PPh 25 yang sudah dibayar</span>
+                                <span id="kredit-pph25" class="font-mono text-sm"
+                                      th:text="'(' + ${#numbers.formatDecimal(report.pphBadan.kreditPajakPPh25, 1, 'POINT', 0, 'COMMA')} + ')'">0</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm text-gray-600">Total Kredit Pajak</span>
+                                <span id="total-kredit" class="font-mono text-sm"
+                                      th:text="'(' + ${#numbers.formatDecimal(report.pphBadan.totalKreditPajak, 1, 'POINT', 0, 'COMMA')} + ')'">0</span>
+                            </div>
+                        </div>
+
+                        <!-- PPh 29 -->
+                        <div class="flex justify-between items-center py-4 px-4 mt-4 rounded-lg border-2"
+                             th:classappend="${report.pphBadan.pph29.compareTo(T(java.math.BigDecimal).ZERO) > 0} ? 'bg-red-100 border-red-300' : 'bg-green-100 border-green-300'">
+                            <div>
+                                <span class="text-base font-bold"
+                                      th:classappend="${report.pphBadan.pph29.compareTo(T(java.math.BigDecimal).ZERO) > 0} ? 'text-red-900' : 'text-green-900'"
+                                      th:text="${report.pphBadan.pph29.compareTo(T(java.math.BigDecimal).ZERO) > 0} ? 'PPh Pasal 29 (Kurang Bayar)' : 'PPh Pasal 28A (Lebih Bayar)'">PPh 29</span>
+                            </div>
+                            <span id="pph29" class="text-xl font-mono font-bold"
+                                  th:classappend="${report.pphBadan.pph29.compareTo(T(java.math.BigDecimal).ZERO) > 0} ? 'text-red-900' : 'text-green-900'"
+                                  th:text="${#numbers.formatDecimal(report.pphBadan.pph29.abs(), 1, 'POINT', 0, 'COMMA')}">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

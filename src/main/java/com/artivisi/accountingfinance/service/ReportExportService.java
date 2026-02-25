@@ -27,6 +27,10 @@ import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
 
+import com.artivisi.accountingfinance.entity.FiscalAdjustment;
+import com.artivisi.accountingfinance.entity.TaxTransactionDetail;
+import com.artivisi.accountingfinance.enums.FiscalAdjustmentDirection;
+
 import java.awt.Color;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -1209,6 +1213,472 @@ public class ReportExportService {
         }
     }
 
+    // ==================== PPN DETAIL ====================
+
+    public byte[] exportPpnDetailToPdf(TaxReportDetailService.PPNDetailReport report) {
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            Document document = new Document(PageSize.A4.rotate());
+            PdfWriter.getInstance(document, baos);
+            document.open();
+
+            addReportHeader(document, "RINCIAN PPN PER FAKTUR", "VAT Detail Report",
+                    LABEL_PERIODE + report.startDate().format(DATE_FORMAT) + " - " + report.endDate().format(DATE_FORMAT));
+
+            // Keluaran section
+            Paragraph keluaranTitle = new Paragraph("PPN Keluaran", getBoldFont());
+            keluaranTitle.setSpacingBefore(15);
+            document.add(keluaranTitle);
+
+            PdfPTable keluaranTable = new PdfPTable(7);
+            keluaranTable.setWidthPercentage(100);
+            keluaranTable.setWidths(new float[]{18, 10, 5, 20, 17, 15, 15});
+            keluaranTable.setSpacingBefore(5);
+            addTableHeader(keluaranTable, "No. Faktur", "Tanggal", "Kode", "Lawan Transaksi", "NPWP", "DPP", "PPN");
+
+            for (TaxTransactionDetail item : report.keluaranItems()) {
+                addTableCell(keluaranTable, item.getFakturNumber() != null ? item.getFakturNumber() : "-", Element.ALIGN_LEFT);
+                addTableCell(keluaranTable, item.getFakturDate() != null ? item.getFakturDate().format(DateTimeFormatter.ofPattern(DATE_PATTERN_DMY)) : "-", Element.ALIGN_LEFT);
+                addTableCell(keluaranTable, item.getTransactionCode() != null ? item.getTransactionCode() : "-", Element.ALIGN_CENTER);
+                addTableCell(keluaranTable, item.getCounterpartyName() != null ? item.getCounterpartyName() : "-", Element.ALIGN_LEFT);
+                addTableCell(keluaranTable, item.getCounterpartyNpwp() != null ? item.getCounterpartyNpwp() : "-", Element.ALIGN_LEFT);
+                addTableCell(keluaranTable, formatNumber(item.getDpp()), Element.ALIGN_RIGHT);
+                addTableCell(keluaranTable, formatNumber(item.getPpn()), Element.ALIGN_RIGHT);
+            }
+            addPpnTotalRow(keluaranTable, "Total PPN Keluaran", formatNumber(report.totalDppKeluaran()), formatNumber(report.totalPpnKeluaran()));
+            document.add(keluaranTable);
+
+            // Masukan section
+            Paragraph masukanTitle = new Paragraph("PPN Masukan", getBoldFont());
+            masukanTitle.setSpacingBefore(15);
+            document.add(masukanTitle);
+
+            PdfPTable masukanTable = new PdfPTable(7);
+            masukanTable.setWidthPercentage(100);
+            masukanTable.setWidths(new float[]{18, 10, 5, 20, 17, 15, 15});
+            masukanTable.setSpacingBefore(5);
+            addTableHeader(masukanTable, "No. Faktur", "Tanggal", "Kode", "Lawan Transaksi", "NPWP", "DPP", "PPN");
+
+            for (TaxTransactionDetail item : report.masukanItems()) {
+                addTableCell(masukanTable, item.getFakturNumber() != null ? item.getFakturNumber() : "-", Element.ALIGN_LEFT);
+                addTableCell(masukanTable, item.getFakturDate() != null ? item.getFakturDate().format(DateTimeFormatter.ofPattern(DATE_PATTERN_DMY)) : "-", Element.ALIGN_LEFT);
+                addTableCell(masukanTable, item.getTransactionCode() != null ? item.getTransactionCode() : "-", Element.ALIGN_CENTER);
+                addTableCell(masukanTable, item.getCounterpartyName() != null ? item.getCounterpartyName() : "-", Element.ALIGN_LEFT);
+                addTableCell(masukanTable, item.getCounterpartyNpwp() != null ? item.getCounterpartyNpwp() : "-", Element.ALIGN_LEFT);
+                addTableCell(masukanTable, formatNumber(item.getDpp()), Element.ALIGN_RIGHT);
+                addTableCell(masukanTable, formatNumber(item.getPpn()), Element.ALIGN_RIGHT);
+            }
+            addPpnTotalRow(masukanTable, "Total PPN Masukan", formatNumber(report.totalDppMasukan()), formatNumber(report.totalPpnMasukan()));
+            document.add(masukanTable);
+
+            document.close();
+            return baos.toByteArray();
+        } catch (DocumentException | IOException e) {
+            log.error("Error generating PPN Detail PDF", e);
+            throw new ReportGenerationException(PDF_GENERATION_ERROR + e.getMessage(), e);
+        }
+    }
+
+    public byte[] exportPpnDetailToExcel(TaxReportDetailService.PPNDetailReport report) {
+        try (Workbook workbook = new XSSFWorkbook();
+             ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+
+            Sheet sheet = workbook.createSheet("Rincian PPN");
+            int rowNum = 0;
+            rowNum = addExcelHeader(workbook, sheet, rowNum, "RINCIAN PPN PER FAKTUR",
+                    LABEL_PERIODE + report.startDate().format(DATE_FORMAT) + " - " + report.endDate().format(DATE_FORMAT), 7);
+
+            CellStyle headerStyle = createHeaderStyle(workbook);
+            CellStyle textStyle = createTextStyle(workbook);
+            CellStyle numberStyle = createNumberStyle(workbook);
+            CellStyle sectionStyle = createSectionStyle(workbook);
+            CellStyle totalStyle = createTotalStyle(workbook);
+
+            // Keluaran
+            Row keluaranHeader = sheet.createRow(rowNum++);
+            createCell(keluaranHeader, 0, "PPN Keluaran", sectionStyle);
+
+            Row kHdr = sheet.createRow(rowNum++);
+            String[] headers = {"No. Faktur", "Tanggal", "Kode", "Lawan Transaksi", "NPWP", "DPP", "PPN"};
+            for (int i = 0; i < headers.length; i++) createCell(kHdr, i, headers[i], headerStyle);
+
+            for (TaxTransactionDetail item : report.keluaranItems()) {
+                Row row = sheet.createRow(rowNum++);
+                createCell(row, 0, item.getFakturNumber() != null ? item.getFakturNumber() : "-", textStyle);
+                createCell(row, 1, item.getFakturDate() != null ? item.getFakturDate().format(DateTimeFormatter.ofPattern(DATE_PATTERN_DMY)) : "-", textStyle);
+                createCell(row, 2, item.getTransactionCode() != null ? item.getTransactionCode() : "-", textStyle);
+                createCell(row, 3, item.getCounterpartyName() != null ? item.getCounterpartyName() : "-", textStyle);
+                createCell(row, 4, item.getCounterpartyNpwp() != null ? item.getCounterpartyNpwp() : "-", textStyle);
+                createNumericCell(row, 5, item.getDpp(), numberStyle);
+                createNumericCell(row, 6, item.getPpn(), numberStyle);
+            }
+            Row kTotal = sheet.createRow(rowNum++);
+            createCell(kTotal, 0, "Total PPN Keluaran", totalStyle);
+            for (int i = 1; i < 5; i++) createCell(kTotal, i, "", totalStyle);
+            createNumericCell(kTotal, 5, report.totalDppKeluaran(), totalStyle);
+            createNumericCell(kTotal, 6, report.totalPpnKeluaran(), totalStyle);
+            rowNum++;
+
+            // Masukan
+            Row masukanHeader = sheet.createRow(rowNum++);
+            createCell(masukanHeader, 0, "PPN Masukan", sectionStyle);
+
+            Row mHdr = sheet.createRow(rowNum++);
+            for (int i = 0; i < headers.length; i++) createCell(mHdr, i, headers[i], headerStyle);
+
+            for (TaxTransactionDetail item : report.masukanItems()) {
+                Row row = sheet.createRow(rowNum++);
+                createCell(row, 0, item.getFakturNumber() != null ? item.getFakturNumber() : "-", textStyle);
+                createCell(row, 1, item.getFakturDate() != null ? item.getFakturDate().format(DateTimeFormatter.ofPattern(DATE_PATTERN_DMY)) : "-", textStyle);
+                createCell(row, 2, item.getTransactionCode() != null ? item.getTransactionCode() : "-", textStyle);
+                createCell(row, 3, item.getCounterpartyName() != null ? item.getCounterpartyName() : "-", textStyle);
+                createCell(row, 4, item.getCounterpartyNpwp() != null ? item.getCounterpartyNpwp() : "-", textStyle);
+                createNumericCell(row, 5, item.getDpp(), numberStyle);
+                createNumericCell(row, 6, item.getPpn(), numberStyle);
+            }
+            Row mTotal = sheet.createRow(rowNum);
+            createCell(mTotal, 0, "Total PPN Masukan", totalStyle);
+            for (int i = 1; i < 5; i++) createCell(mTotal, i, "", totalStyle);
+            createNumericCell(mTotal, 5, report.totalDppMasukan(), totalStyle);
+            createNumericCell(mTotal, 6, report.totalPpnMasukan(), totalStyle);
+
+            autoSizeColumns(sheet, 7);
+            workbook.write(baos);
+            return baos.toByteArray();
+        } catch (IOException e) {
+            log.error("Error generating PPN Detail Excel", e);
+            throw new ReportGenerationException(EXCEL_GENERATION_ERROR + e.getMessage(), e);
+        }
+    }
+
+    // ==================== PPh 23 DETAIL ====================
+
+    public byte[] exportPph23DetailToPdf(TaxReportDetailService.PPh23DetailReport report) {
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            Document document = new Document(PageSize.A4.rotate());
+            PdfWriter.getInstance(document, baos);
+            document.open();
+
+            addReportHeader(document, "RINCIAN PPh 23 PER BUKTI POTONG", "WHT Art. 23 Detail Report",
+                    LABEL_PERIODE + report.startDate().format(DATE_FORMAT) + " - " + report.endDate().format(DATE_FORMAT));
+
+            PdfPTable table = new PdfPTable(7);
+            table.setWidthPercentage(100);
+            table.setWidths(new float[]{18, 10, 20, 17, 15, 8, 12});
+            table.setSpacingBefore(20);
+            addTableHeader(table, "No. Bupot", "Kode Objek", "Lawan Transaksi", "NPWP", "Bruto", "Tarif", "PPh 23");
+
+            for (TaxTransactionDetail item : report.items()) {
+                addTableCell(table, item.getBupotNumber() != null ? item.getBupotNumber() : "-", Element.ALIGN_LEFT);
+                addTableCell(table, item.getTaxObjectCode() != null ? item.getTaxObjectCode() : "-", Element.ALIGN_LEFT);
+                addTableCell(table, item.getCounterpartyName() != null ? item.getCounterpartyName() : "-", Element.ALIGN_LEFT);
+                addTableCell(table, item.getCounterpartyNpwp() != null ? item.getCounterpartyNpwp() : "-", Element.ALIGN_LEFT);
+                addTableCell(table, formatNumber(item.getGrossAmount()), Element.ALIGN_RIGHT);
+                addTableCell(table, item.getTaxRate() != null ? item.getTaxRate() + "%" : "-", Element.ALIGN_RIGHT);
+                addTableCell(table, formatNumber(item.getTaxAmount()), Element.ALIGN_RIGHT);
+            }
+
+            addPph23TotalRow(table, formatNumber(report.totalGross()), formatNumber(report.totalTax()));
+            document.add(table);
+            document.close();
+            return baos.toByteArray();
+        } catch (DocumentException | IOException e) {
+            log.error("Error generating PPh 23 Detail PDF", e);
+            throw new ReportGenerationException(PDF_GENERATION_ERROR + e.getMessage(), e);
+        }
+    }
+
+    public byte[] exportPph23DetailToExcel(TaxReportDetailService.PPh23DetailReport report) {
+        try (Workbook workbook = new XSSFWorkbook();
+             ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+
+            Sheet sheet = workbook.createSheet("Rincian PPh 23");
+            int rowNum = 0;
+            rowNum = addExcelHeader(workbook, sheet, rowNum, "RINCIAN PPh 23 PER BUKTI POTONG",
+                    LABEL_PERIODE + report.startDate().format(DATE_FORMAT) + " - " + report.endDate().format(DATE_FORMAT), 7);
+
+            CellStyle headerStyle = createHeaderStyle(workbook);
+            CellStyle textStyle = createTextStyle(workbook);
+            CellStyle numberStyle = createNumberStyle(workbook);
+            CellStyle totalStyle = createTotalStyle(workbook);
+
+            Row hdr = sheet.createRow(rowNum++);
+            String[] headers = {"No. Bupot", "Kode Objek", "Lawan Transaksi", "NPWP", "Bruto", "Tarif", "PPh 23"};
+            for (int i = 0; i < headers.length; i++) createCell(hdr, i, headers[i], headerStyle);
+
+            for (TaxTransactionDetail item : report.items()) {
+                Row row = sheet.createRow(rowNum++);
+                createCell(row, 0, item.getBupotNumber() != null ? item.getBupotNumber() : "-", textStyle);
+                createCell(row, 1, item.getTaxObjectCode() != null ? item.getTaxObjectCode() : "-", textStyle);
+                createCell(row, 2, item.getCounterpartyName() != null ? item.getCounterpartyName() : "-", textStyle);
+                createCell(row, 3, item.getCounterpartyNpwp() != null ? item.getCounterpartyNpwp() : "-", textStyle);
+                createNumericCell(row, 4, item.getGrossAmount(), numberStyle);
+                createCell(row, 5, item.getTaxRate() != null ? item.getTaxRate() + "%" : "-", textStyle);
+                createNumericCell(row, 6, item.getTaxAmount(), numberStyle);
+            }
+
+            Row total = sheet.createRow(rowNum);
+            createCell(total, 0, TOTAL_LABEL, totalStyle);
+            for (int i = 1; i < 4; i++) createCell(total, i, "", totalStyle);
+            createNumericCell(total, 4, report.totalGross(), totalStyle);
+            createCell(total, 5, "", totalStyle);
+            createNumericCell(total, 6, report.totalTax(), totalStyle);
+
+            autoSizeColumns(sheet, 7);
+            workbook.write(baos);
+            return baos.toByteArray();
+        } catch (IOException e) {
+            log.error("Error generating PPh 23 Detail Excel", e);
+            throw new ReportGenerationException(EXCEL_GENERATION_ERROR + e.getMessage(), e);
+        }
+    }
+
+    // ==================== PPN CROSS-CHECK ====================
+
+    public byte[] exportPpnCrosscheckToPdf(TaxReportDetailService.PPNCrossCheckReport report) {
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            Document document = new Document(PageSize.A4);
+            PdfWriter.getInstance(document, baos);
+            document.open();
+
+            addReportHeader(document, "CROSS-CHECK PPN", "Faktur vs Buku Besar",
+                    LABEL_PERIODE + report.startDate().format(DATE_FORMAT) + " - " + report.endDate().format(DATE_FORMAT));
+
+            PdfPTable table = new PdfPTable(4);
+            table.setWidthPercentage(100);
+            table.setWidths(new float[]{30, 23, 24, 23});
+            table.setSpacingBefore(20);
+            addTableHeader(table, "Komponen", "Faktur Pajak", "Buku Besar", "Selisih");
+
+            addTableCell(table, "PPN Keluaran", Element.ALIGN_LEFT);
+            addTableCell(table, formatNumber(report.fakturPpnKeluaran()), Element.ALIGN_RIGHT);
+            addTableCell(table, formatNumber(report.ledgerPpnKeluaran()), Element.ALIGN_RIGHT);
+            addTableCell(table, formatNumber(report.keluaranDifference()), Element.ALIGN_RIGHT);
+
+            addTableCell(table, "PPN Masukan", Element.ALIGN_LEFT);
+            addTableCell(table, formatNumber(report.fakturPpnMasukan()), Element.ALIGN_RIGHT);
+            addTableCell(table, formatNumber(report.ledgerPpnMasukan()), Element.ALIGN_RIGHT);
+            addTableCell(table, formatNumber(report.masukanDifference()), Element.ALIGN_RIGHT);
+
+            document.add(table);
+            document.close();
+            return baos.toByteArray();
+        } catch (DocumentException | IOException e) {
+            log.error("Error generating PPN Crosscheck PDF", e);
+            throw new ReportGenerationException(PDF_GENERATION_ERROR + e.getMessage(), e);
+        }
+    }
+
+    public byte[] exportPpnCrosscheckToExcel(TaxReportDetailService.PPNCrossCheckReport report) {
+        try (Workbook workbook = new XSSFWorkbook();
+             ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+
+            Sheet sheet = workbook.createSheet("Cross-check PPN");
+            int rowNum = 0;
+            rowNum = addExcelHeader(workbook, sheet, rowNum, "CROSS-CHECK PPN",
+                    LABEL_PERIODE + report.startDate().format(DATE_FORMAT) + " - " + report.endDate().format(DATE_FORMAT), 4);
+
+            CellStyle headerStyle = createHeaderStyle(workbook);
+            CellStyle textStyle = createTextStyle(workbook);
+            CellStyle numberStyle = createNumberStyle(workbook);
+
+            Row hdr = sheet.createRow(rowNum++);
+            createCell(hdr, 0, "Komponen", headerStyle);
+            createCell(hdr, 1, "Faktur Pajak", headerStyle);
+            createCell(hdr, 2, "Buku Besar", headerStyle);
+            createCell(hdr, 3, "Selisih", headerStyle);
+
+            Row keluaran = sheet.createRow(rowNum++);
+            createCell(keluaran, 0, "PPN Keluaran", textStyle);
+            createNumericCell(keluaran, 1, report.fakturPpnKeluaran(), numberStyle);
+            createNumericCell(keluaran, 2, report.ledgerPpnKeluaran(), numberStyle);
+            createNumericCell(keluaran, 3, report.keluaranDifference(), numberStyle);
+
+            Row masukan = sheet.createRow(rowNum);
+            createCell(masukan, 0, "PPN Masukan", textStyle);
+            createNumericCell(masukan, 1, report.fakturPpnMasukan(), numberStyle);
+            createNumericCell(masukan, 2, report.ledgerPpnMasukan(), numberStyle);
+            createNumericCell(masukan, 3, report.masukanDifference(), numberStyle);
+
+            autoSizeColumns(sheet, 4);
+            workbook.write(baos);
+            return baos.toByteArray();
+        } catch (IOException e) {
+            log.error("Error generating PPN Crosscheck Excel", e);
+            throw new ReportGenerationException(EXCEL_GENERATION_ERROR + e.getMessage(), e);
+        }
+    }
+
+    // ==================== REKONSILIASI FISKAL ====================
+
+    public byte[] exportRekonsiliasiFiskalToPdf(TaxReportDetailService.RekonsiliasiFiskalReport report) {
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            Document document = new Document(PageSize.A4);
+            PdfWriter.getInstance(document, baos);
+            document.open();
+
+            addReportHeader(document, "REKONSILIASI FISKAL", "Fiscal Reconciliation",
+                    "Tahun Pajak " + report.year());
+
+            // Section A: Commercial P&L
+            Paragraph sectionA = new Paragraph("A. Laba Rugi Komersial", getBoldFont());
+            sectionA.setSpacingBefore(15);
+            document.add(sectionA);
+
+            PdfPTable plTable = new PdfPTable(2);
+            plTable.setWidthPercentage(100);
+            plTable.setWidths(new float[]{60, 40});
+            plTable.setSpacingBefore(5);
+            addTableCell(plTable, "Pendapatan", Element.ALIGN_LEFT);
+            addTableCell(plTable, formatNumber(report.incomeStatement().totalRevenue()), Element.ALIGN_RIGHT);
+            addTableCell(plTable, "Beban", Element.ALIGN_LEFT);
+            addTableCell(plTable, "(" + formatNumber(report.incomeStatement().totalExpense()) + ")", Element.ALIGN_RIGHT);
+            addSubtotalRow(plTable, "Laba Bersih Komersial", formatNumber(report.commercialNetIncome()));
+            document.add(plTable);
+
+            // Section B: Fiscal Adjustments
+            Paragraph sectionB = new Paragraph("B. Koreksi Fiskal", getBoldFont());
+            sectionB.setSpacingBefore(15);
+            document.add(sectionB);
+
+            PdfPTable adjTable = new PdfPTable(4);
+            adjTable.setWidthPercentage(100);
+            adjTable.setWidths(new float[]{40, 20, 20, 20});
+            adjTable.setSpacingBefore(5);
+            addTableHeader(adjTable, "Uraian", "Kategori", "Arah", "Jumlah");
+
+            for (FiscalAdjustment adj : report.adjustments()) {
+                addTableCell(adjTable, adj.getDescription(), Element.ALIGN_LEFT);
+                addTableCell(adjTable, adj.getAdjustmentCategory().getIndonesianName(), Element.ALIGN_LEFT);
+                addTableCell(adjTable, adj.getAdjustmentDirection().getIndonesianName(), Element.ALIGN_LEFT);
+                String amountStr = adj.getAdjustmentDirection() == FiscalAdjustmentDirection.NEGATIVE
+                        ? "(" + formatNumber(adj.getAmount()) + ")" : formatNumber(adj.getAmount());
+                addTableCell(adjTable, amountStr, Element.ALIGN_RIGHT);
+            }
+            document.add(adjTable);
+
+            // Adjustment totals
+            PdfPTable adjTotalTable = new PdfPTable(2);
+            adjTotalTable.setWidthPercentage(100);
+            adjTotalTable.setWidths(new float[]{60, 40});
+            addSubtotalRow(adjTotalTable, "Koreksi Positif", formatNumber(report.totalPositiveAdjustment()));
+            addSubtotalRow(adjTotalTable, "Koreksi Negatif", "(" + formatNumber(report.totalNegativeAdjustment()) + ")");
+            addSubtotalRow(adjTotalTable, "Koreksi Fiskal Neto", formatNumber(report.netAdjustment()));
+            document.add(adjTotalTable);
+
+            // Section C: PKP & PPh Badan
+            Paragraph sectionC = new Paragraph("C. Penghasilan Kena Pajak & PPh Badan", getBoldFont());
+            sectionC.setSpacingBefore(15);
+            document.add(sectionC);
+
+            PdfPTable pphTable = new PdfPTable(2);
+            pphTable.setWidthPercentage(100);
+            pphTable.setWidths(new float[]{60, 40});
+            pphTable.setSpacingBefore(5);
+
+            addTableCell(pphTable, "Laba Bersih Komersial", Element.ALIGN_LEFT);
+            addTableCell(pphTable, formatNumber(report.commercialNetIncome()), Element.ALIGN_RIGHT);
+            addTableCell(pphTable, "Koreksi Fiskal Neto", Element.ALIGN_LEFT);
+            addTableCell(pphTable, formatNumber(report.netAdjustment()), Element.ALIGN_RIGHT);
+            addSubtotalRow(pphTable, "Penghasilan Kena Pajak (PKP)", formatNumber(report.pkp()));
+
+            addTableCell(pphTable, "PPh Badan Terutang (" + report.pphBadan().calculationMethod() + ")", Element.ALIGN_LEFT);
+            addTableCell(pphTable, formatNumber(report.pphBadan().pphTerutang()), Element.ALIGN_RIGHT);
+            addTableCell(pphTable, "Kredit Pajak PPh 23", Element.ALIGN_LEFT);
+            addTableCell(pphTable, "(" + formatNumber(report.pphBadan().kreditPajakPPh23()) + ")", Element.ALIGN_RIGHT);
+            addTableCell(pphTable, "Kredit Pajak PPh 25", Element.ALIGN_LEFT);
+            addTableCell(pphTable, "(" + formatNumber(report.pphBadan().kreditPajakPPh25()) + ")", Element.ALIGN_RIGHT);
+            addSubtotalRow(pphTable, "PPh Pasal 29 (Kurang/Lebih Bayar)", formatNumber(report.pphBadan().pph29()));
+
+            document.add(pphTable);
+            document.close();
+            return baos.toByteArray();
+        } catch (DocumentException | IOException e) {
+            log.error("Error generating Rekonsiliasi Fiskal PDF", e);
+            throw new ReportGenerationException(PDF_GENERATION_ERROR + e.getMessage(), e);
+        }
+    }
+
+    public byte[] exportRekonsiliasiFiskalToExcel(TaxReportDetailService.RekonsiliasiFiskalReport report) {
+        try (Workbook workbook = new XSSFWorkbook();
+             ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+
+            Sheet sheet = workbook.createSheet("Rekonsiliasi Fiskal");
+            int rowNum = 0;
+            rowNum = addExcelHeader(workbook, sheet, rowNum, "REKONSILIASI FISKAL",
+                    "Tahun Pajak " + report.year(), 2);
+
+            CellStyle textStyle = createTextStyle(workbook);
+            CellStyle numberStyle = createNumberStyle(workbook);
+            CellStyle sectionStyle = createSectionStyle(workbook);
+            CellStyle totalStyle = createTotalStyle(workbook);
+
+            // Section A
+            Row sA = sheet.createRow(rowNum++);
+            createCell(sA, 0, "A. Laba Rugi Komersial", sectionStyle);
+
+            Row rev = sheet.createRow(rowNum++);
+            createCell(rev, 0, "Pendapatan", textStyle);
+            createNumericCell(rev, 1, report.incomeStatement().totalRevenue(), numberStyle);
+
+            Row exp = sheet.createRow(rowNum++);
+            createCell(exp, 0, "Beban", textStyle);
+            createNumericCell(exp, 1, report.incomeStatement().totalExpense().negate(), numberStyle);
+
+            Row ni = sheet.createRow(rowNum++);
+            createCell(ni, 0, "Laba Bersih Komersial", totalStyle);
+            createNumericCell(ni, 1, report.commercialNetIncome(), totalStyle);
+            rowNum++;
+
+            // Section B
+            Row sB = sheet.createRow(rowNum++);
+            createCell(sB, 0, "B. Koreksi Fiskal", sectionStyle);
+
+            for (FiscalAdjustment adj : report.adjustments()) {
+                Row row = sheet.createRow(rowNum++);
+                createCell(row, 0, adj.getDescription() + " (" + adj.getAdjustmentCategory().getIndonesianName() + ", " + adj.getAdjustmentDirection().getIndonesianName() + ")", textStyle);
+                BigDecimal val = adj.getAdjustmentDirection() == FiscalAdjustmentDirection.NEGATIVE
+                        ? adj.getAmount().negate() : adj.getAmount();
+                createNumericCell(row, 1, val, numberStyle);
+            }
+
+            Row adjNet = sheet.createRow(rowNum++);
+            createCell(adjNet, 0, "Koreksi Fiskal Neto", totalStyle);
+            createNumericCell(adjNet, 1, report.netAdjustment(), totalStyle);
+            rowNum++;
+
+            // Section C
+            Row sC = sheet.createRow(rowNum++);
+            createCell(sC, 0, "C. PKP & PPh Badan", sectionStyle);
+
+            Row pkpRow = sheet.createRow(rowNum++);
+            createCell(pkpRow, 0, "Penghasilan Kena Pajak (PKP)", totalStyle);
+            createNumericCell(pkpRow, 1, report.pkp(), totalStyle);
+
+            Row pphRow = sheet.createRow(rowNum++);
+            createCell(pphRow, 0, "PPh Badan Terutang", textStyle);
+            createNumericCell(pphRow, 1, report.pphBadan().pphTerutang(), numberStyle);
+
+            Row kp23 = sheet.createRow(rowNum++);
+            createCell(kp23, 0, "Kredit Pajak PPh 23", textStyle);
+            createNumericCell(kp23, 1, report.pphBadan().kreditPajakPPh23().negate(), numberStyle);
+
+            Row kp25 = sheet.createRow(rowNum++);
+            createCell(kp25, 0, "Kredit Pajak PPh 25", textStyle);
+            createNumericCell(kp25, 1, report.pphBadan().kreditPajakPPh25().negate(), numberStyle);
+
+            Row pph29 = sheet.createRow(rowNum);
+            createCell(pph29, 0, "PPh Pasal 29 (Kurang/Lebih Bayar)", totalStyle);
+            createNumericCell(pph29, 1, report.pphBadan().pph29(), totalStyle);
+
+            autoSizeColumns(sheet, 2);
+            workbook.write(baos);
+            return baos.toByteArray();
+        } catch (IOException e) {
+            log.error("Error generating Rekonsiliasi Fiskal Excel", e);
+            throw new ReportGenerationException(EXCEL_GENERATION_ERROR + e.getMessage(), e);
+        }
+    }
+
     // ==================== HELPER METHODS ====================
 
     private String formatNumber(BigDecimal value) {
@@ -1291,6 +1761,58 @@ public class ReportExportService {
         valueCell.setBackgroundColor(new Color(250, 250, 250));
         valueCell.setBorderWidth(0.5f);
         table.addCell(valueCell);
+    }
+
+    private void addPpnTotalRow(PdfPTable table, String label, String dppTotal, String ppnTotal) {
+        PdfPCell labelCell = new PdfPCell(new Phrase(label, getBoldFont()));
+        labelCell.setColspan(5);
+        labelCell.setPadding(5);
+        labelCell.setBackgroundColor(new Color(240, 240, 240));
+        labelCell.setBorderWidth(0.5f);
+        table.addCell(labelCell);
+
+        PdfPCell dppCell = new PdfPCell(new Phrase(dppTotal, getBoldFont()));
+        dppCell.setPadding(5);
+        dppCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        dppCell.setBackgroundColor(new Color(240, 240, 240));
+        dppCell.setBorderWidth(0.5f);
+        table.addCell(dppCell);
+
+        PdfPCell ppnCell = new PdfPCell(new Phrase(ppnTotal, getBoldFont()));
+        ppnCell.setPadding(5);
+        ppnCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        ppnCell.setBackgroundColor(new Color(240, 240, 240));
+        ppnCell.setBorderWidth(0.5f);
+        table.addCell(ppnCell);
+    }
+
+    private void addPph23TotalRow(PdfPTable table, String grossTotal, String taxTotal) {
+        PdfPCell labelCell = new PdfPCell(new Phrase(TOTAL_LABEL, getBoldFont()));
+        labelCell.setColspan(4);
+        labelCell.setPadding(5);
+        labelCell.setBackgroundColor(new Color(240, 240, 240));
+        labelCell.setBorderWidth(0.5f);
+        table.addCell(labelCell);
+
+        PdfPCell grossCell = new PdfPCell(new Phrase(grossTotal, getBoldFont()));
+        grossCell.setPadding(5);
+        grossCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        grossCell.setBackgroundColor(new Color(240, 240, 240));
+        grossCell.setBorderWidth(0.5f);
+        table.addCell(grossCell);
+
+        PdfPCell emptyCell = new PdfPCell(new Phrase("", getBoldFont()));
+        emptyCell.setPadding(5);
+        emptyCell.setBackgroundColor(new Color(240, 240, 240));
+        emptyCell.setBorderWidth(0.5f);
+        table.addCell(emptyCell);
+
+        PdfPCell taxCell = new PdfPCell(new Phrase(taxTotal, getBoldFont()));
+        taxCell.setPadding(5);
+        taxCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        taxCell.setBackgroundColor(new Color(240, 240, 240));
+        taxCell.setBorderWidth(0.5f);
+        table.addCell(taxCell);
     }
 
     private void addTotalRow(PdfPTable table, String label, String value1, String value2) {

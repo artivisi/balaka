@@ -1336,13 +1336,14 @@ Key difference: **BUMN is pemungut PPN** — they withhold PPN and remit it dire
 - [ ] User manual update
 
 ### 12.7 Tax Report Enhancements
-- [ ] PPN detail report: per-faktur breakdown (FP number, client, DPP, PPN, date) from tax_transaction_details
-- [ ] PPh 23 detail report: per-bupot breakdown (bupot number, client, gross, rate, tax) from tax_transaction_details
-- [ ] Cross-check report: app PPN vs Coretax FP amounts (highlight mismatches)
-- [ ] Rekonsiliasi Fiskal worksheet: commercial P&L → koreksi fiskal → taxable income
-- [ ] PPh Badan calculator: PKP × rate (with Pasal 31E 50% discount for revenue < 4.8B), kredit pajak offset
-- [ ] PDF/Excel export for all new reports
-- [ ] Functional tests
+- [x] PPN detail report: per-faktur breakdown (FP number, client, DPP, PPN, date) from tax_transaction_details
+- [x] PPh 23 detail report: per-bupot breakdown (bupot number, client, gross, rate, tax) from tax_transaction_details
+- [x] Cross-check report: PPN from faktur vs buku besar account balances (highlight mismatches)
+- [x] Rekonsiliasi Fiskal worksheet: commercial P&L → koreksi fiskal → taxable income
+- [x] PPh Badan calculator: PKP × rate (with Pasal 31E logic), kredit pajak offset (PPh 23 + PPh 25)
+- [x] FiscalAdjustment entity with CRUD on rekonsiliasi fiskal page
+- [x] PDF/Excel export for all 4 new reports (8 export methods)
+- [x] Functional tests (21 tests)
 
 ### 12.8 Tax Calendar Data & Deadline Updates
 - [ ] Update seed data: payment deadlines from 10th → 15th (per PMK 81/2024)

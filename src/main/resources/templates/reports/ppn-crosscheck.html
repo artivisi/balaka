@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/main}"
+      lang="id">
+<head>
+    <title>Cross-check PPN</title>
+</head>
+<body>
+    <h1 id="page-title" layout:fragment="page-title">Cross-check PPN</h1>
+
+    <div id="ppn-crosscheck-content" layout:fragment="content" class="h-full flex flex-col overflow-y-auto">
+        <div class="max-w-4xl">
+            <!-- Breadcrumb -->
+            <nav class="flex items-center space-x-2 text-sm text-gray-500 mb-6">
+                <a th:href="@{/reports}" class="hover:text-primary-600 transition-colors">Laporan</a>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+                <span class="text-gray-900">Cross-check PPN</span>
+            </nav>
+
+            <!-- Filter Section -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+                <form th:action="@{/reports/ppn-crosscheck}" method="get" class="flex flex-wrap items-end gap-4">
+                    <div class="flex-1 min-w-[150px]">
+                        <label for="startDate" class="block text-sm font-medium text-gray-700 mb-1">Dari Tanggal</label>
+                        <input type="date" id="startDate" name="startDate" th:value="${startDate}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+                    </div>
+                    <div class="flex-1 min-w-[150px]">
+                        <label for="endDate" class="block text-sm font-medium text-gray-700 mb-1">Sampai Tanggal</label>
+                        <input type="date" id="endDate" name="endDate" th:value="${endDate}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+                    </div>
+                    <div>
+                        <button id="btn-generate" type="submit"
+                                class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors">
+                            Tampilkan
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Report -->
+            <div th:if="${report != null}" class="space-y-6">
+                <!-- Report Header with Export -->
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h2 id="report-title" class="text-lg font-bold text-gray-900">CROSS-CHECK PPN</h2>
+                                <p class="text-sm text-gray-600">Perbandingan PPN Faktur vs Buku Besar</p>
+                                <p id="report-period" class="text-sm text-gray-500 mt-1"
+                                   th:text="|Periode: ${#temporals.format(startDate, 'd MMMM yyyy')} - ${#temporals.format(endDate, 'd MMMM yyyy')}|">
+                                    Periode
+                                </p>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <a id="btn-export-pdf" th:href="@{/reports/ppn-crosscheck/export/pdf(startDate=${startDate}, endDate=${endDate})}"
+                                   class="px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors">
+                                    PDF
+                                </a>
+                                <a id="btn-export-excel" th:href="@{/reports/ppn-crosscheck/export/excel(startDate=${startDate}, endDate=${endDate})}"
+                                   class="px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors">
+                                    Excel
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PPN Keluaran Comparison -->
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                    <div class="px-6 py-3 bg-blue-50 border-b border-blue-200">
+                        <h3 class="text-sm font-semibold text-blue-800">PPN Keluaran</h3>
+                    </div>
+                    <div class="p-6 space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-600">Total PPN dari Faktur Pajak</span>
+                            <span id="faktur-ppn-keluaran" class="font-mono text-sm"
+                                  th:text="${#numbers.formatDecimal(report.fakturPpnKeluaran, 1, 'POINT', 0, 'COMMA')}">0</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-600">Saldo Buku Besar (2.1.03 Hutang PPN)</span>
+                            <span id="ledger-ppn-keluaran" class="font-mono text-sm"
+                                  th:text="${#numbers.formatDecimal(report.ledgerPpnKeluaran, 1, 'POINT', 0, 'COMMA')}">0</span>
+                        </div>
+                        <div class="flex justify-between items-center pt-3 border-t border-gray-200">
+                            <span class="text-sm font-semibold text-gray-800">Selisih</span>
+                            <span id="keluaran-diff" class="font-mono text-sm font-semibold"
+                                  th:classappend="${report.keluaranDifference.compareTo(T(java.math.BigDecimal).ZERO) != 0} ? 'text-red-600' : 'text-green-600'"
+                                  th:text="${#numbers.formatDecimal(report.keluaranDifference, 1, 'POINT', 0, 'COMMA')}">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PPN Masukan Comparison -->
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                    <div class="px-6 py-3 bg-green-50 border-b border-green-200">
+                        <h3 class="text-sm font-semibold text-green-800">PPN Masukan</h3>
+                    </div>
+                    <div class="p-6 space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-600">Total PPN dari Faktur Pajak</span>
+                            <span id="faktur-ppn-masukan" class="font-mono text-sm"
+                                  th:text="${#numbers.formatDecimal(report.fakturPpnMasukan, 1, 'POINT', 0, 'COMMA')}">0</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-600">Saldo Buku Besar (1.1.25 PPN Masukan)</span>
+                            <span id="ledger-ppn-masukan" class="font-mono text-sm"
+                                  th:text="${#numbers.formatDecimal(report.ledgerPpnMasukan, 1, 'POINT', 0, 'COMMA')}">0</span>
+                        </div>
+                        <div class="flex justify-between items-center pt-3 border-t border-gray-200">
+                            <span class="text-sm font-semibold text-gray-800">Selisih</span>
+                            <span id="masukan-diff" class="font-mono text-sm font-semibold"
+                                  th:classappend="${report.masukanDifference.compareTo(T(java.math.BigDecimal).ZERO) != 0} ? 'text-red-600' : 'text-green-600'"
+                                  th:text="${#numbers.formatDecimal(report.masukanDifference, 1, 'POINT', 0, 'COMMA')}">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Status Summary -->
+                <div th:with="hasDiscrepancy=${report.keluaranDifference.compareTo(T(java.math.BigDecimal).ZERO) != 0 or report.masukanDifference.compareTo(T(java.math.BigDecimal).ZERO) != 0}"
+                     class="p-4 rounded-lg border text-center"
+                     th:classappend="${hasDiscrepancy} ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'">
+                    <div class="flex items-center justify-center"
+                         th:classappend="${hasDiscrepancy} ? 'text-red-700' : 'text-green-700'">
+                        <svg th:if="${hasDiscrepancy}" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                        </svg>
+                        <svg th:unless="${hasDiscrepancy}" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        <span id="crosscheck-status" class="font-medium"
+                              th:text="${hasDiscrepancy} ? 'Terdapat selisih antara data faktur dan buku besar. Periksa kembali entri jurnal.' : 'Data faktur pajak sesuai dengan buku besar.'">
+                            Status
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

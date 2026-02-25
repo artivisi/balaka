@@ -1,6 +1,9 @@
 package com.artivisi.accountingfinance.controller;
 
 import com.artivisi.accountingfinance.entity.CompanyConfig;
+import com.artivisi.accountingfinance.entity.FiscalAdjustment;
+import com.artivisi.accountingfinance.enums.FiscalAdjustmentCategory;
+import com.artivisi.accountingfinance.enums.FiscalAdjustmentDirection;
 import com.artivisi.accountingfinance.service.ClientService;
 import com.artivisi.accountingfinance.service.CompanyConfigService;
 import com.artivisi.accountingfinance.service.ProjectProfitabilityService;
@@ -9,6 +12,7 @@ import com.artivisi.accountingfinance.service.ReportExportService;
 import com.artivisi.accountingfinance.service.DepreciationReportService;
 import com.artivisi.accountingfinance.service.FiscalYearClosingService;
 import com.artivisi.accountingfinance.service.ReportService;
+import com.artivisi.accountingfinance.service.TaxReportDetailService;
 import com.artivisi.accountingfinance.service.TaxReportService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
@@ -24,6 +28,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
@@ -53,6 +58,7 @@ public class ReportController {
     private final ClientService clientService;
     private final CompanyConfigService companyConfigService;
     private final TaxReportService taxReportService;
+    private final TaxReportDetailService taxReportDetailService;
     private final DepreciationReportService depreciationReportService;
     private final FiscalYearClosingService fiscalYearClosingService;
 
@@ -561,6 +567,238 @@ public class ReportController {
         model.addAttribute(ATTR_COMPANY, company);
 
         return "reports/pph23-withholding-print";
+    }
+
+    // ==================== TAX DETAIL REPORTS ====================
+
+    @GetMapping("/ppn-detail")
+    public String ppnDetail(
+            @RequestParam(required = false) LocalDate startDate,
+            @RequestParam(required = false) LocalDate endDate,
+            Model model) {
+        model.addAttribute(ATTR_CURRENT_PAGE, PAGE_REPORTS);
+        model.addAttribute(ATTR_REPORT_TYPE, "ppn-detail");
+
+        LocalDate start = startDate != null ? startDate : LocalDate.now().withDayOfMonth(1);
+        LocalDate end = endDate != null ? endDate : LocalDate.now();
+
+        model.addAttribute(ATTR_START_DATE, start);
+        model.addAttribute(ATTR_END_DATE, end);
+        model.addAttribute(ATTR_REPORT, taxReportDetailService.generatePPNDetailReport(start, end));
+
+        return "reports/ppn-detail";
+    }
+
+    @GetMapping("/pph23-detail")
+    public String pph23Detail(
+            @RequestParam(required = false) LocalDate startDate,
+            @RequestParam(required = false) LocalDate endDate,
+            Model model) {
+        model.addAttribute(ATTR_CURRENT_PAGE, PAGE_REPORTS);
+        model.addAttribute(ATTR_REPORT_TYPE, "pph23-detail");
+
+        LocalDate start = startDate != null ? startDate : LocalDate.now().withDayOfMonth(1);
+        LocalDate end = endDate != null ? endDate : LocalDate.now();
+
+        model.addAttribute(ATTR_START_DATE, start);
+        model.addAttribute(ATTR_END_DATE, end);
+        model.addAttribute(ATTR_REPORT, taxReportDetailService.generatePPh23DetailReport(start, end));
+
+        return "reports/pph23-detail";
+    }
+
+    @GetMapping("/ppn-crosscheck")
+    public String ppnCrossCheck(
+            @RequestParam(required = false) LocalDate startDate,
+            @RequestParam(required = false) LocalDate endDate,
+            Model model) {
+        model.addAttribute(ATTR_CURRENT_PAGE, PAGE_REPORTS);
+        model.addAttribute(ATTR_REPORT_TYPE, "ppn-crosscheck");
+
+        LocalDate start = startDate != null ? startDate : LocalDate.now().withDayOfMonth(1);
+        LocalDate end = endDate != null ? endDate : LocalDate.now();
+
+        model.addAttribute(ATTR_START_DATE, start);
+        model.addAttribute(ATTR_END_DATE, end);
+        model.addAttribute(ATTR_REPORT, taxReportDetailService.generatePPNCrossCheckReport(start, end));
+
+        return "reports/ppn-crosscheck";
+    }
+
+    @GetMapping("/rekonsiliasi-fiskal")
+    public String rekonsiliasiFiskal(
+            @RequestParam(required = false) Integer year,
+            Model model) {
+        model.addAttribute(ATTR_CURRENT_PAGE, PAGE_REPORTS);
+        model.addAttribute(ATTR_REPORT_TYPE, "rekonsiliasi-fiskal");
+
+        int reportYear = year != null ? year : LocalDate.now().getYear();
+        model.addAttribute("year", reportYear);
+        model.addAttribute(ATTR_REPORT, taxReportDetailService.generateRekonsiliasiFiskal(reportYear));
+        model.addAttribute("categories", FiscalAdjustmentCategory.values());
+        model.addAttribute("directions", FiscalAdjustmentDirection.values());
+
+        return "reports/rekonsiliasi-fiskal";
+    }
+
+    @PostMapping("/rekonsiliasi-fiskal/adjustments")
+    public String addFiscalAdjustment(
+            @RequestParam int year,
+            @RequestParam String description,
+            @RequestParam FiscalAdjustmentCategory adjustmentCategory,
+            @RequestParam FiscalAdjustmentDirection adjustmentDirection,
+            @RequestParam BigDecimal amount,
+            @RequestParam(required = false) String accountCode,
+            @RequestParam(required = false) String notes,
+            RedirectAttributes redirectAttributes) {
+        FiscalAdjustment adjustment = new FiscalAdjustment();
+        adjustment.setYear(year);
+        adjustment.setDescription(description);
+        adjustment.setAdjustmentCategory(adjustmentCategory);
+        adjustment.setAdjustmentDirection(adjustmentDirection);
+        adjustment.setAmount(amount);
+        adjustment.setAccountCode(accountCode);
+        adjustment.setNotes(notes);
+
+        taxReportDetailService.saveAdjustment(adjustment);
+        redirectAttributes.addFlashAttribute("successMessage", "Koreksi fiskal berhasil ditambahkan");
+        return "redirect:/reports/rekonsiliasi-fiskal?year=" + year;
+    }
+
+    @PostMapping("/rekonsiliasi-fiskal/adjustments/{id}/delete")
+    public String deleteFiscalAdjustment(
+            @PathVariable UUID id,
+            @RequestParam int year,
+            RedirectAttributes redirectAttributes) {
+        taxReportDetailService.deleteAdjustment(id);
+        redirectAttributes.addFlashAttribute("successMessage", "Koreksi fiskal berhasil dihapus");
+        return "redirect:/reports/rekonsiliasi-fiskal?year=" + year;
+    }
+
+    // Tax Detail Export Endpoints
+
+    @GetMapping("/ppn-detail/export/pdf")
+    public ResponseEntity<byte[]> exportPpnDetailToPdf(
+            @RequestParam(required = false) LocalDate startDate,
+            @RequestParam(required = false) LocalDate endDate) {
+        LocalDate start = startDate != null ? startDate : LocalDate.now().withDayOfMonth(1);
+        LocalDate end = endDate != null ? endDate : LocalDate.now();
+        var report = taxReportDetailService.generatePPNDetailReport(start, end);
+        byte[] pdfBytes = reportExportService.exportPpnDetailToPdf(report);
+
+        String filename = "rincian-ppn-" + start.format(FILE_DATE_FORMAT) + "-" + end.format(FILE_DATE_FORMAT) + ".pdf";
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, ATTACHMENT_FILENAME_PREFIX + filename + "\"")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(pdfBytes);
+    }
+
+    @GetMapping("/ppn-detail/export/excel")
+    public ResponseEntity<byte[]> exportPpnDetailToExcel(
+            @RequestParam(required = false) LocalDate startDate,
+            @RequestParam(required = false) LocalDate endDate) {
+        LocalDate start = startDate != null ? startDate : LocalDate.now().withDayOfMonth(1);
+        LocalDate end = endDate != null ? endDate : LocalDate.now();
+        var report = taxReportDetailService.generatePPNDetailReport(start, end);
+        byte[] excelBytes = reportExportService.exportPpnDetailToExcel(report);
+
+        String filename = "rincian-ppn-" + start.format(FILE_DATE_FORMAT) + "-" + end.format(FILE_DATE_FORMAT) + FILE_EXT_XLSX;
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, ATTACHMENT_FILENAME_PREFIX + filename + "\"")
+                .contentType(MediaType.parseMediaType(CONTENT_TYPE_XLSX))
+                .body(excelBytes);
+    }
+
+    @GetMapping("/pph23-detail/export/pdf")
+    public ResponseEntity<byte[]> exportPph23DetailToPdf(
+            @RequestParam(required = false) LocalDate startDate,
+            @RequestParam(required = false) LocalDate endDate) {
+        LocalDate start = startDate != null ? startDate : LocalDate.now().withDayOfMonth(1);
+        LocalDate end = endDate != null ? endDate : LocalDate.now();
+        var report = taxReportDetailService.generatePPh23DetailReport(start, end);
+        byte[] pdfBytes = reportExportService.exportPph23DetailToPdf(report);
+
+        String filename = "rincian-pph23-" + start.format(FILE_DATE_FORMAT) + "-" + end.format(FILE_DATE_FORMAT) + ".pdf";
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, ATTACHMENT_FILENAME_PREFIX + filename + "\"")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(pdfBytes);
+    }
+
+    @GetMapping("/pph23-detail/export/excel")
+    public ResponseEntity<byte[]> exportPph23DetailToExcel(
+            @RequestParam(required = false) LocalDate startDate,
+            @RequestParam(required = false) LocalDate endDate) {
+        LocalDate start = startDate != null ? startDate : LocalDate.now().withDayOfMonth(1);
+        LocalDate end = endDate != null ? endDate : LocalDate.now();
+        var report = taxReportDetailService.generatePPh23DetailReport(start, end);
+        byte[] excelBytes = reportExportService.exportPph23DetailToExcel(report);
+
+        String filename = "rincian-pph23-" + start.format(FILE_DATE_FORMAT) + "-" + end.format(FILE_DATE_FORMAT) + FILE_EXT_XLSX;
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, ATTACHMENT_FILENAME_PREFIX + filename + "\"")
+                .contentType(MediaType.parseMediaType(CONTENT_TYPE_XLSX))
+                .body(excelBytes);
+    }
+
+    @GetMapping("/ppn-crosscheck/export/pdf")
+    public ResponseEntity<byte[]> exportPpnCrosscheckToPdf(
+            @RequestParam(required = false) LocalDate startDate,
+            @RequestParam(required = false) LocalDate endDate) {
+        LocalDate start = startDate != null ? startDate : LocalDate.now().withDayOfMonth(1);
+        LocalDate end = endDate != null ? endDate : LocalDate.now();
+        var report = taxReportDetailService.generatePPNCrossCheckReport(start, end);
+        byte[] pdfBytes = reportExportService.exportPpnCrosscheckToPdf(report);
+
+        String filename = "crosscheck-ppn-" + start.format(FILE_DATE_FORMAT) + "-" + end.format(FILE_DATE_FORMAT) + ".pdf";
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, ATTACHMENT_FILENAME_PREFIX + filename + "\"")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(pdfBytes);
+    }
+
+    @GetMapping("/ppn-crosscheck/export/excel")
+    public ResponseEntity<byte[]> exportPpnCrosscheckToExcel(
+            @RequestParam(required = false) LocalDate startDate,
+            @RequestParam(required = false) LocalDate endDate) {
+        LocalDate start = startDate != null ? startDate : LocalDate.now().withDayOfMonth(1);
+        LocalDate end = endDate != null ? endDate : LocalDate.now();
+        var report = taxReportDetailService.generatePPNCrossCheckReport(start, end);
+        byte[] excelBytes = reportExportService.exportPpnCrosscheckToExcel(report);
+
+        String filename = "crosscheck-ppn-" + start.format(FILE_DATE_FORMAT) + "-" + end.format(FILE_DATE_FORMAT) + FILE_EXT_XLSX;
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, ATTACHMENT_FILENAME_PREFIX + filename + "\"")
+                .contentType(MediaType.parseMediaType(CONTENT_TYPE_XLSX))
+                .body(excelBytes);
+    }
+
+    @GetMapping("/rekonsiliasi-fiskal/export/pdf")
+    public ResponseEntity<byte[]> exportRekonsiliasiFiskalToPdf(
+            @RequestParam(required = false) Integer year) {
+        int reportYear = year != null ? year : LocalDate.now().getYear();
+        var report = taxReportDetailService.generateRekonsiliasiFiskal(reportYear);
+        byte[] pdfBytes = reportExportService.exportRekonsiliasiFiskalToPdf(report);
+
+        String filename = "rekonsiliasi-fiskal-" + reportYear + ".pdf";
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, ATTACHMENT_FILENAME_PREFIX + filename + "\"")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(pdfBytes);
+    }
+
+    @GetMapping("/rekonsiliasi-fiskal/export/excel")
+    public ResponseEntity<byte[]> exportRekonsiliasiFiskalToExcel(
+            @RequestParam(required = false) Integer year) {
+        int reportYear = year != null ? year : LocalDate.now().getYear();
+        var report = taxReportDetailService.generateRekonsiliasiFiskal(reportYear);
+        byte[] excelBytes = reportExportService.exportRekonsiliasiFiskalToExcel(report);
+
+        String filename = "rekonsiliasi-fiskal-" + reportYear + FILE_EXT_XLSX;
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, ATTACHMENT_FILENAME_PREFIX + filename + "\"")
+                .contentType(MediaType.parseMediaType(CONTENT_TYPE_XLSX))
+                .body(excelBytes);
     }
 
     // ==================== DEPRECIATION REPORT ====================

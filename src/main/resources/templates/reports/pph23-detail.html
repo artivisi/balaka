@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/main}"
+      lang="id">
+<head>
+    <title>Rincian PPh 23</title>
+</head>
+<body>
+    <h1 id="page-title" layout:fragment="page-title">Rincian PPh 23</h1>
+
+    <div id="pph23-detail-content" layout:fragment="content" class="h-full flex flex-col overflow-y-auto">
+        <div class="max-w-6xl">
+            <!-- Breadcrumb -->
+            <nav class="flex items-center space-x-2 text-sm text-gray-500 mb-6">
+                <a th:href="@{/reports}" class="hover:text-primary-600 transition-colors">Laporan</a>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+                <span class="text-gray-900">Rincian PPh 23</span>
+            </nav>
+
+            <!-- Filter Section -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+                <form th:action="@{/reports/pph23-detail}" method="get" class="flex flex-wrap items-end gap-4">
+                    <div class="flex-1 min-w-[150px]">
+                        <label for="startDate" class="block text-sm font-medium text-gray-700 mb-1">Dari Tanggal</label>
+                        <input type="date" id="startDate" name="startDate" th:value="${startDate}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+                    </div>
+                    <div class="flex-1 min-w-[150px]">
+                        <label for="endDate" class="block text-sm font-medium text-gray-700 mb-1">Sampai Tanggal</label>
+                        <input type="date" id="endDate" name="endDate" th:value="${endDate}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+                    </div>
+                    <div>
+                        <button id="btn-generate" type="submit"
+                                class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors">
+                            Tampilkan
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Report -->
+            <div th:if="${report != null}" class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <!-- Report Header -->
+                <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 id="report-title" class="text-lg font-bold text-gray-900">RINCIAN PPh 23 PER BUKTI POTONG</h2>
+                            <p class="text-sm text-gray-600">WHT Article 23 Detail Report by Withholding Certificate</p>
+                            <p id="report-period" class="text-sm text-gray-500 mt-1"
+                               th:text="|Periode: ${#temporals.format(startDate, 'd MMMM yyyy')} - ${#temporals.format(endDate, 'd MMMM yyyy')}|">
+                                Periode
+                            </p>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <a id="btn-export-pdf" th:href="@{/reports/pph23-detail/export/pdf(startDate=${startDate}, endDate=${endDate})}"
+                               class="px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors">
+                                PDF
+                            </a>
+                            <a id="btn-export-excel" th:href="@{/reports/pph23-detail/export/excel(startDate=${startDate}, endDate=${endDate})}"
+                               class="px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors">
+                                Excel
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Table -->
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">No. Bupot</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Kode Objek</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Lawan Transaksi</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">NPWP</th>
+                                <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Bruto</th>
+                                <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Tarif</th>
+                                <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">PPh 23</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pph23-items" class="bg-white divide-y divide-gray-200">
+                            <tr th:each="item : ${report.items}" class="hover:bg-gray-50">
+                                <td class="px-4 py-2 text-sm font-mono" th:text="${item.bupotNumber} ?: '-'"></td>
+                                <td class="px-4 py-2 text-sm" th:text="${item.taxObjectCode} ?: '-'"></td>
+                                <td class="px-4 py-2 text-sm" th:text="${item.counterpartyName} ?: '-'"></td>
+                                <td class="px-4 py-2 text-sm font-mono" th:text="${item.counterpartyNpwp} ?: '-'"></td>
+                                <td class="px-4 py-2 text-sm text-right font-mono" th:text="${item.grossAmount != null} ? ${#numbers.formatDecimal(item.grossAmount, 1, 'POINT', 0, 'COMMA')} : '-'"></td>
+                                <td class="px-4 py-2 text-sm text-right font-mono" th:text="${item.taxRate != null} ? |${#numbers.formatDecimal(item.taxRate, 1, 'POINT', 2, 'COMMA')}%| : '-'"></td>
+                                <td class="px-4 py-2 text-sm text-right font-mono" th:text="${item.taxAmount != null} ? ${#numbers.formatDecimal(item.taxAmount, 1, 'POINT', 0, 'COMMA')} : '-'"></td>
+                            </tr>
+                            <tr th:if="${#lists.isEmpty(report.items)}">
+                                <td colspan="7" class="px-4 py-4 text-center text-sm text-gray-500">Tidak ada data bukti potong PPh 23</td>
+                            </tr>
+                        </tbody>
+                        <tfoot class="bg-orange-50">
+                            <tr class="font-semibold">
+                                <td colspan="4" class="px-4 py-2 text-sm text-orange-800">Total</td>
+                                <td id="total-gross" class="px-4 py-2 text-sm text-right font-mono text-orange-800"
+                                    th:text="${#numbers.formatDecimal(report.totalGross, 1, 'POINT', 0, 'COMMA')}">0</td>
+                                <td class="px-4 py-2"></td>
+                                <td id="total-tax" class="px-4 py-2 text-sm text-right font-mono text-orange-800"
+                                    th:text="${#numbers.formatDecimal(report.totalTax, 1, 'POINT', 0, 'COMMA')}">0</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
