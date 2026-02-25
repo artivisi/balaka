@@ -50,15 +50,3 @@ INSERT INTO alert_rules (id, row_version, alert_type, threshold, enabled, descri
     (gen_random_uuid(), 0, 'PROJECT_MARGIN_DROP', 10.00, true, 'Peringatan jika margin proyek turun di bawah X%'),
     (gen_random_uuid(), 0, 'COLLECTION_SLOWDOWN', 30.00, true, 'Peringatan jika rata-rata hari penagihan melebihi X hari'),
     (gen_random_uuid(), 0, 'CLIENT_CONCENTRATION', 50.00, true, 'Peringatan jika satu klien menyumbang lebih dari X% pendapatan');
-
--- ============================================
--- Update tax payment deadlines per PMK 81/2024
--- PPh 21, PPh 23, PPh 4(2) payment deadlines changed from 10th to 15th
--- ============================================
-
-UPDATE tax_deadlines
-SET due_day = 15,
-    description = REPLACE(description, 'tanggal 10', 'tanggal 15 (PMK 81/2024)'),
-    updated_at = NOW()
-WHERE deadline_type IN ('PPH_21_PAYMENT', 'PPH_23_PAYMENT', 'PPH_42_PAYMENT')
-  AND due_day = 10;
