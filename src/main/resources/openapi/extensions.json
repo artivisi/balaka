@@ -29,7 +29,7 @@
       { "scope": "analysis:write", "description": "Publish AI-generated analysis reports" },
       { "scope": "transactions:post", "description": "Post draft transactions to ledger" },
       { "scope": "data:import", "description": "Import bulk data via ZIP" },
-      { "scope": "tax-export:read", "description": "Export tax data (e-Faktur, e-Bupot, PPN/PPh reports)" }
+      { "scope": "tax-export:read", "description": "Export tax data (e-Faktur, e-Bupot, PPN/PPh reports), manage fiscal adjustments, employees, salary components, and payroll" }
     ]
   },
   "x-workflows": [
@@ -51,12 +51,13 @@
     },
     {
       "name": "Draft Then Post (Two-Step)",
+      "description": "DRAFT transactions store template + account mappings but have NO journal entries until posted. Use journal-preview to verify computed entries before posting.",
       "steps": [
         "GET /api/templates (find matching template, check lines for accountHint)",
-        "POST /api/drafts (create DRAFT with templateId + accountSlots)",
-        "GET /api/transactions/{id}/journal-preview (optional, preview entries)",
-        "PUT /api/transactions/{id} (optional, correct fields)",
-        "POST /api/transactions/{id}/post (post to ledger)"
+        "POST /api/drafts (create DRAFT with templateId + accountSlots — response journalEntries will be [])",
+        "GET /api/transactions/{id}/journal-preview (preview computed entries — entries are NOT persisted)",
+        "PUT /api/transactions/{id} (optional, correct template/description/amount/date/accountSlots)",
+        "POST /api/transactions/{id}/post (executes template, creates journal entries, sets status=POSTED)"
       ]
     },
     {
@@ -130,6 +131,37 @@
       "name": "Void Posted Transaction",
       "steps": [
         "POST /api/transactions/{id}/void (with reason: INPUT_ERROR|DUPLICATE|CANCELLED|OTHER)"
+      ]
+    },
+    {
+      "name": "Fiscal Adjustments (Koreksi Fiskal)",
+      "steps": [
+        "GET /api/fiscal-adjustments?year=2025 (list existing adjustments)",
+        "POST /api/fiscal-adjustments (create: description, adjustmentCategory=PERMANENT|TEMPORARY, adjustmentDirection=POSITIVE|NEGATIVE, amount, accountCode, year)",
+        "PUT /api/fiscal-adjustments/{id} (update adjustment)",
+        "DELETE /api/fiscal-adjustments/{id} (hard delete)",
+        "GET /api/tax-export/rekonsiliasi-fiskal?year=2025 (verify fiscal reconciliation includes adjustments)"
+      ]
+    },
+    {
+      "name": "Payroll Processing",
+      "steps": [
+        "POST /api/salary-components (create salary components: GAJI_POKOK, etc.)",
+        "POST /api/employees (create employee with PTKP status, hire date)",
+        "POST /api/employees/{id}/salary-components (assign component with amount + effectiveDate)",
+        "POST /api/payroll (create payroll run for period, e.g. payrollPeriod=2025-06)",
+        "POST /api/payroll/{id}/populate (auto-add all active employees)",
+        "POST /api/payroll/{id}/calculate (compute PPh 21 using TER method)",
+        "POST /api/payroll/{id}/approve (set status=APPROVED)",
+        "POST /api/payroll/{id}/post (post journal entry to accounting)"
+      ]
+    },
+    {
+      "name": "PPh 21 Annual / 1721-A1",
+      "steps": [
+        "Ensure all 12 monthly payroll runs are calculated for the year",
+        "GET /api/employees/{id}/1721-a1?year=2025 (individual 1721-A1 data)",
+        "GET /api/pph21/summary?year=2025 (annual PPh 21 summary for SPT Badan Lampiran III)"
       ]
     },
     {
