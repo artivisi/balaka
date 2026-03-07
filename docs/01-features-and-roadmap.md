@@ -223,7 +223,7 @@ Indonesian accounting application for small businesses. Spring Boot 4.0 + Thymel
 - Campus: 19 tests (billing, scholarships, receivables)
 - Total: 115 industry-specific functional tests
 
-### Phase 6: Security Hardening (In Progress)
+### Phase 6: Security Hardening (Complete)
 
 **Data at Rest Encryption**
 - Field-level AES-256-GCM encryption for PII
@@ -259,33 +259,79 @@ Indonesian accounting application for small businesses. Spring Boot 4.0 + Thymel
 - OWASP Dependency-Check
 - ZAP DAST scanning
 
-## Planned Features
+### Phase 7: API Foundation (Complete)
 
-### Phase 7: API Foundation
-- REST API for external integrations
-- API key authentication
-- Transaction API with idempotency
-- Template and Account APIs
-- OpenAPI/Swagger documentation
+**REST API with OAuth 2.0 Device Flow**
+- 16 API controllers (transactions, drafts, templates, analysis, payroll, tax, bank reconciliation, bills, data import, documents)
+- OAuth 2.0 Device Flow authentication (RFC 8628)
+- Pagination support
+- Device token management UI
+- OpenAPI/Swagger documentation (springdoc-openapi)
 
-### Phase 8: Online Seller Support
-- Marketplace settlement CSV import (Tokopedia, Shopee, Bukalapak, Lazada)
-- Fee tracking and extraction
-- Shipping cost allocation
-- Seller dashboard with GMV per marketplace
+### Phase 8: Bank Reconciliation (Complete)
 
-### Phase 9: Bank Reconciliation
-- Bank statement CSV import (BCA, BNI, Mandiri, BSI, CIMB)
-- Configurable column mapping
-- Auto-matching (exact, fuzzy, keyword)
+- Bank statement CSV import with configurable parsers
+- Auto-matching (3-pass: exact, fuzzy date, keyword)
 - Manual matching UI
+- Create transactions from unmatched bank items
 - Reconciliation reports
 
-### Phase 10: Analytics & Insights
-- Revenue/expense/profit trend charts (12 months)
-- Smart alerts (cash low, overdue receivables, expense spikes)
+### Phase 9: Analytics & Insights (Complete)
+
+- Smart alerts (cash low, overdue receivables, expense spikes, project cost overrun, client concentration)
 - Transaction tags for flexible categorization
 - Tag-based reports
+- AI analysis reports with per-industry KPIs
+
+### Phase 10: Invoice & Bill Management (Complete)
+
+- Customer invoices (create, send, track payments, aging)
+- Vendor bills with API (create, approve, mark paid)
+- Payment tracking
+- Aging reports
+- Customer/vendor statements
+
+### Phase 11: Recurring Transactions (Complete)
+
+- Recurring transaction templates
+- Configurable scheduling
+- Auto-posting
+
+### Phase 12: Tax Data Management (Complete)
+
+- Tax detail entry UI (e-Faktur, e-Bupot fields)
+- Tax detail & document API
+- Auto-populate tax details from transaction data
+- Client management UI
+- Fiscal period management
+- Tax export API (e-Faktur, Bukti Potong, PPN/PPh reports, rekonsiliasi fiskal, PPh Badan)
+
+### Phase 13: OpenAPI Migration (Complete)
+
+- springdoc-openapi 3.0.1 integration
+- 16 @Tag API controllers
+- AI extensions (x-authentication, x-workflows, x-csv-files, x-industries, x-error-codes)
+- Swagger UI at /swagger-ui.html
+
+### Phase 14: Fiscal Adjustments API (Complete)
+
+- CRUD API for fiscal adjustment entries (koreksi fiskal)
+
+### Phase 15: Payroll API + PPh 21 (Complete)
+
+- Employee API (CRUD, salary component assignment)
+- Salary component API (CRUD)
+- Payroll run API (create, calculate PPh 21, approve, post)
+- 1721-A1 generation per employee
+- Annual PPh 21 summary
+
+### Phase 16: User Manual Revamp (Complete)
+
+- Full AI-operated lifecycle documentation (installation, data migration, daily operations, reporting, tax filing)
+
+## Planned Features
+
+No planned phases. Future enhancements are implemented on-demand when client needs arise. See `docs/06-implementation-plan.md` "Future Enhancements" section.
 
 ## Multi-Industry Expansion Strategy
 
