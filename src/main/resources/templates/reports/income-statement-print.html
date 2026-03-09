@@ -4,22 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Laporan Laba Rugi</title>
+    <style th:insert="~{fragments/print-styles :: base}" th:attr="nonce=${cspNonce}"></style>
     <style th:attr="nonce=${cspNonce}">
         @page { size: A4; margin: 12mm; }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', system-ui, sans-serif; font-size: 9pt; line-height: 1.4; color: #1f2937; background: white; }
-        .container { max-width: 210mm; margin: 0 auto; padding: 6mm; }
-
-        /* Header */
-        .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5mm; padding-bottom: 3mm; border-bottom: 2px solid #4f46e5; }
-        .company-info { flex: 1; }
-        .company-logo { max-height: 45px; max-width: 160px; margin-bottom: 2mm; }
-        .company-name { font-size: 13pt; font-weight: 700; color: #1f2937; }
-        .company-details { font-size: 8pt; color: #6b7280; line-height: 1.5; margin-top: 1mm; }
-        .report-title-section { text-align: right; }
-        .report-title { font-size: 15pt; font-weight: 700; color: #4f46e5; }
-        .report-subtitle { font-size: 8pt; color: #6b7280; margin-top: 1mm; }
-        .report-period { font-size: 9pt; color: #374151; margin-top: 2mm; font-weight: 500; }
 
         /* Section Headers */
         .section-header { font-size: 9pt; font-weight: 700; padding: 2mm 0; margin: 3mm 0 2mm 0; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid; }
@@ -55,20 +42,6 @@
         /* Helpers */
         .text-gray-400 { color: #9ca3af; }
         .font-mono { font-family: 'Consolas', monospace; }
-
-        /* Footer */
-        .footer { margin-top: 6mm; padding-top: 3mm; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-between; font-size: 7pt; color: #9ca3af; }
-
-        /* Print Controls */
-        .print-controls { position: fixed; top: 10px; right: 10px; display: flex; gap: 8px; z-index: 1000; }
-        .btn { padding: 8px 16px; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; border: none; text-decoration: none; }
-        .btn-print { background: #4f46e5; color: white; }
-        .btn-back { background: #f3f4f6; color: #374151; }
-
-        @media print {
-            .print-controls { display: none; }
-            body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
-        }
     </style>
 </head>
 <body>

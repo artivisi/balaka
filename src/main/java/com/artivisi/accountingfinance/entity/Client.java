@@ -3,12 +3,7 @@ package com.artivisi.accountingfinance.entity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -18,22 +13,15 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 @Entity
 @Table(name = "clients")
 @Getter
 @Setter
 @NoArgsConstructor
-public class Client {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "id", updatable = false, nullable = false)
-    private UUID id;
+public class Client extends TimestampedEntity {
 
     @NotBlank(message = "Kode klien wajib diisi")
     @Size(max = 50, message = "Kode klien maksimal 50 karakter")
@@ -86,12 +74,6 @@ public class Client {
     @Column(name = "active", nullable = false)
     private Boolean active = true;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-
-    @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
-
     @JsonIgnore
     @OneToMany(mappedBy = "client")
     private List<Project> projects = new ArrayList<>();
@@ -99,18 +81,6 @@ public class Client {
     @JsonIgnore
     @OneToMany(mappedBy = "client")
     private List<Invoice> invoices = new ArrayList<>();
-
-    @PrePersist
-    protected void onCreate() {
-        LocalDateTime now = LocalDateTime.now();
-        this.createdAt = now;
-        this.updatedAt = now;
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        this.updatedAt = LocalDateTime.now();
-    }
 
     public boolean isActive() {
         return Boolean.TRUE.equals(active);

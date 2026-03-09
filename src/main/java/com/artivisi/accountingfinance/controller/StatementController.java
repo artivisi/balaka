@@ -78,8 +78,13 @@ public class StatementController {
                 client.getId(), client.getCode(), client.getName(), dateFrom, dateTo);
 
         model.addAttribute(ATTR_STATEMENT, statement);
-        model.addAttribute("client", client);
-        return "statements/client-print";
+        model.addAttribute("entityName", client.getName());
+        model.addAttribute("entityCode", client.getCode());
+        model.addAttribute("reportTitle", "Laporan Piutang");
+        model.addAttribute("documentType", "INVOICE");
+        model.addAttribute("documentLabel", "Invoice");
+        model.addAttribute("columnLabel", "Invoice");
+        return "statements/statement-print";
     }
 
     @GetMapping("/vendor/{code}")
@@ -127,7 +132,12 @@ public class StatementController {
                 vendor.getId(), vendor.getCode(), vendor.getName(), dateFrom, dateTo);
 
         model.addAttribute(ATTR_STATEMENT, statement);
-        model.addAttribute("vendor", vendor);
-        return "statements/vendor-print";
+        model.addAttribute("entityName", vendor.getName());
+        model.addAttribute("entityCode", vendor.getCode());
+        model.addAttribute("reportTitle", "Laporan Hutang");
+        model.addAttribute("documentType", "BILL");
+        model.addAttribute("documentLabel", "Tagihan");
+        model.addAttribute("columnLabel", "Tagihan");
+        return "statements/statement-print";
     }
 }

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="id">
+<body>
+    <!-- Summary Cards: 6 aging bucket cards -->
+    <div th:fragment="summary-cards(report)" class="grid grid-cols-2 md:grid-cols-6 gap-3 mb-6" data-testid="aging-summary">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
+            <p class="text-xs text-gray-500">Belum Jatuh Tempo</p>
+            <p class="text-sm font-bold font-mono text-green-600" th:text="'Rp ' + ${#numbers.formatDecimal(report.totals.current, 0, 'COMMA', 0, 'POINT')}">Rp 0</p>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
+            <p class="text-xs text-gray-500">1-30 Hari</p>
+            <p class="text-sm font-bold font-mono text-yellow-600" th:text="'Rp ' + ${#numbers.formatDecimal(report.totals.days1to30, 0, 'COMMA', 0, 'POINT')}">Rp 0</p>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
+            <p class="text-xs text-gray-500">31-60 Hari</p>
+            <p class="text-sm font-bold font-mono text-orange-600" th:text="'Rp ' + ${#numbers.formatDecimal(report.totals.days31to60, 0, 'COMMA', 0, 'POINT')}">Rp 0</p>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
+            <p class="text-xs text-gray-500">61-90 Hari</p>
+            <p class="text-sm font-bold font-mono text-red-500" th:text="'Rp ' + ${#numbers.formatDecimal(report.totals.days61to90, 0, 'COMMA', 0, 'POINT')}">Rp 0</p>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
+            <p class="text-xs text-gray-500">&gt;90 Hari</p>
+            <p class="text-sm font-bold font-mono text-red-700" th:text="'Rp ' + ${#numbers.formatDecimal(report.totals.over90, 0, 'COMMA', 0, 'POINT')}">Rp 0</p>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
+            <p class="text-xs text-gray-500">Total</p>
+            <p class="text-sm font-bold font-mono text-gray-900" th:text="'Rp ' + ${#numbers.formatDecimal(report.totals.total, 0, 'COMMA', 0, 'POINT')}">Rp 0</p>
+        </div>
+    </div>
+
+    <!-- Table Footer: totals row -->
+    <tfoot th:fragment="table-footer(report)" class="bg-gray-50">
+        <tr>
+            <td class="px-4 py-3 font-semibold text-gray-900">Total</td>
+            <td class="px-4 py-3 text-right text-sm font-mono font-semibold" th:text="'Rp ' + ${#numbers.formatDecimal(report.totals.current, 0, 'COMMA', 0, 'POINT')}">Rp 0</td>
+            <td class="px-4 py-3 text-right text-sm font-mono font-semibold" th:text="'Rp ' + ${#numbers.formatDecimal(report.totals.days1to30, 0, 'COMMA', 0, 'POINT')}">Rp 0</td>
+            <td class="px-4 py-3 text-right text-sm font-mono font-semibold" th:text="'Rp ' + ${#numbers.formatDecimal(report.totals.days31to60, 0, 'COMMA', 0, 'POINT')}">Rp 0</td>
+            <td class="px-4 py-3 text-right text-sm font-mono font-semibold" th:text="'Rp ' + ${#numbers.formatDecimal(report.totals.days61to90, 0, 'COMMA', 0, 'POINT')}">Rp 0</td>
+            <td class="px-4 py-3 text-right text-sm font-mono font-semibold" th:text="'Rp ' + ${#numbers.formatDecimal(report.totals.over90, 0, 'COMMA', 0, 'POINT')}">Rp 0</td>
+            <td class="px-4 py-3 text-right text-sm font-mono font-bold" th:text="'Rp ' + ${#numbers.formatDecimal(report.totals.total, 0, 'COMMA', 0, 'POINT')}">Rp 0</td>
+        </tr>
+    </tfoot>
+</body>
+</html>

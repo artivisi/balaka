@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title th:text="'Laporan ' + ${client.name}">Laporan Klien</title>
+    <title th:text="|Laporan ${entityName}|">Laporan</title>
     <style th:attr="nonce=${cspNonce}">
         @page { size: A4 landscape; margin: 10mm; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -27,8 +27,8 @@
     <div class="container">
         <div class="header">
             <div>
-                <h1 th:text="'Laporan Piutang — ' + ${client.name}">Laporan Klien</h1>
-                <p class="mono" th:text="${client.code}">CLT-001</p>
+                <h1 th:text="|${reportTitle} — ${entityName}|">Laporan</h1>
+                <p class="mono" th:text="${entityCode}">CODE-001</p>
             </div>
             <div class="period">
                 <p th:text="|Periode: ${#temporals.format(statement.dateFrom(), 'dd MMM yyyy')} - ${#temporals.format(statement.dateTo(), 'dd MMM yyyy')}|">Periode</p>
@@ -41,7 +41,7 @@
                     <th>Tipe</th>
                     <th>Referensi</th>
                     <th>Keterangan</th>
-                    <th class="text-right">Invoice</th>
+                    <th class="text-right" th:text="${columnLabel}">Dokumen</th>
                     <th class="text-right">Pembayaran</th>
                     <th class="text-right">Saldo</th>
                 </tr>
@@ -56,7 +56,7 @@
                 </tr>
                 <tr th:each="entry : ${statement.entries()}" th:classappend="${entry.type() == 'PAYMENT'} ? 'payment-row' : ''">
                     <td th:text="${#temporals.format(entry.date(), 'dd MMM yyyy')}">01 Jan</td>
-                    <td th:text="${entry.type() == 'INVOICE'} ? 'Invoice' : 'Pembayaran'">Type</td>
+                    <td th:text="${entry.type() == documentType} ? ${documentLabel} : 'Pembayaran'">Type</td>
                     <td class="mono" th:text="${entry.referenceNumber()}">REF</td>
                     <td th:text="${entry.description()}">Desc</td>
                     <td class="text-right mono" th:text="${entry.invoiceAmount().compareTo(T(java.math.BigDecimal).ZERO) > 0} ? 'Rp ' + ${#numbers.formatDecimal(entry.invoiceAmount(), 0, 'COMMA', 0, 'POINT')} : '-'">-</td>

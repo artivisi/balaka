@@ -5,13 +5,9 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
-import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -22,8 +18,6 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.UUID;
 
 /**
  * Records individual inventory movements (purchase, sale, adjustment, production).
@@ -34,12 +28,7 @@ import java.util.UUID;
 @Getter
 @Setter
 @NoArgsConstructor
-public class InventoryTransaction {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "id", updatable = false, nullable = false)
-    private UUID id;
+public class InventoryTransaction extends TimestampedEntity {
 
     @NotNull(message = "Produk wajib diisi")
     @ManyToOne(fetch = FetchType.LAZY)
@@ -118,27 +107,14 @@ public class InventoryTransaction {
     @Column(name = "total_cost_after", nullable = false, precision = 19, scale = 2)
     private BigDecimal totalCostAfter;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-
-    @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
-
     @Column(name = "created_by", length = 100)
     private String createdBy;
 
     @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
+    protected void onCreateCalculateTotalCost() {
         if (totalCost == null && quantity != null && unitCost != null) {
             totalCost = quantity.multiply(unitCost);
         }
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
     }
 
     /**

@@ -193,6 +193,36 @@ class StatementTest extends PlaywrightTestBase {
     }
 
     @Test
+    @DisplayName("Client statement print page renders correctly")
+    void shouldDisplayClientStatementPrintPage() {
+        navigateTo("/statements/client/MANDIRI/print?dateFrom=2026-02-01&dateTo=2026-02-28");
+        waitForPageLoad();
+
+        String pageContent = page.content();
+        assertThat(pageContent).contains("MANDIRI");
+        assertThat(pageContent).contains("Laporan Piutang");
+        assertThat(pageContent).contains("Saldo Awal");
+        assertThat(pageContent).contains("Saldo Akhir");
+
+        log.info("Client statement print page loaded");
+    }
+
+    @Test
+    @DisplayName("Vendor statement print page renders correctly")
+    void shouldDisplayVendorStatementPrintPage() {
+        navigateTo("/statements/vendor/" + testVendor.getCode() + "/print?dateFrom=2026-02-01&dateTo=2026-02-28");
+        waitForPageLoad();
+
+        String pageContent = page.content();
+        assertThat(pageContent).contains("PT Vendor Statement Test");
+        assertThat(pageContent).contains("Laporan Hutang");
+        assertThat(pageContent).contains("Saldo Awal");
+        assertThat(pageContent).contains("Saldo Akhir");
+
+        log.info("Vendor statement print page loaded");
+    }
+
+    @Test
     @DisplayName("Client detail page has Lihat Laporan link")
     void shouldHaveStatementLinkOnClientDetail() {
         navigateTo("/clients/MANDIRI");

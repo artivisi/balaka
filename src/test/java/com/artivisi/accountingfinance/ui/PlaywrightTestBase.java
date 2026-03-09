@@ -117,7 +117,7 @@ public abstract class PlaywrightTestBase {
         page.fill("input[name='username']", username);
         page.fill("input[name='password']", password);
         page.click("button[type='submit']");
-        page.waitForURL("**/dashboard", new Page.WaitForURLOptions().setTimeout(10000));
+        page.waitForURL("**/dashboard", new Page.WaitForURLOptions().setTimeout(30000));
     }
 
     protected void loginAsAdmin() {

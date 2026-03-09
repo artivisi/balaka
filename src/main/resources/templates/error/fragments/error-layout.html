@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="id">
+<body>
+<!--
+  Error page fragment.
+  Parameters:
+    pageTitle   - browser tab title (e.g. "400 - Permintaan Tidak Valid")
+    bodyId      - id attribute for <body>, empty string if none
+    divId       - id attribute for inner content <div>, empty string if none
+    iconBgColor - tailwind bg color class for icon circle (e.g. "bg-amber-100")
+    iconColor   - tailwind text color class for icon SVG (e.g. "text-amber-600")
+    svgPath     - SVG <path> d attribute for the error icon
+    errorCode   - HTTP status code (e.g. "400")
+    errorTitle  - heading text (e.g. "Permintaan Tidak Valid")
+    errorMessage - error description text
+-->
+<th:block th:fragment="page(pageTitle, bodyId, divId, iconBgColor, iconColor, svgPath, errorCode, errorTitle, errorMessage)">
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle}">Error</title>
+    <link rel="icon" type="image/svg+xml" th:href="@{/favicon.svg}">
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center" th:id="${bodyId.isEmpty() ? null : bodyId}">
+    <div class="max-w-md w-full px-6 py-12 text-center" th:id="${divId.isEmpty() ? null : divId}">
+        <!-- Error Icon -->
+        <div class="mx-auto w-24 h-24 rounded-full flex items-center justify-center mb-6" th:classappend="${iconBgColor}">
+            <svg class="w-12 h-12" th:classappend="${iconColor}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      th:d="${svgPath}"/>
+            </svg>
+        </div>
+
+        <!-- Error Message -->
+        <h1 class="text-3xl font-bold text-gray-900 mb-2" th:text="${errorCode}">Error</h1>
+        <h2 class="text-xl font-semibold text-gray-700 mb-4" th:text="${errorTitle}">Error Title</h2>
+        <p class="text-gray-600 mb-8" th:text="${errorMessage}">Error description.</p>
+
+        <!-- Actions -->
+        <div class="space-y-3">
+            <a th:href="@{/dashboard}"
+               class="inline-flex items-center justify-center w-full px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                </svg>
+                Kembali ke Dashboard
+            </a>
+            <button id="btn-back"
+                    class="inline-flex items-center justify-center w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                </svg>
+                Kembali
+            </button>
+        </div>
+    </div>
+    <script th:inline="javascript" th:attr="nonce=${cspNonce}">
+        document.getElementById('btn-back').addEventListener('click', function() { history.back(); });
+    </script>
+</body>
+</html>
+</th:block>
+</body>
+</html>
