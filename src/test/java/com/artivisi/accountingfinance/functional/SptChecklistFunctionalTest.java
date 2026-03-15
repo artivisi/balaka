@@ -67,31 +67,31 @@ class SptChecklistFunctionalTest extends PlaywrightTestBase {
             navigateTo("/reports/spt-checklist");
             waitForPageLoad();
 
-            assertThat(page.locator("text=Laporan Keuangan").first().isVisible())
+            assertThat(page.locator(".font-medium:text-is('Laporan Keuangan')").isVisible())
                 .as("Financial statements checklist item should be visible")
                 .isTrue();
 
-            assertThat(page.locator("text=Koreksi Fiskal").first().isVisible())
+            assertThat(page.locator(".font-medium:text-is('Koreksi Fiskal')").isVisible())
                 .as("Fiscal adjustments checklist item should be visible")
                 .isTrue();
 
-            assertThat(page.locator("text=PPh Badan Terutang").first().isVisible())
+            assertThat(page.locator(".font-medium:text-is('PPh Badan Terutang')").isVisible())
                 .as("PPh Badan checklist item should be visible")
                 .isTrue();
 
-            assertThat(page.locator("text=Periode Fiskal").first().isVisible())
+            assertThat(page.locator(".font-medium:text-is('Periode Fiskal')").isVisible())
                 .as("Fiscal periods checklist item should be visible")
                 .isTrue();
 
-            assertThat(page.locator("text=Penyusutan Aset Tetap").first().isVisible())
+            assertThat(page.locator(".font-medium:text-is('Penyusutan Aset Tetap')").isVisible())
                 .as("Depreciation checklist item should be visible")
                 .isTrue();
 
-            assertThat(page.locator("text=Payroll & PPh 21").first().isVisible())
+            assertThat(page.locator(".font-medium:text-is('Payroll & PPh 21')").isVisible())
                 .as("Payroll checklist item should be visible")
                 .isTrue();
 
-            assertThat(page.locator("text=Kompensasi Kerugian").first().isVisible())
+            assertThat(page.locator(".font-medium:text-is('Kompensasi Kerugian')").isVisible())
                 .as("Loss carryforward checklist item should be visible")
                 .isTrue();
         }
@@ -275,6 +275,9 @@ class SptChecklistFunctionalTest extends PlaywrightTestBase {
         void shouldNavigateFromSidebar() {
             navigateTo("/dashboard");
             waitForPageLoad();
+
+            // Expand the "Laporan" sidebar group (collapsed <details> by default)
+            page.locator("#nav-group-laporan").click();
 
             var sptLink = page.locator("a[href*='/reports/spt-checklist']").first();
 
