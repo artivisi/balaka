@@ -92,8 +92,15 @@ Buka menu **Penggajian** > **Karyawan**.
 1. Buka detail karyawan
 2. Tab **Komponen Gaji**
 3. Klik **Tambah Komponen**
-4. Pilih komponen dan isi nilai
+4. Pilih komponen, isi nilai, tanggal efektif, dan tanggal berakhir (opsional)
 5. Klik **Simpan**
+
+Satu komponen bisa di-assign lebih dari satu kali ke karyawan yang sama, selama **periode tidak tumpang tindih**. Ini berguna untuk mencatat perubahan gaji:
+
+- Gaji Pokok Rp 5.000.000 (1 Jan 2025 – 30 Apr 2025)
+- Gaji Pokok Rp 6.000.000 (1 Mei 2025 – seterusnya)
+
+Jika tanggal berakhir tidak diisi, assignment berlaku tanpa batas waktu. Sistem akan menolak assignment baru yang periodenya tumpang tindih dengan assignment yang sudah ada.
 
 ---
 
@@ -575,7 +582,7 @@ GET    /api/employees                    — daftar karyawan (filter: active, st
 POST   /api/employees                    — buat karyawan
 GET    /api/employees/{id}               — detail dengan komponen gaji
 PUT    /api/employees/{id}               — update data karyawan
-POST   /api/employees/{id}/salary-components    — assign komponen gaji
+POST   /api/employees/{id}/salary-components    — assign komponen gaji (endDate opsional)
 PUT    /api/employees/{id}/salary-components/{componentId}  — update assignment
 ```
 

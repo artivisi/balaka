@@ -111,8 +111,12 @@ public class EmployeeApiController {
     }
 
     @PostMapping("/{id}/salary-components")
-    @Operation(summary = "Assign a salary component to an employee")
+    @Operation(summary = "Assign a salary component to an employee",
+            description = "Same component can be assigned multiple times with non-overlapping date ranges. "
+                    + "If endDate is null, the assignment is open-ended. "
+                    + "Returns 400 if the date range overlaps with an existing assignment of the same component.")
     @ApiResponse(responseCode = "201", description = "Component assigned")
+    @ApiResponse(responseCode = "400", description = "Overlapping date range with existing assignment")
     @ApiResponse(responseCode = "404", description = "Employee or component not found")
     public ResponseEntity<SalaryAssignmentResponse> assignComponent(
             @PathVariable UUID id,
