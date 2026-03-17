@@ -42,7 +42,11 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/payroll")
-@Tag(name = "Payroll", description = "Payroll run management, PPh 21 calculation, and 1721-A1 generation")
+@Tag(name = "Payroll", description = "Payroll run management, PPh 21 calculation, and 1721-A1 generation. "
+        + "Lifecycle: DRAFT → CALCULATED → APPROVED → POSTED. "
+        + "PPh 21 uses TER method (PMK 168/2023) for Jan–Nov, December annual reconciliation (PP 58/2023). "
+        + "Posting creates a journal entry using the 'Post Gaji Bulanan' template (loaded via industry seed data). "
+        + "Summary and 1721-A1 endpoints only return data from POSTED payroll runs.")
 @PreAuthorize("hasAuthority('SCOPE_tax-export:read')")
 @RequiredArgsConstructor
 @Slf4j
@@ -85,8 +89,10 @@ public class PayrollApiController {
     }
 
     @PostMapping
-    @Operation(summary = "Create a new payroll run")
-    @ApiResponse(responseCode = "201", description = "Payroll run created")
+    @Operation(summary = "Create a new payroll run",
+            description = "Creates a DRAFT payroll run for the given period. Only one run per period allowed.")
+    @ApiResponse(responseCode = "201", description = "Payroll run created in DRAFT status")
+    @ApiResponse(responseCode = "400", description = "Payroll for this period already exists")
     public ResponseEntity<PayrollRunResponse> create(
             @Valid @RequestBody PayrollRunRequest request) {
         log.info("API: Create payroll run - period={}", request.payrollPeriod());
@@ -117,9 +123,12 @@ public class PayrollApiController {
 
     @PostMapping("/{id}/calculate")
     @Operation(summary = "Calculate PPh 21 for all employees in this run",
-            description = "Uses TER method (PMK 168/2023) for Jan–Nov: PPh 21 = gross × TER rate. "
-                    + "December uses annual reconciliation with progressive brackets (PP 58/2023).")
-    @ApiResponse(responseCode = "200", description = "Payroll calculated")
+            description = "Requires DRAFT or CALCULATED status. Calculates BPJS and PPh 21 for all active employees. "
+                    + "PPh 21 uses TER method (PMK 168/2023) for Jan–Nov: PPh 21 = gross × TER rate. "
+                    + "December uses annual reconciliation with progressive brackets (PP 58/2023). "
+                    + "Transitions status to CALCULATED.")
+    @ApiResponse(responseCode = "200", description = "Payroll calculated, status set to CALCULATED")
+    @ApiResponse(responseCode = "400", description = "No active employees or invalid status for calculation")
     public ResponseEntity<PayrollRunResponse> calculate(
             @PathVariable UUID id,
             @Valid @RequestBody PayrollCalculateRequest request) {
@@ -133,8 +142,10 @@ public class PayrollApiController {
     }
 
     @PostMapping("/{id}/approve")
-    @Operation(summary = "Approve payroll run")
-    @ApiResponse(responseCode = "200", description = "Payroll approved")
+    @Operation(summary = "Approve payroll run",
+            description = "Requires CALCULATED status. Transitions to APPROVED, enabling posting.")
+    @ApiResponse(responseCode = "200", description = "Payroll approved, status set to APPROVED")
+    @ApiResponse(responseCode = "400", description = "Payroll not in CALCULATED status")
     public ResponseEntity<PayrollRunResponse> approve(@PathVariable UUID id) {
         log.info("API: Approve payroll - id={}", id);
 
@@ -145,8 +156,13 @@ public class PayrollApiController {
     }
 
     @PostMapping("/{id}/post")
-    @Operation(summary = "Post payroll to accounting (create journal entry)")
-    @ApiResponse(responseCode = "200", description = "Payroll posted")
+    @Operation(summary = "Post payroll to accounting (create journal entry)",
+            description = "Requires APPROVED status. Creates a journal entry using the 'Post Gaji Bulanan' template "
+                    + "(UUID e0000000-...0014, loaded via industry seed data). "
+                    + "Transitions to POSTED. Only POSTED payroll appears in summary and 1721-A1 endpoints.")
+    @ApiResponse(responseCode = "200", description = "Payroll posted, journal entry created")
+    @ApiResponse(responseCode = "400", description = "Payroll not in APPROVED status")
+    @ApiResponse(responseCode = "409", description = "Journal template 'Post Gaji Bulanan' not found — load industry seed data first")
     public ResponseEntity<PayrollRunResponse> post(@PathVariable UUID id) {
         log.info("API: Post payroll - id={}", id);
 
@@ -158,8 +174,10 @@ public class PayrollApiController {
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "Delete a draft payroll run")
+    @Operation(summary = "Delete a draft payroll run",
+            description = "Only DRAFT status can be deleted.")
     @ApiResponse(responseCode = "204", description = "Payroll run deleted")
+    @ApiResponse(responseCode = "400", description = "Payroll not in DRAFT status")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         log.info("API: Delete payroll - id={}", id);
 
@@ -173,10 +191,12 @@ public class PayrollApiController {
 
     @GetMapping("/employees/{employeeId}/1721-a1")
     @Operation(summary = "Generate 1721-A1 data for an employee",
-            description = "Annual tax proof (bukti potong). Monthly breakdown shows TER-based withholdings (Jan–Nov) "
-                    + "and December reconciliation. Annual PPh 21 terutang uses progressive brackets on PKP.")
+            description = "Annual tax proof (bukti potong). Only includes POSTED payroll runs. "
+                    + "Monthly breakdown shows TER-based withholdings (Jan–Nov) and December reconciliation. "
+                    + "Annual PPh 21 terutang uses progressive brackets on PKP. "
+                    + "Returns 404 if no POSTED payroll exists for this employee in the given year.")
     @ApiResponse(responseCode = "200", description = "1721-A1 data")
-    @ApiResponse(responseCode = "404", description = "Employee not found or no payroll data")
+    @ApiResponse(responseCode = "404", description = "Employee not found or no POSTED payroll data for the year")
     public ResponseEntity<A1Response> get1721A1(
             @PathVariable UUID employeeId,
             @RequestParam int year) {
@@ -241,8 +261,10 @@ public class PayrollApiController {
     // ==================== PPh 21 SUMMARY ====================
 
     @GetMapping("/pph21/summary")
-    @Operation(summary = "Annual PPh 21 summary across all employees")
-    @ApiResponse(responseCode = "200", description = "PPh 21 summary")
+    @Operation(summary = "Annual PPh 21 summary across all employees",
+            description = "Aggregates PPh 21 data from POSTED payroll runs only. "
+                    + "Returns empty employees list if no payroll has been posted for the year.")
+    @ApiResponse(responseCode = "200", description = "PPh 21 summary (empty if no POSTED runs)")
     public ResponseEntity<Pph21SummaryResponse> pph21Summary(@RequestParam int year) {
         List<UUID> employeeIds = payrollService.getEmployeesWithPayrollInYear(year);
 
