@@ -29,7 +29,7 @@
 | **15** | Payroll API + PPh 21 | ✅ Complete |
 | **—** | Bug Fixes (BUG-001–004) | ✅ Complete |
 | **17** | SPT Tahunan Badan Data Export | ✅ Complete |
-| **18** | WhatsApp Notifications | Planned |
+| **18** | PPh 21 TER Method (PMK 168/2023) | ✅ Complete |
 | **—** | Future Enhancements | As needed |
 
 ---
@@ -1597,19 +1597,34 @@ Update PPN rate description in app and docs to reflect 2025 DPP Nilai Lain regim
 
 ---
 
-## Phase 18: WhatsApp Notifications
+## Phase 18: PPh 21 TER Method (PMK 168/2023) ✅
 
-**Goal:** WhatsApp Business API integration for automated notifications (overdue invoices, smart alerts, tax deadline reminders).
+**Goal:** Replace annualization method with TER (Tarif Efektif Rata-rata) method per PMK 168/2023 for monthly PPh 21 withholding. December uses annual reconciliation with progressive brackets (PP 58/2023).
 
-### 18.1 Provider Integration
-- [ ] WhatsApp Business API provider integration (Wablas/Fonnte or official API)
-- [ ] Provider configuration (API key, sender number)
-- [ ] Message template management
+**Bug ref:** BUG-009 — annualization produced 240,126/month for K_2 gross 11,253,000. TER method correctly produces 281,325 (2.5%).
 
-### 18.2 Notification Triggers
-- [ ] Auto-send reminder for overdue invoices (configurable schedule)
-- [ ] Send smart alert events via WhatsApp to configured recipients
-- [ ] Tax deadline reminders via WhatsApp
+### 18.1 TER Rate Tables ✅
+- [x] `TerCategory` enum with PTKP → TER Category mapping (A: TK_0, TK_1, K_0; B: TK_2, TK_3, K_1, K_2; C: K_3, K/I_*)
+- [x] TER rate lookup tables with income brackets per category (PMK 168/2023 Lampiran A/B/C)
+- [x] Stored as Java enum constants (no DB table — rates change infrequently)
+
+### 18.2 Monthly TER Calculation (Jan–Nov) ✅
+- [x] `Pph21CalculationService.calculateTer()` — TER rate lookup by gross salary bracket
+- [x] Monthly PPh 21 = gross salary × TER rate (no BPJS/biaya jabatan deduction before lookup)
+- [x] TER category determined by employee's PTKP status
+- [x] `PayrollService` uses TER for months 1–11
+
+### 18.3 December Annual Reconciliation ✅
+- [x] `Pph21CalculationService.calculateDecemberReconciliation()` — progressive brackets per PP 58/2023
+- [x] December PPh 21 = annual tax minus sum of Jan–Nov TER withholdings
+- [x] Annual calculation: gross → biaya jabatan (5%, max 6M) → neto → subtract PTKP → PKP → progressive rates
+- [x] `PayrollDetailRepository.findPriorMonthsInYear()` query for prior month lookups
+
+### 18.4 Web Calculator + Testing ✅
+- [x] Web PPh 21 calculator updated to TER method (was annualization)
+- [x] 17 unit tests: category mapping, rate lookup, TER monthly calculation, December reconciliation
+- [x] 5 functional tests: calculator form, TER calculation, category/rate verification, low salary, form preservation
+- [x] Verified against Coretax reference data (K_2, 11.253M → TER 2.5%, PPh21 281,325)
 
 ---
 

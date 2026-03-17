@@ -1,6 +1,7 @@
 package com.artivisi.accountingfinance.controller;
 
 import com.artivisi.accountingfinance.entity.PtkpStatus;
+import com.artivisi.accountingfinance.entity.TerCategory;
 import com.artivisi.accountingfinance.service.Pph21CalculationService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -34,34 +35,18 @@ public class Pph21CalculatorController {
     public String calculate(
             @RequestParam BigDecimal salary,
             @RequestParam(defaultValue = "TK_0") String ptkpStatus,
-            @RequestParam(defaultValue = "true") boolean hasNpwp,
             Model model
     ) {
         PtkpStatus status = PtkpStatus.valueOf(ptkpStatus);
-        var result = pph21CalculationService.calculate(salary, status, hasNpwp);
+        var terResult = pph21CalculationService.calculateTer(salary, status);
 
         model.addAttribute("ptkpStatuses", List.of(PtkpStatus.values()));
         model.addAttribute("salary", salary);
         model.addAttribute("selectedPtkpStatus", ptkpStatus);
-        model.addAttribute("hasNpwp", hasNpwp);
-        model.addAttribute("result", result);
+        model.addAttribute("terResult", terResult);
         model.addAttribute("selectedPtkpStatusEnum", status);
-
-        // Tax bracket information for display
-        model.addAttribute("taxBrackets", getTaxBrackets());
+        model.addAttribute("terCategory", TerCategory.fromPtkpStatus(status));
 
         return "pph21-calculator/index";
     }
-
-    private List<TaxBracketInfo> getTaxBrackets() {
-        return List.of(
-            new TaxBracketInfo("0 - 60,000,000", "5%"),
-            new TaxBracketInfo("60,000,001 - 250,000,000", "15%"),
-            new TaxBracketInfo("250,000,001 - 500,000,000", "25%"),
-            new TaxBracketInfo("500,000,001 - 5,000,000,000", "30%"),
-            new TaxBracketInfo("> 5,000,000,000", "35%")
-        );
-    }
-
-    public record TaxBracketInfo(String range, String rate) {}
 }

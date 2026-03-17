@@ -81,11 +81,17 @@ Lines:
 - Due: 20th of following month
 - e-Bupot integration (future)
 
-**Calculation Notes:**
-- Progressive rates: 5%, 15%, 25%, 30%
-- PTKP (non-taxable income) adjustment
-- Monthly vs annual calculation
-- May be outsourced to payroll system (not core feature for MVP)
+**Calculation Method: TER (PMK 168/2023)**
+
+Monthly withholding (Jan–Nov) uses TER (Tarif Efektif Rata-rata):
+- Employee's PTKP status determines TER category (A, B, or C)
+- TER rate looked up by gross salary bracket within category
+- PPh 21 = Gross Salary × TER Rate
+
+December uses annual reconciliation (PP 58/2023):
+- Annual gross → biaya jabatan (5%, max 6M) → neto → subtract PTKP → PKP
+- Progressive rates on PKP: 5% (≤60M), 15% (≤250M), 25% (≤500M), 30% (≤5B), 35% (>5B)
+- December PPh 21 = Annual tax − total Jan–Nov TER withholdings
 
 ### 3. PPh 23 (Pajak Penghasilan Pasal 23) - Withholding Tax on Services
 

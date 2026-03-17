@@ -243,7 +243,7 @@ class ControllerCoverageTest extends PlaywrightTestBase {
     }
 
     @Nested
-    @DisplayName("PPh 21 Calculator Controller")
+    @DisplayName("PPh 21 Calculator Controller (TER Method)")
     class Pph21CalculatorControllerTests {
 
         @Test
@@ -263,15 +263,11 @@ class ControllerCoverageTest extends PlaywrightTestBase {
             assertThat(page.locator("#ptkpStatus").isVisible())
                 .as("PTKP status select should be visible")
                 .isTrue();
-
-            assertThat(page.locator("#hasNpwp").isVisible())
-                .as("NPWP checkbox should be visible")
-                .isTrue();
         }
 
         @Test
-        @DisplayName("Should calculate PPh 21 for basic salary")
-        void shouldCalculatePph21ForBasicSalary() {
+        @DisplayName("Should calculate PPh 21 using TER method")
+        void shouldCalculatePph21UsingTer() {
             navigateTo("/pph21-calculator");
             waitForPageLoad();
 
@@ -280,82 +276,61 @@ class ControllerCoverageTest extends PlaywrightTestBase {
             page.locator("#btn-calculate").click();
             waitForPageLoad();
 
-            // Verify result is displayed
             assertThat(page.getByTestId("gross-income").isVisible())
                 .as("Gross income should be displayed")
+                .isTrue();
+
+            assertThat(page.getByTestId("ter-category").isVisible())
+                .as("TER category should be displayed")
+                .isTrue();
+
+            assertThat(page.getByTestId("ter-rate").isVisible())
+                .as("TER rate should be displayed")
                 .isTrue();
 
             assertThat(page.getByTestId("monthly-pph21").isVisible())
                 .as("Monthly PPh 21 should be displayed")
                 .isTrue();
-
-            assertThat(page.getByTestId("take-home-pay").isVisible())
-                .as("Take home pay should be displayed")
-                .isTrue();
         }
 
         @Test
-        @DisplayName("Should calculate PPh 21 with different PTKP status")
-        void shouldCalculatePph21WithDifferentPtkpStatus() {
+        @DisplayName("Should show correct TER category for K_2")
+        void shouldShowCorrectTerCategoryForK2() {
             navigateTo("/pph21-calculator");
             waitForPageLoad();
 
-            page.locator("#salary").fill("15000000");
-            page.locator("#ptkpStatus").selectOption("K_1"); // Married with 1 dependent
+            page.locator("#salary").fill("11253000");
+            page.locator("#ptkpStatus").selectOption("K_2");
             page.locator("#btn-calculate").click();
             waitForPageLoad();
 
-            assertThat(page.getByTestId("ptkp").isVisible())
-                .as("PTKP amount should be displayed")
+            assertThat(page.getByTestId("ter-category").isVisible())
+                .as("TER category should be visible")
                 .isTrue();
 
-            assertThat(page.getByTestId("pkp").isVisible())
-                .as("PKP should be displayed")
-                .isTrue();
+            assertThat(page.getByTestId("ter-category").textContent())
+                .as("K_2 should map to TER Category B")
+                .contains("B");
+
+            assertThat(page.getByTestId("ter-rate").textContent())
+                .as("TER rate for Cat B, 11.253M should be 2.50%")
+                .contains("2.50%");
         }
 
         @Test
-        @DisplayName("Should calculate PPh 21 without NPWP")
-        void shouldCalculatePph21WithoutNpwp() {
+        @DisplayName("Should show zero PPh 21 for low salary")
+        void shouldShowZeroPph21ForLowSalary() {
             navigateTo("/pph21-calculator");
             waitForPageLoad();
 
-            page.locator("#salary").fill("20000000");
-            page.locator("#hasNpwp").uncheck();
+            page.locator("#salary").fill("5000000");
+            page.locator("#ptkpStatus").selectOption("K_2");
             page.locator("#btn-calculate").click();
             waitForPageLoad();
 
-            // Without NPWP warning should appear (use specific element)
-            assertThat(page.locator("text=Karyawan tanpa NPWP").isVisible())
-                .as("Warning about no NPWP should be visible")
-                .isTrue();
-        }
-
-        @Test
-        @DisplayName("Should show detailed calculation breakdown")
-        void shouldShowDetailedCalculationBreakdown() {
-            navigateTo("/pph21-calculator");
-            waitForPageLoad();
-
-            page.locator("#salary").fill("10000000");
-            page.locator("#btn-calculate").click();
-            waitForPageLoad();
-
-            assertThat(page.getByTestId("biaya-jabatan").isVisible())
-                .as("Biaya jabatan should be displayed")
-                .isTrue();
-
-            assertThat(page.getByTestId("monthly-neto").isVisible())
-                .as("Monthly neto should be displayed")
-                .isTrue();
-
-            assertThat(page.getByTestId("annual-pph21").isVisible())
-                .as("Annual PPh 21 should be displayed")
-                .isTrue();
-
-            assertThat(page.getByTestId("effective-rate").isVisible())
-                .as("Effective tax rate should be displayed")
-                .isTrue();
+            assertThat(page.getByTestId("ter-rate").textContent())
+                .as("TER rate should be 0% for low salary Category B")
+                .contains("0.00%");
         }
 
         @Test
@@ -369,7 +344,6 @@ class ControllerCoverageTest extends PlaywrightTestBase {
             page.locator("#btn-calculate").click();
             waitForPageLoad();
 
-            // Verify form values are preserved
             assertThat(page.locator("#salary").inputValue())
                 .as("Salary should be preserved")
                 .isEqualTo("25000000");

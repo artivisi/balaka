@@ -86,7 +86,7 @@ Indonesian accounting application for small businesses. Spring Boot 4.0 + Thymel
 
 **Indonesian Tax Compliance**
 - PPN (VAT) tracking - Masukan/Keluaran
-- PPh 21 calculation with progressive rates
+- PPh 21 calculation with TER method (PMK 168/2023) and December annual reconciliation
 - PPh 23 withholding tracking
 - PPh 4(2) final tax handling
 - e-Faktur data export format
@@ -327,6 +327,19 @@ Indonesian accounting application for small businesses. Spring Boot 4.0 + Thymel
 ### Phase 16: User Manual Revamp (Complete)
 
 - Full AI-operated lifecycle documentation (installation, data migration, daily operations, reporting, tax filing)
+
+### Phase 17: SPT Tahunan Badan Data Export (Complete)
+
+- Rekonsiliasi fiskal, penghasilan final, penyusutan DJP format
+- e-Bupot PPh 21 annual, fiscal loss carryforward
+- SPT checklist dashboard
+
+### Phase 18: PPh 21 TER Method (Complete)
+
+- TER (Tarif Efektif Rata-rata) per PMK 168/2023 for monthly PPh 21 withholding
+- TER category mapping (A/B/C) from PTKP status, rate lookup by income bracket
+- December annual reconciliation with progressive brackets (PP 58/2023)
+- Web PPh 21 calculator updated to TER method
 
 ## Planned Features
 

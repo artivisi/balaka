@@ -1,29 +1,30 @@
 package com.artivisi.accountingfinance.service;
 
 import com.artivisi.accountingfinance.entity.PtkpStatus;
+import com.artivisi.accountingfinance.entity.TerCategory;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.List;
 
 /**
  * Service for calculating PPh 21 (Employee Income Tax) based on Indonesian regulations.
  *
- * PPh 21 Progressive Tax Rates (PP 58/2023, effective 2024):
+ * Two calculation methods:
+ *
+ * 1. TER method (PMK 168/2023) — used for monthly withholding Jan-Nov:
+ *    PPh 21 = gross salary × TER rate (looked up by PTKP category and gross bracket)
+ *
+ * 2. Progressive bracket method (PP 58/2023) — used for December annual reconciliation:
+ *    Annual tax calculated via progressive brackets, minus Jan-Nov TER withholdings
+ *
+ * Progressive Tax Rates:
  * - 0 - 60,000,000: 5%
  * - 60,000,001 - 250,000,000: 15%
  * - 250,000,001 - 500,000,000: 25%
  * - 500,000,001 - 5,000,000,000: 30%
  * - > 5,000,000,000: 35%
- *
- * Calculation steps:
- * 1. Gross income (gaji bruto)
- * 2. Subtract biaya jabatan (5%, max Rp 500,000/month)
- * 3. Subtract BPJS deductions (JHT + JP employee portion)
- * 4. Calculate annual neto
- * 5. Subtract PTKP
- * 6. Apply progressive tax rates
- * 7. Divide by 12 for monthly PPh 21
  */
 @Service
 public class Pph21CalculationService {
@@ -146,6 +147,69 @@ public class Pph21CalculationService {
     }
 
     /**
+     * Calculate monthly PPh 21 using TER method (PMK 168/2023).
+     * Used for Jan-Nov monthly withholding.
+     *
+     * @param monthlyGrossIncome Monthly gross income
+     * @param ptkpStatus         PTKP status (determines TER category)
+     * @return TER calculation result with rate and PPh 21 amount
+     */
+    public TerCalculationResult calculateTer(BigDecimal monthlyGrossIncome, PtkpStatus ptkpStatus) {
+        if (monthlyGrossIncome == null || monthlyGrossIncome.compareTo(BigDecimal.ZERO) <= 0) {
+            return new TerCalculationResult(BigDecimal.ZERO, null, BigDecimal.ZERO, BigDecimal.ZERO);
+        }
+
+        if (ptkpStatus == null) {
+            ptkpStatus = PtkpStatus.TK_0;
+        }
+
+        TerCategory category = TerCategory.fromPtkpStatus(ptkpStatus);
+        BigDecimal terRate = category.lookupRate(monthlyGrossIncome);
+        BigDecimal pph21 = monthlyGrossIncome.multiply(terRate)
+                .divide(HUNDRED, 0, RoundingMode.HALF_UP);
+
+        return new TerCalculationResult(monthlyGrossIncome, category, terRate, pph21);
+    }
+
+    /**
+     * Calculate December PPh 21 using annual reconciliation.
+     * Annual tax (progressive brackets) minus sum of Jan-Nov TER withholdings.
+     *
+     * @param monthlyGrossAmounts List of monthly gross amounts for the year (Jan-Dec)
+     * @param ptkpStatus          PTKP status
+     * @param janNovPph21Total    Sum of PPh 21 already withheld Jan-Nov via TER
+     * @return December reconciliation result
+     */
+    public DecemberReconciliationResult calculateDecemberReconciliation(
+            List<BigDecimal> monthlyGrossAmounts, PtkpStatus ptkpStatus, BigDecimal janNovPph21Total) {
+
+        if (ptkpStatus == null) {
+            ptkpStatus = PtkpStatus.TK_0;
+        }
+
+        BigDecimal annualGross = monthlyGrossAmounts.stream()
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal biayaJabatan = annualGross.multiply(BIAYA_JABATAN_RATE)
+                .divide(HUNDRED, 0, RoundingMode.HALF_UP)
+                .min(BIAYA_JABATAN_ANNUAL_MAX);
+
+        BigDecimal annualNeto = annualGross.subtract(biayaJabatan);
+        BigDecimal ptkpAmount = ptkpStatus.getAnnualAmount();
+        BigDecimal pkpRaw = annualNeto.subtract(ptkpAmount).max(BigDecimal.ZERO);
+        // Round down to nearest 1000 per tax regulation
+        BigDecimal pkp = pkpRaw.divide(new BigDecimal("1000"), 0, RoundingMode.FLOOR)
+                .multiply(new BigDecimal("1000"));
+
+        BigDecimal annualTax = calculateProgressiveTax(pkp);
+        BigDecimal decemberPph21 = annualTax.subtract(janNovPph21Total);
+
+        return new DecemberReconciliationResult(
+                annualGross, biayaJabatan, annualNeto, ptkpAmount,
+                pkp, annualTax, janNovPph21Total, decemberPph21);
+    }
+
+    /**
      * Calculate biaya jabatan (occupational expense).
      * 5% of gross income, max Rp 500,000/month.
      */
@@ -264,4 +328,28 @@ public class Pph21CalculationService {
             return monthlyGrossIncome.subtract(monthlyPph21).subtract(bpjsDeduction);
         }
     }
+
+    /**
+     * Result record for TER monthly calculation.
+     */
+    public record TerCalculationResult(
+        BigDecimal monthlyGrossIncome,
+        TerCategory terCategory,
+        BigDecimal terRate,
+        BigDecimal monthlyPph21
+    ) {}
+
+    /**
+     * Result record for December annual reconciliation.
+     */
+    public record DecemberReconciliationResult(
+        BigDecimal annualGross,
+        BigDecimal biayaJabatan,
+        BigDecimal annualNeto,
+        BigDecimal ptkpAmount,
+        BigDecimal pkp,
+        BigDecimal annualTax,
+        BigDecimal janNovPph21Total,
+        BigDecimal decemberPph21
+    ) {}
 }

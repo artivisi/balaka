@@ -141,9 +141,32 @@ Buka menu **Penggajian** > **Kalkulator BPJS**.
 
 ## PPh 21 Karyawan
 
-### Metode Perhitungan
+### Metode Perhitungan: TER (PMK 168/2023)
 
-Aplikasi menggunakan metode **TER (Tarif Efektif Rata-rata)** sesuai PP 58/2023.
+Aplikasi menggunakan metode **TER (Tarif Efektif Rata-rata)** sesuai PMK 168/2023, berlaku mulai Januari 2024.
+
+**Januari–November:** PPh 21 bulanan = Gaji Bruto × Tarif TER
+
+**Desember:** Rekonsiliasi tahunan — PPh 21 Desember = PPh 21 terutang setahun (tarif progresif PP 58/2023) dikurangi total PPh 21 Jan–Nov (TER).
+
+#### Kategori TER
+
+Status PTKP menentukan kategori TER:
+
+| Kategori | Status PTKP |
+|----------|-------------|
+| **A** | TK/0, TK/1, K/0 |
+| **B** | TK/2, TK/3, K/1, K/2 |
+| **C** | K/3, K/I/0, K/I/1, K/I/2, K/I/3 |
+
+Tarif TER ditentukan berdasarkan bracket penghasilan bruto bulanan dalam kategori tersebut (lihat PMK 168/2023 Lampiran A/B/C).
+
+#### Contoh Perhitungan
+
+Karyawan dengan status K/2, gaji bruto Rp 11.253.000:
+- Kategori TER: **B**
+- Tarif TER: **2,50%**
+- PPh 21 bulanan: Rp 11.253.000 × 2,50% = **Rp 281.325**
 
 ### Kalkulator PPh 21
 
@@ -154,19 +177,16 @@ Buka menu **Penggajian** > **Kalkulator PPh 21**.
 1. Masukkan:
    - Gaji bruto bulanan
    - Status PTKP
-   - Tunjangan-tunjangan
 2. Sistem menghitung:
-   - Penghasilan bruto
-   - Biaya jabatan (5%, maks 500rb)
-   - BPJS yang dibayar karyawan
-   - Penghasilan neto
-   - PKP (Penghasilan Kena Pajak)
-   - PPh 21 terutang
+   - Kategori TER (A / B / C)
+   - Tarif TER berdasarkan bracket penghasilan
+   - PPh 21 bulanan (Bruto × Tarif TER)
 
-### Referensi (lihat [Perpajakan](04-perpajakan.md))
+### Referensi
 
-- Tarif PPh 21 progresif
-- PTKP per status
+- PMK 168/2023 — Tarif Efektif Rata-rata PPh 21
+- PP 58/2023 — Rekonsiliasi tahunan (tarif progresif)
+- PTKP per status (lihat [Perpajakan](04-perpajakan.md))
 
 ---
 
@@ -592,7 +612,7 @@ PUT    /api/employees/{id}/salary-components/{componentId}  — update assignmen
 GET    /api/payroll                      — daftar payroll (filter: year, status)
 POST   /api/payroll                      — buat payroll baru (DRAFT)
 GET    /api/payroll/{id}                 — detail dengan semua detail karyawan
-POST   /api/payroll/{id}/calculate       — hitung PPh 21, set CALCULATED
+POST   /api/payroll/{id}/calculate       — hitung PPh 21 (TER Jan-Nov / rekonsiliasi Des), set CALCULATED
 POST   /api/payroll/{id}/approve         — set APPROVED
 POST   /api/payroll/{id}/post            — posting ke jurnal
 DELETE /api/payroll/{id}                 — hapus (hanya DRAFT)

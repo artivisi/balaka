@@ -116,7 +116,9 @@ public class PayrollApiController {
     }
 
     @PostMapping("/{id}/calculate")
-    @Operation(summary = "Calculate PPh 21 for all employees in this run")
+    @Operation(summary = "Calculate PPh 21 for all employees in this run",
+            description = "Uses TER method (PMK 168/2023) for Jan–Nov: PPh 21 = gross × TER rate. "
+                    + "December uses annual reconciliation with progressive brackets (PP 58/2023).")
     @ApiResponse(responseCode = "200", description = "Payroll calculated")
     public ResponseEntity<PayrollRunResponse> calculate(
             @PathVariable UUID id,
@@ -170,7 +172,9 @@ public class PayrollApiController {
     // ==================== 1721-A1 ====================
 
     @GetMapping("/employees/{employeeId}/1721-a1")
-    @Operation(summary = "Generate 1721-A1 data for an employee")
+    @Operation(summary = "Generate 1721-A1 data for an employee",
+            description = "Annual tax proof (bukti potong). Monthly breakdown shows TER-based withholdings (Jan–Nov) "
+                    + "and December reconciliation. Annual PPh 21 terutang uses progressive brackets on PKP.")
     @ApiResponse(responseCode = "200", description = "1721-A1 data")
     @ApiResponse(responseCode = "404", description = "Employee not found or no payroll data")
     public ResponseEntity<A1Response> get1721A1(

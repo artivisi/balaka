@@ -51,4 +51,17 @@ public interface PayrollDetailRepository extends JpaRepository<PayrollDetail, UU
            "AND pr.status = 'POSTED' " +
            "ORDER BY pr.payrollPeriod DESC")
     List<PayrollDetail> findPostedByEmployeeId(@Param("employeeId") UUID employeeId);
+
+    @Query("SELECT pd FROM PayrollDetail pd " +
+           "JOIN FETCH pd.employee " +
+           "JOIN FETCH pd.payrollRun pr " +
+           "WHERE pd.employee.id = :employeeId " +
+           "AND pr.payrollPeriod LIKE :yearPrefix% " +
+           "AND pr.payrollPeriod < :currentPeriod " +
+           "AND pr.status IN ('CALCULATED', 'APPROVED', 'POSTED') " +
+           "ORDER BY pr.payrollPeriod")
+    List<PayrollDetail> findPriorMonthsInYear(
+            @Param("employeeId") UUID employeeId,
+            @Param("yearPrefix") String yearPrefix,
+            @Param("currentPeriod") String currentPeriod);
 }

@@ -103,8 +103,9 @@ public class PayrollService {
         }
 
         // Calculate for each employee
+        YearMonth period = payrollRun.getPeriod();
         for (Employee employee : activeEmployees) {
-            PayrollDetail detail = calculateEmployeePayroll(employee, baseSalary, jkkRiskClass);
+            PayrollDetail detail = calculateEmployeePayroll(employee, baseSalary, jkkRiskClass, period);
             payrollRun.addDetail(detail);
         }
 
@@ -118,13 +119,16 @@ public class PayrollService {
     }
 
     /**
-     * Calculate payroll for a single employee.
+     * Calculate payroll for a single employee using TER method (PMK 168/2023).
+     * Jan-Nov: TER rate × gross salary.
+     * December: annual reconciliation (progressive brackets minus Jan-Nov withholdings).
      */
-    private PayrollDetail calculateEmployeePayroll(Employee employee, BigDecimal baseSalary, int jkkRiskClass) {
+    private PayrollDetail calculateEmployeePayroll(Employee employee, BigDecimal baseSalary,
+                                                    int jkkRiskClass, YearMonth period) {
         PayrollDetail detail = new PayrollDetail();
         detail.setEmployee(employee);
         detail.setBaseSalary(baseSalary);
-        detail.setGrossSalary(baseSalary); // For now, gross = base (can add allowances later)
+        detail.setGrossSalary(baseSalary);
         detail.setJkkRiskClass(jkkRiskClass);
 
         // Calculate BPJS
@@ -138,10 +142,28 @@ public class PayrollService {
         detail.setBpjsJpCompany(bpjsResult.jpCompany());
         detail.setBpjsJpEmployee(bpjsResult.jpEmployee());
 
-        // Calculate PPh 21
-        boolean hasNpwp = employee.getNpwp() != null && !employee.getNpwp().isBlank();
-        var pph21Result = pph21CalculationService.calculate(baseSalary, employee.getPtkpStatus(), hasNpwp);
-        detail.setPph21(pph21Result.monthlyPph21());
+        // Calculate PPh 21 using TER method
+        if (period.getMonthValue() == 12) {
+            // December: annual reconciliation
+            List<PayrollDetail> priorMonths = payrollDetailRepository.findPriorMonthsInYear(
+                    employee.getId(), String.valueOf(period.getYear()), period.toString());
+
+            List<BigDecimal> allGrossAmounts = new java.util.ArrayList<>(
+                    priorMonths.stream().map(PayrollDetail::getGrossSalary).toList());
+            allGrossAmounts.add(baseSalary); // Add December gross
+
+            BigDecimal janNovPph21 = priorMonths.stream()
+                    .map(PayrollDetail::getPph21)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            var decResult = pph21CalculationService.calculateDecemberReconciliation(
+                    allGrossAmounts, employee.getPtkpStatus(), janNovPph21);
+            detail.setPph21(decResult.decemberPph21());
+        } else {
+            // Jan-Nov: TER rate lookup
+            var terResult = pph21CalculationService.calculateTer(baseSalary, employee.getPtkpStatus());
+            detail.setPph21(terResult.monthlyPph21());
+        }
 
         // Calculate totals
         detail.calculateTotals();
