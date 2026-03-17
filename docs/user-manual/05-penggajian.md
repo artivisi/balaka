@@ -161,6 +161,14 @@ Status PTKP menentukan kategori TER:
 
 Tarif TER ditentukan berdasarkan bracket penghasilan bruto bulanan dalam kategori tersebut (lihat PMK 168/2023 Lampiran A/B/C).
 
+#### PPh 21 = 0 untuk Gaji Rendah
+
+Untuk karyawan dengan gaji bruto di bawah batas bracket TER terendah, tarif TER = 0% sehingga PPh 21 = Rp 0. Ini umum terjadi di UMKM dengan gaji karyawan di bawah Rp 5.400.000/bulan (Kategori A) atau Rp 6.200.000/bulan (Kategori B).
+
+Saat posting payroll dengan PPh 21 = 0, sistem otomatis melewatkan baris jurnal Hutang PPh 21 karena jurnal dengan nilai nol tidak bermakna. Jurnal yang dihasilkan hanya berisi baris dengan nilai > 0.
+
+Kewajiban setor PPh 21 dan lapor SPT Masa PPh 21 tetap berlaku meskipun nilainya nihil.
+
 #### Contoh Perhitungan
 
 Karyawan dengan status K/2, gaji bruto Rp 11.253.000:
@@ -298,8 +306,10 @@ Klik payroll untuk melihat detail:
    Dr. Beban BPJS Perusahaan   xxx
        Cr. Hutang Gaji             xxx
        Cr. Hutang BPJS             xxx
-       Cr. Hutang PPh 21           xxx
+       Cr. Hutang PPh 21           xxx  ← hanya jika PPh 21 > 0
    ```
+
+**Catatan:** Baris jurnal dengan nilai nol otomatis dilewatkan. Untuk karyawan UMKM dengan gaji rendah (PPh 21 = 0), jurnal hanya berisi 4 baris tanpa Hutang PPh 21.
 
 ### Membayar Gaji
 
@@ -367,6 +377,8 @@ Dr. Hutang BPJS             xxx
 **Catatan:** Bayar ke BPJS Kesehatan dan BPJS Ketenagakerjaan melalui e-DABU atau virtual account.
 
 ### 3. Setor PPh 21 ke Kas Negara
+
+**Catatan:** Jika PPh 21 = 0 (semua karyawan di bawah threshold TER), tidak ada hutang PPh 21 yang perlu disetor. SPT Masa PPh 21 nihil tetap wajib dilaporkan.
 
 **Kapan:** Maksimal tanggal 10 bulan berikutnya
 **Template:** Setor PPh 21

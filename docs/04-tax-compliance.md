@@ -93,6 +93,12 @@ December uses annual reconciliation (PP 58/2023):
 - Progressive rates on PKP: 5% (≤60M), 15% (≤250M), 25% (≤500M), 30% (≤5B), 35% (>5B)
 - December PPh 21 = Annual tax − total Jan–Nov TER withholdings
 
+**Zero PPh 21 (common in UMKM):**
+- Employees with gross salary below the lowest TER bracket have TER rate = 0%
+- PPh 21 = 0 for the month — no withholding required
+- When posting payroll, zero-amount journal lines (Hutang PPh 21) are automatically skipped
+- SPT Masa PPh 21 nihil still required to be filed
+
 ### 3. PPh 23 (Pajak Penghasilan Pasal 23) - Withholding Tax on Services
 
 **Applicability:**

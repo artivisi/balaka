@@ -159,6 +159,7 @@ public class PayrollApiController {
     @Operation(summary = "Post payroll to accounting (create journal entry)",
             description = "Requires APPROVED status. Creates a journal entry using the payroll template "
                     + "(configured via app.payroll.template-id). "
+                    + "Template lines with zero amounts are skipped (e.g., PPh 21 = 0 for low-salary UMKM employees). "
                     + "Transitions to POSTED. Only POSTED payroll appears in summary and 1721-A1 endpoints. "
                     + "To verify journal entries after posting, use GET /api/analysis/transactions/{transactionId}.")
     @ApiResponse(responseCode = "200", description = "Payroll posted, journal entry created. "
