@@ -34,8 +34,8 @@ Indonesian accounting application for small businesses. Spring Boot 4.0 + Thymel
 - **Phase 18:** ✅ Complete (PPh 21 TER Method — PMK 168/2023, TerCategory enum, monthly TER Jan–Nov, December reconciliation, web calculator)
 - **Phase 19:** ✅ Complete (Scheduled Payroll — automated monthly payroll run creation, CRUD API, daily scheduler with startup catch-up)
 - **Phase 20:** ✅ Complete (Free-Form Journal Entry API — `POST /api/transactions/journal-entry`, arbitrary debit/credit lines, no template required, for closing/adjusting/opening entries)
-- **BUG-014:** 🔧 In Progress (Tax export reads post-closing P&L — zeroed out after closing journal)
-- **SPT Lampiran Export:** Planned (consolidated Coretax-ready lampiran endpoint, blocked by BUG-014)
+- **BUG-014:** ✅ Complete (Tax export excluded closing journal from P&L via `closingEntry` boolean)
+- **SPT Lampiran Export:** ✅ Complete (`GET /api/tax-export/spt-tahunan/lampiran?year=`, consolidated Coretax-ready data)
 - See `docs/06-implementation-plan.md` for full plan
 
 ## Key Files

@@ -276,6 +276,64 @@ class TaxExportApiTest extends PlaywrightTestBase {
         log.info("Invalid date params test passed");
     }
 
+    // ==================== CONSOLIDATED LAMPIRAN ====================
+
+    @Test
+    @DisplayName("GET /api/tax-export/spt-tahunan/lampiran - returns consolidated SPT data")
+    void testConsolidatedLampiran() throws Exception {
+        APIResponse response = get("/api/tax-export/spt-tahunan/lampiran?year=2025");
+        assertThat(response.status())
+                .as("Consolidated lampiran: " + response.text())
+                .isEqualTo(200);
+
+        JsonNode body = parse(response);
+        assertThat(body.get("reportType").asText()).isEqualTo("spt-tahunan-lampiran");
+
+        JsonNode data = body.get("data");
+        assertThat(data.get("year").asInt()).isEqualTo(2025);
+
+        // Taxpayer info
+        JsonNode taxpayer = data.get("taxpayer");
+        assertThat(taxpayer).isNotNull();
+        assertThat(taxpayer.get("name").asText()).isNotEmpty();
+
+        // Transkrip 8A
+        JsonNode transkrip = data.get("transkrip8A");
+        assertThat(transkrip).isNotNull();
+        assertThat(transkrip.get("neracaAktiva")).isNotNull();
+        assertThat(transkrip.get("neracaPasiva")).isNotNull();
+        assertThat(transkrip.get("labaRugi")).isNotNull();
+        // Verify Coretax field numbers present
+        JsonNode firstAktiva = transkrip.get("neracaAktiva").get(0);
+        assertThat(firstAktiva.get("field").asText()).startsWith("8A.I.");
+
+        // Lampiran I
+        JsonNode l1 = data.get("lampiranI");
+        assertThat(l1).isNotNull();
+        assertThat(l1.get("description").asText()).contains("Penghasilan Neto Fiskal");
+        assertThat(l1.has("penghasilanKenaPajak")).isTrue();
+
+        // Lampiran II
+        JsonNode l2 = data.get("lampiranII");
+        assertThat(l2).isNotNull();
+        assertThat(l2.get("bebanUsaha")).isNotNull();
+        assertThat(l2.get("bebanLuarUsaha")).isNotNull();
+
+        // Lampiran III
+        JsonNode l3 = data.get("lampiranIII");
+        assertThat(l3).isNotNull();
+        assertThat(l3.get("kreditPPh23")).isNotNull();
+
+        // PPh Badan
+        JsonNode pph = data.get("pphBadan");
+        assertThat(pph).isNotNull();
+        assertThat(pph.has("penghasilanKenaPajak")).isTrue();
+        assertThat(pph.has("pphTerutang")).isTrue();
+        assertThat(pph.has("pph29KurangBayar")).isTrue();
+
+        log.info("Consolidated lampiran test passed - all sections present");
+    }
+
     // ==================== BUG-014: CLOSING JOURNAL EXCLUSION ====================
 
     @Test

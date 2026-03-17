@@ -12,6 +12,7 @@ import com.artivisi.accountingfinance.service.SptTahunanExportService.Bpa1Report
 import com.artivisi.accountingfinance.service.SptTahunanExportService.L1Report;
 import com.artivisi.accountingfinance.service.SptTahunanExportService.L4Report;
 import com.artivisi.accountingfinance.service.SptTahunanExportService.L9Report;
+import com.artivisi.accountingfinance.service.SptTahunanExportService.SptLampiranReport;
 import com.artivisi.accountingfinance.service.SptTahunanExportService.Transkrip8AReport;
 import com.artivisi.accountingfinance.service.TaxReportDetailService;
 import com.artivisi.accountingfinance.service.TaxReportDetailService.PPhBadanCalculation;
@@ -412,6 +413,26 @@ public class TaxExportApiController {
                 Map.of("year", String.valueOf(year)),
                 report,
                 Map.of(META_DESCRIPTION, "e-Bupot PPh 21 Annual (1721-A1) - all employees",
+                        META_CURRENCY, "IDR")));
+    }
+
+    // ==================== CONSOLIDATED LAMPIRAN ====================
+
+    @GetMapping("/spt-tahunan/lampiran")
+    @Transactional(readOnly = true)
+    @Operation(summary = "Consolidated SPT Tahunan Badan lampiran (all sections)",
+            description = "Returns all lampiran data mapped to Coretax field numbers in a single response.")
+    public ResponseEntity<AnalysisResponse<SptLampiranReport>> getSptLampiran(
+            @RequestParam int year) {
+
+        SptLampiranReport report = sptTahunanExportService.generateConsolidatedLampiran(year);
+        auditAccess("spt-tahunan-lampiran", Map.of("year", String.valueOf(year)));
+
+        return ResponseEntity.ok(new AnalysisResponse<>(
+                "spt-tahunan-lampiran", LocalDateTime.now(),
+                Map.of("year", String.valueOf(year)),
+                report,
+                Map.of(META_DESCRIPTION, "Consolidated SPT Tahunan Badan lampiran (Coretax-ready)",
                         META_CURRENCY, "IDR")));
     }
 

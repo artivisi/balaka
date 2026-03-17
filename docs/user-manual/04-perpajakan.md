@@ -385,6 +385,7 @@ Kompensasi kerugian diterapkan otomatis (FIFO berdasarkan tahun asal) pada lapor
 Semua lampiran juga tersedia via API di `/api/tax-export/spt-tahunan/*`:
 
 ```
+GET /api/tax-export/spt-tahunan/lampiran?year=2025        — Semua lampiran (consolidated)
 GET /api/tax-export/spt-tahunan/l1?year=2025              — JSON
 GET /api/tax-export/spt-tahunan/l1?year=2025&format=excel — XLSX
 GET /api/tax-export/spt-tahunan/l4?year=2025
@@ -392,6 +393,14 @@ GET /api/tax-export/spt-tahunan/l9?year=2025
 GET /api/tax-export/spt-tahunan/transkrip-8a?year=2025
 GET /api/tax-export/ebupot-pph21?year=2025
 ```
+
+**Endpoint konsolidasi** (`/lampiran`) mengembalikan seluruh data lampiran dalam satu response JSON, dengan field number Coretax (8A.I.1, 8A.II.1, dst.) siap untuk key-in ke Coretax DJP. Mencakup:
+- Transkrip 8A (neraca + laba rugi dengan nomor field Coretax)
+- Lampiran I (rekonsiliasi fiskal + kompensasi kerugian)
+- Lampiran II (rincian beban usaha dan beban luar usaha)
+- Lampiran III (kredit pajak PPh 23 dari bukti potong)
+- Lampiran V (placeholder — data pemegang saham diisi manual)
+- PPh Badan (PKP, PPh terutang, kredit pajak, PPh 29)
 
 Autentikasi: Bearer token dengan scope `tax-export:read`.
 
