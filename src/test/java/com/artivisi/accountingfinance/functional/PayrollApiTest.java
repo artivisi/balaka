@@ -343,6 +343,82 @@ class PayrollApiTest extends PlaywrightTestBase {
         assertThat(a1Response.status()).isEqualTo(404);
     }
 
+    // ==================== SCHEDULE TESTS ====================
+
+    @Test
+    @DisplayName("Schedule CRUD lifecycle: create, get, delete")
+    void scheduleCrudLifecycle() throws Exception {
+        // Initially no schedule
+        APIResponse getEmpty = get("/api/payroll/schedule");
+        assertThat(getEmpty.status()).isEqualTo(404);
+
+        // CREATE
+        Map<String, Object> request = new HashMap<>();
+        request.put("dayOfMonth", 28);
+        request.put("baseSalary", 5000000);
+        request.put("jkkRiskClass", 1);
+        request.put("autoCalculate", true);
+        request.put("autoApprove", false);
+        request.put("active", true);
+
+        APIResponse createResponse = post("/api/payroll/schedule", request);
+        assertThat(createResponse.status()).isEqualTo(200);
+
+        JsonNode created = parse(createResponse);
+        assertThat(created.get("dayOfMonth").asInt()).isEqualTo(28);
+        assertThat(created.get("baseSalary").asDouble()).isEqualTo(5000000.0);
+        assertThat(created.get("jkkRiskClass").asInt()).isEqualTo(1);
+        assertThat(created.get("autoCalculate").asBoolean()).isTrue();
+        assertThat(created.get("autoApprove").asBoolean()).isFalse();
+        assertThat(created.get("active").asBoolean()).isTrue();
+        log.info("Schedule created: id={}", created.get("id").asText());
+
+        // GET
+        APIResponse getResponse = get("/api/payroll/schedule");
+        assertThat(getResponse.status()).isEqualTo(200);
+        JsonNode fetched = parse(getResponse);
+        assertThat(fetched.get("dayOfMonth").asInt()).isEqualTo(28);
+
+        // UPDATE (replace)
+        request.put("dayOfMonth", 25);
+        request.put("baseSalary", 6000000);
+        request.put("autoApprove", true);
+
+        APIResponse updateResponse = post("/api/payroll/schedule", request);
+        assertThat(updateResponse.status()).isEqualTo(200);
+        JsonNode updated = parse(updateResponse);
+        assertThat(updated.get("dayOfMonth").asInt()).isEqualTo(25);
+        assertThat(updated.get("baseSalary").asDouble()).isEqualTo(6000000.0);
+        assertThat(updated.get("autoApprove").asBoolean()).isTrue();
+
+        // DELETE
+        APIResponse deleteResponse = delete("/api/payroll/schedule");
+        assertThat(deleteResponse.status()).isEqualTo(204);
+
+        // Verify deleted
+        APIResponse getAfterDelete = get("/api/payroll/schedule");
+        assertThat(getAfterDelete.status()).isEqualTo(404);
+    }
+
+    @Test
+    @DisplayName("Schedule validation rejects invalid dayOfMonth")
+    void scheduleValidation() throws Exception {
+        // dayOfMonth = 0 (invalid)
+        Map<String, Object> request = new HashMap<>();
+        request.put("dayOfMonth", 0);
+        request.put("baseSalary", 5000000);
+        request.put("jkkRiskClass", 1);
+        request.put("autoCalculate", true);
+
+        APIResponse response = post("/api/payroll/schedule", request);
+        assertThat(response.status()).isEqualTo(400);
+
+        // dayOfMonth = 29 (invalid, max is 28)
+        request.put("dayOfMonth", 29);
+        response = post("/api/payroll/schedule", request);
+        assertThat(response.status()).isEqualTo(400);
+    }
+
     // ==================== HELPER METHODS ====================
 
     private APIResponse get(String path) {
