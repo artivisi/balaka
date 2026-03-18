@@ -179,7 +179,7 @@ public class DataExportService {
         StringBuilder manifest = new StringBuilder();
         manifest.append("# Data Export Manifest\n\n");
         manifest.append("Export Date: ").append(LocalDateTime.now().format(DATETIME_FORMATTER)).append("\n");
-        manifest.append("Application: Aplikasi Akunting\n");
+        manifest.append("Application: Balaka\n");
         manifest.append("Format Version: 2.0\n\n");
 
         if (config != null) {

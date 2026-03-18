@@ -4,7 +4,7 @@
   become: yes
 
   vars:
-    app_domain: akunting.artivisi.id
+    app_domain: balaka.artivisi.id
     ssl_email: admin@artivisi.com
     app_port: 10000
     app_name: aplikasi-akunting

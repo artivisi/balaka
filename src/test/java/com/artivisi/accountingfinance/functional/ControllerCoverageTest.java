@@ -75,7 +75,7 @@ class ControllerCoverageTest extends PlaywrightTestBase {
             navigateTo("/about");
             waitForPageLoad();
 
-            assertThat(page.locator("text=Aplikasi Akunting").isVisible())
+            assertThat(page.locator("text=Balaka").isVisible())
                 .as("Application name should be visible")
                 .isTrue();
         }

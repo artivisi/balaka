@@ -28,7 +28,7 @@ public class OpenApiConfig {
     public OpenAPI openAPI() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("Aplikasi Akunting API")
+                        .title("Balaka API")
                         .version("2026.03")
                         .description("REST API for Indonesian accounting application. "
                                 + "Supports AI-assisted transaction entry, financial analysis, "

@@ -1,7 +1,7 @@
 # Data Export Manifest
 
 Export Date: 2024-12
-Application: Aplikasi Akunting
+Application: Balaka
 Format Version: 2.0
 
 ## Industry Package

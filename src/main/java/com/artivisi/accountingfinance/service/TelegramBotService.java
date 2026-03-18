@@ -151,7 +151,7 @@ public class TelegramBotService {
         sendMessage(chatId, String.format(
                 "Selamat datang %s!%n%n" +
                 "Untuk menghubungkan akun:%n" +
-                "1. Login ke aplikasi akunting%n" +
+                "1. Login ke Balaka%n" +
                 "2. Buka Pengaturan > Telegram%n" +
                 "3. Klik 'Hubungkan Telegram'%n" +
                 "4. Kirim kode verifikasi yang muncul dengan:%n" +

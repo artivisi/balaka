@@ -93,7 +93,7 @@
                 <img th:if="${company.companyLogoPath != null and !company.companyLogoPath.isEmpty()}"
                      th:src="@{${company.companyLogoPath}}" alt="Logo" class="company-logo">
                 <img th:unless="${company.companyLogoPath != null and !company.companyLogoPath.isEmpty()}"
-                     th:src="@{/img/logo-artivisi.svg}" alt="Logo" class="company-logo">
+                     th:src="@{${theme.logoPath}}" alt="Logo" class="company-logo">
                 <div class="company-name" th:text="${company.companyName}">Nama Perusahaan</div>
                 <div class="company-details">
                     <span th:if="${company.companyAddress}" th:text="${company.companyAddress}">Alamat</span><br th:if="${company.companyAddress}">

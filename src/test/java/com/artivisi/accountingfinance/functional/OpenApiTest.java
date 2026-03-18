@@ -71,12 +71,12 @@ class OpenApiTest extends PlaywrightTestBase {
     }
 
     @Test
-    @DisplayName("info.title is 'Aplikasi Akunting API'")
+    @DisplayName("info.title is 'Balaka API'")
     void testInfoTitle() throws Exception {
         APIResponse response = apiContext.get(API_DOCS_URL);
         JsonNode body = objectMapper.readTree(response.text());
 
-        assertThat(body.get("info").get("title").asText()).isEqualTo("Aplikasi Akunting API");
+        assertThat(body.get("info").get("title").asText()).isEqualTo("Balaka API");
 
         log.info("Info title verified");
     }
