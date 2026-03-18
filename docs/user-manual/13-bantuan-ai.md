@@ -199,7 +199,7 @@ AI assistant dapat menginstal aplikasi dari nol ke VPS kosong menggunakan Ansibl
 
 ```
 1. AI clone repository
-   git clone https://github.com/artivisi/aplikasi-akunting.git
+   git clone https://github.com/artivisi/balaka.git
    |
 2. AI konfigurasi inventory Ansible
    Edit deploy/ansible/inventory.ini — set IP, domain, credentials
@@ -248,7 +248,7 @@ AI perlu membuat file `inventory.ini` dengan konfigurasi server:
 server1 ansible_host=IP_VPS ansible_user=root
 
 [app:vars]
-app_domain=akunting.example.com
+app_domain=balaka.example.com
 db_name=accountingdb
 db_user=akunting
 db_password=SECURE_PASSWORD
@@ -260,13 +260,13 @@ Setelah deploy, AI memverifikasi:
 
 ```bash
 # Health check
-curl -s https://akunting.example.com/actuator/health
+curl -s https://balaka.example.com/actuator/health
 
 # OpenAPI spec tersedia
-curl -s https://akunting.example.com/v3/api-docs | head -c 200
+curl -s https://balaka.example.com/v3/api-docs | head -c 200
 
 # Login page accessible
-curl -s -o /dev/null -w "%{http_code}" https://akunting.example.com/login
+curl -s -o /dev/null -w "%{http_code}" https://balaka.example.com/login
 # → 200
 ```
 
@@ -417,7 +417,7 @@ template_name,line_order,account_code,account_hint,position,formula,description
 ### API Import
 
 ```bash
-curl -X POST https://akunting.example.com/api/data-import \
+curl -X POST https://balaka.example.com/api/data-import \
   -H "Authorization: Bearer {accessToken}" \
   -F "file=@seed-data.zip"
 ```

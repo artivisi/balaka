@@ -651,7 +651,7 @@ Lihat [Bab 3: Aset Tetap](03-aset-tetap.md) untuk pencatatan dan depresiasi.
 
 **Skenario Ideal:**
 
-Aplikasi akuntansi ini fokus pada **financial management**. Untuk integrasi penuh, diperlukan:
+Balaka fokus pada **financial management**. Untuk integrasi penuh, diperlukan:
 
 1. **Sistem Akademik (SIAKAD):**
    - Manajemen mahasiswa (biodata, NIM, program)
@@ -660,8 +660,8 @@ Aplikasi akuntansi ini fokus pada **financial management**. Untuk integrasi penu
    - Status akademik
 
 2. **Integrasi via CSV/API:**
-   - SIAKAD → Export data mahasiswa & tagihan → Import ke aplikasi akuntansi
-   - Aplikasi akuntansi → Export data pembayaran → Import ke SIAKAD
+   - SIAKAD → Export data mahasiswa & tagihan → Import ke Balaka
+   - Balaka → Export data pembayaran → Import ke SIAKAD
 
 **Workflow:**
 ```
@@ -669,7 +669,7 @@ SIAKAD: Generate tagihan SPP per mahasiswa
     ↓
 Export CSV: NIM, Nama, Program, Jumlah SPP
     ↓
-Import ke Aplikasi Akuntansi
+Import ke Balaka
     ↓
 Buat transaksi batch (Tagihan SPP)
     ↓

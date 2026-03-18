@@ -1,7 +1,7 @@
-# Aplikasi Akunting
+# Balaka
 
-[![CI](https://github.com/artivisi/aplikasi-akunting/actions/workflows/ci.yml/badge.svg)](https://github.com/artivisi/aplikasi-akunting/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/artivisi/aplikasi-akunting/graph/badge.svg)](https://codecov.io/gh/artivisi/aplikasi-akunting)
+[![CI](https://github.com/artivisi/balaka/actions/workflows/ci.yml/badge.svg)](https://github.com/artivisi/balaka/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/artivisi/balaka/graph/badge.svg)](https://codecov.io/gh/artivisi/balaka)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=artivisi_aplikasi-akunting&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=artivisi_aplikasi-akunting)
 [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=artivisi_aplikasi-akunting&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=artivisi_aplikasi-akunting)
 [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=artivisi_aplikasi-akunting&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=artivisi_aplikasi-akunting)
@@ -48,7 +48,7 @@ Accounting application for Indonesian small businesses. Spring Boot 4.0.3 + Thym
 
 | Document | Description |
 |----------|-------------|
-| [User Manual](https://artivisi.com/aplikasi-akunting/) | End-user documentation (Indonesian) |
+| [User Manual](https://artivisi.com/balaka/) | End-user documentation (Indonesian) |
 | [Features & Roadmap](docs/01-features-and-roadmap.md) | Current features and future plans |
 | [Architecture](docs/02-architecture.md) | Tech stack, data model, infrastructure |
 | [Operations Guide](docs/03-operations-guide.md) | Deployment, release, backup/restore |
