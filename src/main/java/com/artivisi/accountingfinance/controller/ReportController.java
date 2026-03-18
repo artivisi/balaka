@@ -31,8 +31,12 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.Month;
 import java.time.format.DateTimeFormatter;
+import java.time.format.TextStyle;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 import static com.artivisi.accountingfinance.controller.ViewConstants.*;
@@ -156,7 +160,7 @@ public class ReportController {
 
         // Build period options: yearly + monthly from fiscal periods
         List<Integer> years = fiscalPeriodService.findDistinctYears();
-        model.addAttribute("years", years);
+        model.addAttribute("periodOptions", buildPeriodOptions(years));
 
         if (period != null && !period.isBlank()) {
             model.addAttribute("selectedPeriod", period);
@@ -186,6 +190,22 @@ public class ReportController {
         }
 
         return "reports/period";
+    }
+
+    public record PeriodOption(String value, String label) {}
+
+    private List<PeriodOption> buildPeriodOptions(List<Integer> years) {
+        Locale id = Locale.of("id", "ID");
+        List<PeriodOption> options = new ArrayList<>();
+        for (int year : years) {
+            options.add(new PeriodOption(String.valueOf(year), "Tahun " + year));
+            for (Month m : Month.values()) {
+                String value = String.format("%d-%02d", year, m.getValue());
+                String label = "  " + m.getDisplayName(TextStyle.FULL, id) + " " + year;
+                options.add(new PeriodOption(value, label));
+            }
+        }
+        return options;
     }
 
     // REST API Endpoints
