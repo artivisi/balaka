@@ -24,9 +24,11 @@ import com.artivisi.accountingfinance.repository.ProjectRepository;
 import com.artivisi.accountingfinance.repository.TagRepository;
 import com.artivisi.accountingfinance.repository.TransactionRepository;
 import com.artivisi.accountingfinance.repository.TransactionSequenceRepository;
+import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -45,6 +47,7 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @Validated
+@Slf4j
 @Transactional(readOnly = true)
 public class TransactionService {
 
@@ -61,6 +64,7 @@ public class TransactionService {
     private final FormulaEvaluator formulaEvaluator;
     private final TaxTransactionDetailService taxTransactionDetailService;
     private final FiscalPeriodService fiscalPeriodService;
+    private final EntityManager entityManager;
 
     public List<Transaction> findAll() {
         return transactionRepository.findAll();
@@ -399,6 +403,109 @@ public class TransactionService {
         }
         transactionRepository.save(transaction);
     }
+
+    /**
+     * Purge (hard-delete) all voided transactions, optionally limited to those
+     * with transaction_date before the given cutoff date.
+     *
+     * @param before optional cutoff date (exclusive); null means purge all voided
+     * @return list of purged transactions with their details
+     */
+    @Transactional
+    public List<PurgedTransaction> purgeVoidedTransactions(LocalDate before) {
+        List<Transaction> voidedTransactions;
+        if (before != null) {
+            voidedTransactions = transactionRepository
+                    .findByStatusAndTransactionDateBeforeOrderByTransactionDateAsc(TransactionStatus.VOID, before);
+        } else {
+            voidedTransactions = transactionRepository
+                    .findByStatusOrderByTransactionDateDesc(TransactionStatus.VOID);
+        }
+
+        if (voidedTransactions.isEmpty()) {
+            return List.of();
+        }
+
+        // Collect details before deletion
+        List<PurgedTransaction> purged = voidedTransactions.stream()
+                .map(tx -> new PurgedTransaction(
+                        tx.getId(),
+                        tx.getTransactionNumber(),
+                        tx.getTransactionDate(),
+                        tx.getAmount(),
+                        tx.getDescription(),
+                        tx.getVoidReason(),
+                        tx.getVoidedAt(),
+                        tx.getVoidedBy()))
+                .toList();
+
+        List<UUID> ids = voidedTransactions.stream().map(Transaction::getId).toList();
+        log.info("Purging {} voided transactions: {}", ids.size(), ids);
+
+        // Null out nullable FK references from other tables
+        nullOutForeignKeyReferences(ids);
+
+        // Clear self-referencing FK in journal_entries (reversed_entry)
+        entityManager.createNativeQuery(
+                "UPDATE journal_entries SET id_reversed_entry = NULL WHERE id_transaction IN :ids")
+                .setParameter("ids", ids)
+                .executeUpdate();
+
+        // Delete from child tables without DB CASCADE
+        entityManager.createNativeQuery(
+                "DELETE FROM journal_entries WHERE id_transaction IN :ids")
+                .setParameter("ids", ids)
+                .executeUpdate();
+
+        entityManager.createNativeQuery(
+                "DELETE FROM transaction_tags WHERE id_transaction IN :ids")
+                .setParameter("ids", ids)
+                .executeUpdate();
+
+        // Delete transactions (DB CASCADE handles: transaction_account_mappings,
+        // transaction_variables, documents, tax_transaction_details)
+        entityManager.createNativeQuery(
+                "DELETE FROM transactions WHERE id IN :ids")
+                .setParameter("ids", ids)
+                .executeUpdate();
+
+        log.info("Purged {} voided transactions", purged.size());
+        return purged;
+    }
+
+    private void nullOutForeignKeyReferences(List<UUID> transactionIds) {
+        String[] nullOutQueries = {
+            "UPDATE invoices SET id_transaction = NULL WHERE id_transaction IN :ids",
+            "UPDATE bills SET id_transaction = NULL WHERE id_transaction IN :ids",
+            "UPDATE draft_transactions SET id_transaction = NULL WHERE id_transaction IN :ids",
+            "UPDATE payroll_runs SET id_transaction = NULL WHERE id_transaction IN :ids",
+            "UPDATE fixed_assets SET id_purchase_transaction = NULL WHERE id_purchase_transaction IN :ids",
+            "UPDATE fixed_assets SET id_disposal_transaction = NULL WHERE id_disposal_transaction IN :ids",
+            "UPDATE depreciation_entries SET id_transaction = NULL WHERE id_transaction IN :ids",
+            "UPDATE inventory_transactions SET id_transaction = NULL WHERE id_transaction IN :ids",
+            "UPDATE production_orders SET id_transaction = NULL WHERE id_transaction IN :ids",
+            "UPDATE bank_statement_items SET id_matched_transaction = NULL WHERE id_matched_transaction IN :ids",
+            "UPDATE reconciliation_items SET id_transaction = NULL WHERE id_transaction IN :ids",
+            "UPDATE recurring_transaction_logs SET id_transaction = NULL WHERE id_transaction IN :ids",
+        };
+
+        for (String query : nullOutQueries) {
+            entityManager.createNativeQuery(query)
+                    .setParameter("ids", transactionIds)
+                    .executeUpdate();
+        }
+    }
+
+    public record PurgedTransaction(
+            UUID id,
+            String transactionNumber,
+            LocalDate transactionDate,
+            BigDecimal amount,
+            String description,
+            VoidReason voidReason,
+            LocalDateTime voidedAt,
+            String voidedBy
+    ) {}
 
     @Transactional
     public void delete(UUID id) {

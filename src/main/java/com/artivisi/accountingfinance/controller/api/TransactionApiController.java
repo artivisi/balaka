@@ -18,6 +18,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -30,10 +31,12 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -269,6 +272,47 @@ public class TransactionApiController {
         return ResponseEntity.ok(new BulkPostResponse(results, successCount, failureCount));
     }
 
+    /**
+     * Purge (permanently delete) all voided transactions.
+     * DELETE /api/transactions/purge-voided?before=YYYY-MM-DD
+     */
+    @DeleteMapping("/purge-voided")
+    @PreAuthorize("hasAuthority('SCOPE_transactions:post')")
+    @Operation(summary = "Purge voided transactions",
+               description = "Permanently deletes all VOID transactions and their journal entries. "
+                           + "Returns purged transaction details as a backup. "
+                           + "Optionally limit scope with ?before=YYYY-MM-DD (exclusive).")
+    @ApiResponse(responseCode = "200", description = "Purged transactions returned")
+    public ResponseEntity<PurgeVoidedResponse> purgeVoidedTransactions(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate before) {
+
+        String username = getCurrentUsername();
+        log.info("API: Purge voided transactions, before={}, user={}", before, username);
+
+        List<TransactionService.PurgedTransaction> purged = transactionService.purgeVoidedTransactions(before);
+
+        List<PurgedTransactionDto> purgedDtos = purged.stream()
+                .map(p -> new PurgedTransactionDto(
+                        p.id(),
+                        p.transactionNumber(),
+                        p.transactionDate(),
+                        p.amount(),
+                        p.description(),
+                        p.voidReason() != null ? p.voidReason().name() : null,
+                        p.voidedAt(),
+                        p.voidedBy()))
+                .toList();
+
+        auditApiCall(Map.of(
+                KEY_ACTION, "purge-voided",
+                "before", before != null ? before.toString() : "all",
+                "purgedCount", String.valueOf(purged.size()),
+                KEY_SOURCE, "api"
+        ));
+
+        return ResponseEntity.ok(new PurgeVoidedResponse(purgedDtos, purgedDtos.size()));
+    }
+
     private TransactionResponse toTransactionResponse(Transaction tx) {
         List<TransactionResponse.JournalEntryDto> journalEntries = tx.getJournalEntries().stream()
                 .filter(je -> !Boolean.TRUE.equals(je.getIsReversal()))
@@ -344,5 +388,21 @@ public class TransactionApiController {
             String accountName,
             BigDecimal debitAmount,
             BigDecimal creditAmount
+    ) {}
+
+    public record PurgeVoidedResponse(
+            List<PurgedTransactionDto> purgedTransactions,
+            int purgedCount
+    ) {}
+
+    public record PurgedTransactionDto(
+            UUID id,
+            String transactionNumber,
+            LocalDate transactionDate,
+            BigDecimal amount,
+            String description,
+            String voidReason,
+            java.time.LocalDateTime voidedAt,
+            String voidedBy
     ) {}
 }
