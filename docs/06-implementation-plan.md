@@ -1833,6 +1833,37 @@ Items below are not planned phases. They are implemented only when a concrete cl
 - [ ] Multi-currency support
 - [ ] Materialized account balances (only if report queries exceed 2s — current performance analysis shows this is decades away for typical usage)
 
+### Demo Datasets & Playwright Loaders (for demo instances on balaka.id)
+
+Git-versioned sample data for 4 industry demo instances. Full plan: `aplikasi-akunting-deploy/demo-setup-plan.md`.
+
+**Dataset structure** (`src/test/resources/demo-data/{industry}/`):
+- [ ] Design 4 fictional companies (README.md per industry: name, NPWP, employees, clients, products)
+- [ ] Create `company-config.csv`, `employees.csv`, `clients.csv`, `fiscal-periods.csv` per industry
+- [ ] IT Service: `products.csv` not needed; Online Seller: `products.csv` (10-20 SKUs); Coffee Shop: `products.csv` + `bill-of-materials.csv`; Campus: student/program data
+- [ ] Create 2025 full-year transaction CSVs per industry (Q1-Q4, internally consistent, all POSTED)
+- [ ] Create 2025 invoice CSVs with tax details (e-Faktur, PPh 23 bupot per invoice)
+- [ ] Create 2025 payroll run CSVs (12 months)
+- [ ] Create 2025 fixed asset CSVs (IT, campus) / inventory CSVs (seller) / BOM + production CSVs (coffee shop)
+- [ ] Create 2025 closing entry CSVs (zero out revenue/expense to retained earnings, date 2025-12-31)
+- [ ] Create 2026 Q1 transaction CSVs (mix of POSTED + DRAFT — shows work-in-progress)
+- [ ] Create 2026 Q1 invoices (mix of PAID + UNPAID)
+- [ ] Create 2026 Q1 payroll (Jan-Feb POSTED, Mar DRAFT)
+- [ ] Create 2026 Q1 tax details (Jan-Feb filed, Mar pending)
+
+**Playwright loaders** (`src/test/java/.../functional/demo/`):
+- [ ] `DemoItServiceDataLoader.java` — ordered test: import seed → create employees/clients → load 2025 tx → payroll → invoices → tax details → closing entries → close fiscal periods → load 2026 Q1
+- [ ] `DemoOnlineSellerDataLoader.java` — same pattern + inventory transactions
+- [ ] `DemoCoffeeShopDataLoader.java` — same pattern + BOM + production orders
+- [ ] `DemoCampusDataLoader.java` — same pattern + tuition billing
+- [ ] Loaders use existing `TransactionHelper.executeTransactionsFromCsv()` and `CsvLoader`
+- [ ] Loaders runnable against external instance: `mvn test -Dtest=DemoItServiceDataLoader -Dapp.base-url=https://demo-it.balaka.id`
+- [ ] Validate after loading: trial balance balances, PPN matches invoices, payroll PPh 21 correct, 2025 periods closed
+
+**Demo banner:**
+- [ ] Add `app.demo-mode` config property (default: false)
+- [ ] When true, show banner on every page: "Data direset setiap hari pukul 00:00 WIB"
+
 ### Docker Image (for Sumopod template & container deployment)
 - [ ] Create Dockerfile — multi-stage build or Spring Boot's `spring-boot:build-image` plugin (evaluate both; prefer `build-image` if the generated image meets size/startup requirements, otherwise self-maintained multi-stage)
 - [ ] Multi-stage Dockerfile reference: stage 1 = Maven build (`./mvnw package -DskipTests`), stage 2 = `azul/zulu-openjdk-alpine:25-jre` + JAR copy. No Nginx, no PostgreSQL — external managed DB, platform handles SSL/routing.
