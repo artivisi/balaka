@@ -371,7 +371,7 @@ public abstract class DemoDataLoaderBase extends PlaywrightTestBase {
                     selectedValue = val; break;
                 } else if (hint.contains("BEBAN") && text.startsWith("5.")) {
                     selectedValue = val; break;
-                } else if (hint.contains("FIXED_ASSET") && text.startsWith("1.2.")) {
+                } else if ((hint.contains("FIXED_ASSET") || hint.contains("ASET_TETAP")) && text.startsWith("1.2.")) {
                     selectedValue = val; break;
                 } else if (hint.contains("DEBIT_ACCOUNT") || hint.contains("CREDIT_ACCOUNT")) {
                     // Manual journal — skip auto-select
@@ -588,7 +588,16 @@ public abstract class DemoDataLoaderBase extends PlaywrightTestBase {
         page.locator("#btn-simpan").click();
         waitForPageLoad();
 
-        log.debug("Fixed asset created: {} - {}", parts[0], parts[1]);
+        log.info("Fixed asset created: {} - {}", parts[0], parts[1]);
+
+        // Also create a purchase transaction via "Pembelian Aset Tetap" template
+        // This records the journal entry: debit fixed asset account, credit bank
+        // Template is DETAILED with variable "assetCost"
+        DemoAction purchaseAction = new DemoAction(
+                action.date, "Pembelian Aset Tetap", 0,
+                "var_assetCost:" + parts[3],
+                "Pembelian " + parts[1], action.reference, "", "POST");
+        createTransaction(purchaseAction);
     }
 
     private void createInvoice(DemoAction action) {
