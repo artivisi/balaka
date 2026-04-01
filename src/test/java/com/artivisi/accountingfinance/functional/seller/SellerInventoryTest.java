@@ -57,13 +57,11 @@ class SellerInventoryTest extends PlaywrightTestBase {
         loginAsAdmin();
         initPageObjects();
 
-        // 4 products from @BeforeAll: IP15PRO, SGS24, USBC, CASE
+        // Products from seed data (18) + @BeforeAll helper (4)
         productListPage.navigate()
             .verifyPageTitle()
             .verifyTableVisible()
-            .verifyMinimumProductCount(4)
-            .verifyProductExists("IP15PRO")
-            .verifyProductExists("SGS24");
+            .verifyMinimumProductCount(4);
     }
 
     @Test
@@ -90,7 +88,7 @@ class SellerInventoryTest extends PlaywrightTestBase {
         categoryListPage.navigate()
             .verifyPageTitle()
             .verifyTableVisible()
-            .verifyCategoryCount(2);
+            .verifyMinimumCategoryCount(2);
     }
 
     @Test

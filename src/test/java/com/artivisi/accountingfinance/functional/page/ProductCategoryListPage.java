@@ -44,6 +44,13 @@ public class ProductCategoryListPage {
         return this;
     }
 
+    public ProductCategoryListPage verifyMinimumCategoryCount(int minCount) {
+        org.assertj.core.api.Assertions.assertThat(page.locator(CATEGORY_TABLE + " tbody tr").count())
+                .as("Should have at least %d categories", minCount)
+                .isGreaterThanOrEqualTo(minCount);
+        return this;
+    }
+
     /**
      * Verify category exists by code.
      */
