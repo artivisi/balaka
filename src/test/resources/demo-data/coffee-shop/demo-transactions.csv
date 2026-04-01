@@ -7,7 +7,7 @@ date,template_name,amount,inputs,description,reference,project,status
 2025-01-11,Penjualan Tunai + COGS,0,var_revenueAmount:18000000|var_cogs:6840000,Penjualan minggu 1 Januari,POS-2025-01-W1,,POST
 2025-01-18,Penjualan Tunai + COGS,0,var_revenueAmount:17500000|var_cogs:6650000,Penjualan minggu 2 Januari,POS-2025-01-W2,,POST
 2025-01-25,Penjualan Tunai + COGS,0,var_revenueAmount:16000000|var_cogs:6080000,Penjualan minggu 3-4 Januari,POS-2025-01-W3,,POST
-2025-01-27,Transfer Antar Bank,40000000,,Setoran kas ke bank Januari,TRF-KAS-2025-01,,POST
+2025-01-27,Transfer Antar Bank,25000000,,Setoran kas ke bank Januari,TRF-KAS-2025-01,,POST
 2025-01-28,Bayar Sewa,8000000,,Bayar sewa tempat Januari,SEWA-2025-01,,POST
 2025-01-29,Bayar Listrik,1450000,,Bayar listrik Januari,PLN-2025-01,,POST
 2025-01-31,Beban Admin Bank,15000,,Biaya admin BCA Januari,ADM-2025-01,,POST
@@ -18,7 +18,7 @@ date,template_name,amount,inputs,description,reference,project,status
 2025-02-15,Bayar PPh Final UMKM,257500,,PPh Final 0.5% revenue Januari,PPHFINAL-2025-01,,POST
 2025-02-15,Penjualan Tunai + COGS,0,var_revenueAmount:17000000|var_cogs:6460000,Penjualan minggu 2 Februari,POS-2025-02-W2,,POST
 2025-02-22,Penjualan Online (GrabFood/GoFood),0,var_grossSales:8000000|var_adminFee:1600000,Penjualan GrabFood Februari,GF-2025-02,,POST
-2025-02-27,Transfer Antar Bank,35000000,,Setoran kas ke bank Februari,TRF-KAS-2025-02,,POST
+2025-02-27,Transfer Antar Bank,25000000,,Setoran kas ke bank Februari,TRF-KAS-2025-02,,POST
 2025-02-28,Bayar Sewa,8000000,,Bayar sewa tempat Februari,SEWA-2025-02,,POST
 2025-02-28,Bayar Listrik,1500000,,Bayar listrik Februari,PLN-2025-02,,POST
 2025-02-28,Beban Admin Bank,15000,,Biaya admin BCA Februari,ADM-2025-02,,POST
@@ -31,7 +31,7 @@ date,template_name,amount,inputs,description,reference,project,status
 2025-03-15,Penjualan Tunai + COGS,0,var_revenueAmount:18500000|var_cogs:7030000,Penjualan minggu 2 Maret,POS-2025-03-W2,,POST
 2025-03-20,__ASSET__,,AST-ESP-001|Mesin Espresso La Marzocca|CAT-COFFEE|25000000|60|0|STRAIGHT_LINE,Mesin espresso baru,PO-AST-001,,POST
 2025-03-22,Penjualan Online (GrabFood/GoFood),0,var_grossSales:9000000|var_adminFee:1800000,Penjualan GrabFood Maret,GF-2025-03,,POST
-2025-03-27,Transfer Antar Bank,45000000,,Setoran kas ke bank Maret,TRF-KAS-2025-03,,POST
+2025-03-27,Transfer Antar Bank,25000000,,Setoran kas ke bank Maret,TRF-KAS-2025-03,,POST
 2025-03-28,Bayar Sewa,8000000,,Bayar sewa tempat Maret,SEWA-2025-03,,POST
 2025-03-29,Bayar Listrik,1500000,,Bayar listrik Maret,PLN-2025-03,,POST
 2025-03-31,Bayar Beban Operasional,1200000,,Perlengkapan toko Maret,OPS-2025-03,,POST
@@ -43,7 +43,7 @@ date,template_name,amount,inputs,description,reference,project,status
 2025-04-15,Bayar PPh Final UMKM,302500,,PPh Final 0.5% revenue Maret,PPHFINAL-2025-03,,POST
 2025-04-17,Penjualan Tunai + COGS,0,var_revenueAmount:16500000|var_cogs:6270000,Penjualan minggu 2 April,POS-2025-04-W2,,POST
 2025-04-24,Penjualan Online (GrabFood/GoFood),0,var_grossSales:7500000|var_adminFee:1500000,Penjualan GrabFood April,GF-2025-04,,POST
-2025-04-27,Transfer Antar Bank,35000000,,Setoran kas ke bank April,TRF-KAS-2025-04,,POST
+2025-04-27,Transfer Antar Bank,25000000,,Setoran kas ke bank April,TRF-KAS-2025-04,,POST
 2025-04-28,Bayar Sewa,8000000,,Bayar sewa tempat April,SEWA-2025-04,,POST
 2025-04-29,Bayar Listrik,1450000,,Bayar listrik April,PLN-2025-04,,POST
 2025-04-30,Beban Admin Bank,15000,,Biaya admin BCA April,ADM-2025-04,,POST
@@ -54,7 +54,7 @@ date,template_name,amount,inputs,description,reference,project,status
 2025-05-15,Bayar PPh Final UMKM,275000,,PPh Final 0.5% revenue April,PPHFINAL-2025-04,,POST
 2025-05-17,Penjualan Tunai + COGS,0,var_revenueAmount:17500000|var_cogs:6650000,Penjualan minggu 2 Mei,POS-2025-05-W2,,POST
 2025-05-24,Penjualan Online (GrabFood/GoFood),0,var_grossSales:8500000|var_adminFee:1700000,Penjualan GrabFood Mei,GF-2025-05,,POST
-2025-05-27,Transfer Antar Bank,38000000,,Setoran kas ke bank Mei,TRF-KAS-2025-05,,POST
+2025-05-27,Transfer Antar Bank,25000000,,Setoran kas ke bank Mei,TRF-KAS-2025-05,,POST
 2025-05-28,Bayar Sewa,8000000,,Bayar sewa tempat Mei,SEWA-2025-05,,POST
 2025-05-29,Bayar Listrik,1500000,,Bayar listrik Mei,PLN-2025-05,,POST
 2025-05-31,Beban Admin Bank,15000,,Biaya admin BCA Mei,ADM-2025-05,,POST
@@ -65,7 +65,7 @@ date,template_name,amount,inputs,description,reference,project,status
 2025-06-15,Bayar PPh Final UMKM,290000,,PPh Final 0.5% revenue Mei,PPHFINAL-2025-05,,POST
 2025-06-17,Penjualan Tunai + COGS,0,var_revenueAmount:18000000|var_cogs:6840000,Penjualan minggu 2 Juni,POS-2025-06-W2,,POST
 2025-06-24,Penjualan Online (GrabFood/GoFood),0,var_grossSales:9500000|var_adminFee:1900000,Penjualan GrabFood Juni,GF-2025-06,,POST
-2025-06-27,Transfer Antar Bank,40000000,,Setoran kas ke bank Juni,TRF-KAS-2025-06,,POST
+2025-06-27,Transfer Antar Bank,25000000,,Setoran kas ke bank Juni,TRF-KAS-2025-06,,POST
 2025-06-28,Bayar Sewa,8000000,,Bayar sewa tempat Juni,SEWA-2025-06,,POST
 2025-06-29,Bayar Listrik,1550000,,Bayar listrik Juni,PLN-2025-06,,POST
 2025-06-30,Bayar Beban Operasional,1300000,,Perlengkapan toko Q2,OPS-2025-Q2,,POST
@@ -76,7 +76,7 @@ date,template_name,amount,inputs,description,reference,project,status
 2025-07-10,Penjualan Tunai + COGS,0,var_revenueAmount:17000000|var_cogs:6460000,Penjualan minggu 1 Juli,POS-2025-07-W1,,POST
 2025-07-15,Bayar PPh Final UMKM,310000,,PPh Final 0.5% revenue Juni,PPHFINAL-2025-06,,POST
 2025-07-17,Penjualan Tunai + COGS,0,var_revenueAmount:16500000|var_cogs:6270000,Penjualan minggu 2 Juli,POS-2025-07-W2,,POST
-2025-07-27,Transfer Antar Bank,28000000,,Setoran kas ke bank Juli,TRF-KAS-2025-07,,POST
+2025-07-27,Transfer Antar Bank,25000000,,Setoran kas ke bank Juli,TRF-KAS-2025-07,,POST
 2025-07-28,Bayar Sewa,8000000,,Bayar sewa tempat Juli,SEWA-2025-07,,POST
 2025-07-29,Bayar Listrik,1450000,,Bayar listrik Juli,PLN-2025-07,,POST
 2025-07-31,Beban Admin Bank,15000,,Biaya admin BCA Juli,ADM-2025-07,,POST
@@ -88,7 +88,7 @@ date,template_name,amount,inputs,description,reference,project,status
 2025-08-17,Penjualan Tunai + COGS,0,var_revenueAmount:17500000|var_cogs:6650000,Penjualan minggu 2 Agustus,POS-2025-08-W2,,POST
 2025-08-22,Penjualan Online (GrabFood/GoFood),0,var_grossSales:10000000|var_adminFee:2000000,Penjualan GrabFood Agustus,GF-2025-08,,POST
 2025-08-25,__ASSET__,,AST-POS-001|Komputer POS Kasir|CAT-COMPUTER|8000000|48|0|STRAIGHT_LINE,Komputer kasir baru,PO-AST-002,,POST
-2025-08-27,Transfer Antar Bank,38000000,,Setoran kas ke bank Agustus,TRF-KAS-2025-08,,POST
+2025-08-27,Transfer Antar Bank,25000000,,Setoran kas ke bank Agustus,TRF-KAS-2025-08,,POST
 2025-08-28,Bayar Sewa,8000000,,Bayar sewa tempat Agustus,SEWA-2025-08,,POST
 2025-08-29,Bayar Listrik,1550000,,Bayar listrik Agustus,PLN-2025-08,,POST
 2025-08-31,Beban Admin Bank,15000,,Biaya admin BCA Agustus,ADM-2025-08,,POST
@@ -99,7 +99,7 @@ date,template_name,amount,inputs,description,reference,project,status
 2025-09-15,Bayar PPh Final UMKM,310000,,PPh Final 0.5% revenue Agustus,PPHFINAL-2025-08,,POST
 2025-09-17,Penjualan Tunai + COGS,0,var_revenueAmount:17000000|var_cogs:6460000,Penjualan minggu 2 September,POS-2025-09-W2,,POST
 2025-09-22,Penjualan Online (GrabFood/GoFood),0,var_grossSales:8500000|var_adminFee:1700000,Penjualan GrabFood September,GF-2025-09,,POST
-2025-09-27,Transfer Antar Bank,38000000,,Setoran kas ke bank September,TRF-KAS-2025-09,,POST
+2025-09-27,Transfer Antar Bank,25000000,,Setoran kas ke bank September,TRF-KAS-2025-09,,POST
 2025-09-28,Bayar Sewa,8000000,,Bayar sewa tempat September,SEWA-2025-09,,POST
 2025-09-29,Bayar Listrik,1500000,,Bayar listrik September,PLN-2025-09,,POST
 2025-09-30,Bayar Beban Operasional,1400000,,Perlengkapan toko Q3,OPS-2025-Q3,,POST
@@ -110,7 +110,7 @@ date,template_name,amount,inputs,description,reference,project,status
 2025-10-10,Penjualan Tunai + COGS,0,var_revenueAmount:17500000|var_cogs:6650000,Penjualan minggu 1 Oktober,POS-2025-10-W1,,POST
 2025-10-15,Bayar PPh Final UMKM,295000,,PPh Final 0.5% revenue September,PPHFINAL-2025-09,,POST
 2025-10-17,Penjualan Tunai + COGS,0,var_revenueAmount:17000000|var_cogs:6460000,Penjualan minggu 2 Oktober,POS-2025-10-W2,,POST
-2025-10-27,Transfer Antar Bank,28000000,,Setoran kas ke bank Oktober,TRF-KAS-2025-10,,POST
+2025-10-27,Transfer Antar Bank,25000000,,Setoran kas ke bank Oktober,TRF-KAS-2025-10,,POST
 2025-10-28,Bayar Sewa,8000000,,Bayar sewa tempat Oktober,SEWA-2025-10,,POST
 2025-10-29,Bayar Listrik,1500000,,Bayar listrik Oktober,PLN-2025-10,,POST
 2025-10-31,Beban Admin Bank,15000,,Biaya admin BCA Oktober,ADM-2025-10,,POST
@@ -121,7 +121,7 @@ date,template_name,amount,inputs,description,reference,project,status
 2025-11-15,Bayar PPh Final UMKM,275000,,PPh Final 0.5% revenue Oktober,PPHFINAL-2025-10,,POST
 2025-11-17,Penjualan Tunai + COGS,0,var_revenueAmount:18000000|var_cogs:6840000,Penjualan minggu 2 November,POS-2025-11-W2,,POST
 2025-11-22,Penjualan Online (GrabFood/GoFood),0,var_grossSales:11000000|var_adminFee:2200000,Penjualan GrabFood November,GF-2025-11,,POST
-2025-11-27,Transfer Antar Bank,40000000,,Setoran kas ke bank November,TRF-KAS-2025-11,,POST
+2025-11-27,Transfer Antar Bank,25000000,,Setoran kas ke bank November,TRF-KAS-2025-11,,POST
 2025-11-28,Bayar Sewa,8000000,,Bayar sewa tempat November,SEWA-2025-11,,POST
 2025-11-29,Bayar Listrik,1600000,,Bayar listrik November,PLN-2025-11,,POST
 2025-11-30,Beban Admin Bank,15000,,Biaya admin BCA November,ADM-2025-11,,POST
@@ -132,7 +132,7 @@ date,template_name,amount,inputs,description,reference,project,status
 2025-12-15,Bayar PPh Final UMKM,310000,,PPh Final 0.5% revenue November,PPHFINAL-2025-11,,POST
 2025-12-17,Penjualan Tunai + COGS,0,var_revenueAmount:20000000|var_cogs:7600000,Penjualan minggu 2 Desember (holiday),POS-2025-12-W2,,POST
 2025-12-22,Penjualan Online (GrabFood/GoFood),0,var_grossSales:15000000|var_adminFee:3000000,Penjualan GrabFood Desember (peak),GF-2025-12,,POST
-2025-12-27,Transfer Antar Bank,48000000,,Setoran kas ke bank Desember,TRF-KAS-2025-12,,POST
+2025-12-27,Transfer Antar Bank,25000000,,Setoran kas ke bank Desember,TRF-KAS-2025-12,,POST
 2025-12-28,Bayar Sewa,8000000,,Bayar sewa tempat Desember,SEWA-2025-12,,POST
 2025-12-29,Bayar Listrik,1700000,,Bayar listrik Desember (peak),PLN-2025-12,,POST
 2025-12-30,Bayar Beban Operasional,1500000,,Perlengkapan toko Q4,OPS-2025-Q4,,POST

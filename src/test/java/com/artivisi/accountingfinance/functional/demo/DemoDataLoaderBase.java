@@ -371,9 +371,11 @@ public abstract class DemoDataLoaderBase extends PlaywrightTestBase {
                 String text = option.textContent();
                 if (val == null || val.isEmpty() || text == null) continue;
 
-                // Match by hint type, skip already-used values for same hint
-                if (hint.contains("BANK") && text.startsWith("1.1.0") && !usedValues.contains(val)) {
-                    selectedValue = val; break;
+                // Match by hint type, skip already-used values
+                // Prefer Bank BCA (1.1.02) first, then Kas/Mandiri
+                if (hint.contains("BANK") && !usedValues.contains(val)) {
+                    if (text.startsWith("1.1.02")) { selectedValue = val; break; }
+                    else if (text.startsWith("1.1.0") && selectedValue == null) { selectedValue = val; }
                 } else if (hint.contains("PENDAPATAN") && text.startsWith("4.1.")) {
                     selectedValue = val; break;
                 } else if (hint.contains("BEBAN") && text.startsWith("5.")) {
