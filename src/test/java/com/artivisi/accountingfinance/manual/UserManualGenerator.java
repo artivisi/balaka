@@ -226,6 +226,74 @@ public class UserManualGenerator {
                 new Section("referensi-template", "Referensi Template", "12-lampiran-template.md", List.of("service/templates-list", "service/templates-metadata-detail", "service/templates-metadata-form")),
                 new Section("referensi-amortisasi", "Referensi Amortisasi & Depresiasi", "12-lampiran-amortisasi.md", List.of()),
                 new Section("referensi-akun", "Referensi Akun", "12-lampiran-akun.md", List.of("accounts-list"))
+            )),
+
+            // ==================== TUTORIALS ====================
+
+            // Tutorial: Panduan Umum
+            new SectionGroup("tutorial-umum", "Tutorial: Panduan Umum", "M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253", List.of(
+                new Section("tut-setup", "Persiapan Awal", "common/01-setup.md", List.of()),
+                new Section("tut-coa", "Bagan Akun (COA)", "common/02-chart-of-accounts.md", List.of()),
+                new Section("tut-debit-kredit", "Debit dan Kredit", "common/03-debit-credit.md", List.of()),
+                new Section("tut-template", "Template Jurnal", "common/04-journal-templates.md", List.of()),
+                new Section("tut-laporan", "Laporan Keuangan", "common/05-financial-reports.md", List.of()),
+                new Section("tut-payroll", "Payroll", "common/06-payroll.md", List.of()),
+                new Section("tut-ppn", "PPN", "common/07-ppn.md", List.of()),
+                new Section("tut-pph", "PPh", "common/08-pph.md", List.of()),
+                new Section("tut-bpjs", "BPJS", "common/09-bpjs.md", List.of()),
+                new Section("tut-aset", "Aset Tetap & Penyusutan", "common/10-fixed-assets.md", List.of()),
+                new Section("tut-tutup-bulan", "Tutup Buku Bulanan", "common/11-monthly-closing.md", List.of()),
+                new Section("tut-tutup-tahun", "Tutup Buku Akhir Tahun", "common/12-year-end-closing.md", List.of()),
+                new Section("tut-coretax", "Export Coretax", "common/13-coretax-export.md", List.of())
+            )),
+
+            // Tutorial: IT Service
+            new SectionGroup("tutorial-it", "Tutorial: IT Service", "M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z", List.of(
+                new Section("tut-it-overview", "Overview", "it-service/00-overview.md", List.of()),
+                new Section("tut-it-opening", "Setoran Modal", "it-service/01-opening-balance.md", List.of()),
+                new Section("tut-it-income", "Mencatat Pendapatan", "it-service/02-recording-income.md", List.of()),
+                new Section("tut-it-expense", "Mencatat Pengeluaran", "it-service/03-paying-expenses.md", List.of()),
+                new Section("tut-it-payroll", "Payroll Bulanan", "it-service/04-payroll.md", List.of()),
+                new Section("tut-it-asset", "Aset Tetap", "it-service/05-fixed-assets.md", List.of()),
+                new Section("tut-it-closing", "Tutup Bulan", "it-service/06-monthly-closing.md", List.of()),
+                new Section("tut-it-yearend", "Tutup Tahun & SPT", "it-service/07-year-end.md", List.of()),
+                new Section("tut-it-mistakes", "Kesalahan Umum", "it-service/08-common-mistakes.md", List.of())
+            )),
+
+            // Tutorial: Online Seller
+            new SectionGroup("tutorial-seller", "Tutorial: Online Seller", "M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z", List.of(
+                new Section("tut-seller-overview", "Overview", "online-seller/00-overview.md", List.of()),
+                new Section("tut-seller-sales", "Penjualan Marketplace", "online-seller/01-marketplace-sales.md", List.of()),
+                new Section("tut-seller-withdraw", "Withdraw Saldo", "online-seller/02-withdrawals.md", List.of()),
+                new Section("tut-seller-inventory", "Inventori", "online-seller/03-inventory.md", List.of()),
+                new Section("tut-seller-expense", "Beban Operasional", "online-seller/04-expenses.md", List.of()),
+                new Section("tut-seller-pph", "PPh Final UMKM", "online-seller/05-pph-final-umkm.md", List.of()),
+                new Section("tut-seller-payroll", "Payroll", "online-seller/06-payroll.md", List.of()),
+                new Section("tut-seller-closing", "Tutup Bulan", "online-seller/07-monthly-closing.md", List.of())
+            )),
+
+            // Tutorial: Coffee Shop
+            new SectionGroup("tutorial-coffee", "Tutorial: Coffee Shop", "M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4", List.of(
+                new Section("tut-coffee-overview", "Overview", "coffee-shop/00-overview.md", List.of()),
+                new Section("tut-coffee-materials", "Pembelian Bahan Baku", "coffee-shop/01-raw-materials.md", List.of()),
+                new Section("tut-coffee-sales", "Penjualan Harian", "coffee-shop/02-daily-sales.md", List.of()),
+                new Section("tut-coffee-delivery", "Penjualan Online", "coffee-shop/03-online-delivery.md", List.of()),
+                new Section("tut-coffee-bom", "Produksi & BOM", "coffee-shop/04-production-bom.md", List.of()),
+                new Section("tut-coffee-expense", "Beban Operasional", "coffee-shop/05-expenses.md", List.of()),
+                new Section("tut-coffee-payroll", "Payroll", "coffee-shop/06-payroll.md", List.of()),
+                new Section("tut-coffee-tax", "Pajak UMKM", "coffee-shop/07-tax-umkm.md", List.of())
+            )),
+
+            // Tutorial: Campus
+            new SectionGroup("tutorial-campus", "Tutorial: Campus", "M12 14l9-5-9-5-9 5 9 5z M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z", List.of(
+                new Section("tut-campus-overview", "Overview", "campus/00-overview.md", List.of()),
+                new Section("tut-campus-billing", "Tagihan SPP", "campus/01-tuition-billing.md", List.of()),
+                new Section("tut-campus-payment", "Penerimaan Pembayaran", "campus/02-receiving-payments.md", List.of()),
+                new Section("tut-campus-grants", "Hibah & Donasi", "campus/03-grants-donations.md", List.of()),
+                new Section("tut-campus-scholarship", "Beasiswa", "campus/04-scholarships.md", List.of()),
+                new Section("tut-campus-payroll", "Payroll Dosen & Staff", "campus/05-faculty-payroll.md", List.of()),
+                new Section("tut-campus-ops", "Operasional Kampus", "campus/06-campus-operations.md", List.of()),
+                new Section("tut-campus-report", "Laporan & Pelaporan", "campus/07-reporting.md", List.of())
             ))
         );
     }
@@ -376,6 +444,11 @@ public class UserManualGenerator {
         Path filePath = markdownDir.resolve(filename);
         if (Files.exists(filePath)) {
             return Files.readString(filePath, StandardCharsets.UTF_8);
+        }
+        // Try tutorials directory (for tutorial sections)
+        Path tutorialPath = Paths.get("docs", "tutorials").resolve(filename);
+        if (Files.exists(tutorialPath)) {
+            return Files.readString(tutorialPath, StandardCharsets.UTF_8);
         }
         return "Konten belum tersedia.";
     }
