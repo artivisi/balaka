@@ -255,7 +255,7 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
 				<configuration>
-					<excludedGroups>${excludedGroups},demo</excludedGroups>
+					<excludedGroups>${excludedGroups}</excludedGroups>
 					<!-- Redirect test output to files to prevent stdout pipe deadlock
 					     between Maven and the Surefire forked JVM on CI runners -->
 					<redirectTestOutputToFile>true</redirectTestOutputToFile>

@@ -2,12 +2,13 @@ package com.artivisi.accountingfinance.functional.demo;
 
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.*;
+import org.springframework.test.annotation.DirtiesContext;
 
 import java.util.List;
 
 @Slf4j
 @DisplayName("Verify: Campus")
-@Tag("demo") @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+@DirtiesContext @Tag("demo") @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class CampusVerificationTest extends DemoVerificationTest {
     @Override protected String industryName() { return "Campus"; }
     @Override protected String seedDataPath() { return "industry-seed/campus/seed-data"; }

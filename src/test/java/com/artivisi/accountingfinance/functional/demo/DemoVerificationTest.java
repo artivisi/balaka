@@ -1,6 +1,7 @@
 package com.artivisi.accountingfinance.functional.demo;
 
-import com.artivisi.accountingfinance.entity.*;
+import com.artivisi.accountingfinance.entity.PayrollRun;
+import com.artivisi.accountingfinance.entity.Transaction;
 import com.artivisi.accountingfinance.enums.TransactionStatus;
 import com.artivisi.accountingfinance.repository.*;
 import com.artivisi.accountingfinance.service.FiscalYearClosingService;
@@ -11,19 +12,13 @@ import com.artivisi.accountingfinance.service.TaxTransactionDetailService;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.test.context.ActiveProfiles;
-
-import com.artivisi.accountingfinance.TestcontainersConfiguration;
+import org.springframework.test.annotation.DirtiesContext;
 
 import java.math.BigDecimal;
 import java.text.NumberFormat;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
-
-import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -41,7 +36,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @Slf4j
 @DisplayName("Demo Data Verification")
-@Tag("demo") @Tag("demo") @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+@DirtiesContext @Tag("demo") @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class DemoVerificationTest extends DemoDataLoaderBase {
 
     @Autowired private jakarta.persistence.EntityManager entityManager;

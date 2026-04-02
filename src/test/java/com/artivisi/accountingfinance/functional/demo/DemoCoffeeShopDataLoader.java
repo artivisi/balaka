@@ -5,6 +5,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Tag;
+import org.springframework.test.annotation.DirtiesContext;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
@@ -28,7 +29,7 @@ import java.util.List;
  */
 @Slf4j
 @DisplayName("Demo: Coffee Shop Data Loader")
-@Tag("demo") @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+@DirtiesContext @Tag("demo") @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class DemoCoffeeShopDataLoader extends DemoDataLoaderBase {
 
     @Override protected String industryName() { return "Coffee Shop"; }
