@@ -77,6 +77,27 @@ public abstract class DemoDataLoaderBase extends PlaywrightTestBase {
     // Template UUID cache (populated after seed import)
     private final Map<String, UUID> templateIdCache = new HashMap<>();
 
+    // Screenshot tracker — capture first occurrence of each template/action
+    private final Set<String> capturedScreenshots = new HashSet<>();
+
+    /**
+     * Take a tutorial screenshot if not already captured for this key.
+     * Saves to target/user-manual/screenshots/tutorials/{industry}/{name}.png
+     */
+    protected void tutorialScreenshot(String name) {
+        String key = industryName() + "/" + name;
+        if (capturedScreenshots.contains(key)) return;
+        capturedScreenshots.add(key);
+
+        String industry = industryName().toLowerCase().replace(" ", "-");
+        java.nio.file.Path dir = java.nio.file.Paths.get("target/user-manual/screenshots/tutorials/" + industry);
+        dir.toFile().mkdirs();
+        page.screenshot(new com.microsoft.playwright.Page.ScreenshotOptions()
+                .setPath(dir.resolve(name + ".png"))
+                .setFullPage(false));
+        log.debug("Tutorial screenshot: {}/{}", industry, name);
+    }
+
     protected abstract String industryName();
     protected abstract String seedDataPath();
     protected abstract String demoDataPath();
@@ -426,6 +447,10 @@ public abstract class DemoDataLoaderBase extends PlaywrightTestBase {
             }
         }
 
+        // Screenshot: transaction form filled (first occurrence per template)
+        tutorialScreenshot("tx-form-" + action.templateName.toLowerCase()
+                .replaceAll("[^a-z0-9]", "-").replaceAll("-+", "-"));
+
         // Submit: save as draft first, then post via API
         page.waitForTimeout(500);
         page.locator("#btn-simpan-draft").click();
@@ -454,6 +479,10 @@ public abstract class DemoDataLoaderBase extends PlaywrightTestBase {
                 }
             }
 
+            // Screenshot: transaction detail after posting
+            tutorialScreenshot("tx-detail-" + action.templateName.toLowerCase()
+                    .replaceAll("[^a-z0-9]", "-").replaceAll("-+", "-"));
+
             log.info("Transaction created: {} | {} | {} | {}", action.date, action.templateName,
                     action.amount > 0 ? action.amount : action.inputs, action.description);
         } catch (Exception e) {
@@ -471,8 +500,14 @@ public abstract class DemoDataLoaderBase extends PlaywrightTestBase {
         page.locator("input[name='baseSalary']").fill(String.valueOf(baseSalary()));
         page.locator("select[name='jkkRiskClass']").selectOption(String.valueOf(jkkRiskClass()));
 
+        // Screenshot: payroll form filled
+        tutorialScreenshot("payroll-form");
+
         page.locator("#btn-submit").click();
         waitForPageLoad();
+
+        // Screenshot: payroll detail after calculation
+        tutorialScreenshot("payroll-calculated");
 
         // Should be on detail page now with status CALCULATED
         // Approve — the create action auto-calculates, so btn-approve should be visible
@@ -488,6 +523,8 @@ public abstract class DemoDataLoaderBase extends PlaywrightTestBase {
                     new com.microsoft.playwright.Locator.WaitForOptions().setTimeout(5000));
             page.locator("#btn-post").click();
             waitForPageLoad();
+            // Screenshot: payroll posted
+            tutorialScreenshot("payroll-posted");
             log.info("Payroll posted for period: {}", period);
         } catch (com.microsoft.playwright.TimeoutError e) {
             log.warn("Payroll button not found for period {} — current URL: {}", period, page.url());
@@ -501,6 +538,7 @@ public abstract class DemoDataLoaderBase extends PlaywrightTestBase {
         // Step 1: Generate depreciation entries
         navigateTo("/assets/depreciation");
         waitForPageLoad();
+        tutorialScreenshot("depreciation-list");
         page.locator("#period").fill(month.toString());
         page.locator("form[action*='/depreciation/generate'] button[type='submit']").click();
         waitForPageLoad();
@@ -551,6 +589,9 @@ public abstract class DemoDataLoaderBase extends PlaywrightTestBase {
             periodLink.first().click();
             waitForPageLoad();
 
+            // Screenshot: fiscal period detail before closing
+            tutorialScreenshot("fiscal-period-detail");
+
             // Click close month button
             var closeBtn = page.locator("[data-testid='btn-close-month']");
             if (closeBtn.isVisible()) {
@@ -595,8 +636,12 @@ public abstract class DemoDataLoaderBase extends PlaywrightTestBase {
         page.locator("#usefulLifeMonths").fill(parts[4]);
         page.locator("#residualValue").fill(parts.length > 5 ? parts[5] : "0");
 
+        tutorialScreenshot("asset-form");
+
         page.locator("#btn-simpan").click();
         waitForPageLoad();
+
+        tutorialScreenshot("asset-detail");
 
         log.info("Fixed asset created: {} - {}", parts[0], parts[1]);
 

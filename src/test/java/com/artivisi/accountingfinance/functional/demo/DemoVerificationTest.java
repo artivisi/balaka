@@ -79,9 +79,44 @@ class DemoVerificationTest extends DemoDataLoaderBase {
         executeDemoTransactions(demoTransactionsCsvPath());
     }
 
-    @Test @Order(2) @DisplayName("1. Verify expected account balances from CSV")
+    @Test @Order(2) @DisplayName("1. Capture UI screenshots and verify expected balances")
     void verifyExpectedBalances() {
         entityManager.clear();
+
+        // Capture common UI screenshots for tutorials
+        loginAsAdmin();
+        navigateTo("/dashboard");
+        waitForPageLoad();
+        tutorialScreenshot("dashboard");
+
+        navigateTo("/accounts");
+        waitForPageLoad();
+        tutorialScreenshot("coa-list");
+
+        navigateTo("/templates");
+        waitForPageLoad();
+        tutorialScreenshot("template-list");
+
+        navigateTo("/employees");
+        waitForPageLoad();
+        tutorialScreenshot("employee-list");
+
+        navigateTo("/payroll");
+        waitForPageLoad();
+        tutorialScreenshot("payroll-list");
+
+        navigateTo("/transactions");
+        waitForPageLoad();
+        tutorialScreenshot("transaction-list");
+
+        navigateTo("/fiscal-periods");
+        waitForPageLoad();
+        tutorialScreenshot("fiscal-period-list");
+
+        navigateTo("/assets");
+        waitForPageLoad();
+        tutorialScreenshot("asset-list");
+
         log.info("========== EXPECTED BALANCE VERIFICATION ==========");
 
         String csvPath = demoTransactionsCsvPath().replace("demo-transactions.csv", "expected-balances.csv");
@@ -381,6 +416,29 @@ class DemoVerificationTest extends DemoDataLoaderBase {
     @Test @Order(9) @DisplayName("8. Verify Income Statement (P&L)")
     void verifyIncomeStatement() {
         entityManager.clear();
+
+        // Capture report screenshots via Playwright
+        loginAsAdmin();
+        navigateTo("/reports/trial-balance");
+        waitForPageLoad();
+        tutorialScreenshot("report-trial-balance");
+
+        navigateTo("/reports/income-statement");
+        waitForPageLoad();
+        tutorialScreenshot("report-income-statement");
+
+        navigateTo("/reports/balance-sheet");
+        waitForPageLoad();
+        tutorialScreenshot("report-balance-sheet");
+
+        navigateTo("/reports/rekonsiliasi-fiskal?year=2025");
+        waitForPageLoad();
+        tutorialScreenshot("report-rekonsiliasi-fiskal");
+
+        navigateTo("/reports/spt-tahunan");
+        waitForPageLoad();
+        tutorialScreenshot("report-spt-checklist");
+
         log.info("========== INCOME STATEMENT (P&L) 2025 ==========");
 
         var pl = reportService.generateIncomeStatement(
