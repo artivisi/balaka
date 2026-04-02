@@ -1,0 +1,32 @@
+# Expected trial balance at 2025-12-31 (before closing journal)
+# Manually calculated from SCENARIO.md transaction plan
+# position: DEBIT or CREDIT (the side this balance appears on)
+# amount: absolute value of expected balance
+#
+# Calculation basis:
+# - Revenue: sum of all income transactions × template formula
+# - PPN: 11% of non-BUMN income amounts
+# - PPh 23: 2% of income from PPh 23 templates
+# - Payroll: 12 months × 5 employees × 15M gross
+# - Depreciation: laptop 12 months × 520,833 + server 10 months × 937,500
+# - Expenses: sum from demo-transactions.csv
+#
+account_code,account_name,position,amount,notes
+1.1.02,Bank BCA,DEBIT,1288859240,Modal 500M + revenue inflows - all expense/payroll/tax outflows
+1.1.26,Kredit Pajak PPh 23,DEBIT,36600000,2% × (150M+120M+100M+130M+160M+140M+180M) from PPh23 templates + 2% × (200M+180M+250M+220M) from BUMN
+1.2.01,Peralatan Komputer,DEBIT,70000000,Laptop 25M + Server 45M
+1.2.02,Akum. Penyusutan Peralatan Komputer,CREDIT,15624999.96,Laptop (25M/48×12) + Server (45M/48×10) with rounding
+2.1.03,Hutang PPN,CREDIT,69300000,PPN Keluaran 138.6M - Setor PPN 69.3M (7 months deposited)
+2.1.20,Hutang PPh 21,CREDIT,16350000,December PPh 21 not yet deposited (deposited Jan 2026)
+3.1.01,Modal Disetor,CREDIT,500000000,Setoran modal awal
+4.1.01,Pendapatan Jasa Training,CREDIT,2110000000,PENDAPATAN hint auto-selects first revenue account (4.1.01)
+5.1.01,Beban Gaji,DEBIT,900000000,75M × 12 months (grossSalary from payroll)
+5.1.02,Beban BPJS Kesehatan,DEBIT,28800000,2400000 × 12 months (companyBpjsKes from payroll)
+5.1.03,Beban BPJS Ketenagakerjaan,DEBIT,50210760,4184230 × 12 months (companyBpjsTk from payroll)
+5.1.05,Beban Sewa,DEBIT,180000000,15M × 12 months
+5.1.06,Beban Telekomunikasi,DEBIT,30000000,2.5M × 12 months
+5.1.12,Beban Penyusutan,DEBIT,15624999.96,Matches Akum. Penyusutan (with rounding)
+5.1.20,Beban Cloud & Server,DEBIT,66000000,5.5M × 12 months
+5.1.21,Beban Software & Lisensi,DEBIT,9900000,3.3M × 3 quarters (Jan+Aug+Dec)
+5.1.99,Beban Operasional Lainnya,DEBIT,35100000,Varying 2.5M-3.5M × 12 months
+5.2.01,Beban Bank,DEBIT,180000,15K × 12 months

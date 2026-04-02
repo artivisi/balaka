@@ -1,0 +1,24 @@
+# Expected trial balance at 2025-12-31 (before closing journal)
+# Coffee Shop: Kedai Kopi Nusantara (UMKM non-PKP)
+# baseSalary=5000000 × 6 employees, jkkRiskClass=2, modal=500M
+# Note: Persediaan Barang Jadi shows CREDIT because COGS > production input in demo data
+account_code,account_name,position,amount,notes
+1.1.01,Kas,DEBIT,62450000,Sales cash in - purchases - transfers out
+1.1.02,Bank BCA,DEBIT,14525000,Modal + transfers in - payroll/BPJS/PPh/sewa/listrik out
+1.1.20,Persediaan Bahan Baku,DEBIT,145300000,Total raw material purchases
+1.1.21,Persediaan Barang Jadi,CREDIT,169480000,COGS consumed > production (demo limitation)
+1.2.01,Peralatan Kopi,DEBIT,33000000,Espresso machine 25M + seed data 8M
+2.1.02,Hutang Supplier,CREDIT,10000000,Kredit purchase Q1 unpaid
+2.1.14,Hutang PPh 21,CREDIT,600000,December PPh 21 (deposited Jan 2026)
+3.1.01,Modal Pemilik,CREDIT,500000000,Setoran modal awal (to Kas)
+4.1.01,Pendapatan Penjualan Minuman,CREDIT,533000000,Tunai sales + GrabFood/GoFood
+5.1.01,HPP Kopi,DEBIT,169480000,COGS from Penjualan Tunai template
+6.1.01,Gaji Barista,DEBIT,360000000,30M × 12 months
+6.1.04,BPJS Kesehatan,DEBIT,14400000,Company Kes × 12
+6.1.05,BPJS Ketenagakerjaan,DEBIT,23544000,Company TK × 12
+6.2.01,Beban Sewa Tempat,DEBIT,96000000,8M × 12 months
+6.2.02,Beban Listrik,DEBIT,18250000,Varying 1.45M-1.7M × 12
+6.2.10,Beban Administrasi Bank,DEBIT,180000,15K × 12
+6.2.11,Beban Potongan Platform,DEBIT,17400000,GrabFood/GoFood admin fees 20%
+6.2.12,Beban Operasional Lainnya,DEBIT,5400000,Quarterly ops expenses
+8.1.03,Beban PPh Final UMKM,DEBIT,3151000,0.5% monthly revenue

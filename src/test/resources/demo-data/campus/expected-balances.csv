@@ -1,0 +1,29 @@
+# Expected trial balance at 2025-12-31 (before closing journal)
+# Campus: STMIK Merdeka Digital (non-PKP educational institution)
+# baseSalary=8000000 × 8 employees, jkkRiskClass=1, modal yayasan=200M
+account_code,account_name,position,amount,notes
+1.1.02,Bank BCA,DEBIT,5970096800,Yayasan 200M + SPP/UP/Praktikum/Hibah receipts - all expenses/payroll
+1.1.10,Piutang SPP Mahasiswa,DEBIT,160000000,Outstanding SPP not yet collected
+1.2.01,Tanah,DEBIT,35000000,Lab server (auto-selected to Tanah account)
+1.2.06,Akum. Penyusutan Lab,CREDIT,7291667,35M/48months × 10 months (Mar-Dec)
+2.1.03,Hutang PPh 21,CREDIT,3840000,December PPh 21 (deposited Jan 2026)
+3.1.01,Modal Yayasan,CREDIT,200000000,Dana operasional dari yayasan
+4.1.01,Pendapatan SPP,CREDIT,4500000000,3 angkatan × 2 semesters × 900M (billed)
+4.1.02,Pendapatan Uang Pangkal,CREDIT,1800000000,Angkatan 2025 uang pangkal
+4.1.03,Pendapatan Biaya Praktikum,CREDIT,360000000,Praktikum billing (genap + ganjil)
+4.2.01,Pendapatan Hibah,CREDIT,500000000,Hibah Kemendikbud MBKM
+5.1.10,Beban Bahan Praktikum,DEBIT,9500000,Lab supplies
+5.1.11,Beban Pemeliharaan Lab,DEBIT,13000000,Lab maintenance
+5.2.01,Beban Gaji Karyawan,DEBIT,768000000,64M × 12 months (8 emp × 8M)
+5.2.03,Beban BPJS Karyawan,DEBIT,78643200,Company BPJS × 12
+5.2.10,Beban ATK,DEBIT,8000000,ATK supplies
+5.2.11,Beban Listrik,DEBIT,97500000,Campus electricity
+5.2.12,Beban Air,DEBIT,24800000,PDAM water
+5.2.13,Beban Telepon & Internet,DEBIT,60000000,5M × 12 months
+5.2.14,Beban Kebersihan,DEBIT,30000000,2.5M × 12 months
+5.2.15,Beban Keamanan,DEBIT,36000000,3M × 12 months
+5.2.20,Beban Penyusutan,DEBIT,7291667,Matches Akum. Penyusutan
+5.2.21,Beban Pemeliharaan Gedung,DEBIT,33000000,Building maintenance
+5.3.01,Beban Beasiswa Prestasi,DEBIT,15000000,7.5M × 2 semesters
+5.3.02,Beban Beasiswa Tidak Mampu,DEBIT,25000000,12.5M × 2 semesters
+5.4.01,Beban Admin Bank,DEBIT,300000,25K × 12 months

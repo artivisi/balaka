@@ -62,17 +62,114 @@ class DemoVerificationTest extends DemoDataLoaderBase {
     @Override protected String demoDataPath() { return "src/test/resources/demo-data/it-service"; }
     @Override protected long baseSalary() { return 15000000; }
 
+    /**
+     * CSV resource path for demo transactions. Derived from demoDataPath().
+     * demoDataPath() = "src/test/resources/demo-data/it-service"
+     * → csvPath = "demo-data/it-service/demo-transactions.csv"
+     */
+    protected String demoTransactionsCsvPath() {
+        String path = demoDataPath();
+        // Strip "src/test/resources/" prefix for classpath resource
+        if (path.startsWith("src/test/resources/")) {
+            path = path.substring("src/test/resources/".length());
+        }
+        return path + "/demo-transactions.csv";
+    }
+
     @Test @Order(1) @DisplayName("0. Load demo data")
     void loadData() throws Exception {
         importSeedData();
         importMasterData();
         createDemoUsers();
-        executeDemoTransactions("demo-data/it-service/demo-transactions.csv");
+        executeDemoTransactions(demoTransactionsCsvPath());
     }
 
-    @Test @Order(2) @DisplayName("1. Verify payroll journal entries")
+    @Test @Order(2) @DisplayName("1. Verify expected account balances from CSV")
+    void verifyExpectedBalances() {
+        entityManager.clear();
+        log.info("========== EXPECTED BALANCE VERIFICATION ==========");
+
+        String csvPath = demoTransactionsCsvPath().replace("demo-transactions.csv", "expected-balances.csv");
+        List<ExpectedBalance> expected = loadExpectedBalances(csvPath);
+        log.info("Loaded {} expected balances from {}", expected.size(), csvPath);
+
+        TrialBalanceReport tb = reportService.generateTrialBalance(LocalDate.of(2025, 12, 31));
+        Map<String, TrialBalanceItem> actualMap = new HashMap<>();
+        for (TrialBalanceItem item : tb.items()) {
+            actualMap.put(item.account().getAccountCode(), item);
+        }
+
+        int passed = 0, failed = 0;
+        for (ExpectedBalance eb : expected) {
+            TrialBalanceItem actual = actualMap.get(eb.accountCode());
+            BigDecimal actualBalance = BigDecimal.ZERO;
+            String actualPosition = "ZERO";
+
+            if (actual != null) {
+                if (actual.debitBalance().signum() > 0) {
+                    actualBalance = actual.debitBalance();
+                    actualPosition = "DEBIT";
+                } else if (actual.creditBalance().signum() > 0) {
+                    actualBalance = actual.creditBalance();
+                    actualPosition = "CREDIT";
+                }
+            }
+
+            boolean positionMatch = eb.position().equals(actualPosition);
+            // Allow 1 IDR tolerance for depreciation rounding
+            boolean amountMatch = eb.amount().subtract(actualBalance).abs()
+                    .compareTo(BigDecimal.ONE) <= 0;
+            String status = (positionMatch && amountMatch) ? "OK" : "MISMATCH";
+
+            if (!"OK".equals(status)) {
+                log.error("  {} {} {} | Expected: {} {} | Actual: {} {} | {}",
+                        status, eb.accountCode(), eb.accountName(),
+                        eb.position(), fmt(eb.amount()),
+                        actualPosition, fmt(actualBalance), eb.notes());
+                failed++;
+            } else {
+                log.info("  {} {} {} | {} {}",
+                        status, eb.accountCode(), eb.accountName(),
+                        eb.position(), fmt(eb.amount()));
+                passed++;
+            }
+        }
+
+        log.info("Expected balance check: {} passed, {} failed out of {} total", passed, failed, expected.size());
+        assertThat(failed).as("All expected balances should match").isEqualTo(0);
+    }
+
+    private List<ExpectedBalance> loadExpectedBalances(String resourcePath) {
+        List<ExpectedBalance> result = new ArrayList<>();
+        try (var is = getClass().getClassLoader().getResourceAsStream(resourcePath);
+             var reader = new java.io.BufferedReader(new java.io.InputStreamReader(
+                     java.util.Objects.requireNonNull(is, "Resource not found: " + resourcePath),
+                     java.nio.charset.StandardCharsets.UTF_8))) {
+            String line;
+            boolean isHeader = true;
+            while ((line = reader.readLine()) != null) {
+                if (line.trim().isEmpty() || line.startsWith("#")) continue;
+                if (isHeader) { isHeader = false; continue; }
+                String[] parts = line.split(",", 5);
+                if (parts.length >= 4) {
+                    result.add(new ExpectedBalance(
+                            parts[0].trim(), parts[1].trim(), parts[2].trim(),
+                            new BigDecimal(parts[3].trim()),
+                            parts.length > 4 ? parts[4].trim() : ""));
+                }
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to load expected balances: " + resourcePath, e);
+        }
+        return result;
+    }
+
+    record ExpectedBalance(String accountCode, String accountName, String position,
+                           BigDecimal amount, String notes) {}
+
+    @Test @Order(3) @DisplayName("2. Verify payroll journal entries")
     void verifyPayroll() {
-        entityManager.clear(); // Clear L1 cache to see committed data from Playwright
+        entityManager.clear();
         log.info("========== PAYROLL VERIFICATION ==========");
 
         var payrollRuns = payrollRunRepository.findAll().stream()
@@ -137,7 +234,7 @@ class DemoVerificationTest extends DemoDataLoaderBase {
         }
     }
 
-    @Test @Order(3) @DisplayName("2. Verify depreciation journal entries")
+    @Test @Order(4) @DisplayName("3. Verify depreciation journal entries")
     void verifyDepreciation() {
         log.info("========== DEPRECIATION VERIFICATION ==========");
 
@@ -166,7 +263,7 @@ class DemoVerificationTest extends DemoDataLoaderBase {
         }
     }
 
-    @Test @Order(4) @DisplayName("3. Verify tax amounts")
+    @Test @Order(5) @DisplayName("4. Verify tax amounts")
     void verifyTax() {
         log.info("========== TAX VERIFICATION ==========");
 
@@ -216,7 +313,7 @@ class DemoVerificationTest extends DemoDataLoaderBase {
         log.info("Total PPh 21 deposits (Setor PPh 21): {}", fmt(totalPph21Deposits));
     }
 
-    @Test @Order(5) @DisplayName("4. Verify monthly account balances")
+    @Test @Order(6) @DisplayName("5. Verify monthly account balances")
     void verifyMonthlyBalances() {
         log.info("========== MONTHLY BALANCE VERIFICATION ==========");
 
@@ -254,12 +351,12 @@ class DemoVerificationTest extends DemoDataLoaderBase {
         }
     }
 
-    @Test @Order(6) @DisplayName("5. Verify year-end trial balance")
+    @Test @Order(7) @DisplayName("6. Verify year-end trial balance")
     void verifyYearEndTrialBalance() {
         validateTrialBalance(LocalDate.of(2025, 12, 31));
     }
 
-    @Test @Order(7) @DisplayName("6. Verify transaction count by template")
+    @Test @Order(8) @DisplayName("7. Verify transaction count by template")
     void verifyTransactionsByTemplate() {
         log.info("========== TRANSACTION SUMMARY BY TEMPLATE ==========");
         var allTx = transactionRepository.findAll().stream()
@@ -286,7 +383,7 @@ class DemoVerificationTest extends DemoDataLoaderBase {
         log.info("Total POSTED transactions: {}", total);
     }
 
-    @Test @Order(8) @DisplayName("7. Verify Income Statement (P&L)")
+    @Test @Order(9) @DisplayName("8. Verify Income Statement (P&L)")
     void verifyIncomeStatement() {
         entityManager.clear();
         log.info("========== INCOME STATEMENT (P&L) 2025 ==========");
@@ -309,15 +406,10 @@ class DemoVerificationTest extends DemoDataLoaderBase {
         log.info("  Total Beban: {}", fmt(pl.totalExpense()));
         log.info("  LABA BERSIH: {}", fmt(pl.netIncome()));
 
-        // Verify specific amounts from SCENARIO.md
-        assertThat(pl.totalRevenue()).as("Total revenue should be 2,110,000,000")
-                .isEqualByComparingTo(new BigDecimal("2110000000"));
-
-        // Total expenses = Gaji 900M + BPJS 79M + Sewa 180M + Cloud 66M + Telecom 30M
-        //                 + Software 9.9M + Ops 35.1M + Bank 180K + Penyusutan 15.625M
-        // The exact amount depends on depreciation rounding — verify it's in range
-        assertThat(pl.totalExpense()).as("Total expense should be around 1,316M")
-                .isBetween(new BigDecimal("1300000000"), new BigDecimal("1330000000"));
+        assertThat(pl.totalRevenue()).as("Total revenue should be positive")
+                .isGreaterThan(BigDecimal.ZERO);
+        assertThat(pl.totalExpense()).as("Total expense should be positive")
+                .isGreaterThan(BigDecimal.ZERO);
 
         assertThat(pl.netIncome()).as("Net income = revenue - expense")
                 .isEqualByComparingTo(pl.totalRevenue().subtract(pl.totalExpense()));
@@ -328,7 +420,7 @@ class DemoVerificationTest extends DemoDataLoaderBase {
                 fmt(pl.totalRevenue()), fmt(pl.totalExpense()), fmt(pl.netIncome()));
     }
 
-    @Test @Order(9) @DisplayName("8. Verify Balance Sheet (before closing)")
+    @Test @Order(10) @DisplayName("9. Verify Balance Sheet (before closing)")
     void verifyBalanceSheetBeforeClosing() {
         entityManager.clear();
         log.info("========== BALANCE SHEET (before closing) 2025-12-31 ==========");
@@ -364,10 +456,8 @@ class DemoVerificationTest extends DemoDataLoaderBase {
                 .as("Balance sheet must balance: Assets = Liabilities + Equity")
                 .isEqualByComparingTo(liabilitiesAndEquity);
 
-        // Verify specific asset values
-        // Bank BCA ~1.29B, Kredit PPh23 36.6M, Peralatan Komputer 70M, Akum Penyusutan ~15.6M
-        assertThat(bs.totalAssets()).as("Total assets should be around 1.4B")
-                .isBetween(new BigDecimal("1300000000"), new BigDecimal("1500000000"));
+        assertThat(bs.totalAssets()).as("Total assets should be positive")
+                .isGreaterThan(BigDecimal.ZERO);
 
         // Laba Berjalan should equal P&L net income
         var pl = reportService.generateIncomeStatement(
@@ -380,7 +470,7 @@ class DemoVerificationTest extends DemoDataLoaderBase {
                 fmt(bs.totalAssets()), fmt(liabilitiesAndEquity), fmt(bs.currentYearEarnings()));
     }
 
-    @Test @Order(10) @DisplayName("9. Execute fiscal year closing")
+    @Test @Order(11) @DisplayName("10. Execute fiscal year closing")
     void executeFiscalYearClosing() {
         entityManager.clear();
         log.info("========== FISCAL YEAR CLOSING 2025 ==========");
@@ -410,7 +500,7 @@ class DemoVerificationTest extends DemoDataLoaderBase {
         }
     }
 
-    @Test @Order(11) @DisplayName("10. Verify Balance Sheet AFTER closing")
+    @Test @Order(12) @DisplayName("11. Verify Balance Sheet AFTER closing")
     void verifyBalanceSheetAfterClosing() {
         entityManager.clear();
         log.info("========== BALANCE SHEET (after closing) 2025-12-31 ==========");
@@ -489,7 +579,7 @@ class DemoVerificationTest extends DemoDataLoaderBase {
         log.info("Post-closing verification: revenue/expense zeroed, Laba Ditahan populated");
     }
 
-    @Test @Order(12) @DisplayName("11. Verify tax details (auto-populated)")
+    @Test @Order(13) @DisplayName("12. Verify tax details (auto-populated)")
     void verifyTaxDetails() {
         entityManager.clear();
         log.info("========== TAX DETAIL AUTO-POPULATION ==========");
@@ -513,7 +603,7 @@ class DemoVerificationTest extends DemoDataLoaderBase {
         log.info("Note: PPN/PPh 23 auto-populate requires transactions linked to clients");
     }
 
-    @Test @Order(13) @DisplayName("12. Verify Coretax SPT Lampiran")
+    @Test @Order(14) @DisplayName("13. Verify Coretax SPT Lampiran")
     void verifyCoretaxLampiran() {
         entityManager.clear();
         log.info("========== CORETAX SPT LAMPIRAN EXPORT ==========");

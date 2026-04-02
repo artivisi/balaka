@@ -1,0 +1,28 @@
+# Expected trial balance at 2025-12-31 (before closing journal)
+# Online Seller: Toko Gadget Sejahtera (UMKM non-PKP)
+# baseSalary=5500000 × 4 employees, jkkRiskClass=1
+account_code,account_name,position,amount,notes
+1.1.02,Bank BCA,DEBIT,188222650,Modal 300M + withdrawals - purchases - payroll - expenses
+1.1.05,Saldo Shopee,DEBIT,31020000,Shopee sales not yet withdrawn
+1.1.20,Persediaan Barang Dagangan,DEBIT,390000000,Total purchases (no COGS tracked in demo)
+1.2.01,Peralatan Gudang,DEBIT,8000000,Rak Gudang Heavy Duty (Feb 2025)
+1.2.02,Akum. Penyusutan Peralatan Gudang,CREDIT,1666667,8M/48months × 10 months (Mar-Dec)
+2.1.20,Hutang PPh 21,CREDIT,626250,December PPh 21 (deposited Jan 2026)
+3.1.01,Modal Disetor,CREDIT,300000000,Setoran modal awal
+4.1.01,Penjualan Tokopedia,CREDIT,340000000,Gross sales Tokopedia
+4.1.02,Penjualan Shopee,CREDIT,268000000,Gross sales Shopee
+4.1.05,Penjualan TikTok Shop,CREDIT,194000000,Gross sales TikTok
+4.2.03,Cashback Marketplace,CREDIT,2000000,Marketplace cashback
+5.2.01,Biaya Admin Tokopedia,DEBIT,17000000,5% admin fee
+5.2.02,Biaya Admin Shopee,DEBIT,16080000,6% admin fee
+5.2.05,Biaya Admin TikTok Shop,DEBIT,7760000,4% admin fee
+5.2.10,Biaya Iklan Marketplace,DEBIT,44800000,TopAds+ShopeeAds+TikTokAds
+5.3.01,Ongkir Ditanggung Penjual,DEBIT,29800000,Free ongkir subsidy
+5.3.02,Biaya Packing,DEBIT,7160000,Packing materials
+5.4.01,Beban Gaji,DEBIT,264000000,22M × 12 months (grossSalary from payroll)
+5.4.02,Beban BPJS Perusahaan,DEBIT,27033600,Company BPJS × 12 months
+5.4.03,Beban Sewa Gudang,DEBIT,60000000,5M × 12 months
+5.4.04,Beban Listrik,DEBIT,10100000,Varying 750K-950K × 12 months
+5.4.10,Beban Penyusutan,DEBIT,1666667,Matches Akum. Penyusutan
+5.5.01,Beban Admin Bank,DEBIT,180000,15K × 12 months
+5.9.01,Beban PPh Final,DEBIT,3470000,0.5% of monthly gross revenue
