@@ -6,7 +6,7 @@ Panduan untuk memulai menggunakan Balaka — aplikasi akuntansi untuk usaha keci
 
 Buka browser dan akses alamat aplikasi. Masukkan username dan password.
 
-![Login](../../../target/user-manual/screenshots/tutorials/it-service/dashboard.png)
+<!-- Screenshot: dashboard setelah login -->
 
 Setelah login, Anda akan masuk ke halaman **Dashboard** yang menampilkan ringkasan keuangan usaha Anda.
 
