@@ -44,6 +44,7 @@ class RecurringTransactionTest extends PlaywrightTestBase {
 
         assertThat(page.locator("#page-title, h1").first()).containsText("Transaksi Berulang");
         assertThat(page.locator("[data-testid='recurring-table']")).isVisible();
+        takeManualScreenshot("recurring/list");
     }
 
     @Test
