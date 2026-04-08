@@ -8,6 +8,7 @@ FROM maven:3.9-eclipse-temurin-25-alpine AS build
 WORKDIR /src
 COPY pom.xml .
 RUN --mount=type=cache,target=/root/.m2 mvn -q -B dependency:go-offline
+COPY .git ./.git
 COPY src ./src
 RUN --mount=type=cache,target=/root/.m2 mvn -q -B -DskipTests package && \
     mkdir -p /out && cp target/*.jar /out/app.jar && \
