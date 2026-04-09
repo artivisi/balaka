@@ -1871,7 +1871,7 @@ Git-versioned sample data for 4 industry demo instances. Full plan: `aplikasi-ak
 - [x] When true, show banner on every page: "Data direset setiap hari pukul 00:00 WIB"
 
 ### Docker Image (for Sumopod template & container deployment)
-- [x] Create Dockerfile — **decision: custom multi-stage** (not `spring-boot:build-image`). Rationale: JDK 25 control (Paketo lags on bleeding-edge JDK), OSS auditability (handcrafted Dockerfile vs buildpack black box), Indonesian locale/timezone via `apk add tzdata`, sub-300MB target via Alpine base, standard entrypoint expected by Sumopod marketplace. File: `Dockerfile` at repo root.
+- [x] Create Dockerfile — **decision: custom multi-stage** (not `spring-boot:build-image`). Rationale: JDK 25 control (Paketo lags on bleeding-edge JDK), OSS auditability (handcrafted Dockerfile vs buildpack black box), Indonesian locale/timezone via `apk add tzdata`, sub-300MB target via Alpine base, standard entrypoint expected by Sumopod marketplace. File: `Dockerfile` at repo root. **Achieved: 208 MB** (verified via first successful publish 2026-04-09).
 - [x] Multi-stage Dockerfile: stage 1 = `maven:3.9-eclipse-temurin-25-alpine` build with BuildKit cache mount, stage 2 = `azul/zulu-openjdk-alpine:25-jre` + layered JAR extract (`jarmode=tools extract --layers`). Runs as non-root `app` user, `/opt/app/documents` declared as VOLUME, tini as PID 1, healthcheck against `/actuator/health/liveness`.
 - [ ] Externalize all config via environment variables: `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`, `JAVA_OPTS`, `APP_ENCRYPTION_KEY`, `APP_DOCUMENT_STORAGE_PATH`. Most already work via Spring Boot externalized config — verify and document.
 - [x] Integrate into release procedure: on `*-RELEASE` git tag, CI builds and pushes Docker image to **two registries** with CalVer tagging matching `docs/03-operations-guide.md` release convention:
@@ -1890,6 +1890,8 @@ Git-versioned sample data for 4 industry demo instances. Full plan: `aplikasi-ak
   - Provenance + SBOM attestation enabled, build-provenance attestation pushed to GHCR
   - GHA build cache (cache-from/cache-to type=gha)
   - **Secrets to configure in repo settings before first run:** `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN` (Docker Hub PAT). GHCR auth uses built-in `GITHUB_TOKEN` automatically — no setup needed.
+- [x] First successful publish 2026-04-09 — `artivisi/balaka:main` + `ghcr.io/artivisi/balaka:main` (208 MB, amd64).
+- [ ] Re-enable arm64 build — currently disabled. `frontend-maven-plugin` fails to download Node.js for musl-arm64 under QEMU emulation (HTTP 404). Options: pin a Node version with musl-arm64 binaries, switch build stage to Debian slim (glibc), or pre-build frontend on host and copy artifacts.
 - [ ] Test image locally: `docker build -t balaka:dev . && docker run` with external PostgreSQL (via `docker compose` with PG sidecar for local testing)
 - [ ] Implement first-run setup: if no users exist in DB, show setup wizard (create admin user + select industry seed pack) on first access
 - [ ] Target image size: < 300 MB (JRE ~200 MB + JAR ~140 MB, Alpine base)
