@@ -16,6 +16,7 @@ import com.artivisi.accountingfinance.repository.ChartOfAccountRepository;
 import com.artivisi.accountingfinance.repository.DraftTransactionRepository;
 import com.artivisi.accountingfinance.repository.JournalEntryRepository;
 import com.artivisi.accountingfinance.repository.JournalTemplateRepository;
+import com.artivisi.accountingfinance.repository.RecurringTransactionLogRepository;
 import com.artivisi.accountingfinance.repository.TransactionRepository;
 import com.artivisi.accountingfinance.ui.PlaywrightTestBase;
 import org.junit.jupiter.api.BeforeAll;
@@ -69,6 +70,9 @@ class ServiceReportsTest extends PlaywrightTestBase {
     @Autowired
     private JournalTemplateRepository templateRepository;
 
+    @Autowired
+    private RecurringTransactionLogRepository recurringTransactionLogRepository;
+
     // Page Objects
     private TrialBalancePage trialBalancePage;
     private IncomeStatementPage incomeStatementPage;
@@ -87,8 +91,10 @@ class ServiceReportsTest extends PlaywrightTestBase {
 
     @BeforeAll
     void setupTestTransactions() {
-        // Clear any existing transactions (in case ServiceTransactionExecutionTest ran first)
-        // Must delete draft transactions first due to FK constraint
+        // Clear any existing transactions (in case another test created them).
+        // Must delete dependents first to satisfy FK constraints.
+        // recurring_transaction_logs.id_transaction has no ON DELETE CASCADE.
+        recurringTransactionLogRepository.deleteAll();
         draftTransactionRepository.deleteAll();
         journalEntryRepository.deleteAll();
         transactionRepository.deleteAll();
