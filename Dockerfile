@@ -10,6 +10,7 @@ COPY pom.xml .
 RUN --mount=type=cache,target=/root/.m2 mvn -q -B dependency:go-offline
 COPY .git ./.git
 COPY src ./src
+COPY industry-seed ./industry-seed
 RUN --mount=type=cache,target=/root/.m2 mvn -q -B -DskipTests package && \
     mkdir -p /out && cp target/*.jar /out/app.jar && \
     cd /out && java -Djarmode=tools -jar app.jar extract --layers --destination layers

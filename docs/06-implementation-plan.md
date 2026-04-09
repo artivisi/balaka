@@ -1891,9 +1891,8 @@ Git-versioned sample data for 4 industry demo instances. Full plan: `aplikasi-ak
   - GHA build cache (cache-from/cache-to type=gha)
   - **Secrets to configure in repo settings before first run:** `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN` (Docker Hub PAT). GHCR auth uses built-in `GITHUB_TOKEN` automatically — no setup needed.
 - [x] First successful publish 2026-04-09 — `artivisi/balaka:main` + `ghcr.io/artivisi/balaka:main` (208 MB, amd64).
-- [ ] Re-enable arm64 build — currently disabled. `frontend-maven-plugin` fails to download Node.js for musl-arm64 under QEMU emulation (HTTP 404). Options: pin a Node version with musl-arm64 binaries, switch build stage to Debian slim (glibc), or pre-build frontend on host and copy artifacts.
 - [ ] Test image locally: `docker build -t balaka:dev . && docker run` with external PostgreSQL (via `docker compose` with PG sidecar for local testing)
-- [ ] Implement first-run setup: if no users exist in DB, show setup wizard (create admin user + select industry seed pack) on first access
+- [x] Implement first-run setup: if no users exist in DB, show setup wizard (create admin user + select industry seed pack) on first access
 - [ ] Target image size: < 300 MB (JRE ~200 MB + JAR ~140 MB, Alpine base)
 - [ ] Minimum resource: 2 GB RAM, 1 vCPU
 

@@ -41,6 +41,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> {
                 auth.requestMatchers("/css/**", "/js/**", "/img/**", "/themes/**", "/webjars/**").permitAll()
                     .requestMatchers("/login", "/error").permitAll()
+                    .requestMatchers("/setup", "/setup/**").permitAll()
                     .requestMatchers("/api/telegram/webhook").permitAll()
                     // OpenAPI spec and Swagger UI (unauthenticated)
                     .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()

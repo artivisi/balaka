@@ -21,16 +21,29 @@ public class WebMvcConfig implements WebMvcConfigurer {
     private final CspNonceInterceptor cspNonceInterceptor;
     private final ThemeInterceptor themeInterceptor;
     private final ThemeConfig themeConfig;
+    private final FirstRunSetupInterceptor firstRunSetupInterceptor;
 
     public WebMvcConfig(CspNonceInterceptor cspNonceInterceptor, ThemeInterceptor themeInterceptor,
-                        ThemeConfig themeConfig) {
+                        ThemeConfig themeConfig, FirstRunSetupInterceptor firstRunSetupInterceptor) {
         this.cspNonceInterceptor = cspNonceInterceptor;
         this.themeInterceptor = themeInterceptor;
         this.themeConfig = themeConfig;
+        this.firstRunSetupInterceptor = firstRunSetupInterceptor;
     }
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
+        // Redirect to /setup when no users exist (first-run wizard)
+        registry.addInterceptor(firstRunSetupInterceptor)
+                .excludePathPatterns(
+                        "/setup/**",
+                        "/css/**", "/js/**", "/img/**", "/themes/**", "/webjars/**",
+                        "/favicon.svg",
+                        "/api/**",
+                        "/actuator/**",
+                        "/error",
+                        "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html"
+                );
         // Add CSP nonce to all Thymeleaf templates
         registry.addInterceptor(cspNonceInterceptor);
         // Add theme config to all Thymeleaf templates

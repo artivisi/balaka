@@ -198,6 +198,18 @@
 	</dependencies>
 
 	<build>
+		<resources>
+			<resource>
+				<directory>src/main/resources</directory>
+			</resource>
+			<resource>
+				<directory>industry-seed</directory>
+				<targetPath>seed-packs</targetPath>
+				<includes>
+					<include>*/seed-data/**</include>
+				</includes>
+			</resource>
+		</resources>
 		<plugins>
 			<plugin>
 				<groupId>com.github.eirslett</groupId>
