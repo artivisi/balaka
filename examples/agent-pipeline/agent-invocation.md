@@ -15,6 +15,8 @@ The sequence:
 
 All other endpoints the agent uses are protected and require the bearer token. `DeviceAuthApiController` itself is the one exception and requires no token, for obvious reasons.
 
+When the agent requests a device code, it should ask for the narrowest scope set its task requires. Balaka catalogues eight scopes in `src/main/resources/openapi/extensions.json` under `x-authentication.scopes` (`drafts:create`, `drafts:read`, `drafts:approve`, `transactions:post`, `analysis:read`, `analysis:write`, `data:import`, `tax-export:read`). The transaction-recording pipeline described here needs exactly two: `drafts:create` to write a draft transaction, and `drafts:read` to fetch the draft library and verify state. It should not request `drafts:approve`, `transactions:post`, or any of the other six. The approval step is performed by a human operator through the Balaka web UI — the agent prepares, the human commits, and the pipeline is structured this way deliberately. This is a protocol-level safety property: even if the agent's logic is wrong, even if its parser is fooled, even if it produces a draft for a transaction that should never have existed, it is mechanically incapable of approving or posting that draft, because the bearer token it holds does not carry the relevant scopes. The property does not depend on the agent's discipline or on the reviewer's vigilance — only on the scope set the institution selects when it approves the authorisation request, which the agent cannot exceed afterwards under any circumstances.
+
 ## 2. Discovery
 
 Before processing any document, the agent loads three things:
@@ -109,7 +111,7 @@ The pipeline is intentionally runtime-agnostic. The shape of the integration is 
 
 **Claude Code.** Runs as a CLI in the user's working directory. A pipeline folder in the working directory is visible to Claude Code by default. The device-flow client ID goes in a local config file the CLI reads on startup. Claude Code can be invoked interactively (human types "process the inbox") or non-interactively via scheduled invocations.
 
-**Cowork.** A collaborative agent environment. The integration is the same: mount the pipeline folder into the workspace and register the Balaka base URL and client ID as environment variables. Cowork's multi-agent model is useful when parse and review are assigned to different agent personas — for example, a parser agent and a reviewer agent whose approvals are required before the post step.
+**Cowork.** A collaborative agent environment. The integration shape is the same as for any other runtime: mount the pipeline folder into the workspace, register the Balaka base URL as configuration, and store the device-flow client ID where the runtime can read it on startup.
 
 **Antigravity.** An editor-integrated agent that sees the project tree directly. The pipeline folder lives in the project; the agent reads and writes files in place. The device-flow handshake runs the first time the agent makes an API call, after which the token is cached in the project's local state.
 

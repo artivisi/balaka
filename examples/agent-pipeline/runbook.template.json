@@ -1,6 +1,6 @@
 {
   "description": "Maps source-document vendors to Balaka journal templates. Read by an agent during the parse step to auto-populate draft transactions. This is a template. Replace templateName and expenseAccountName strings with the actual UUIDs from your own Balaka instance after importing a seed pack. See examples/agent-pipeline/README.md for the substitution procedure.",
-  "lastUpdated": "2026-01-31",
+  "lastUpdated": "2026-04-11",
 
   "accountingFlow": {
     "bankExpense": {
