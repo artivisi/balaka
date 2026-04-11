@@ -1,0 +1,18 @@
+{
+  "status": "parsed",
+  "source": "02-electricity-bill.md",
+  "parsedAt": "2026-01-18",
+  "runbookMatch": "electricity",
+  "templateName": "Bayar Beban Listrik",
+  "note": null,
+  "postedTransactionId": null,
+  "draft": {
+    "templateId": "22222222-2222-2222-2222-222222222222",
+    "description": "PLN — office electricity bill (December 2025 usage)",
+    "amount": 650000,
+    "transactionDate": "2026-01-18",
+    "accountSlots": {
+      "2": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+    }
+  }
+}

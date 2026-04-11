@@ -1,0 +1,134 @@
+{
+  "description": "Maps source-document vendors to Balaka journal templates. Read by an agent during the parse step to auto-populate draft transactions. This is a template. Replace templateName and expenseAccountName strings with the actual UUIDs from your own Balaka instance after importing a seed pack. See examples/agent-pipeline/README.md for the substitution procedure.",
+  "lastUpdated": "2026-01-31",
+
+  "accountingFlow": {
+    "bankExpense": {
+      "description": "An operating expense paid by direct bank transfer to a vendor.",
+      "journal": "DR Expense account (per vendorMappings), CR Operating bank account",
+      "templateShape": "Standard two-line EXPENSE template with a BANK account hint on the credit line. The agent overrides the BANK line via accountSlots keyed by lineOrder.",
+      "howToPost": "Call POST /api/drafts with the matched template and an accountSlots entry for the bank line (e.g. {\"2\": \"<operating-bank-account-id>\"})."
+    },
+    "bankFee": {
+      "description": "A fee debited directly by the bank (monthly administration fee, transfer fee, stamp duty).",
+      "journal": "DR Bank fee expense, CR Operating bank account",
+      "templateShape": "Two-line EXPENSE template with a fixed bank-fee expense account on the debit line and a BANK account hint on the credit line.",
+      "howToPost": "Same as bankExpense. The agent matches by parsing the bank statement line (see skipPatterns for items that must be netted before posting)."
+    },
+    "bpjsPayment": {
+      "description": "Monthly payment of employer BPJS (Kesehatan and Ketenagakerjaan) contributions to the BPJS collection accounts.",
+      "journal": "DR BPJS Kesehatan expense, DR BPJS Ketenagakerjaan expense, CR Operating bank account",
+      "templateShape": "DETAILED template with two named variables (bpjsKesehatan, bpjsTenagakerja) and a BANK account hint on the credit line. The agent supplies both variables in the variables map; amount is ignored because the total is derived from the sum of the two components.",
+      "howToPost": "POST /api/drafts with variables={\"bpjsKesehatan\": ..., \"bpjsTenagakerja\": ...} and accountSlots={\"3\": \"<operating-bank-account-id>\"}. If the institution pays only one of the two components in a given month, set the other component to a non-zero value in a separate transaction — do not set either component to zero, as DETAILED templates reject zero amounts."
+    }
+  },
+
+  "vendorMappings": [
+    {
+      "vendor": "cloud-hosting",
+      "matchPatterns": ["AWS", "AMAZON WEB SERVICES", "DIGITALOCEAN", "GOOGLE CLOUD", "AZURE", "VERCEL", "NETLIFY"],
+      "category": "cloud-server",
+      "templateName": "Bayar Beban Cloud & Server",
+      "expenseAccountName": "Beban Cloud & Server",
+      "bankLineOrder": "2"
+    },
+    {
+      "vendor": "electricity",
+      "matchPatterns": ["PLN", "LISTRIK", "TOKEN LISTRIK"],
+      "category": "utility-electricity",
+      "templateName": "Bayar Beban Listrik",
+      "expenseAccountName": "Beban Listrik",
+      "bankLineOrder": "2"
+    },
+    {
+      "vendor": "telecommunications",
+      "matchPatterns": ["TELKOM", "INDIHOME", "BIZNET", "MYREPUBLIC"],
+      "category": "utility-telecom",
+      "templateName": "Bayar Beban Telekomunikasi",
+      "expenseAccountName": "Beban Telekomunikasi",
+      "bankLineOrder": "2"
+    },
+    {
+      "vendor": "transport",
+      "matchPatterns": ["GRAB", "GOJEK", "BLUEBIRD"],
+      "category": "operational-transport",
+      "templateName": "Bayar Beban Operasional",
+      "expenseAccountName": "Beban Operasional Lainnya",
+      "bankLineOrder": "2"
+    },
+    {
+      "vendor": "office-supplies",
+      "matchPatterns": ["TOKOPEDIA", "SHOPEE", "INDOMARET", "ALFAMART", "BLIBLI"],
+      "category": "operational-supplies",
+      "templateName": "Bayar Beban Operasional",
+      "expenseAccountName": "Beban Operasional Lainnya",
+      "bankLineOrder": "2",
+      "note": "Generic office-supplies vendors. Consider a more specific template (or a custom expense account) if the institution has a recurring office-supplies spend line worth tracking separately."
+    },
+    {
+      "vendor": "bpjs",
+      "matchPatterns": ["BPJS KESEHATAN", "BPJS KES", "BPJS KETENAGAKERJAAN", "BPJS TK", "BPJS TENAGA KERJA"],
+      "category": "bpjs",
+      "templateName": "Bayar BPJS",
+      "templateKind": "DETAILED",
+      "variables": ["bpjsKesehatan", "bpjsTenagakerja"],
+      "bankLineOrder": "3",
+      "note": "DETAILED template. Supply both variables in the variables map. See accountingFlow.bpjsPayment for rules on single-component months."
+    },
+    {
+      "vendor": "bank-fee",
+      "matchPatterns": ["ADMIN FEE", "MONTHLY FEE", "BIAYA ADMIN", "BEA MATERAI"],
+      "category": "bank-fee",
+      "templateName": "Beban Admin Bank",
+      "expenseAccountName": "Beban Bank",
+      "bankLineOrder": "2"
+    }
+  ],
+
+  "skipPatterns": [
+    {
+      "matchPatterns": ["TRANSFER KE REKENING SENDIRI", "PINDAH BUKU", "OVERBOOKING"],
+      "reason": "Internal transfer between own bank accounts. Record once from a transfer template, not twice from both statement sides."
+    },
+    {
+      "matchPatterns": ["CASH REBATE", "REVERSAL FEE", "KOREKSI BIAYA"],
+      "reason": "Net against the original fee line before posting. Skip if the rebate equals the fee; post only the net difference otherwise."
+    }
+  ],
+
+  "bankAccounts": {
+    "operating": {
+      "label": "Operating Bank",
+      "description": "Primary operational bank account. Source for vendor payments and bank-fee debits.",
+      "accountName": "<replace with the operating bank account name from your chart of accounts>"
+    },
+    "payroll": {
+      "label": "Payroll Bank",
+      "description": "Bank account used for salary transfers and BPJS contributions. May be the same as Operating Bank for small institutions.",
+      "accountName": "<replace with the payroll bank account name from your chart of accounts>"
+    }
+  },
+
+  "setupChecklist": [
+    {
+      "item": "Import an industry seed pack that ships the referenced journal templates (Bayar Beban Cloud & Server, Bayar Beban Listrik, Bayar Beban Telekomunikasi, Bayar Beban Operasional, Bayar BPJS, Beban Admin Bank). The IT Services seed pack ships all of these.",
+      "where": "POST /api/data-import with the seed pack ZIP, or via the Data Import web UI."
+    },
+    {
+      "item": "Resolve each templateName in this runbook to its actual template ID by calling GET /api/drafts/templates on the running instance.",
+      "where": "GET /api/drafts/templates"
+    },
+    {
+      "item": "Resolve each bankAccounts entry to its actual chart-of-accounts ID by calling GET /api/drafts/accounts and filtering by account name.",
+      "where": "GET /api/drafts/accounts"
+    },
+    {
+      "item": "If the institution's BPJS workflow posts Kesehatan and Ketenagakerjaan on separate days, either post two transactions (one per component, each with a non-zero value for both variables where the non-paying component carries the next scheduled amount) or customise the seed pack to ship two single-variable templates. The public IT Services seed pack ships a single combined DETAILED template.",
+      "where": "Template customisation via the Journal Templates web UI or via POST /api/templates."
+    },
+    {
+      "item": "Review vendorMappings.matchPatterns against the institution's actual bank-statement line formats. Add or refine patterns as the agent encounters unmatched documents.",
+      "where": "This file."
+    }
+  ]
+}

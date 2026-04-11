@@ -1,0 +1,22 @@
+{
+  "status": "parsed",
+  "source": "03-bpjs-payment.md",
+  "parsedAt": "2026-01-12",
+  "runbookMatch": "bpjs",
+  "templateName": "Bayar BPJS",
+  "note": "DETAILED template. The amount field is set to the sum of bpjsKesehatan and bpjsTenagakerja for API validation; the actual journal entries are derived from the variables map.",
+  "postedTransactionId": null,
+  "draft": {
+    "templateId": "33333333-3333-3333-3333-333333333333",
+    "description": "BPJS Kesehatan + Ketenagakerjaan — employer contributions (January 2026)",
+    "amount": 800000,
+    "transactionDate": "2026-01-12",
+    "accountSlots": {
+      "3": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+    },
+    "variables": {
+      "bpjsKesehatan": 380000,
+      "bpjsTenagakerja": 420000
+    }
+  }
+}

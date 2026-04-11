@@ -1,0 +1,18 @@
+{
+  "status": "parsed",
+  "source": "01-cloud-invoice.md",
+  "parsedAt": "2026-01-08",
+  "runbookMatch": "cloud-hosting",
+  "templateName": "Bayar Beban Cloud & Server",
+  "note": null,
+  "postedTransactionId": null,
+  "draft": {
+    "templateId": "11111111-1111-1111-1111-111111111111",
+    "description": "DigitalOcean — droplet hosting (January 2026)",
+    "amount": 450000,
+    "transactionDate": "2026-01-08",
+    "accountSlots": {
+      "2": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+    }
+  }
+}
