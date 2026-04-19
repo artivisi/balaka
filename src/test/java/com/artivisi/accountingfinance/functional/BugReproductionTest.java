@@ -19,6 +19,7 @@ import org.springframework.context.annotation.Import;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -337,6 +338,147 @@ class BugReproductionTest extends PlaywrightTestBase {
         }
     }
 
+    // ==================== BUG-019 ====================
+
+    @Nested
+    @DisplayName("BUG-019: FLOOR rounding must not cause Rp 1 imbalance in multi-line tax templates")
+    class Bug019 {
+
+        @Test
+        @DisplayName("Template with PPN+PPh23 derived from gross-received amount must balance at Rp 20.000.000")
+        void ppnPph23InclusiveTemplateMustBalanceAt20Juta() throws Exception {
+            // Scenario from user report (bug-balaka):
+            //   amount = Rp yang diterima di bank (sudah include PPN, sudah dipotong PPh 23)
+            //   DPP        = amount / 1.09          → Pendapatan (CREDIT)
+            //   PPN 11%    = amount * 0.11 / 1.09   → Hutang PPN (CREDIT)
+            //   PPh 23 2%  = amount * 0.02 / 1.09   → Kredit Pajak PPh 23 (DEBIT)
+            //   Bank       = amount                  → BANK (DEBIT)
+            // Each formula line is FLOOR-ed to whole rupiah independently (BUG-001),
+            // so sub-rupiah fractions accumulate and debit != credit at amount=20jt.
+            String bankAccount = findAccountByCode("1.1.02");
+            String pph23Account = findAccountByCode("1.1.26");
+            String pendapatanAccount = findAccountByCode("4.1.01");
+            String ppnAccount = findAccountByCode("2.1.03");
+
+            Map<String, Object> templateRequest = new HashMap<>();
+            templateRequest.put("templateName", "BUG-019 Pendapatan Inclusive Test " + System.nanoTime());
+            templateRequest.put("category", "INCOME");
+            templateRequest.put("cashFlowCategory", "OPERATING");
+            templateRequest.put("templateType", "SIMPLE");
+            templateRequest.put("description", "amount = nilai diterima di bank (include PPN, dipotong PPh 23)");
+            templateRequest.put("lines", List.of(
+                    Map.of("lineOrder", 1, "position", "DEBIT",
+                            "formula", "amount", "accountHint", "BANK"),
+                    Map.of("lineOrder", 2, "position", "DEBIT",
+                            "formula", "amount * 0.02 / 1.09", "accountId", pph23Account),
+                    Map.of("lineOrder", 3, "position", "CREDIT",
+                            "formula", "amount / 1.09", "accountHint", "PENDAPATAN"),
+                    Map.of("lineOrder", 4, "position", "CREDIT",
+                            "formula", "amount * 0.11 / 1.09", "accountId", ppnAccount)
+            ));
+
+            APIResponse templateResponse = post("/api/templates", templateRequest);
+            assertThat(templateResponse.status())
+                    .as("Create template failed: %d %s", templateResponse.status(), templateResponse.text())
+                    .isEqualTo(201);
+            JsonNode createdTemplate = parse(templateResponse);
+            String templateId = createdTemplate.get("id").asText();
+
+            Map<String, Object> draftRequest = new HashMap<>();
+            draftRequest.put("templateId", templateId);
+            draftRequest.put("description", "BUG-019 reproduction amount=20jt");
+            draftRequest.put("amount", 20_000_000);
+            draftRequest.put("transactionDate", "2026-04-19");
+            draftRequest.put("accountSlots", Map.of(
+                    "BANK", bankAccount,
+                    "PENDAPATAN", pendapatanAccount
+            ));
+
+            APIResponse draftResponse = post("/api/drafts", draftRequest);
+            assertThat(draftResponse.status())
+                    .as("Create draft failed: %d %s", draftResponse.status(), draftResponse.text())
+                    .isEqualTo(201);
+
+            JsonNode draftData = parse(draftResponse);
+            String transactionId = draftData.get("transactionId").asText();
+
+            APIResponse postResponse = postNoBody("/api/transactions/" + transactionId + "/post");
+            assertThat(postResponse.ok())
+                    .as("Post must succeed (was failing with 'Journal not balanced'): %d %s",
+                            postResponse.status(), postResponse.text())
+                    .isTrue();
+
+            JsonNode posted = parse(postResponse);
+            BigDecimal totalDebit = BigDecimal.ZERO;
+            BigDecimal totalCredit = BigDecimal.ZERO;
+            for (JsonNode entry : posted.get("journalEntries")) {
+                totalDebit = totalDebit.add(new BigDecimal(entry.get("debitAmount").asText()));
+                totalCredit = totalCredit.add(new BigDecimal(entry.get("creditAmount").asText()));
+            }
+            assertThat(totalDebit)
+                    .as("Journal must balance: debit=%s credit=%s", totalDebit, totalCredit)
+                    .isEqualByComparingTo(totalCredit);
+        }
+
+        @Test
+        @DisplayName("Same template must also balance at Rp 10.000.000 (sanity check)")
+        void ppnPph23InclusiveTemplateMustBalanceAt10Juta() throws Exception {
+            String bankAccount = findAccountByCode("1.1.02");
+            String pph23Account = findAccountByCode("1.1.26");
+            String pendapatanAccount = findAccountByCode("4.1.01");
+            String ppnAccount = findAccountByCode("2.1.03");
+
+            Map<String, Object> templateRequest = new HashMap<>();
+            templateRequest.put("templateName", "BUG-019 Sanity Check " + System.nanoTime());
+            templateRequest.put("category", "INCOME");
+            templateRequest.put("cashFlowCategory", "OPERATING");
+            templateRequest.put("templateType", "SIMPLE");
+            templateRequest.put("description", "sanity check pada Rp 10jt");
+            templateRequest.put("lines", List.of(
+                    Map.of("lineOrder", 1, "position", "DEBIT",
+                            "formula", "amount", "accountHint", "BANK"),
+                    Map.of("lineOrder", 2, "position", "DEBIT",
+                            "formula", "amount * 0.02 / 1.09", "accountId", pph23Account),
+                    Map.of("lineOrder", 3, "position", "CREDIT",
+                            "formula", "amount / 1.09", "accountHint", "PENDAPATAN"),
+                    Map.of("lineOrder", 4, "position", "CREDIT",
+                            "formula", "amount * 0.11 / 1.09", "accountId", ppnAccount)
+            ));
+
+            APIResponse templateResponse = post("/api/templates", templateRequest);
+            assertThat(templateResponse.status()).isEqualTo(201);
+            String templateId = parse(templateResponse).get("id").asText();
+
+            Map<String, Object> draftRequest = new HashMap<>();
+            draftRequest.put("templateId", templateId);
+            draftRequest.put("description", "BUG-019 sanity amount=10jt");
+            draftRequest.put("amount", 10_000_000);
+            draftRequest.put("transactionDate", "2026-04-19");
+            draftRequest.put("accountSlots", Map.of(
+                    "BANK", bankAccount,
+                    "PENDAPATAN", pendapatanAccount
+            ));
+
+            APIResponse draftResponse = post("/api/drafts", draftRequest);
+            assertThat(draftResponse.status()).isEqualTo(201);
+            String transactionId = parse(draftResponse).get("transactionId").asText();
+
+            APIResponse postResponse = postNoBody("/api/transactions/" + transactionId + "/post");
+            assertThat(postResponse.ok())
+                    .as("Post failed: %d %s", postResponse.status(), postResponse.text())
+                    .isTrue();
+
+            JsonNode posted = parse(postResponse);
+            BigDecimal totalDebit = BigDecimal.ZERO;
+            BigDecimal totalCredit = BigDecimal.ZERO;
+            for (JsonNode entry : posted.get("journalEntries")) {
+                totalDebit = totalDebit.add(new BigDecimal(entry.get("debitAmount").asText()));
+                totalCredit = totalCredit.add(new BigDecimal(entry.get("creditAmount").asText()));
+            }
+            assertThat(totalDebit).isEqualByComparingTo(totalCredit);
+        }
+    }
+
     // ==================== HELPER METHODS ====================
 
     private APIResponse get(String path) {
@@ -394,6 +536,19 @@ class BugReproductionTest extends PlaywrightTestBase {
         JsonNode accounts = body.get("data").get("accounts");
         assertThat(accounts.size()).isGreaterThan(0);
         return accounts.get(0).get("id").asText();
+    }
+
+    private String findAccountByCode(String accountCode) throws Exception {
+        APIResponse response = get("/api/analysis/accounts");
+        assertThat(response.ok()).isTrue();
+        JsonNode body = parse(response);
+        JsonNode accounts = body.get("data").get("accounts");
+        for (JsonNode account : accounts) {
+            if (account.get("code").asText().equals(accountCode)) {
+                return account.get("id").asText();
+            }
+        }
+        throw new RuntimeException("Account not found: " + accountCode);
     }
 
     private String findSimpleTemplateByName(String exactName) throws Exception {

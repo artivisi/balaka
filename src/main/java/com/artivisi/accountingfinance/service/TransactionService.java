@@ -272,6 +272,7 @@ public class TransactionService {
             createJournalEntriesFromTemplate(transaction, context);
         }
 
+        JournalBalancer.absorbRoundingResidual(transaction.getJournalEntries());
         validateJournalBalance(transaction.getJournalEntries());
 
         transaction.setStatus(TransactionStatus.POSTED);
