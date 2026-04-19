@@ -7,24 +7,32 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Distributes sub-rupiah rounding residuals so debit == credit after per-line FLOOR rounding.
+ * Distributes sub-rupiah rounding residuals so debit == credit after per-line HALF_UP rounding.
  *
- * <p>FormulaEvaluator floors each line to whole rupiah to match Indonesian tax practice
- * (BUG-001, commit e29ce49). When multi-line tax templates use division formulas
- * (e.g., {@code amount / 1.09} for DPP extraction), independent flooring produces
- * fractional losses that accumulate into a debit/credit imbalance of 1-2 rupiah.
+ * <p>FormulaEvaluator rounds each line to whole rupiah per PER-11/PJ/2025 Pasal 129 (HALF_UP).
+ * When multi-line tax templates use division formulas (e.g., {@code amount / 1.09} for DPP
+ * extraction), independent rounding of each line still produces a 1-rupiah debit/credit
+ * imbalance on certain amounts regardless of rounding mode.
  *
- * <p>This balancer absorbs that residual into the largest-magnitude line on the lighter
- * side, preserving exact tax amounts while keeping the journal balanced. If the residual
- * exceeds the line count, the imbalance is left alone for
- * {@code TransactionService#validateJournalBalance} to reject as a real template error.
+ * <p>The absorber preserves the <em>input</em> line (formula {@code amount}) because it
+ * represents the user-entered value — typically a bank receipt that must match an external
+ * statement. It then picks the largest-magnitude derived line on the side that balances the
+ * residual, adding to the lighter side or subtracting from the heavier side, whichever
+ * keeps the input line untouched. If the residual exceeds the line count, the imbalance is
+ * left alone so {@code TransactionService#validateJournalBalance} can reject it as a real
+ * template error.
  */
 final class JournalBalancer {
 
+    private static final String INPUT_FORMULA = "amount";
+
     private JournalBalancer() {}
 
-    static void absorbRoundingResidual(List<JournalEntry> entries) {
+    static void absorbRoundingResidual(List<JournalEntry> entries, List<String> formulas) {
         if (entries == null || entries.isEmpty()) return;
+        if (formulas == null || formulas.size() != entries.size()) {
+            throw new IllegalArgumentException("formulas list must parallel entries list");
+        }
 
         BigDecimal totalDebit = entries.stream()
                 .map(JournalEntry::getDebitAmount)
@@ -38,18 +46,28 @@ final class JournalBalancer {
         if (diff.abs().compareTo(BigDecimal.valueOf(entries.size())) > 0) return;
 
         BigDecimal adjustment = diff.abs();
+        // diff > 0 → debit heavier. Prefer reducing debit on the heavier side, OR increasing
+        // the lighter credit side. Skip input lines so user's entered amount stays exact.
+        int targetIdx = diff.signum() > 0
+                ? pickAbsorberForCreditIncrease(entries, formulas)
+                : pickAbsorberForDebitIncrease(entries, formulas);
+
+        if (targetIdx < 0) return;
+
+        JournalEntry target = entries.get(targetIdx);
         if (diff.signum() > 0) {
-            JournalEntry target = pickLargest(entries, JournalEntry::getCreditAmount);
-            if (target != null) target.setCreditAmount(target.getCreditAmount().add(adjustment));
+            target.setCreditAmount(target.getCreditAmount().add(adjustment));
         } else {
-            JournalEntry target = pickLargest(entries, JournalEntry::getDebitAmount);
-            if (target != null) target.setDebitAmount(target.getDebitAmount().add(adjustment));
+            target.setDebitAmount(target.getDebitAmount().add(adjustment));
         }
     }
 
     static List<TemplateExecutionEngine.PreviewEntry> absorbPreviewResidual(
-            List<TemplateExecutionEngine.PreviewEntry> entries) {
+            List<TemplateExecutionEngine.PreviewEntry> entries, List<String> formulas) {
         if (entries == null || entries.isEmpty()) return entries;
+        if (formulas == null || formulas.size() != entries.size()) {
+            throw new IllegalArgumentException("formulas list must parallel entries list");
+        }
 
         BigDecimal totalDebit = entries.stream()
                 .map(TemplateExecutionEngine.PreviewEntry::debitAmount)
@@ -63,8 +81,8 @@ final class JournalBalancer {
         if (diff.abs().compareTo(BigDecimal.valueOf(entries.size())) > 0) return entries;
 
         int targetIdx = diff.signum() > 0
-                ? indexOfLargest(entries, TemplateExecutionEngine.PreviewEntry::creditAmount)
-                : indexOfLargest(entries, TemplateExecutionEngine.PreviewEntry::debitAmount);
+                ? pickPreviewAbsorber(entries, formulas, true)
+                : pickPreviewAbsorber(entries, formulas, false);
         if (targetIdx < 0) return entries;
 
         List<TemplateExecutionEngine.PreviewEntry> adjusted = new ArrayList<>(entries);
@@ -81,25 +99,12 @@ final class JournalBalancer {
         return adjusted;
     }
 
-    private static JournalEntry pickLargest(List<JournalEntry> entries,
-                                             java.util.function.Function<JournalEntry, BigDecimal> amount) {
-        JournalEntry best = null;
-        for (JournalEntry entry : entries) {
-            BigDecimal value = amount.apply(entry);
-            if (value == null || value.signum() == 0) continue;
-            if (best == null || amount.apply(best).compareTo(value) < 0) {
-                best = entry;
-            }
-        }
-        return best;
-    }
-
-    private static int indexOfLargest(List<TemplateExecutionEngine.PreviewEntry> entries,
-                                       java.util.function.Function<TemplateExecutionEngine.PreviewEntry, BigDecimal> amount) {
+    private static int pickAbsorberForCreditIncrease(List<JournalEntry> entries, List<String> formulas) {
         int bestIdx = -1;
         BigDecimal bestValue = null;
         for (int i = 0; i < entries.size(); i++) {
-            BigDecimal value = amount.apply(entries.get(i));
+            if (isInputFormula(formulas.get(i))) continue;
+            BigDecimal value = entries.get(i).getCreditAmount();
             if (value == null || value.signum() == 0) continue;
             if (bestValue == null || bestValue.compareTo(value) < 0) {
                 bestValue = value;
@@ -107,5 +112,41 @@ final class JournalBalancer {
             }
         }
         return bestIdx;
+    }
+
+    private static int pickAbsorberForDebitIncrease(List<JournalEntry> entries, List<String> formulas) {
+        int bestIdx = -1;
+        BigDecimal bestValue = null;
+        for (int i = 0; i < entries.size(); i++) {
+            if (isInputFormula(formulas.get(i))) continue;
+            BigDecimal value = entries.get(i).getDebitAmount();
+            if (value == null || value.signum() == 0) continue;
+            if (bestValue == null || bestValue.compareTo(value) < 0) {
+                bestValue = value;
+                bestIdx = i;
+            }
+        }
+        return bestIdx;
+    }
+
+    private static int pickPreviewAbsorber(List<TemplateExecutionEngine.PreviewEntry> entries,
+                                            List<String> formulas, boolean creditSide) {
+        int bestIdx = -1;
+        BigDecimal bestValue = null;
+        for (int i = 0; i < entries.size(); i++) {
+            if (isInputFormula(formulas.get(i))) continue;
+            BigDecimal value = creditSide ? entries.get(i).creditAmount() : entries.get(i).debitAmount();
+            if (value == null || value.signum() == 0) continue;
+            if (bestValue == null || bestValue.compareTo(value) < 0) {
+                bestValue = value;
+                bestIdx = i;
+            }
+        }
+        return bestIdx;
+    }
+
+    private static boolean isInputFormula(String formula) {
+        if (formula == null) return true;
+        return INPUT_FORMULA.equalsIgnoreCase(formula.trim());
     }
 }

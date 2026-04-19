@@ -223,14 +223,14 @@ class FormulaEvaluatorTest {
         }
 
         @Test
-        @DisplayName("Should floor to whole rupiah")
-        void shouldFloorToWholeRupiah() {
+        @DisplayName("Should round to whole rupiah per PER-11/PJ/2025 (HALF_UP)")
+        void shouldRoundToWholeRupiah() {
             FormulaContext context = FormulaContext.of(new BigDecimal("10000.333"));
 
             BigDecimal result = evaluator.evaluate("amount / 3", context);
 
             assertThat(result.scale()).isZero();
-            // 10000.333 / 3 ≈ 3333.444... → floor to 3333
+            // 10000.333 / 3 ≈ 3333.444... → HALF_UP rounds to 3333 (.444 < .5)
             assertThat(result).isEqualByComparingTo("3333");
         }
     }
@@ -667,10 +667,10 @@ class FormulaEvaluatorTest {
         }
 
         @Test
-        @DisplayName("Should floor result to zero decimal places")
-        void shouldFloorResult() {
+        @DisplayName("Should round result to zero decimal places (HALF_UP)")
+        void shouldRoundResult() {
             FormulaContext context = FormulaContext.of(100L);
-            // 100 / 3 = 33.333... -> floor to 33
+            // 100 / 3 = 33.333... -> HALF_UP to 33 (.333 < .5)
             BigDecimal result = evaluator.evaluate("amount / 3", context);
             assertThat(result).isEqualByComparingTo("33");
         }

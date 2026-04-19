@@ -341,7 +341,7 @@ class BugReproductionTest extends PlaywrightTestBase {
     // ==================== BUG-019 ====================
 
     @Nested
-    @DisplayName("BUG-019: FLOOR rounding must not cause Rp 1 imbalance in multi-line tax templates")
+    @DisplayName("BUG-019: per-line rounding must not cause Rp 1 imbalance in multi-line tax templates")
     class Bug019 {
 
         @Test
@@ -353,8 +353,9 @@ class BugReproductionTest extends PlaywrightTestBase {
             //   PPN 11%    = amount * 0.11 / 1.09   → Hutang PPN (CREDIT)
             //   PPh 23 2%  = amount * 0.02 / 1.09   → Kredit Pajak PPh 23 (DEBIT)
             //   Bank       = amount                  → BANK (DEBIT)
-            // Each formula line is FLOOR-ed to whole rupiah independently (BUG-001),
-            // so sub-rupiah fractions accumulate and debit != credit at amount=20jt.
+            // Each formula line is rounded to whole rupiah independently per PER-11/PJ/2025
+            // (HALF_UP). Sub-rupiah fractions still accumulate so debit != credit at amount=20jt
+            // — JournalBalancer absorbs the residual into Pendapatan (input line Bank is preserved).
             String bankAccount = findAccountByCode("1.1.02");
             String pph23Account = findAccountByCode("1.1.26");
             String pendapatanAccount = findAccountByCode("4.1.01");

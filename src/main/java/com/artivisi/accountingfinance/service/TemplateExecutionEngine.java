@@ -41,7 +41,10 @@ public class TemplateExecutionEngine {
         }
 
         List<JournalEntry> entries = buildJournalEntries(template, context);
-        JournalBalancer.absorbRoundingResidual(entries);
+        List<String> formulas = template.getLines().stream()
+                .map(JournalTemplateLine::getFormula)
+                .toList();
+        JournalBalancer.absorbRoundingResidual(entries, formulas);
 
         // Create Transaction as header
         Transaction transaction = new Transaction();
@@ -93,7 +96,10 @@ public class TemplateExecutionEngine {
             totalCredit = totalCredit.add(credit);
         }
 
-        List<PreviewEntry> balanced = JournalBalancer.absorbPreviewResidual(previewEntries);
+        List<String> formulas = template.getLines().stream()
+                .map(JournalTemplateLine::getFormula)
+                .toList();
+        List<PreviewEntry> balanced = JournalBalancer.absorbPreviewResidual(previewEntries, formulas);
         BigDecimal balancedDebit = balanced.stream()
                 .map(PreviewEntry::debitAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
