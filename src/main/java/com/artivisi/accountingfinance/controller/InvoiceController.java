@@ -57,6 +57,7 @@ public class InvoiceController {
     private static final String ATTR_INVOICE = "invoice";
     private static final String ATTR_CLIENTS = "clients";
     private static final String ATTR_PROJECTS = "projects";
+    private static final String ATTR_LINES = "lines";
     private static final String REDIRECT_INVOICES_PREFIX = "redirect:/invoices/";
     private static final String VIEW_FORM = "invoices/form";
 
@@ -175,20 +176,21 @@ public class InvoiceController {
             Model model,
             RedirectAttributes redirectAttributes) {
 
+        List<InvoiceLine> lines = buildInvoiceLines(descriptions, quantities, unitPrices, taxRates);
+
         if (bindingResult.hasErrors()) {
-            populateFormModel(model);
+            populateFormModel(model, lines);
             return VIEW_FORM;
         }
 
         try {
             Invoice invoice = toEntity(form);
-            List<InvoiceLine> lines = buildInvoiceLines(descriptions, quantities, unitPrices, taxRates);
             Invoice saved = invoiceService.create(invoice, lines);
             redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Invoice berhasil dibuat");
             return REDIRECT_INVOICES_PREFIX + saved.getInvoiceNumber();
         } catch (IllegalArgumentException e) {
             bindingResult.rejectValue("invoiceNumber", "duplicate", e.getMessage());
-            populateFormModel(model);
+            populateFormModel(model, lines);
             return VIEW_FORM;
         }
     }
@@ -213,7 +215,7 @@ public class InvoiceController {
         }
 
         model.addAttribute(ATTR_INVOICE, invoice);
-        populateFormModel(model);
+        populateFormModel(model, invoice.getLines());
         return VIEW_FORM;
     }
 
@@ -229,17 +231,18 @@ public class InvoiceController {
             Model model,
             RedirectAttributes redirectAttributes) {
 
+        List<InvoiceLine> lines = buildInvoiceLines(descriptions, quantities, unitPrices, taxRates);
+
         if (bindingResult.hasErrors()) {
             Invoice existing = invoiceService.findByInvoiceNumber(invoiceNumber);
             form.setId(existing.getId());
-            populateFormModel(model);
+            populateFormModel(model, lines);
             return VIEW_FORM;
         }
 
         try {
             Invoice existing = invoiceService.findByInvoiceNumber(invoiceNumber);
             Invoice invoice = toEntity(form);
-            List<InvoiceLine> lines = buildInvoiceLines(descriptions, quantities, unitPrices, taxRates);
             invoiceService.update(existing.getId(), invoice, lines);
             redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Invoice berhasil diperbarui");
             return REDIRECT_INVOICES_PREFIX + form.getInvoiceNumber();
@@ -251,7 +254,7 @@ public class InvoiceController {
             }
             Invoice existing = invoiceService.findByInvoiceNumber(invoiceNumber);
             form.setId(existing.getId());
-            populateFormModel(model);
+            populateFormModel(model, lines);
             return VIEW_FORM;
         }
     }
@@ -361,10 +364,15 @@ public class InvoiceController {
     }
 
     private void populateFormModel(Model model) {
+        populateFormModel(model, List.of());
+    }
+
+    private void populateFormModel(Model model, List<InvoiceLine> lines) {
         model.addAttribute(ATTR_CLIENTS, clientService.findActiveClients());
         model.addAttribute(ATTR_PROJECTS, projectService.findActiveProjects());
         model.addAttribute(ATTR_PRODUCTS, productService.findAllActive());
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_INVOICES);
+        model.addAttribute(ATTR_LINES, lines);
     }
 
     private List<InvoiceLine> buildInvoiceLines(

@@ -188,7 +188,7 @@
         <script th:inline="javascript" th:attr="nonce=${cspNonce}">
             // CSP-compatible: Register Alpine component before Alpine processes the DOM
             document.addEventListener('alpine:init', function() {
-                var existingLines = /*[[${invoice.lines}]]*/ [];
+                var existingLines = /*[[${lines}]]*/ [];
                 Alpine.data('invoiceForm', function() {
                     return {
                         lines: existingLines.length > 0
