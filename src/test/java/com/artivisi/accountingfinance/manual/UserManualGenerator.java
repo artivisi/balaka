@@ -544,7 +544,7 @@ public class UserManualGenerator {
         String bodyContent = String.format("""
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-screen-xl mx-auto px-4 py-8">
                 <aside class="lg:col-span-3">
-                    <nav class="sticky top-8">
+                    <nav class="sticky top-8 max-h-[calc(100vh-4rem)] overflow-y-auto">
                         <ul class="space-y-1">
                             %s
                         </ul>
@@ -766,8 +766,12 @@ public class UserManualGenerator {
     }
 
     private String convertMarkdownToHtml(String markdown) {
-        // Parse and render the markdown content directly
-        // (H1 heading already removed in extractSectionContent)
+        // Rewrite cross-reference .md links to .html, stripping numeric prefix.
+        // Examples: [X](01-setup-awal.md) -> [X](setup-awal.html)
+        //          [X](02-tutorial.md#anchor) -> [X](tutorial.html#anchor)
+        markdown = markdown.replaceAll(
+                "\\]\\((?:\\./)?(?:\\d+-)?([^)/#]+)\\.md(#[^)]*)?\\)",
+                "]($1.html$2)");
         Node document = parser.parse(markdown);
         return renderer.render(document);
     }
