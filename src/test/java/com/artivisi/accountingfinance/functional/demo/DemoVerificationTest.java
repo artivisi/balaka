@@ -420,17 +420,17 @@ class DemoVerificationTest extends DemoDataLoaderBase {
     void verifyIncomeStatement() {
         entityManager.clear();
 
-        // Capture report screenshots via Playwright
+        // Capture report screenshots via Playwright (demo data is for fiscal year 2025)
         loginAsAdmin();
-        navigateTo("/reports/trial-balance");
+        navigateTo("/reports/trial-balance?asOfDate=2025-12-31");
         waitForPageLoad();
         tutorialScreenshot("report-trial-balance");
 
-        navigateTo("/reports/income-statement");
+        navigateTo("/reports/income-statement?startDate=2025-01-01&endDate=2025-12-31");
         waitForPageLoad();
         tutorialScreenshot("report-income-statement");
 
-        navigateTo("/reports/balance-sheet");
+        navigateTo("/reports/balance-sheet?asOfDate=2025-12-31");
         waitForPageLoad();
         tutorialScreenshot("report-balance-sheet");
 
