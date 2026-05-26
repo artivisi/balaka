@@ -93,6 +93,13 @@ app.theme.name={{ app_theme_name | default('artivisi') }}
 app.theme.footer-text={{ app_theme_footer_text | default('ArtiVisi Intermedia') }}
 app.theme.dir=/opt/{{ app_name }}/themes
 
+# Demo mode — shows the "Data direset setiap hari pukul 00:00 WIB" banner.
+# Only emitted when app_demo_mode is set (demo instances). When absent the
+# DemoModeConfig boolean binds to false, so client deploys are unaffected.
+{% if app_demo_mode is defined %}
+app.demo-mode={{ app_demo_mode | lower }}
+{% endif %}
+
 # Actuator endpoints for monitoring
 management.endpoints.web.exposure.include=health,info,metrics,prometheus
 management.endpoint.health.show-details=when-authorized
