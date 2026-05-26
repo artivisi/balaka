@@ -7,6 +7,7 @@
 - name: Install required packages
   ansible.builtin.apt:
     name:
+      - acl
       - apt-transport-https
       - ca-certificates
       - curl
@@ -15,6 +16,15 @@
       - ufw
       - python3-psycopg2
       - python3-bcrypt
+    state: present
+
+- name: Ensure id_ID.UTF-8 locale exists
+  # PostgreSQL is configured with lc_monetary/lc_numeric/lc_time = id_ID.UTF-8
+  # (roles/postgresql/templates/postgresql.conf.j2); it refuses to start if the
+  # locale is missing. Bare images (e.g. Biznet) ship without it. 'acl' above is
+  # required for Ansible become_user (postgres) on hosts lacking setfacl.
+  community.general.locale_gen:
+    name: id_ID.UTF-8
     state: present
 
 - name: Add Azul Zulu repository key
