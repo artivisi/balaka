@@ -136,7 +136,9 @@ class RecurringSchedulerTest extends PlaywrightTestBase {
         recurring.setAmount(new BigDecimal("1000000"));
         recurring.setDescription("Scheduler test: " + name);
         recurring.setFrequency(RecurringFrequency.MONTHLY);
-        recurring.setDayOfMonth(nextRunDate.getDayOfMonth());
+        // dayOfMonth is constrained to 1-28 on the entity; clamp so the test is
+        // date-independent (nextRunDate can fall on the 29th-31st).
+        recurring.setDayOfMonth(Math.min(nextRunDate.getDayOfMonth(), 28));
         recurring.setStartDate(nextRunDate);
         recurring.setNextRunDate(nextRunDate);
         recurring.setStatus(RecurringStatus.ACTIVE);
