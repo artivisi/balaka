@@ -1,6 +1,8 @@
 package com.artivisi.accountingfinance.service;
 
+import com.artivisi.accountingfinance.entity.ChartOfAccount;
 import com.artivisi.accountingfinance.entity.Client;
+import com.artivisi.accountingfinance.entity.CompanyConfig;
 import com.artivisi.accountingfinance.entity.Invoice;
 import com.artivisi.accountingfinance.entity.InvoiceLine;
 import com.artivisi.accountingfinance.entity.InvoicePayment;
@@ -27,7 +29,10 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -41,6 +46,8 @@ public class InvoiceService {
     private final ProjectRepository projectRepository;
     private final ProjectPaymentTermRepository paymentTermRepository;
     private final ProductRepository productRepository;
+    private final DocumentPostingService documentPostingService;
+    private final CompanyConfigService companyConfigService;
 
     private final @Lazy InvoiceService self;
 
@@ -205,9 +212,81 @@ public class InvoiceService {
             throw new IllegalStateException("Only draft invoices can be sent");
         }
 
+        // Recognize revenue: compose one DRAFT transaction per distinct revenue account
+        // (R2) through the template engine. Accounting approves the DRAFT(s) to post.
+        recognizeInvoiceRevenue(invoice);
+
         invoice.setStatus(InvoiceStatus.SENT);
         invoice.setSentAt(LocalDateTime.now());
         return invoiceRepository.save(invoice);
+    }
+
+    /**
+     * Groups invoice lines by their product's sales account and, per group, composes a
+     * DRAFT revenue-recognition transaction via the "Pengakuan Pendapatan Invoice" template.
+     * Amounts come from the invoice's own line figures (no tax-rate assumption); AR and PPN
+     * accounts come from CompanyConfig. Throws (no fallback) if any account is unconfigured.
+     */
+    private void recognizeInvoiceRevenue(Invoice invoice) {
+        CompanyConfig config = companyConfigService.getConfig();
+        UUID receivableAccountId = requireAccountId(config.getReceivableAccount(),
+                "Akun Piutang Usaha belum dikonfigurasi di Pengaturan Perusahaan");
+        UUID outputTaxAccountId = requireAccountId(config.getOutputTaxAccount(),
+                "Akun PPN Keluaran belum dikonfigurasi di Pengaturan Perusahaan");
+
+        Map<UUID, ChartOfAccount> revenueAccounts = new LinkedHashMap<>();
+        Map<UUID, BigDecimal> revenueByAccount = new LinkedHashMap<>();
+        Map<UUID, BigDecimal> taxByAccount = new LinkedHashMap<>();
+
+        for (InvoiceLine line : invoice.getLines()) {
+            Product product = line.getProduct();
+            if (product == null) {
+                throw new IllegalStateException("Baris invoice '" + line.getDescription()
+                        + "' belum terkait produk/jasa; akun pendapatan tidak dapat ditentukan");
+            }
+            ChartOfAccount revenueAccount = product.getSalesAccount();
+            if (revenueAccount == null) {
+                throw new IllegalStateException("Produk/jasa '" + product.getName()
+                        + "' belum memiliki Akun Penjualan");
+            }
+            UUID key = revenueAccount.getId();
+            revenueAccounts.putIfAbsent(key, revenueAccount);
+            revenueByAccount.merge(key, nz(line.getAmount()), BigDecimal::add);
+            taxByAccount.merge(key, nz(line.getTaxAmount()), BigDecimal::add);
+        }
+
+        for (Map.Entry<UUID, ChartOfAccount> group : revenueAccounts.entrySet()) {
+            UUID revenueAccountId = group.getKey();
+            BigDecimal revenueAmount = revenueByAccount.get(revenueAccountId);
+            BigDecimal ppnAmount = taxByAccount.getOrDefault(revenueAccountId, BigDecimal.ZERO);
+            BigDecimal arAmount = revenueAmount.add(ppnAmount);
+
+            Map<String, UUID> hints = new HashMap<>();
+            hints.put("PIUTANG", receivableAccountId);
+            hints.put("PENDAPATAN", revenueAccountId);
+            hints.put("PPN_KELUARAN", outputTaxAccountId);
+
+            Map<String, BigDecimal> variables = new HashMap<>();
+            variables.put("revenueAmount", revenueAmount);
+            variables.put("ppnAmount", ppnAmount);
+            variables.put("arAmount", arAmount);
+
+            documentPostingService.createDraftFromTemplate(
+                    null, "Pengakuan Pendapatan Invoice", invoice.getInvoiceDate(),
+                    "Invoice " + invoice.getInvoiceNumber() + " - " + group.getValue().getAccountName(),
+                    arAmount, hints, variables, "system", "INVOICE", invoice.getId());
+        }
+    }
+
+    private UUID requireAccountId(ChartOfAccount account, String message) {
+        if (account == null || account.getId() == null) {
+            throw new IllegalStateException(message);
+        }
+        return account.getId();
+    }
+
+    private BigDecimal nz(BigDecimal value) {
+        return value == null ? BigDecimal.ZERO : value;
     }
 
     @Transactional
