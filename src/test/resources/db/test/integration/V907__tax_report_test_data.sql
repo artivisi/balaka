@@ -6,7 +6,8 @@
 INSERT INTO company_config (
     id, company_name, company_address, company_phone, company_email,
     tax_id, npwp, nitku, fiscal_year_start_month, currency_code,
-    signing_officer_name, signing_officer_title, created_at, updated_at
+    signing_officer_name, signing_officer_title,
+    id_receivable_account, id_output_tax_account, created_at, updated_at
 ) VALUES (
     'a0000000-0000-0000-0000-000000000001',
     'PT Artivisi Intermedia',
@@ -20,11 +21,15 @@ INSERT INTO company_config (
     'IDR',
     'Endy Muhardin',
     'Direktur',
+    '10000000-0000-0000-0000-000000000104',  -- Piutang Usaha (AR)
+    '20000000-0000-0000-0000-000000000103',  -- Hutang PPN (output tax)
     NOW(),
     NOW()
 ) ON CONFLICT (id) DO UPDATE SET
     npwp = EXCLUDED.npwp,
-    nitku = EXCLUDED.nitku;
+    nitku = EXCLUDED.nitku,
+    id_receivable_account = EXCLUDED.id_receivable_account,
+    id_output_tax_account = EXCLUDED.id_output_tax_account;
 
 -- ============================================
 -- Tax Transactions - Sales with PPN

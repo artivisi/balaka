@@ -316,6 +316,15 @@ INSERT INTO journal_template_lines (id, id_journal_template, id_account, positio
 ('e1000000-0000-0000-0000-000000000039', 'e0000000-0000-0000-0000-000000000017', NULL, 'CREDIT', 'assetCost', 4, 'Hapus nilai perolehan aset', 'ASET_TETAP'),
 ('e1000000-0000-0000-0000-000000000040', 'e0000000-0000-0000-0000-000000000017', '40000000-0000-0000-0000-000000000122', 'CREDIT', 'gainLoss > 0 ? gainLoss : 0', 5, 'Laba penjualan aset', NULL);
 
+-- Template: Pengakuan Pendapatan Invoice (DRAFT revenue-recognition bridge on invoice issue)
+INSERT INTO journal_templates (id, template_name, category, cash_flow_category, template_type, description, is_system, active) VALUES
+('e0000000-0000-0000-0000-000000000018', 'Pengakuan Pendapatan Invoice', 'INCOME', 'OPERATING', 'DETAILED', 'Pengakuan piutang & pendapatan saat invoice diterbitkan. Variabel: arAmount, revenueAmount, ppnAmount', TRUE, TRUE);
+
+INSERT INTO journal_template_lines (id, id_journal_template, id_account, position, formula, line_order, description, account_hint) VALUES
+('e1000000-0000-0000-0000-000000000041', 'e0000000-0000-0000-0000-000000000018', NULL, 'DEBIT', 'arAmount', 1, 'Piutang usaha', 'PIUTANG'),
+('e1000000-0000-0000-0000-000000000042', 'e0000000-0000-0000-0000-000000000018', NULL, 'CREDIT', 'revenueAmount', 2, 'Pendapatan', 'PENDAPATAN'),
+('e1000000-0000-0000-0000-000000000043', 'e0000000-0000-0000-0000-000000000018', NULL, 'CREDIT', 'ppnAmount', 3, 'PPN Keluaran', 'PPN_KELUARAN');
+
 -- ============================================
 -- Inventory Chart of Accounts (Phase 5)
 -- ============================================
