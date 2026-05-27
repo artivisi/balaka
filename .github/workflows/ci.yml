@@ -61,7 +61,9 @@ jobs:
 
       - name: Run all tests with coverage
         run: ./mvnw clean verify
-        timeout-minutes: 180
+        # ~115 min today; DRAFT-by-default adds approve/post overhead to many
+        # functional tests. Raised 180→240 for headroom (job default cap is 360).
+        timeout-minutes: 240
         env:
           MAVEN_OPTS: -Xmx4g -XX:MaxMetaspaceSize=512m
 
