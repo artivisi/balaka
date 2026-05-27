@@ -82,6 +82,28 @@ class OpenApiTest extends PlaywrightTestBase {
     }
 
     @Test
+    @DisplayName("info.version and description reflect the build's git.properties")
+    void testInfoVersionFromBuild() throws Exception {
+        java.util.Properties git = new java.util.Properties();
+        try (java.io.InputStream is = getClass().getResourceAsStream("/git.properties")) {
+            assertThat(is).as("git.properties on classpath").isNotNull();
+            git.load(is);
+        }
+        String expectedVersion = git.getProperty("git.build.version");
+        String expectedCommit = git.getProperty("git.commit.id.abbrev");
+        assertThat(expectedVersion).isNotBlank();
+        assertThat(expectedCommit).isNotBlank();
+
+        APIResponse response = apiContext.get(API_DOCS_URL);
+        JsonNode info = objectMapper.readTree(response.text()).get("info");
+
+        assertThat(info.get("version").asText()).isEqualTo(expectedVersion);
+        assertThat(info.get("description").asText()).contains("commit " + expectedCommit);
+
+        log.info("info.version={} commit={}", expectedVersion, expectedCommit);
+    }
+
+    @Test
     @DisplayName("paths contains spot-check endpoints from each controller")
     void testPathsContainEndpoints() throws Exception {
         APIResponse response = apiContext.get(API_DOCS_URL);
