@@ -1,14 +1,20 @@
 package com.artivisi.accountingfinance.service;
 
 import com.artivisi.accountingfinance.TestcontainersConfiguration;
+import com.artivisi.accountingfinance.entity.ChartOfAccount;
 import com.artivisi.accountingfinance.entity.Client;
 import com.artivisi.accountingfinance.entity.Invoice;
+import com.artivisi.accountingfinance.entity.InvoiceLine;
+import com.artivisi.accountingfinance.entity.JournalEntry;
+import com.artivisi.accountingfinance.entity.Product;
 import com.artivisi.accountingfinance.entity.Project;
 import com.artivisi.accountingfinance.entity.Transaction;
 import com.artivisi.accountingfinance.enums.InvoiceStatus;
 import com.artivisi.accountingfinance.enums.TransactionStatus;
+import com.artivisi.accountingfinance.repository.ChartOfAccountRepository;
 import com.artivisi.accountingfinance.repository.ClientRepository;
 import com.artivisi.accountingfinance.repository.InvoiceRepository;
+import com.artivisi.accountingfinance.repository.ProductRepository;
 import com.artivisi.accountingfinance.repository.ProjectRepository;
 import com.artivisi.accountingfinance.repository.TransactionRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -64,6 +70,15 @@ class InvoiceServiceTest {
 
     @Autowired
     private InvoicePaymentRepository invoicePaymentRepository;
+
+    @Autowired
+    private ProductRepository productRepository;
+
+    @Autowired
+    private ChartOfAccountRepository chartOfAccountRepository;
+
+    @Autowired
+    private TransactionService transactionService;
 
     private Client testClient;
 
@@ -389,6 +404,58 @@ class InvoiceServiceTest {
             assertThatThrownBy(() -> invoiceService.send(invoice.getId()))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Only draft invoices can be sent");
+        }
+
+        @Test
+        @DisplayName("send recognizes revenue as a DRAFT transaction (R2 grouping)")
+        void sendRecognizesRevenueAsDraftTransaction() {
+            ChartOfAccount revenue = chartOfAccountRepository.findByAccountCode("4.1.01").orElseThrow();
+            Product service = new Product();
+            service.setCode("SVC-" + UUID.randomUUID().toString().substring(0, 8));
+            service.setName("Konsultasi");
+            service.setUnit("jam");
+            service.setTrackInventory(false);
+            service.setSalesAccount(revenue);
+            service = productRepository.save(service);
+
+            Invoice invoice = new Invoice();
+            invoice.setClient(testClient);
+            invoice.setInvoiceNumber("INV-REV-" + System.currentTimeMillis());
+            invoice.setInvoiceDate(LocalDate.now());
+            invoice.setDueDate(LocalDate.now().plusDays(30));
+            invoice.setAmount(new BigDecimal("11100000"));
+            invoice.setStatus(InvoiceStatus.DRAFT);
+            InvoiceLine line = new InvoiceLine();
+            line.setInvoice(invoice);
+            line.setProduct(service);
+            line.setDescription("Konsultasi Januari");
+            line.setQuantity(BigDecimal.ONE);
+            line.setUnitPrice(new BigDecimal("10000000"));
+            line.setTaxRate(new BigDecimal("11"));
+            line.setTaxAmount(new BigDecimal("1100000"));
+            line.setAmount(new BigDecimal("10000000"));
+            invoice.getLines().add(line);
+            invoice = invoiceRepository.save(invoice);
+
+            invoiceService.send(invoice.getId());
+
+            List<Transaction> txns = transactionRepository
+                .findBySourceDocumentTypeAndSourceDocumentIdOrderByTransactionDateAsc("INVOICE", invoice.getId());
+            assertThat(txns).hasSize(1);
+            Transaction tx = txns.get(0);
+            assertThat(tx.getStatus()).isEqualTo(TransactionStatus.DRAFT);
+            assertThat(tx.getAmount()).isEqualByComparingTo("11100000");
+            assertThat(tx.getJournalTemplate().getTemplateName()).isEqualTo("Pengakuan Pendapatan Invoice");
+
+            // Posting computes the journal: Dr AR 11.1M / Cr Revenue 10M / Cr PPN 1.1M
+            Transaction posted = transactionService.post(tx.getId(), "tester");
+            assertThat(posted.getStatus()).isEqualTo(TransactionStatus.POSTED);
+            BigDecimal totalDebit = posted.getJournalEntries().stream()
+                .map(JournalEntry::getDebitAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
+            BigDecimal totalCredit = posted.getJournalEntries().stream()
+                .map(JournalEntry::getCreditAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
+            assertThat(totalDebit).isEqualByComparingTo("11100000");
+            assertThat(totalCredit).isEqualByComparingTo("11100000");
         }
 
         @Test
