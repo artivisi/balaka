@@ -102,6 +102,11 @@ public class DataImportService {
     private Map<String, PayrollRun> payrollRunMap;
     private Map<UUID, Transaction> transactionMap;  // Keyed by UUID to handle null transaction_number
     private Map<String, AmortizationSchedule> amortizationScheduleMap;
+
+    // Company-config posting accounts are referenced by COA code but company_config (01)
+    // imports before chart_of_accounts (02); resolved in a post-import pass.
+    private CompanyConfig importedCompanyConfig;
+    private String[] pendingCompanyConfigAccountCodes;
     private Map<TaxDeadlineType, TaxDeadline> taxDeadlineMap;
     private Map<String, ProjectMilestone> milestoneMap;
     private Map<String, ProductCategory> productCategoryMap;
@@ -147,6 +152,9 @@ public class DataImportService {
             totalRecords += count;
             log.info("Imported {} records from {}", count, LogSanitizer.filename(filename));
         }
+
+        // Resolve company-config posting accounts now that chart_of_accounts is loaded
+        resolveCompanyConfigAccounts();
 
         // Import document files
         int documentCount = importDocumentFiles(documentFiles);
@@ -359,6 +367,10 @@ public class DataImportService {
     }
 
     private void initializeMapsFromDatabase() {
+        // Reset per-import company-config account resolution state
+        importedCompanyConfig = null;
+        pendingCompanyConfigAccountCodes = null;
+
         // Initialize maps with existing data from database
         accountMap = new HashMap<>();
         for (ChartOfAccount a : accountRepository.findAll()) {
@@ -754,7 +766,36 @@ public class DataImportService {
         }
 
         companyConfigRepository.save(config);
+
+        // Posting bridge accounts (columns 16-19) are by COA code; chart_of_accounts
+        // imports after this file, so stash the codes and resolve them post-import.
+        importedCompanyConfig = config;
+        pendingCompanyConfigAccountCodes = new String[] {
+                getField(row, 16),  // receivable
+                getField(row, 17),  // payable
+                getField(row, 18),  // output tax
+                getField(row, 19)   // input tax
+        };
         return 1;
+    }
+
+    private void resolveCompanyConfigAccounts() {
+        if (importedCompanyConfig == null || pendingCompanyConfigAccountCodes == null) {
+            return;
+        }
+        String[] codes = pendingCompanyConfigAccountCodes;
+        importedCompanyConfig.setReceivableAccount(accountByCode(codes[0]));
+        importedCompanyConfig.setPayableAccount(accountByCode(codes[1]));
+        importedCompanyConfig.setOutputTaxAccount(accountByCode(codes[2]));
+        importedCompanyConfig.setInputTaxAccount(accountByCode(codes[3]));
+        companyConfigRepository.save(importedCompanyConfig);
+    }
+
+    private ChartOfAccount accountByCode(String code) {
+        if (code == null || code.isBlank()) {
+            return null;
+        }
+        return accountMap.get(code);
     }
 
     private int importChartOfAccounts(String content) {
