@@ -98,7 +98,15 @@
                     <div class="space-y-3">
                         <template x-for="(line, index) in lines" :key="index">
                             <div class="grid grid-cols-12 gap-2 items-start p-3 bg-gray-50 rounded-lg">
-                                <div class="col-span-5">
+                                <div class="col-span-3">
+                                    <label :for="'inv-lineProductId-' + index" class="block text-xs text-gray-500 mb-1">Produk/Jasa</label>
+                                    <select :id="'inv-lineProductId-' + index" :name="'lineProductId'" x-model="line.productId"
+                                            class="w-full px-3 py-2 border border-gray-300 rounded text-sm">
+                                        <option value="">-- Pilih --</option>
+                                        <option th:each="p : ${products}" th:value="${p.id}" th:text="${p.name}"></option>
+                                    </select>
+                                </div>
+                                <div class="col-span-2">
                                     <label :for="'inv-lineDescription-' + index" class="block text-xs text-gray-500 mb-1">Deskripsi *</label>
                                     <input type="text" :id="'inv-lineDescription-' + index" :name="'lineDescription'" x-model="line.description"
                                            class="w-full px-3 py-2 border border-gray-300 rounded text-sm" required>
@@ -194,6 +202,7 @@
                         lines: existingLines.length > 0
                             ? existingLines.map(function(l) {
                                 return {
+                                    productId: l.productId || '',
                                     description: l.description || '',
                                     quantity: l.quantity || 1,
                                     unitPrice: l.unitPrice || 0,
@@ -203,7 +212,7 @@
                             })
                             : [],
                         addLine: function() {
-                            this.lines.push({ description: '', quantity: 1, unitPrice: 0, taxRate: '', amount: 0 });
+                            this.lines.push({ productId: '', description: '', quantity: 1, unitPrice: 0, taxRate: '', amount: 0 });
                         },
                         removeLine: function(index) {
                             this.lines.splice(index, 1);

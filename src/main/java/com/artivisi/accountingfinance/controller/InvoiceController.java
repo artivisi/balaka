@@ -173,10 +173,11 @@ public class InvoiceController {
             @RequestParam(value = "lineQuantity", required = false) List<BigDecimal> quantities,
             @RequestParam(value = "lineUnitPrice", required = false) List<BigDecimal> unitPrices,
             @RequestParam(value = "lineTaxRate", required = false) List<BigDecimal> taxRates,
+            @RequestParam(value = "lineProductId", required = false) List<String> productIds,
             Model model,
             RedirectAttributes redirectAttributes) {
 
-        List<InvoiceLine> lines = buildInvoiceLines(descriptions, quantities, unitPrices, taxRates);
+        List<InvoiceLine> lines = buildInvoiceLines(descriptions, quantities, unitPrices, taxRates, productIds);
 
         if (bindingResult.hasErrors()) {
             populateFormModel(model, lines);
@@ -228,10 +229,11 @@ public class InvoiceController {
             @RequestParam(value = "lineQuantity", required = false) List<BigDecimal> quantities,
             @RequestParam(value = "lineUnitPrice", required = false) List<BigDecimal> unitPrices,
             @RequestParam(value = "lineTaxRate", required = false) List<BigDecimal> taxRates,
+            @RequestParam(value = "lineProductId", required = false) List<String> productIds,
             Model model,
             RedirectAttributes redirectAttributes) {
 
-        List<InvoiceLine> lines = buildInvoiceLines(descriptions, quantities, unitPrices, taxRates);
+        List<InvoiceLine> lines = buildInvoiceLines(descriptions, quantities, unitPrices, taxRates, productIds);
 
         if (bindingResult.hasErrors()) {
             Invoice existing = invoiceService.findByInvoiceNumber(invoiceNumber);
@@ -379,7 +381,8 @@ public class InvoiceController {
             List<String> descriptions,
             List<BigDecimal> quantities,
             List<BigDecimal> unitPrices,
-            List<BigDecimal> taxRates) {
+            List<BigDecimal> taxRates,
+            List<String> productIds) {
 
         List<InvoiceLine> lines = new ArrayList<>();
         if (descriptions == null || descriptions.isEmpty()) {
@@ -397,6 +400,10 @@ public class InvoiceController {
             line.setUnitPrice(unitPrices != null && i < unitPrices.size() && unitPrices.get(i) != null
                     ? unitPrices.get(i) : BigDecimal.ZERO);
             line.setTaxRate(taxRates != null && i < taxRates.size() ? taxRates.get(i) : null);
+            if (productIds != null && i < productIds.size()
+                    && productIds.get(i) != null && !productIds.get(i).isBlank()) {
+                line.setProduct(productService.findById(UUID.fromString(productIds.get(i))).orElse(null));
+            }
 
             line.calculateAmounts();
             lines.add(line);
