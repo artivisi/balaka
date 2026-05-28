@@ -1,0 +1,6 @@
+code,name,contact_person,email,phone,address,active,created_at
+BIJI-KOPI,CV Sumber Biji Kopi Nusantara,Sales Manager,sales@sumberkopi.id,022-7654321,"Jl. Cihampelas No. 88, Bandung",true,2022-01-15 00:00:00
+SUSU-SEGAR,PT Susu Segar Bandung,Distributor,info@sususegar.co.id,022-2345678,"Lembang, Bandung Barat",true,2022-02-01 00:00:00
+GULA-AREN,UD Gula Aren Sejahtera,Owner,gulaaren@email.com,0274-678901,"Jl. Magelang KM 8, Yogyakarta",true,2022-03-01 00:00:00
+SYRUP-MONIN,PT Distributor Monin Indonesia,Account Manager,monin@distributor.id,021-50800100,"Cibis Park, Jakarta",true,2022-06-01 00:00:00
+ROTI-SUPP,Toko Roti Sumber Berkah,Owner,sumberberkah@email.com,022-8765432,"Pasar Andir, Bandung",true,2023-01-01 00:00:00

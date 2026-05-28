@@ -1,0 +1,6 @@
+code,name,contact_person,email,phone,address,active,created_at
+PLN,PT PLN (Persero),Customer Service,callcenter@pln.co.id,021-123,"Jl. Trunojoyo Blok M I/135, Jakarta",true,2019-01-01 00:00:00
+PDAM,PDAM Jaya,Customer Service,info@pamjaya.co.id,021-29021000,"Jl. Penjernihan I No. 6, Jakarta",true,2019-01-01 00:00:00
+INDIHOME,PT Telkom Indonesia (IndiHome),Business Service,business@telkom.co.id,021-1500457,"Jl. Japati No. 1, Bandung",true,2019-03-01 00:00:00
+ATK-SUPP,PT Mitra Adi Perkasa (ATK),Sales,sales@mapcorporate.com,021-29220900,"Sahid Sudirman Center, Jakarta",true,2020-01-15 00:00:00
+LAB-EQUIP,PT Lab Solution Indonesia,Sales,sales@labsolution.id,021-50801234,"Office 8 SCBD, Jakarta",true,2021-06-01 00:00:00

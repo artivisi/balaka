@@ -1,0 +1,5 @@
+code,name,contact_person,email,phone,address,active,created_at
+SUPP-SAMSUNG,PT Samsung Electronics Indonesia,Account Manager,b2b@samsung.co.id,021-50800800,"Cibis Nine, Jl. TB Simatupang, Jakarta",true,2020-02-01 00:00:00
+SUPP-ERAJAYA,PT Erajaya Swasembada Tbk,Wholesale,wholesale@erajaya.com,021-29200000,"Jl. K.H. Wahid Hasyim No. 117, Jakarta",true,2020-04-01 00:00:00
+SHIP-JNE,JNE Express,Corporate,corporate@jne.co.id,021-29278888,"Jl. Tomang Raya No. 11, Jakarta",true,2020-06-01 00:00:00
+SHIP-ANTERAJA,Anteraja,Partner,partner@anteraja.id,021-50806060,"Sahid Sudirman Center, Jakarta",true,2021-03-01 00:00:00

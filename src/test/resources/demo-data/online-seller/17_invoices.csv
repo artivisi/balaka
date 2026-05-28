@@ -1,0 +1,7 @@
+invoice_number,invoice_date,due_date,client_code,project_code,status,amount,notes,created_at
+INV-TKP-2026-001,2026-02-01,2026-02-10,TOKPED,,PAID,25000000,Settlement batch Februari minggu 1 - dana sudah cair ke bank,2026-02-01 10:00:00
+INV-TKP-2026-002,2026-02-20,2026-03-01,TOKPED,,SENT,18000000,Dana ditahan marketplace - menunggu konfirmasi penerimaan barang,2026-02-20 10:00:00
+INV-SHP-2026-001,2026-02-15,2026-02-25,SHOPEE,,PARTIAL,32000000,Sebagian sudah cair (escrow release bertahap),2026-02-15 10:00:00
+INV-SHP-2026-002,2026-03-01,2026-03-15,SHOPEE,,SENT,21000000,Dana ditahan Shopee - escrow pending,2026-03-01 10:00:00
+INV-LAZ-2026-001,2026-02-25,2026-03-05,LAZADA,,OVERDUE,8000000,Dispute pelanggan - escrow belum dirilis melewati tenggat,2026-02-25 10:00:00
+INV-TIK-2026-001,2026-03-05,2026-03-20,TIKTOK,,DRAFT,15000000,Draft tagihan settlement TikTok Shop - menunggu rekap,2026-03-05 10:00:00

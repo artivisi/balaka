@@ -1,0 +1,6 @@
+code,name,contact_person,email,phone,address,active,created_at
+AWS,Amazon Web Services Indonesia,Business Support,aws-id@amazon.com,021-50100000,"Office 8 SCBD, Jakarta",true,2020-01-15 00:00:00
+GCP,Google Cloud Indonesia,Cloud Sales,gcp-id@google.com,021-29856600,"Pacific Century Place, Jakarta",true,2020-03-01 00:00:00
+CLAUDE,Anthropic (Claude AI),Subscriptions,billing@anthropic.com,,Online service,true,2024-05-01 00:00:00
+FIGMA,Figma Inc,Subscriptions,billing@figma.com,,Online service,true,2022-01-01 00:00:00
+DICODING,Dicoding Indonesia,Education Partner,partner@dicoding.com,022-5223344,"Jl. Riau No. 18, Bandung",true,2021-06-01 00:00:00

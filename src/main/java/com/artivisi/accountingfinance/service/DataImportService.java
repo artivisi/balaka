@@ -45,6 +45,8 @@ public class DataImportService {
     private final JournalEntryRepository journalEntryRepository;
     private final TransactionRepository transactionRepository;
     private final ClientRepository clientRepository;
+    private final VendorRepository vendorRepository;
+    private final BillRepository billRepository;
     private final ProjectRepository projectRepository;
     private final InvoiceRepository invoiceRepository;
     private final EmployeeRepository employeeRepository;
@@ -95,6 +97,7 @@ public class DataImportService {
     private Map<String, ChartOfAccount> accountMap;
     private Map<String, JournalTemplate> templateMap;
     private Map<String, Client> clientMap;
+    private Map<String, Vendor> vendorMap;
     private Map<String, Project> projectMap;
     private Map<String, Employee> employeeMap;
     private Map<String, SalaryComponent> salaryComponentMap;
@@ -387,6 +390,11 @@ public class DataImportService {
             clientMap.put(c.getCode(), c);
         }
 
+        vendorMap = new HashMap<>();
+        for (Vendor v : vendorRepository.findAll()) {
+            vendorMap.put(v.getCode(), v);
+        }
+
         projectMap = new HashMap<>();
         for (Project p : projectRepository.findAll()) {
             projectMap.put(p.getCode(), p);
@@ -485,6 +493,8 @@ public class DataImportService {
         importFunctions.put("15_employees.csv", this::importEmployees);
         importFunctions.put("16_employee_salary_components.csv", this::importEmployeeSalaryComponents);
         importFunctions.put("17_invoices.csv", this::importInvoices);
+        importFunctions.put("28_vendors.csv", this::importVendors);
+        importFunctions.put("29_bills.csv", this::importBills);
         importFunctions.put("18_transactions.csv", this::importTransactions);
         importFunctions.put("19_transaction_account_mappings.csv", this::importTransactionAccountMappings);
         importFunctions.put("19a_transaction_variables.csv", this::importTransactionVariables);
@@ -1253,6 +1263,48 @@ public class DataImportService {
             // column 8 = created_at (ignored, auto-generated)
 
             invoiceRepository.save(inv);
+        }
+        return rows.size();
+    }
+
+    private int importVendors(String content) {
+        List<String[]> rows = parseCsv(content);
+        // CSV columns: code,name,contact_person,email,phone,address,active,created_at
+        for (String[] row : rows) {
+            Vendor v = new Vendor();
+            v.setCode(getField(row, 0));
+            v.setName(getField(row, 1));
+            v.setContactPerson(getField(row, 2));
+            v.setEmail(getField(row, 3));
+            v.setPhone(getField(row, 4));
+            v.setAddress(getField(row, 5));
+            v.setActive(parseBoolean(getField(row, 6)));
+            vendorRepository.save(v);
+            vendorMap.put(v.getCode(), v);
+        }
+        return rows.size();
+    }
+
+    private int importBills(String content) {
+        List<String[]> rows = parseCsv(content);
+        // CSV columns: bill_number,bill_date,due_date,vendor_code,vendor_invoice_number,status,amount,notes,created_at
+        for (String[] row : rows) {
+            Bill b = new Bill();
+            b.setBillNumber(getField(row, 0));
+            b.setBillDate(parseDate(getField(row, 1)));
+            b.setDueDate(parseDate(getField(row, 2)));
+            String vendorCode = getField(row, 3);
+            if (!vendorCode.isEmpty()) {
+                b.setVendor(vendorMap.get(vendorCode));
+            }
+            b.setVendorInvoiceNumber(getField(row, 4));
+            String statusStr = getField(row, 5);
+            if (!statusStr.isEmpty()) {
+                b.setStatus(BillStatus.valueOf(statusStr));
+            }
+            b.setAmount(parseBigDecimal(getField(row, 6)));
+            b.setNotes(getField(row, 7));
+            billRepository.save(b);
         }
         return rows.size();
     }

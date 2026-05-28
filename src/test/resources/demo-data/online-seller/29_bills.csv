@@ -1,0 +1,6 @@
+bill_number,bill_date,due_date,vendor_code,vendor_invoice_number,status,amount,notes,created_at
+BILL-SAMSUNG-2026-02,2026-02-05,2026-03-05,SUPP-SAMSUNG,SMS-2026-02-INV-001,PAID,45000000,Pembelian stok smartphone batch Februari,2026-02-05 10:00:00
+BILL-ERAJAYA-2026-02,2026-02-15,2026-03-15,SUPP-ERAJAYA,ERJ-2026-02-INV-001,PARTIAL,28000000,Pembelian aksesoris stok bulanan (cicilan),2026-02-15 10:00:00
+BILL-SAMSUNG-2026-03,2026-03-01,2026-04-01,SUPP-SAMSUNG,SMS-2026-03-INV-001,APPROVED,52000000,Pembelian stok smartphone batch Maret,2026-03-01 10:00:00
+BILL-JNE-2026-02,2026-02-28,2026-03-15,SHIP-JNE,JNE-2026-02-001,OVERDUE,3500000,Tagihan ongkir JNE Februari (jatuh tempo),2026-02-28 10:00:00
+BILL-ANTERAJA-2026-02,2026-02-28,2026-03-15,SHIP-ANTERAJA,ANT-2026-02-001,DRAFT,2800000,Tagihan ongkir Anteraja Februari (draft - menunggu rekap),2026-02-28 10:00:00

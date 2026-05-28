@@ -1,0 +1,7 @@
+bill_number,bill_date,due_date,vendor_code,vendor_invoice_number,status,amount,notes,created_at
+BILL-BIJI-2026-02,2026-02-05,2026-03-05,BIJI-KOPI,SBN-2026-02-001,PAID,8500000,Pembelian biji kopi 50kg (sudah dibayar),2026-02-05 08:00:00
+BILL-SUSU-2026-02,2026-02-10,2026-03-10,SUSU-SEGAR,SSB-2026-02-001,APPROVED,3200000,Pembelian susu segar bulanan Februari,2026-02-10 08:00:00
+BILL-GULA-2026-02,2026-02-12,2026-03-12,GULA-AREN,GAS-2026-02,PARTIAL,1800000,Pembelian gula aren (cicilan 1 dari 2),2026-02-12 08:00:00
+BILL-MONIN-2026-02,2026-02-15,2026-03-01,SYRUP-MONIN,MON-2026-02-INV,OVERDUE,4200000,Pembelian syrup Monin (jatuh tempo),2026-02-15 08:00:00
+BILL-ROTI-2026-02,2026-02-25,2026-03-10,ROTI-SUPP,RSB-2026-02,APPROVED,2100000,Pembelian roti & pastry stock Februari,2026-02-25 08:00:00
+BILL-BIJI-2026-03,2026-03-05,2026-04-05,BIJI-KOPI,SBN-2026-03-001,DRAFT,9200000,Pembelian biji kopi Maret (draft - menunggu konfirmasi kualitas),2026-03-05 08:00:00

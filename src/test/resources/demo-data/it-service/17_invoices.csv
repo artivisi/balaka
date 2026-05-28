@@ -1,0 +1,7 @@
+invoice_number,invoice_date,due_date,client_code,project_code,status,amount,notes,created_at
+INV-SDN-2026-001,2026-01-15,2026-02-15,MANDIRI,,PAID,150000000,Konsultasi Core Banking - Januari,2026-01-15 10:00:00
+INV-SDN-2026-002,2026-02-01,2026-03-01,TELKOM,,SENT,80000000,Network Monitoring Phase 4,2026-02-01 10:00:00
+INV-SDN-2026-003,2026-02-10,2026-03-10,PLN,,PARTIAL,200000000,Smart Grid Analytics Phase 3,2026-02-10 10:00:00
+INV-SDN-2026-004,2026-02-20,2026-03-20,GRAB,,SENT,50000000,Driver Onboarding Enhancement,2026-02-20 10:00:00
+INV-SDN-2026-005,2026-03-01,2026-04-01,KOMINFO,,DRAFT,120000000,e-Government Portal Phase 3 (draft - menunggu persetujuan tim),2026-03-01 10:00:00
+INV-SDN-2026-006,2026-02-05,2026-02-20,MANDIRI,,OVERDUE,60000000,Cybersecurity Audit (jatuh tempo),2026-02-05 10:00:00
