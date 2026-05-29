@@ -142,11 +142,17 @@ public class SettingsController {
         @Size(max = 50, message = "Industry must not exceed 50 characters")
         private String industry;
 
-        // Posting bridge accounts (resolved to ChartOfAccount in toEntity)
+        // Posting bridge accounts (resolved to ChartOfAccount in toEntity).
+        // Label fields keep the combobox label visible across validation-failure
+        // re-renders, where the model object is this form (not the entity).
         private UUID receivableAccountId;
+        private String receivableAccountLabel;
         private UUID payableAccountId;
+        private String payableAccountLabel;
         private UUID outputTaxAccountId;
+        private String outputTaxAccountLabel;
         private UUID inputTaxAccountId;
+        private String inputTaxAccountLabel;
     }
 
     @Getter
