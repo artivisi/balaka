@@ -175,41 +175,109 @@
                     <h3 class="text-md font-medium text-gray-900 mb-4">Akun Posting (Jurnal Otomatis)</h3>
                     <p class="text-sm text-gray-500 mb-4">Akun ini dipakai saat invoice/tagihan membuat jurnal DRAFT lewat template (piutang, hutang, PPN).</p>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
+                        <div x-data="accountPicker"
+                             th:data-field-name="'receivableAccountId'"
+                             th:data-initial-id="${config.receivableAccountId}"
+                             th:data-initial-label="${config.receivableAccountLabel}">
                             <label for="receivableAccountId" class="block text-sm font-medium text-gray-700 mb-1">Piutang Usaha (AR)</label>
-                            <select id="receivableAccountId" th:field="*{receivableAccountId}"
-                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
-                                <option value="">-- Pilih Akun --</option>
-                                <option th:each="acc : ${postingAccounts}" th:value="${acc.id}"
-                                        th:text="|${acc.accountCode} - ${acc.accountName}|"></option>
-                            </select>
+                            <div class="relative">
+                                <input type="text" id="receivableAccountId" x-model="label"
+                                       @input.debounce.300ms="search()" @focus="focusPicker()" @click.away="open = false"
+                                       autocomplete="off"
+                                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                                       placeholder="Ketik kode atau nama akun...">
+                                <input type="hidden" name="receivableAccountId" :value="selectedId">
+                                <div x-show="open &amp;&amp; results.length > 0"
+                                     class="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
+                                    <template x-for="a in results" :key="a.id">
+                                        <button type="button" @click="select(a)"
+                                                data-testid="account-picker-result"
+                                                class="block w-full text-left px-3 py-2 text-sm hover:bg-primary-50">
+                                            <span class="font-medium" x-text="a.code"></span>
+                                            <span class="text-gray-500"> — </span>
+                                            <span x-text="a.name"></span>
+                                        </button>
+                                    </template>
+                                </div>
+                            </div>
                         </div>
-                        <div>
+                        <div x-data="accountPicker"
+                             th:data-field-name="'payableAccountId'"
+                             th:data-initial-id="${config.payableAccountId}"
+                             th:data-initial-label="${config.payableAccountLabel}">
                             <label for="payableAccountId" class="block text-sm font-medium text-gray-700 mb-1">Hutang Usaha (AP)</label>
-                            <select id="payableAccountId" th:field="*{payableAccountId}"
-                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
-                                <option value="">-- Pilih Akun --</option>
-                                <option th:each="acc : ${postingAccounts}" th:value="${acc.id}"
-                                        th:text="|${acc.accountCode} - ${acc.accountName}|"></option>
-                            </select>
+                            <div class="relative">
+                                <input type="text" id="payableAccountId" x-model="label"
+                                       @input.debounce.300ms="search()" @focus="focusPicker()" @click.away="open = false"
+                                       autocomplete="off"
+                                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                                       placeholder="Ketik kode atau nama akun...">
+                                <input type="hidden" name="payableAccountId" :value="selectedId">
+                                <div x-show="open &amp;&amp; results.length > 0"
+                                     class="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
+                                    <template x-for="a in results" :key="a.id">
+                                        <button type="button" @click="select(a)"
+                                                data-testid="account-picker-result"
+                                                class="block w-full text-left px-3 py-2 text-sm hover:bg-primary-50">
+                                            <span class="font-medium" x-text="a.code"></span>
+                                            <span class="text-gray-500"> — </span>
+                                            <span x-text="a.name"></span>
+                                        </button>
+                                    </template>
+                                </div>
+                            </div>
                         </div>
-                        <div>
+                        <div x-data="accountPicker"
+                             th:data-field-name="'outputTaxAccountId'"
+                             th:data-initial-id="${config.outputTaxAccountId}"
+                             th:data-initial-label="${config.outputTaxAccountLabel}">
                             <label for="outputTaxAccountId" class="block text-sm font-medium text-gray-700 mb-1">PPN Keluaran</label>
-                            <select id="outputTaxAccountId" th:field="*{outputTaxAccountId}"
-                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
-                                <option value="">-- Pilih Akun --</option>
-                                <option th:each="acc : ${postingAccounts}" th:value="${acc.id}"
-                                        th:text="|${acc.accountCode} - ${acc.accountName}|"></option>
-                            </select>
+                            <div class="relative">
+                                <input type="text" id="outputTaxAccountId" x-model="label"
+                                       @input.debounce.300ms="search()" @focus="focusPicker()" @click.away="open = false"
+                                       autocomplete="off"
+                                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                                       placeholder="Ketik kode atau nama akun...">
+                                <input type="hidden" name="outputTaxAccountId" :value="selectedId">
+                                <div x-show="open &amp;&amp; results.length > 0"
+                                     class="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
+                                    <template x-for="a in results" :key="a.id">
+                                        <button type="button" @click="select(a)"
+                                                data-testid="account-picker-result"
+                                                class="block w-full text-left px-3 py-2 text-sm hover:bg-primary-50">
+                                            <span class="font-medium" x-text="a.code"></span>
+                                            <span class="text-gray-500"> — </span>
+                                            <span x-text="a.name"></span>
+                                        </button>
+                                    </template>
+                                </div>
+                            </div>
                         </div>
-                        <div>
+                        <div x-data="accountPicker"
+                             th:data-field-name="'inputTaxAccountId'"
+                             th:data-initial-id="${config.inputTaxAccountId}"
+                             th:data-initial-label="${config.inputTaxAccountLabel}">
                             <label for="inputTaxAccountId" class="block text-sm font-medium text-gray-700 mb-1">PPN Masukan</label>
-                            <select id="inputTaxAccountId" th:field="*{inputTaxAccountId}"
-                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
-                                <option value="">-- Pilih Akun --</option>
-                                <option th:each="acc : ${postingAccounts}" th:value="${acc.id}"
-                                        th:text="|${acc.accountCode} - ${acc.accountName}|"></option>
-                            </select>
+                            <div class="relative">
+                                <input type="text" id="inputTaxAccountId" x-model="label"
+                                       @input.debounce.300ms="search()" @focus="focusPicker()" @click.away="open = false"
+                                       autocomplete="off"
+                                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                                       placeholder="Ketik kode atau nama akun...">
+                                <input type="hidden" name="inputTaxAccountId" :value="selectedId">
+                                <div x-show="open &amp;&amp; results.length > 0"
+                                     class="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
+                                    <template x-for="a in results" :key="a.id">
+                                        <button type="button" @click="select(a)"
+                                                data-testid="account-picker-result"
+                                                class="block w-full text-left px-3 py-2 text-sm hover:bg-primary-50">
+                                            <span class="font-medium" x-text="a.code"></span>
+                                            <span class="text-gray-500"> — </span>
+                                            <span x-text="a.name"></span>
+                                        </button>
+                                    </template>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -380,6 +448,8 @@
             document.getElementById('company-logo-preview')?.addEventListener('error', function() {
                 this.style.display = 'none';
             });
+
+            // accountPicker Alpine component lives in /js/alpine-components.js (shared).
         </script>
 </body>
 </html>

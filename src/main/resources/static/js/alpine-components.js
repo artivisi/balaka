@@ -42,6 +42,37 @@ function registerBasicStates() {
         }
     }))
 
+    // CSP-safe combobox for picking a Chart of Accounts entry. Each <div x-data="accountPicker">
+    // carries data-initial-id and data-initial-label set by Thymeleaf. Server search via
+    // GET /accounts/search?q=... returns at most 10 results.
+    Alpine.data('accountPicker', () => ({
+        open: false,
+        results: [],
+        label: '',
+        selectedId: '',
+        init() {
+            this.label = this.$el.dataset.initialLabel || ''
+            this.selectedId = this.$el.dataset.initialId || ''
+        },
+        focusPicker() {
+            this.open = true
+            if (this.results.length === 0) this.search()
+        },
+        search() {
+            const q = encodeURIComponent(this.label || '')
+            const self = this
+            fetch('/accounts/search?q=' + q, { headers: { 'Accept': 'application/json' } })
+                .then(r => r.ok ? r.json() : [])
+                .then(data => { self.results = data })
+        },
+        select(a) {
+            this.selectedId = a.id
+            this.label = a.code + ' - ' + a.name
+            this.results = []
+            this.open = false
+        }
+    }))
+
     // Toggle state with hasQuery flag (for search filters)
     Alpine.data('searchFilterState', () => ({
         open: false,

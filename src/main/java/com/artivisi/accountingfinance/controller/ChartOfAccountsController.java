@@ -46,6 +46,33 @@ public class ChartOfAccountsController {
 
     private final ChartOfAccountService chartOfAccountService;
 
+    /**
+     * Typeahead search for account pickers. Returns at most 10 active, non-header
+     * accounts matching q (by code or name). Used by every form that needs to pick
+     * a COA account — keeps each dropdown under 10 items per the UX rule.
+     */
+    @org.springframework.web.bind.annotation.GetMapping("/search")
+    @org.springframework.web.bind.annotation.ResponseBody
+    @org.springframework.security.access.prepost.PreAuthorize("isAuthenticated()")
+    public java.util.List<java.util.Map<String, Object>> search(
+            @org.springframework.web.bind.annotation.RequestParam(value = "q", required = false) String q) {
+        String search = q == null ? "" : q.toLowerCase().trim();
+        java.util.List<java.util.Map<String, Object>> results = new java.util.ArrayList<>();
+        for (com.artivisi.accountingfinance.entity.ChartOfAccount a : chartOfAccountService.findTransactableAccounts()) {
+            if (results.size() >= 10) break;
+            boolean matches = search.isEmpty()
+                    || a.getAccountCode().toLowerCase().contains(search)
+                    || a.getAccountName().toLowerCase().contains(search);
+            if (matches) {
+                results.add(java.util.Map.of(
+                        "id", a.getId().toString(),
+                        "code", a.getAccountCode(),
+                        "name", a.getAccountName()));
+            }
+        }
+        return results;
+    }
+
     @Getter
     @Setter
     static class ParentRef {

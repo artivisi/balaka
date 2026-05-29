@@ -121,4 +121,27 @@ public class CompanyConfig extends BaseEntity {
     public UUID getInputTaxAccountId() {
         return inputTaxAccount != null ? inputTaxAccount.getId() : null;
     }
+
+    public String getReceivableAccountLabel() {
+        return formatAccountLabel(receivableAccount);
+    }
+
+    public String getPayableAccountLabel() {
+        return formatAccountLabel(payableAccount);
+    }
+
+    public String getOutputTaxAccountLabel() {
+        return formatAccountLabel(outputTaxAccount);
+    }
+
+    public String getInputTaxAccountLabel() {
+        return formatAccountLabel(inputTaxAccount);
+    }
+
+    private static String formatAccountLabel(ChartOfAccount account) {
+        if (account == null) return "";
+        String code = account.getAccountCode() == null ? "" : account.getAccountCode();
+        String name = account.getAccountName() == null ? "" : account.getAccountName();
+        return code + " - " + name;
+    }
 }

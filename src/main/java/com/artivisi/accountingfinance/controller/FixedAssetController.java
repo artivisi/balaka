@@ -120,6 +120,7 @@ public class FixedAssetController {
 
         // Bank/AP credited when the acquisition DRAFT posts (required at create time).
         private UUID fundingAccount;
+        private String fundingAccountLabel;
 
         // When true, the depreciation scheduler posts entries directly; else PENDING.
         private boolean autoPost;
@@ -147,6 +148,10 @@ public class FixedAssetController {
         }
         if (entity.getFundingAccount() != null) {
             form.setFundingAccount(entity.getFundingAccount().getId());
+            var acc = entity.getFundingAccount();
+            form.setFundingAccountLabel(
+                    (acc.getAccountCode() == null ? "" : acc.getAccountCode())
+                            + " - " + (acc.getAccountName() == null ? "" : acc.getAccountName()));
         }
         return form;
     }
@@ -410,7 +415,7 @@ public class FixedAssetController {
     private void addFormAttributes(Model model) {
         model.addAttribute("categories", assetCategoryService.findAllActive());
         model.addAttribute("depreciationMethods", DepreciationMethod.values());
-        model.addAttribute("fundingAccounts", chartOfAccountService.findTransactableAccounts());
+        // Funding-account picker fetches via GET /accounts/search (combobox; ≤10 results).
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_ASSETS);
     }
 }

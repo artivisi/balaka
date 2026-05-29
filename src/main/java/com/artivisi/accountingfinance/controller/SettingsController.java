@@ -205,7 +205,7 @@ public class SettingsController {
 
         model.addAttribute("config", config);
         model.addAttribute(ATTR_BANK_ACCOUNTS, bankAccounts);
-        model.addAttribute("postingAccounts", chartOfAccountService.findTransactableAccounts());
+        // Posting account pickers fetch via GET /accounts/search (combobox; ≤10 results).
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_SETTINGS);
 
         return "settings/company";
@@ -222,7 +222,7 @@ public class SettingsController {
         if (bindingResult.hasErrors()) {
             List<CompanyBankAccount> bankAccounts = bankAccountService.findAll();
             model.addAttribute(ATTR_BANK_ACCOUNTS, bankAccounts);
-            model.addAttribute("postingAccounts", chartOfAccountService.findTransactableAccounts());
+            // Posting account pickers fetch via GET /accounts/search (combobox; ≤10 results).
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_SETTINGS);
             return "settings/company";
         }
