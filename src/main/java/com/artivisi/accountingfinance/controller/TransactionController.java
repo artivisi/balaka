@@ -414,23 +414,8 @@ public class TransactionController {
     @GetMapping("/journal-entry/new")
     @PreAuthorize("hasAuthority('" + Permission.TRANSACTION_CREATE + "')")
     public String journalEntryForm(Model model) {
+        // Account list fetched on-demand via GET /accounts/search by per-line picker.
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_TRANSACTIONS);
-        model.addAttribute(ATTR_ACCOUNTS, chartOfAccountService.findTransactableAccounts());
-
-        // JSON for Alpine data attribute (used by journalEntryForm component to add dynamic lines)
-        List<ChartOfAccount> accounts = chartOfAccountService.findTransactableAccounts();
-        List<Map<String, String>> accountsList = accounts.stream()
-                .map(a -> Map.of(
-                        "id", a.getId().toString(),
-                        "code", a.getAccountCode(),
-                        "name", a.getAccountName()))
-                .toList();
-        try {
-            model.addAttribute("accountsJson", new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(accountsList));
-        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
-            model.addAttribute("accountsJson", "[]");
-        }
-
         return "transactions/journal-entry-form";
     }
 

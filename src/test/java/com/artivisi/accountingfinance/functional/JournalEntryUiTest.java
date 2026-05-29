@@ -235,14 +235,18 @@ class JournalEntryUiTest extends PlaywrightTestBase {
     }
 
     /**
-     * Select an account option by index from a server-rendered select element.
-     * Index 0 is the placeholder, so use 1+ for actual accounts.
+     * Drive the accountPicker combobox by picking the Nth result of an empty
+     * query. Server returns top-10 transactable accounts in code-ascending order,
+     * so empty-query indexing matches the legacy &lt;option&gt; ordering with the
+     * placeholder offset removed: legacy index 1 → combobox index 0, index 2 → 1.
      */
-    private void selectAccountByIndex(String selector, int index) {
-        Locator select = page.locator(selector);
-        select.waitFor();
-        Locator options = select.locator("option");
-        String value = options.nth(index).getAttribute("value");
-        select.selectOption(new String[]{value});
+    private void selectAccountByIndex(String selector, int legacyIndex) {
+        Locator input = page.locator(selector);
+        input.waitFor();
+        input.click();
+        page.waitForTimeout(400); // debounce + fetch
+        int comboboxIndex = legacyIndex - 1;
+        Locator results = page.locator("[data-testid='account-picker-result']");
+        results.nth(comboboxIndex).click();
     }
 }

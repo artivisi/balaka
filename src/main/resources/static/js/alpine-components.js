@@ -490,37 +490,35 @@ function registerFormComponents() {
         }
     }))
 
-    // Free-form journal entry form
+    // Free-form journal entry form. State-driven via Alpine reactive lines
+    // (x-for in template). Each line has its own accountPicker-style combobox
+    // backed by GET /accounts/search; no full COA dump in the page.
+    function blankJournalLine() {
+        return {
+            label: '',
+            selectedId: '',
+            results: [],
+            pickerOpen: false,
+            debit: 0,
+            credit: 0,
+            debitText: '0',
+            creditText: '0'
+        }
+    }
     Alpine.data('journalEntryForm', () => ({
         transactionDate: new Date().toISOString().split('T')[0],
         description: '',
         category: '',
-        totalDebit: 0,
-        totalCredit: 0,
         submitting: false,
         errorMessage: '',
-        lineCount: 2,
-        accountsData: [],
-        optionsHtml: '',
+        lines: [blankJournalLine(), blankJournalLine()],
 
-        init() {
-            // Parse accounts JSON from data attribute
-            const dataEl = document.getElementById('journal-entry-accounts')
-            if (dataEl) {
-                try {
-                    this.accountsData = JSON.parse(dataEl.dataset.accounts || '[]')
-                } catch (_) {
-                    this.accountsData = []
-                }
-            }
-            // Cache the options HTML from the first server-rendered select
-            const firstSelect = document.querySelector('.journal-account-select')
-            if (firstSelect) {
-                this.optionsHtml = firstSelect.innerHTML
-            }
-            this.recalcTotals()
+        get totalDebit() {
+            return this.lines.reduce((s, l) => s + (Number.parseInt(l.debit, 10) || 0), 0)
         },
-
+        get totalCredit() {
+            return this.lines.reduce((s, l) => s + (Number.parseInt(l.credit, 10) || 0), 0)
+        },
         get isBalanced() {
             return this.totalDebit === this.totalCredit && this.totalDebit > 0
         },
@@ -549,134 +547,74 @@ function registerFormComponents() {
             return this.submitting ? 'Menyimpan...' : 'Simpan & Posting'
         },
 
-        recalcTotals() {
-            let debit = 0
-            let credit = 0
-            const container = document.getElementById('journal-lines-container')
-            if (!container) return
-            for (const input of container.querySelectorAll('.journal-debit')) {
-                debit += Number.parseInt(input.value.replaceAll(/\D/g, ''), 10) || 0
-            }
-            for (const input of container.querySelectorAll('.journal-credit')) {
-                credit += Number.parseInt(input.value.replaceAll(/\D/g, ''), 10) || 0
-            }
-            this.totalDebit = debit
-            this.totalCredit = credit
+        // Combobox callbacks (per-line picker state)
+        searchAccounts(line) {
+            const q = encodeURIComponent(line.label || '')
+            fetch('/accounts/search?q=' + q, { headers: { 'Accept': 'application/json' } })
+                .then(r => r.ok ? r.json() : [])
+                .then(data => { line.results = data })
+        },
+        focusLine(line) {
+            line.pickerOpen = true
+            if (!line.results || line.results.length === 0) this.searchAccounts(line)
+        },
+        selectAccount(line, a) {
+            line.selectedId = a.id
+            line.label = a.code + ' - ' + a.name
+            line.results = []
+            line.pickerOpen = false
         },
 
-        onDebitInput(e) {
-            const raw = Number.parseInt(e.target.value.replaceAll(/\D/g, ''), 10) || 0
-            e.target.value = raw > 0 ? new Intl.NumberFormat('id-ID').format(raw) : '0'
-            // Clear credit on same line if debit > 0
+        // Amount handlers. We bind :value (one-way) and read $event.target.value
+        // on input, since x-model on inputs inside x-for + late-init data tends
+        // to lose sync with the typed text. The numeric side updates live so
+        // totals stay accurate; reformat on blur to avoid fighting the cursor.
+        // A row is debit-XOR-credit, so entering one zeroes the other.
+        handleDebitInput(line, event) {
+            line.debitText = event.target.value
+            const raw = Number.parseInt(line.debitText.replaceAll(/\D/g, ''), 10) || 0
+            line.debit = raw
             if (raw > 0) {
-                const line = e.target.closest('.journal-line')
-                const creditInput = line.querySelector('.journal-credit')
-                if (creditInput) {
-                    creditInput.value = '0'
-                    creditInput.disabled = true
-                    creditInput.classList.add('bg-gray-100', 'text-gray-400')
-                }
-            } else {
-                const line = e.target.closest('.journal-line')
-                const creditInput = line.querySelector('.journal-credit')
-                if (creditInput) {
-                    creditInput.disabled = false
-                    creditInput.classList.remove('bg-gray-100', 'text-gray-400')
-                }
+                line.credit = 0
+                line.creditText = '0'
             }
-            this.recalcTotals()
         },
-
-        onCreditInput(e) {
-            const raw = Number.parseInt(e.target.value.replaceAll(/\D/g, ''), 10) || 0
-            e.target.value = raw > 0 ? new Intl.NumberFormat('id-ID').format(raw) : '0'
-            // Clear debit on same line if credit > 0
+        handleCreditInput(line, event) {
+            line.creditText = event.target.value
+            const raw = Number.parseInt(line.creditText.replaceAll(/\D/g, ''), 10) || 0
+            line.credit = raw
             if (raw > 0) {
-                const line = e.target.closest('.journal-line')
-                const debitInput = line.querySelector('.journal-debit')
-                if (debitInput) {
-                    debitInput.value = '0'
-                    debitInput.disabled = true
-                    debitInput.classList.add('bg-gray-100', 'text-gray-400')
-                }
-            } else {
-                const line = e.target.closest('.journal-line')
-                const debitInput = line.querySelector('.journal-debit')
-                if (debitInput) {
-                    debitInput.disabled = false
-                    debitInput.classList.remove('bg-gray-100', 'text-gray-400')
-                }
+                line.debit = 0
+                line.debitText = '0'
             }
-            this.recalcTotals()
         },
-
         onAmountFocus(e) {
-            const raw = Number.parseInt(e.target.value.replaceAll(/\D/g, ''), 10) || 0
-            if (raw === 0) e.target.value = ''
+            if (e.target.value === '0') e.target.value = ''
         },
-
-        onAmountBlur(e) {
-            const raw = Number.parseInt(e.target.value.replaceAll(/\D/g, ''), 10) || 0
-            if (raw === 0) e.target.value = '0'
+        onDebitBlur(line) {
+            line.debitText = line.debit > 0
+                ? new Intl.NumberFormat('id-ID').format(line.debit)
+                : '0'
         },
-
-        onAccountChange() {
-            // No-op, value is read at submit time from DOM
+        onCreditBlur(line) {
+            line.creditText = line.credit > 0
+                ? new Intl.NumberFormat('id-ID').format(line.credit)
+                : '0'
         },
 
         addLine() {
-            const container = document.getElementById('journal-lines-container')
-            const idx = this.lineCount
-            this.lineCount++
-
-            const div = document.createElement('div')
-            div.className = 'grid grid-cols-12 gap-3 px-2 py-3 items-center border-b border-gray-100 journal-line'
-            div.setAttribute('data-testid', 'journal-line-' + idx)
-            div.innerHTML = '<div class="col-span-5">'
-                + '<select data-testid="account-select-' + idx + '" data-line-index="' + idx + '"'
-                + ' class="journal-account-select w-full px-2 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">'
-                + this.optionsHtml
-                + '</select></div>'
-                + '<div class="col-span-3">'
-                + '<input type="text" data-testid="debit-input-' + idx + '" data-line-index="' + idx + '" inputmode="numeric" value="0"'
-                + ' class="journal-debit w-full px-2 py-2 text-sm text-right border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"></div>'
-                + '<div class="col-span-3">'
-                + '<input type="text" data-testid="credit-input-' + idx + '" data-line-index="' + idx + '" inputmode="numeric" value="0"'
-                + ' class="journal-credit w-full px-2 py-2 text-sm text-right border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"></div>'
-                + '<div class="col-span-1 text-center">'
-                + '<button type="button" data-testid="remove-line-' + idx + '"'
-                + ' class="journal-remove-btn p-1 text-gray-400 hover:text-red-500 transition-colors">'
-                + '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>'
-                + '</button></div>'
-
-            // Attach event listeners
-            const self = this
-            div.querySelector('.journal-debit').addEventListener('input', function(e) { self.onDebitInput(e) })
-            div.querySelector('.journal-debit').addEventListener('focus', function(e) { self.onAmountFocus(e) })
-            div.querySelector('.journal-debit').addEventListener('blur', function(e) { self.onAmountBlur(e) })
-            div.querySelector('.journal-credit').addEventListener('input', function(e) { self.onCreditInput(e) })
-            div.querySelector('.journal-credit').addEventListener('focus', function(e) { self.onAmountFocus(e) })
-            div.querySelector('.journal-credit').addEventListener('blur', function(e) { self.onAmountBlur(e) })
-            div.querySelector('.journal-remove-btn').addEventListener('click', function() {
-                if (container.querySelectorAll('.journal-line').length > 2) {
-                    div.remove()
-                    self.recalcTotals()
-                }
-            })
-
-            container.appendChild(div)
+            this.lines.push(blankJournalLine())
+        },
+        removeLine(idx) {
+            if (this.lines.length > 2) this.lines.splice(idx, 1)
         },
 
         collectLines() {
-            const container = document.getElementById('journal-lines-container')
-            const lines = []
-            for (const lineEl of container.querySelectorAll('.journal-line')) {
-                const accountId = lineEl.querySelector('.journal-account-select').value
-                const debit = Number.parseInt(lineEl.querySelector('.journal-debit').value.replaceAll(/\D/g, ''), 10) || 0
-                const credit = Number.parseInt(lineEl.querySelector('.journal-credit').value.replaceAll(/\D/g, ''), 10) || 0
-                lines.push({ accountId, debit, credit })
-            }
-            return lines
+            return this.lines.map(l => ({
+                accountId: l.selectedId,
+                debit: Number.parseInt(l.debit, 10) || 0,
+                credit: Number.parseInt(l.credit, 10) || 0
+            }))
         },
 
         validate() {
