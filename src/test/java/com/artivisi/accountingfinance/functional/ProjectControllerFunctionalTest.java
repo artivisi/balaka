@@ -66,20 +66,25 @@ class ProjectControllerFunctionalTest extends PlaywrightTestBase {
     @Test
     @DisplayName("Should filter projects by client")
     void shouldFilterProjectsByClient() {
+        var client = clientRepository.findAll().stream().findFirst();
+        if (client.isEmpty()) {
+            return;
+        }
+
         navigateTo("/projects");
         waitForPageLoad();
 
-        var clientSelect = page.locator("select[name='clientId']").first();
-        if (clientSelect.isVisible()) {
-            var options = clientSelect.locator("option");
-            if (options.count() > 1) {
-                clientSelect.selectOption(new String[]{options.nth(1).getAttribute("value")});
-
-                var filterBtn = page.locator("form button[type='submit']").first();
-                if (filterBtn.isVisible()) {
-                    filterBtn.click();
-                    waitForPageLoad();
-                }
+        // Filter is a clientPicker combobox; pick a result and HTMX live-fires
+        // picker:selected to refresh the table fragment.
+        var input = page.locator("[x-data='clientPicker'] input[type='text']").first();
+        if (input.isVisible()) {
+            input.click();
+            input.fill(client.get().getCode());
+            page.waitForTimeout(400);
+            var results = page.locator("[data-testid='client-picker-result']");
+            if (results.count() > 0) {
+                results.first().click();
+                waitForPageLoad();
             }
         }
 
@@ -138,10 +143,17 @@ class ProjectControllerFunctionalTest extends PlaywrightTestBase {
             nameInput.fill("Test Project " + System.currentTimeMillis());
         }
 
-        // Fill client
-        var clientSelect = page.locator("select[name='client.id'], select[name='clientId']").first();
-        if (clientSelect.isVisible()) {
-            clientSelect.selectOption(client.get().getId().toString());
+        // Fill client via combobox (clientPicker on form). The form's input id is
+        // "clientId" — type and click the first matching result.
+        var clientInput = page.locator("#clientId");
+        if (clientInput.isVisible()) {
+            clientInput.click();
+            clientInput.fill(client.get().getCode());
+            page.waitForTimeout(400);
+            var results = page.locator("[data-testid='client-picker-result']");
+            if (results.count() > 0) {
+                results.first().click();
+            }
         }
 
         // Fill start date
@@ -199,9 +211,15 @@ class ProjectControllerFunctionalTest extends PlaywrightTestBase {
             nameInput.fill("Duplicate Test");
         }
 
-        var clientSelect = page.locator("select[name='client.id'], select[name='clientId']").first();
-        if (clientSelect.isVisible()) {
-            clientSelect.selectOption(client.get().getId().toString());
+        var clientInput = page.locator("#clientId");
+        if (clientInput.isVisible()) {
+            clientInput.click();
+            clientInput.fill(client.get().getCode());
+            page.waitForTimeout(400);
+            var results = page.locator("[data-testid='client-picker-result']");
+            if (results.count() > 0) {
+                results.first().click();
+            }
         }
 
         var submitBtn = page.locator("#btn-simpan").first();

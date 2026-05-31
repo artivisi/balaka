@@ -55,7 +55,6 @@ public class InvoiceController {
     private static final String ATTR_SUCCESS_MESSAGE = "successMessage";
     private static final String ATTR_ERROR_MESSAGE = "errorMessage";
     private static final String ATTR_INVOICE = "invoice";
-    private static final String ATTR_CLIENTS = "clients";
     private static final String ATTR_PROJECTS = "projects";
     private static final String ATTR_LINES = "lines";
     private static final String REDIRECT_INVOICES_PREFIX = "redirect:/invoices/";
@@ -131,10 +130,11 @@ public class InvoiceController {
 
         model.addAttribute("invoices", invoices);
         model.addAttribute("statuses", InvoiceStatus.values());
-        model.addAttribute(ATTR_CLIENTS, clientService.findActiveClients());
+        // Project filter still uses <select>; clients are picker-driven now.
         model.addAttribute(ATTR_PROJECTS, projectService.findActiveProjects());
         model.addAttribute("selectedStatus", status);
         model.addAttribute("selectedClientId", clientId);
+        model.addAttribute("selectedClientLabel", clientId == null ? "" : clientLabel(clientId));
         model.addAttribute("selectedProjectId", projectId);
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_INVOICES);
 
@@ -366,6 +366,21 @@ public class InvoiceController {
         model.addAttribute("amountInWords", AmountToWordsUtil.toWords(invoice.getAmount()));
 
         return "invoices/print";
+    }
+
+    /**
+     * Resolve a client id to its "code - name" label for the picker's
+     * data-initial-label when a filter is pre-applied (re-rendered after submit).
+     * Returns the raw id if the lookup fails so the UI never silently shows
+     * nothing for a real filter.
+     */
+    private String clientLabel(UUID clientId) {
+        try {
+            Client c = clientService.findById(clientId);
+            return c.getCode() + " - " + c.getName();
+        } catch (jakarta.persistence.EntityNotFoundException e) {
+            return clientId.toString();
+        }
     }
 
     private void populateFormModel(Model model) {

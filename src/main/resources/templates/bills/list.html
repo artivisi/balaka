@@ -38,11 +38,31 @@
                     <option th:each="s : ${statuses}" th:value="${s}" th:text="${s.indonesianName}"
                             th:selected="${selectedStatus != null && selectedStatus.name() == s.name()}">Status</option>
                 </select>
-                <select name="vendorId" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
-                    <option value="">Semua Vendor</option>
-                    <option th:each="v : ${vendors}" th:value="${v.id}" th:text="${v.name}"
-                            th:selected="${selectedVendorId != null && selectedVendorId == v.id}">Vendor</option>
-                </select>
+                <!-- Vendor filter (combobox) -->
+                <div x-data="vendorPicker" class="relative"
+                     th:data-initial-id="${selectedVendorId}"
+                     th:data-initial-label="${selectedVendorLabel}">
+                    <input type="text" x-model="label"
+                           @input.debounce.300ms="search()"
+                           @focus="focusPicker()"
+                           @click.away="open = false"
+                           autocomplete="off"
+                           placeholder="Semua Vendor"
+                           class="px-3 py-2 border border-gray-300 rounded-lg text-sm w-48">
+                    <input type="hidden" name="vendorId" :value="selectedId">
+                    <div x-show="open &amp;&amp; results.length > 0"
+                         class="absolute z-10 mt-1 w-64 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
+                        <template x-for="v in results" :key="v.id">
+                            <button type="button" @click="select(v)"
+                                    data-testid="vendor-picker-result"
+                                    class="block w-full text-left px-3 py-2 text-sm hover:bg-primary-50">
+                                <span class="font-medium" x-text="v.code"></span>
+                                <span class="text-gray-500"> — </span>
+                                <span x-text="v.name"></span>
+                            </button>
+                        </template>
+                    </div>
+                </div>
                 <button type="submit" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm">
                     Filter
                 </button>

@@ -134,4 +134,18 @@ public class Project {
                 .sum();
         return (completedWeight * 100) / totalWeight;
     }
+
+    /**
+     * Combobox label for the bound client. Used by the project form's
+     * clientPicker so data-initial-label renders the existing selection.
+     */
+    public String getClientLabel() {
+        if (client == null) return "";
+        String code = client.getCode() == null ? "" : client.getCode();
+        String name = client.getName() == null ? "" : client.getName();
+        if (code.isEmpty() && name.isEmpty()) return "";
+        if (code.isEmpty()) return name;
+        if (name.isEmpty()) return code;
+        return code + " - " + name;
+    }
 }

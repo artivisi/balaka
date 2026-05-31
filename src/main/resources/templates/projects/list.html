@@ -45,20 +45,38 @@
                             th:selected="${status == s}">Status</option>
                 </select>
 
-                <!-- Filter Client -->
-                <select name="clientId"
-                        class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
-                        hx-get="/projects"
-                        hx-trigger="change"
-                        hx-target="#project-table"
-                        hx-swap="outerHTML"
-                        hx-include="[name='search'],[name='status']">
-                    <option value="" th:selected="${clientId == null}">Semua Klien</option>
-                    <option th:each="client : ${clients}"
-                            th:value="${client.id}"
-                            th:text="${client.name}"
-                            th:selected="${clientId == client.id}">Klien</option>
-                </select>
+                <!-- Filter Client (combobox + HTMX live-trigger via picker:selected) -->
+                <div x-data="clientPicker"
+                     class="relative"
+                     th:data-initial-id="${clientId}"
+                     th:data-initial-label="${clientLabel}"
+                     hx-get="/projects"
+                     hx-trigger="picker:selected"
+                     hx-target="#project-table"
+                     hx-swap="outerHTML"
+                     hx-include="[name='search'],[name='status'],input[name='clientId']">
+                    <input type="text" x-model="label"
+                           @input.debounce.300ms="search()"
+                           @focus="focusPicker()"
+                           @click.away="open = false"
+                           autocomplete="off"
+                           placeholder="Semua Klien"
+                           class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
+                    <input type="hidden" name="clientId" :value="selectedId">
+                    <div x-show="open &amp;&amp; results.length > 0"
+                         class="absolute z-10 mt-1 w-64 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
+                        <template x-for="c in results" :key="c.id">
+                            <button type="button"
+                                    @click="select(c); $dispatch('picker:selected')"
+                                    data-testid="client-picker-result"
+                                    class="block w-full text-left px-3 py-2 text-sm hover:bg-primary-50">
+                                <span class="font-medium" x-text="c.code"></span>
+                                <span class="text-gray-500"> — </span>
+                                <span x-text="c.name"></span>
+                            </button>
+                        </template>
+                    </div>
+                </div>
             </div>
 
             <a sec:authorize="hasAuthority('PROJECT_CREATE')" th:href="@{/projects/new}"

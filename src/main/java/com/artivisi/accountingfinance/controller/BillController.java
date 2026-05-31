@@ -50,7 +50,6 @@ public class BillController {
     private static final String ATTR_BILL = "bill";
     private static final String ATTR_SUCCESS_MESSAGE = "successMessage";
     private static final String ATTR_ERROR_MESSAGE = "errorMessage";
-    private static final String ATTR_VENDORS = "vendors";
     private static final String VIEW_FORM = "bills/form";
 
     private final BillService billService;
@@ -114,9 +113,11 @@ public class BillController {
 
         model.addAttribute("bills", bills);
         model.addAttribute("statuses", BillStatus.values());
-        model.addAttribute(ATTR_VENDORS, vendorService.findActiveVendors());
+        // Vendor list picker-driven now; resolve the selected vendor's label so
+        // the combobox re-renders the active filter after submit.
         model.addAttribute("selectedStatus", status);
         model.addAttribute("selectedVendorId", vendorId);
+        model.addAttribute("selectedVendorLabel", vendorId == null ? "" : vendorLabel(vendorId));
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_BILLS);
 
         model.addAttribute("draftCount", billService.countByStatus(BillStatus.DRAFT));
@@ -318,6 +319,19 @@ public class BillController {
         // Expense accounts fetched on-demand via GET /accounts/search per line.
         // Products fetched on-demand via GET /products/search if/when used.
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_BILLS);
+    }
+
+    /**
+     * Resolve a vendor id to its "code - name" label for the picker's
+     * data-initial-label when the list filter is pre-applied.
+     */
+    private String vendorLabel(UUID vendorId) {
+        try {
+            Vendor v = vendorService.findById(vendorId);
+            return v.getCode() + " - " + v.getName();
+        } catch (jakarta.persistence.EntityNotFoundException e) {
+            return vendorId.toString();
+        }
     }
 
     private List<BillLine> buildLines(

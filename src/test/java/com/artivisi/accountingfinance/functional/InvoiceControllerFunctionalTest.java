@@ -70,20 +70,26 @@ class InvoiceControllerFunctionalTest extends PlaywrightTestBase {
     @Test
     @DisplayName("Should filter invoices by client")
     void shouldFilterInvoicesByClient() {
+        var client = clientRepository.findAll().stream().findFirst();
+        if (client.isEmpty()) {
+            return;
+        }
+
         navigateTo("/invoices");
         waitForPageLoad();
 
-        var clientSelect = page.locator("select[name='clientId']").first();
-        if (clientSelect.isVisible()) {
-            var options = clientSelect.locator("option");
-            if (options.count() > 1) {
-                clientSelect.selectOption(new String[]{options.nth(1).getAttribute("value")});
-
-                var filterBtn = page.locator("form button[type='submit']").first();
-                if (filterBtn.isVisible()) {
-                    filterBtn.click();
-                    waitForPageLoad();
-                }
+        // Filter is a clientPicker combobox now. Type to search, click result,
+        // then submit the form.
+        var input = page.locator("[x-data='clientPicker'] input[type='text']").first();
+        if (input.isVisible()) {
+            input.click();
+            input.fill(client.get().getCode());
+            page.waitForTimeout(400);
+            var results = page.locator("[data-testid='client-picker-result']");
+            if (results.count() > 0) {
+                results.first().click();
+                page.locator("form button[type='submit']").first().click();
+                waitForPageLoad();
             }
         }
 

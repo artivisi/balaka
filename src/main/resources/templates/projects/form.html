@@ -42,17 +42,33 @@
                     <p th:if="${#fields.hasErrors('name')}" th:errors="*{name}" class="mt-1 text-sm text-red-500"></p>
                 </div>
 
-                <!-- Client -->
-                <div>
+                <!-- Client (combobox) -->
+                <div x-data="clientPicker"
+                     th:data-initial-id="${project.client != null ? project.client.id : ''}"
+                     th:data-initial-label="${project.clientLabel}">
                     <label for="clientId" class="block text-sm font-medium text-gray-700 mb-1">Klien</label>
-                    <select id="clientId" name="clientId"
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
-                        <option value="">Pilih Klien</option>
-                        <option th:each="client : ${clients}"
-                                th:value="${client.id}"
-                                th:text="${client.name}"
-                                th:selected="${project.client != null and project.client.id == client.id}">Klien</option>
-                    </select>
+                    <div class="relative">
+                        <input type="text" id="clientId" x-model="label"
+                               @input.debounce.300ms="search()"
+                               @focus="focusPicker()"
+                               @click.away="open = false"
+                               autocomplete="off"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                               placeholder="Ketik kode atau nama klien...">
+                        <input type="hidden" name="clientId" :value="selectedId">
+                        <div x-show="open &amp;&amp; results.length > 0"
+                             class="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
+                            <template x-for="c in results" :key="c.id">
+                                <button type="button" @click="select(c)"
+                                        data-testid="client-picker-result"
+                                        class="block w-full text-left px-3 py-2 text-sm hover:bg-primary-50">
+                                    <span class="font-medium" x-text="c.code"></span>
+                                    <span class="text-gray-500"> — </span>
+                                    <span x-text="c.name"></span>
+                                </button>
+                            </template>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Contract Value -->

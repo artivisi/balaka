@@ -2,7 +2,6 @@ package com.artivisi.accountingfinance.controller;
 
 import com.artivisi.accountingfinance.entity.Project;
 import com.artivisi.accountingfinance.enums.ProjectStatus;
-import com.artivisi.accountingfinance.service.ClientService;
 import com.artivisi.accountingfinance.service.ProjectService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -39,13 +38,12 @@ import static com.artivisi.accountingfinance.controller.ViewConstants.*;
 public class ProjectController {
 
     private static final String ATTR_PROJECT = "project";
-    private static final String ATTR_CLIENTS = "clients";
     private static final String ATTR_SUCCESS_MESSAGE = "successMessage";
     private static final String REDIRECT_PROJECTS_PREFIX = "redirect:/projects/";
     private static final String VIEW_FORM = "projects/form";
 
     private final ProjectService projectService;
-    private final ClientService clientService;
+    private final com.artivisi.accountingfinance.service.ClientService clientService;
 
     @Getter
     @Setter
@@ -75,6 +73,9 @@ public class ProjectController {
 
         // Used by Thymeleaf for dropdown pre-selection (project.client.id)
         private EntityRef client;
+        // Carries the picker label across POST validation re-renders so the
+        // clientPicker combobox can re-display the selection without re-fetching.
+        private String clientLabel;
     }
 
     private Project toEntity(ProjectForm form) {
@@ -108,9 +109,9 @@ public class ProjectController {
         model.addAttribute("projects", projects);
         model.addAttribute("status", status);
         model.addAttribute("clientId", clientId);
+        model.addAttribute("clientLabel", clientId == null ? "" : resolveClientLabel(clientId));
         model.addAttribute("search", search);
         model.addAttribute("statuses", ProjectStatus.values());
-        model.addAttribute(ATTR_CLIENTS, clientService.findActiveClients());
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_PROJECTS);
 
         if ("true".equals(hxRequest)) {
@@ -123,7 +124,6 @@ public class ProjectController {
     @GetMapping("/new")
     public String newForm(Model model) {
         model.addAttribute(ATTR_PROJECT, new ProjectForm());
-        model.addAttribute(ATTR_CLIENTS, clientService.findActiveClients());
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_PROJECTS);
         return VIEW_FORM;
     }
@@ -137,7 +137,6 @@ public class ProjectController {
             RedirectAttributes redirectAttributes) {
 
         if (bindingResult.hasErrors()) {
-            model.addAttribute(ATTR_CLIENTS, clientService.findActiveClients());
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_PROJECTS);
             return VIEW_FORM;
         }
@@ -149,7 +148,6 @@ public class ProjectController {
             return REDIRECT_PROJECTS_PREFIX + saved.getCode();
         } catch (IllegalArgumentException e) {
             bindingResult.rejectValue("code", "duplicate", e.getMessage());
-            model.addAttribute(ATTR_CLIENTS, clientService.findActiveClients());
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_PROJECTS);
             return VIEW_FORM;
         }
@@ -167,7 +165,6 @@ public class ProjectController {
     public String editForm(@PathVariable String code, Model model) {
         Project existing = projectService.findByCode(code);
         model.addAttribute(ATTR_PROJECT, toForm(existing));
-        model.addAttribute(ATTR_CLIENTS, clientService.findActiveClients());
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_PROJECTS);
         return VIEW_FORM;
     }
@@ -184,7 +181,6 @@ public class ProjectController {
         if (bindingResult.hasErrors()) {
             Project existing = projectService.findByCode(code);
             form.setId(existing.getId());
-            model.addAttribute(ATTR_CLIENTS, clientService.findActiveClients());
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_PROJECTS);
             return VIEW_FORM;
         }
@@ -199,7 +195,6 @@ public class ProjectController {
             bindingResult.rejectValue("code", "duplicate", e.getMessage());
             Project existing = projectService.findByCode(code);
             form.setId(existing.getId());
-            model.addAttribute(ATTR_CLIENTS, clientService.findActiveClients());
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_PROJECTS);
             return VIEW_FORM;
         }
@@ -236,5 +231,18 @@ public class ProjectController {
         projectService.reactivate(project.getId());
         redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Proyek berhasil diaktifkan kembali");
         return REDIRECT_PROJECTS_PREFIX + code;
+    }
+
+    /**
+     * Resolve a client id to its "code - name" label for the list filter
+     * combobox when the URL carries ?clientId=&lt;uuid&gt;.
+     */
+    private String resolveClientLabel(UUID clientId) {
+        try {
+            var c = clientService.findById(clientId);
+            return c.getCode() + " - " + c.getName();
+        } catch (jakarta.persistence.EntityNotFoundException e) {
+            return clientId.toString();
+        }
     }
 }

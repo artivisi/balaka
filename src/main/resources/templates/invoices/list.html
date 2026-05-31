@@ -37,11 +37,31 @@
                     <option th:each="s : ${statuses}" th:value="${s}" th:text="${s.indonesianName}"
                             th:selected="${selectedStatus != null && selectedStatus.name() == s.name()}">Status</option>
                 </select>
-                <select name="clientId" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
-                    <option value="">Semua Klien</option>
-                    <option th:each="c : ${clients}" th:value="${c.id}" th:text="${c.name}"
-                            th:selected="${selectedClientId != null && selectedClientId == c.id}">Client</option>
-                </select>
+                <!-- Client filter (combobox) -->
+                <div x-data="clientPicker" class="relative"
+                     th:data-initial-id="${selectedClientId}"
+                     th:data-initial-label="${selectedClientLabel}">
+                    <input type="text" x-model="label"
+                           @input.debounce.300ms="search()"
+                           @focus="focusPicker()"
+                           @click.away="open = false"
+                           autocomplete="off"
+                           placeholder="Semua Klien"
+                           class="px-3 py-2 border border-gray-300 rounded-lg text-sm w-48">
+                    <input type="hidden" name="clientId" :value="selectedId">
+                    <div x-show="open &amp;&amp; results.length > 0"
+                         class="absolute z-10 mt-1 w-64 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
+                        <template x-for="c in results" :key="c.id">
+                            <button type="button" @click="select(c)"
+                                    data-testid="client-picker-result"
+                                    class="block w-full text-left px-3 py-2 text-sm hover:bg-primary-50">
+                                <span class="font-medium" x-text="c.code"></span>
+                                <span class="text-gray-500"> — </span>
+                                <span x-text="c.name"></span>
+                            </button>
+                        </template>
+                    </div>
+                </div>
                 <select name="projectId" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
                     <option value="">Semua Proyek</option>
                     <option th:each="p : ${projects}" th:value="${p.id}" th:text="${p.name}"
