@@ -99,12 +99,12 @@ nohup ./mvnw test > target/test-output.log 2>&1 &
 ./mvnw spotbugs:check
 # Results: target/spotbugsXml.xml
 
-# Run only DAST tests
-./mvnw test -Dtest=ZapDastTest
+# Run only DAST tests (excluded from default surefire run via excludedGroups)
+./mvnw test -Dtest=ZapDastTest -DexcludedGroups= -Ddast.enabled=true
 # Results: target/security-reports/zap-*.html
 
 # Run DAST in quick mode (passive scan only, ~1 min)
-./mvnw test -Dtest=ZapDastTest -Ddast.quick=true
+./mvnw test -Dtest=ZapDastTest -DexcludedGroups= -Ddast.enabled=true -Ddast.quick=true
 ```
 
 ## Database
@@ -124,6 +124,30 @@ User → Controller (MVC) → Service → Repository → PostgreSQL
          ↓
     Thymeleaf Templates (HTMX + Alpine.js)
 ```
+
+**Transaction-centric design:** There are no standalone journal entries. Every `journal_entry` row is generated from a `transaction` + `journal_template`, with user-selected accounts resolved via `transaction_account_mappings` and amounts computed by the SpEL formula engine. `JournalEntryService` + `JournalBalancer` enforce double-entry. `FormulaEvaluator` evaluates SpEL using `SimpleEvaluationContext.forReadOnlyDataBinding()` — no type refs, constructors, or bean refs allowed.
+
+**System vs user templates:** Templates with `is_system=true` (payroll, depreciation, year-end closing) are owned by internal services and must not be edited by users. User templates (revenue, expenses, transfers, etc.) are customizable.
+
+**Single-tenant:** One company per database instance. No multi-tenancy logic in code.
+
+**API surface:** Web controllers live in `controller/`; REST API controllers in `controller/api/` — only the `api` package is scanned by springdoc-openapi (`OpenApiConfig.packagesToScan(...)`).
+
+## Runtime Configuration
+
+App listens on **port 10000** (not Spring's default 8080). Default DB URL is `jdbc:postgresql://localhost:12345/accountingdb?sslmode=require`. Override via env vars:
+
+| Env var | Purpose |
+|---------|---------|
+| `DATABASE_URL`, `DATABASE_USERNAME`, `DATABASE_PASSWORD` | DB connection |
+| `APP_ENCRYPTION_KEY` | AES-256-GCM key for PII fields (`openssl rand -base64 32`) |
+| `TELEGRAM_BOT_*` | Telegram bot integration (disabled by default) |
+| `GOOGLE_APPLICATION_CREDENTIALS`, `GOOGLE_CLOUD_VISION_ENABLED` | Receipt OCR |
+| `APP_DEMO_MODE` | Shows reset banner on every page |
+
+Hibernate runs with `ddl-auto=validate` — schema is owned by Flyway, not JPA.
+
+Frontend assets (Tailwind, Alpine) are built automatically during Maven `generate-resources` via `frontend-maven-plugin` from `src/main/frontend/`. No manual `npm install` needed.
 
 ## Current Release
 
