@@ -465,7 +465,7 @@ class TransactionApiServiceTest {
                     );
 
             com.artivisi.accountingfinance.dto.TransactionResponse response =
-                    transactionApiService.createTransactionDirect(txRequest, "testuser");
+                    transactionApiService.createTransactionDirect(txRequest, "testuser", null).response();
 
             assertThat(response).isNotNull();
             assertThat(response.transactionId()).isNotNull();
@@ -495,7 +495,7 @@ class TransactionApiServiceTest {
                             null
                     );
 
-            assertThatThrownBy(() -> transactionApiService.createTransactionDirect(txRequest, "testuser"))
+            assertThatThrownBy(() -> transactionApiService.createTransactionDirect(txRequest, "testuser", null))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("future");
         }

@@ -61,6 +61,30 @@ Authorization: Bearer <token>
 
 Response: `201 Created` with `TransactionResponse`.
 
+## Idempotent Posting (Retry Safety)
+
+`POST /api/transactions` accepts an optional `Idempotency-Key` header (max 100
+chars, caller-generated, unique per logical posting). The key is persisted with
+the transaction in the same database commit as the posting, so a dispatcher
+retry after a lost response cannot double-post:
+
+```http
+POST /api/transactions
+Authorization: Bearer <token>
+Idempotency-Key: journal-posting-42
+Content-Type: application/json
+```
+
+- First request: `201 Created` with the `TransactionResponse`.
+- Repeat with the same key: `200 OK` with the original transaction (id,
+  number, journal entries) — nothing new is created, whatever the payload.
+- Concurrent duplicates race on a unique index; the loser returns the winner's
+  transaction with `200 OK`.
+
+Outbox dispatchers should use a stable identifier of their own posting row as
+the key, so every logical event maps to exactly one GL transaction across
+retries.
+
 ## Create Draft Transaction
 
 Creates a DRAFT transaction via the draft workflow.

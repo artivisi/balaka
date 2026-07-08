@@ -86,6 +86,9 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
     @Query("SELECT t FROM Transaction t LEFT JOIN FETCH t.journalEntries WHERE t.id = :id")
     Optional<Transaction> findByIdWithJournalEntries(@Param("id") UUID id);
 
+    @Query("SELECT t FROM Transaction t LEFT JOIN FETCH t.journalEntries WHERE t.idempotencyKey = :idempotencyKey")
+    Optional<Transaction> findByIdempotencyKeyWithJournalEntries(@Param("idempotencyKey") String idempotencyKey);
+
     @Query("SELECT DISTINCT t FROM Transaction t " +
            "LEFT JOIN FETCH t.accountMappings am " +
            "LEFT JOIN FETCH am.templateLine " +

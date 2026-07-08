@@ -14,11 +14,13 @@ import com.artivisi.accountingfinance.service.TemplateExecutionEngine;
 import com.artivisi.accountingfinance.service.TransactionApiService;
 import com.artivisi.accountingfinance.service.TransactionService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -30,6 +32,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -40,6 +43,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -66,8 +70,17 @@ public class TransactionApiController {
      * POST /api/transactions
      */
     @PostMapping
+    @Operation(summary = "Create and post a transaction directly",
+               description = "Bypasses the draft workflow. Supports retry-safe posting via the "
+                           + "Idempotency-Key header: a repeat request with the same key returns "
+                           + "the original transaction with HTTP 200 instead of creating a second one.")
+    @ApiResponse(responseCode = "201", description = "Transaction created and posted")
+    @ApiResponse(responseCode = "200", description = "Idempotency-Key replay - original transaction returned")
     public ResponseEntity<TransactionResponse> createTransaction(
-            @Valid @RequestBody CreateTransactionRequest request) {
+            @Valid @RequestBody CreateTransactionRequest request,
+            @Parameter(description = "Caller-generated key making this post retry-safe; "
+                    + "max 100 chars, unique per logical posting")
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
 
         String username = getCurrentUsername();
         log.info("API: Create transaction directly - merchant={}, template={}, source={}, user={}",
@@ -81,8 +94,24 @@ public class TransactionApiController {
                 "userApproved", request.userApproved().toString()
         ));
 
-        TransactionResponse response = transactionApiService.createTransactionDirect(request, username);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        try {
+            TransactionApiService.IdempotentCreateResult result =
+                    transactionApiService.createTransactionDirect(request, username, idempotencyKey);
+            return ResponseEntity
+                    .status(result.replayed() ? HttpStatus.OK : HttpStatus.CREATED)
+                    .body(result.response());
+        } catch (DataIntegrityViolationException e) {
+            // Concurrent posts raced on the same Idempotency-Key: the unique index
+            // rejected this insert, so return the transaction the winner recorded.
+            if (idempotencyKey != null && !idempotencyKey.isBlank()) {
+                Optional<TransactionResponse> replay =
+                        transactionApiService.findByIdempotencyKey(idempotencyKey.trim());
+                if (replay.isPresent()) {
+                    return ResponseEntity.ok(replay.get());
+                }
+            }
+            throw e;
+        }
     }
 
     /**

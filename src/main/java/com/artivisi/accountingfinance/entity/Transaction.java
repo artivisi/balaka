@@ -72,6 +72,15 @@ public class Transaction extends BaseEntity {
     @Column(name = "reference_number", length = 100)
     private String referenceNumber;
 
+    /**
+     * Caller-supplied Idempotency-Key from POST /api/transactions. Unique when
+     * present; a retry with the same key returns the original transaction
+     * instead of double-posting.
+     */
+    @Size(max = 100, message = "Idempotency key must not exceed 100 characters")
+    @Column(name = "idempotency_key", length = 100, updatable = false)
+    private String idempotencyKey;
+
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;
 

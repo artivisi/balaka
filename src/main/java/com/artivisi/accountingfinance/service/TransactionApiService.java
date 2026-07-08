@@ -39,6 +39,7 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -60,6 +61,7 @@ public class TransactionApiService {
 
     private final DraftTransactionService draftTransactionService;
     private final TransactionService transactionService;
+    private final com.artivisi.accountingfinance.repository.TransactionRepository transactionRepository;
     private final JournalEntryService journalEntryService;
     private final JournalTemplateService journalTemplateService;
     private final TemplateExecutionEngine templateExecutionEngine;
@@ -716,10 +718,42 @@ public class TransactionApiService {
     }
 
     /**
+     * Outcome of an idempotent direct post: the response plus whether an existing
+     * transaction was replayed (HTTP 200) instead of created (HTTP 201).
+     */
+    public record IdempotentCreateResult(TransactionResponse response, boolean replayed) {}
+
+    /**
+     * Look up the transaction recorded for an Idempotency-Key, if any.
+     * Used by the controller to resolve a concurrent-create race after the
+     * unique index rejects the losing insert.
+     */
+    public Optional<TransactionResponse> findByIdempotencyKey(String idempotencyKey) {
+        return transactionRepository.findByIdempotencyKeyWithJournalEntries(idempotencyKey)
+                .map(this::buildTransactionResponse);
+    }
+
+    /**
      * Create and post transaction directly (bypass draft workflow).
      * Used after AI assistant has consulted user and received approval.
+     *
+     * When idempotencyKey is present and a transaction already carries it, the
+     * original transaction is returned (replayed=true) and nothing is created.
+     * The key is persisted with the transaction in the same database commit as
+     * the posting, so a retry after a lost response cannot double-post.
      */
-    public TransactionResponse createTransactionDirect(CreateTransactionRequest request, String username) {
+    public IdempotentCreateResult createTransactionDirect(
+            CreateTransactionRequest request, String username, String idempotencyKey) {
+        String key = idempotencyKey != null && !idempotencyKey.isBlank() ? idempotencyKey.trim() : null;
+        if (key != null) {
+            Optional<Transaction> existing = transactionRepository.findByIdempotencyKeyWithJournalEntries(key);
+            if (existing.isPresent()) {
+                log.info("Idempotency-Key replay: key={} -> transaction {}",
+                        LogSanitizer.sanitize(key), existing.get().getId());
+                return new IdempotentCreateResult(buildTransactionResponse(existing.get()), true);
+            }
+        }
+
         log.info("Creating transaction directly: merchant={}, amount={}, template={}, source={}",
                 request.merchant(), request.amount(), request.templateId(), request.source());
 
@@ -740,6 +774,7 @@ public class TransactionApiService {
         transaction.setDescription(request.description());
         transaction.setReferenceNumber("API-" + UUID.randomUUID().toString().substring(0, 8));
         transaction.setCreatedBy(username != null ? username : "API-" + request.source());
+        transaction.setIdempotencyKey(key);
 
         // Record template usage
         journalTemplateService.recordUsage(template.getId());
@@ -759,7 +794,7 @@ public class TransactionApiService {
         log.info("Created and posted transaction {} from API source: {}",
                 complete.getTransactionNumber(), request.source());
 
-        return buildTransactionResponse(complete);
+        return new IdempotentCreateResult(buildTransactionResponse(complete), false);
     }
 
     /**

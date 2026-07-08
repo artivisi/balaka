@@ -329,6 +329,9 @@ CREATE TABLE transactions (
     -- (e.g. INVOICE/BILL). One document may map to many transactions (R2 revenue grouping).
     source_document_type VARCHAR(30),
     source_document_id UUID,
+    -- Caller-supplied Idempotency-Key from POST /api/transactions; a retry with the
+    -- same key returns the original transaction instead of double-posting.
+    idempotency_key VARCHAR(100),
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
     created_by VARCHAR(100),
@@ -343,6 +346,7 @@ CREATE INDEX idx_trx_number ON transactions(transaction_number);
 CREATE INDEX idx_trx_date ON transactions(transaction_date);
 CREATE INDEX idx_trx_template ON transactions(id_journal_template);
 CREATE INDEX idx_trx_status ON transactions(status);
+CREATE UNIQUE INDEX idx_trx_idempotency_key ON transactions(idempotency_key) WHERE idempotency_key IS NOT NULL;
 CREATE INDEX idx_transactions_project ON transactions(id_project);
 CREATE INDEX idx_trx_source_document ON transactions(source_document_type, source_document_id);
 
