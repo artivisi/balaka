@@ -40,6 +40,7 @@ Indonesian accounting application for small businesses. Spring Boot 4.0 + Thymel
 - **Period Report:** ✅ Complete (`/reports/period` — fiscal period dropdown, closing-entry-excluded P&L)
 - **Sidebar Reorg:** ✅ Complete (Master Data separated from Pengaturan)
 - **Tax Filing (FR-001–006):** ✅ Complete (L1 non-operating expenses fix, L9 depreciation fallback, PKP rounding, excludeClosing API param, financial statements PDF, Coretax SPT export)
+- **Fixed Asset API (issue #30):** ✅ Complete (`/api/fixed-assets` CRUD + `/categories`, scopes `assets:read`/`assets:write`, register via funding account → acquisition DRAFT or `purchaseTransactionId` → link existing posted journal without new draft)
 - See `docs/06-implementation-plan.md` for full plan
 
 ## Key Files

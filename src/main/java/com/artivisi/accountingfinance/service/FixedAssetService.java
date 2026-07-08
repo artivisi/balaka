@@ -75,6 +75,19 @@ public class FixedAssetService {
         return fixedAssetRepository.findByFilters(status, categoryId, pageable);
     }
 
+    /**
+     * Filtered listing for the REST API: optional purchase year, category, and status.
+     */
+    public Page<FixedAsset> findByApiFilters(Integer purchaseYear, UUID categoryId, AssetStatus status, Pageable pageable) {
+        if (purchaseYear == null) {
+            return fixedAssetRepository.findByFilters(status, categoryId, pageable);
+        }
+        return fixedAssetRepository.findByFiltersAndPurchaseDateRange(
+                status, categoryId,
+                LocalDate.of(purchaseYear, 1, 1), LocalDate.of(purchaseYear, 12, 31),
+                pageable);
+    }
+
     public FixedAsset findById(UUID id) {
         return fixedAssetRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Aset tidak ditemukan"));
@@ -92,17 +105,34 @@ public class FixedAssetService {
 
     @Transactional
     public FixedAsset create(FixedAsset asset) {
+        return create(asset, null);
+    }
+
+    /**
+     * Create a fixed asset. Exactly one acquisition source is required:
+     * either a funding account (an acquisition DRAFT is composed: Dr asset / Cr funding)
+     * or an existing purchase transaction to link (no new journal is created —
+     * used when the purchase journal was already posted before registration).
+     */
+    @Transactional
+    public FixedAsset create(FixedAsset asset, UUID purchaseTransactionId) {
         validateAsset(asset, null);
 
         // Load and set category
         AssetCategory category = assetCategoryRepository.findById(asset.getCategory().getId())
                 .orElseThrow(() -> new EntityNotFoundException("Kategori aset tidak ditemukan"));
 
-        // Initialize from category defaults
+        // Fill unset depreciation settings from category defaults; accounts always from category
         asset.initializeFromCategory(category);
 
         // Validate accounts after category initialization
         validateAccountsInitialized(asset);
+
+        // Validate depreciation settings after category defaults are applied
+        if (asset.getDepreciationMethod() == DepreciationMethod.DECLINING_BALANCE
+                && (asset.getDepreciationRate() == null || asset.getDepreciationRate().compareTo(BigDecimal.ZERO) <= 0)) {
+            throw new IllegalArgumentException("Tarif penyusutan wajib diisi untuk metode saldo menurun");
+        }
 
         // Set book value to purchase cost initially
         asset.setBookValue(asset.getPurchaseCost());
@@ -110,6 +140,21 @@ public class FixedAssetService {
         // Default depreciation start date to first of month after purchase
         if (asset.getDepreciationStartDate() == null) {
             asset.setDepreciationStartDate(asset.getPurchaseDate().withDayOfMonth(1));
+        }
+
+        if (purchaseTransactionId != null) {
+            if (asset.getFundingAccount() != null) {
+                throw new IllegalArgumentException(
+                        "Pilih salah satu: akun pendanaan (membuat jurnal pembelian baru) "
+                                + "atau transaksi pembelian yang sudah ada, tidak keduanya");
+            }
+            // Link the already-posted purchase journal; do not compose a new DRAFT
+            Transaction purchase = transactionService.findById(purchaseTransactionId);
+            asset.setPurchaseTransaction(purchase);
+            FixedAsset saved = fixedAssetRepository.save(asset);
+            log.info("Created fixed asset {} linked to purchase transaction {}",
+                    LogSanitizer.sanitize(saved.getAssetCode()), purchaseTransactionId);
+            return saved;
         }
 
         FixedAsset saved = fixedAssetRepository.save(asset);
@@ -165,6 +210,12 @@ public class FixedAssetService {
         } else {
             validateAsset(assetData, id);
 
+            if (assetData.getDepreciationMethod() == DepreciationMethod.DECLINING_BALANCE
+                    && (assetData.getDepreciationRate() == null
+                            || assetData.getDepreciationRate().compareTo(BigDecimal.ZERO) <= 0)) {
+                throw new IllegalArgumentException("Tarif penyusutan wajib diisi untuk metode saldo menurun");
+            }
+
             existing.setAssetCode(assetData.getAssetCode());
             existing.setName(assetData.getName());
             existing.setDescription(assetData.getDescription());
@@ -176,7 +227,10 @@ public class FixedAssetService {
             existing.setUsefulLifeMonths(assetData.getUsefulLifeMonths());
             existing.setResidualValue(assetData.getResidualValue());
             existing.setDepreciationRate(assetData.getDepreciationRate());
-            existing.setDepreciationStartDate(assetData.getDepreciationStartDate());
+            // Same derivation as create(): unset start date means first day of purchase month
+            existing.setDepreciationStartDate(assetData.getDepreciationStartDate() != null
+                    ? assetData.getDepreciationStartDate()
+                    : assetData.getPurchaseDate().withDayOfMonth(1));
             existing.setLocation(assetData.getLocation());
             existing.setSerialNumber(assetData.getSerialNumber());
             existing.setNotes(assetData.getNotes());
@@ -552,12 +606,6 @@ public class FixedAssetService {
                             throw new IllegalArgumentException("Kode aset " + asset.getAssetCode() + " sudah digunakan");
                         }
                     });
-        }
-
-        // Validate depreciation settings
-        if (asset.getDepreciationMethod() == DepreciationMethod.DECLINING_BALANCE
-                && (asset.getDepreciationRate() == null || asset.getDepreciationRate().compareTo(BigDecimal.ZERO) <= 0)) {
-            throw new IllegalArgumentException("Tarif penyusutan wajib diisi untuk metode saldo menurun");
         }
 
         // Validate residual value

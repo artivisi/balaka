@@ -202,13 +202,21 @@ public class FixedAsset extends TimestampedEntity {
     }
 
     /**
-     * Initialize asset from category defaults.
+     * Initialize asset from category. Accounts always come from the category;
+     * depreciation settings only fill in when the caller left them null, so
+     * explicit per-asset overrides (e.g. fiscal useful life) survive.
      */
     public void initializeFromCategory(AssetCategory category) {
         this.category = category;
-        this.depreciationMethod = category.getDepreciationMethod();
-        this.usefulLifeMonths = category.getUsefulLifeMonths();
-        this.depreciationRate = category.getDepreciationRate();
+        if (this.depreciationMethod == null) {
+            this.depreciationMethod = category.getDepreciationMethod();
+        }
+        if (this.usefulLifeMonths == null) {
+            this.usefulLifeMonths = category.getUsefulLifeMonths();
+        }
+        if (this.depreciationRate == null) {
+            this.depreciationRate = category.getDepreciationRate();
+        }
         this.assetAccount = category.getAssetAccount();
         this.accumulatedDepreciationAccount = category.getAccumulatedDepreciationAccount();
         this.depreciationExpenseAccount = category.getDepreciationExpenseAccount();

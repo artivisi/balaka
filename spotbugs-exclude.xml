@@ -142,6 +142,14 @@ Each exclusion must have a justification comment explaining the mitigation.
         <Bug pattern="CRLF_INJECTION_LOGS"/>
     </Match>
 
+    <!-- FixedAssetApiController: String inputs (assetCode, name) sanitized via LogSanitizer.sanitize();
+         remaining flagged params are java.util.UUID @PathVariable values parsed by Spring type binding
+         (cannot contain CRLF) + Logback %replace strips CRLF -->
+    <Match>
+        <Class name="com.artivisi.accountingfinance.controller.api.FixedAssetApiController"/>
+        <Bug pattern="CRLF_INJECTION_LOGS"/>
+    </Match>
+
     <!-- FiscalAdjustmentApiController: Log params are UUID/int (validated by Spring type binding) + Logback %replace strips CRLF -->
     <Match>
         <Class name="com.artivisi.accountingfinance.controller.api.FiscalAdjustmentApiController"/>

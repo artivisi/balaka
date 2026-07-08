@@ -74,6 +74,21 @@ public interface FixedAssetRepository extends JpaRepository<FixedAsset, UUID> {
             @Param("categoryId") UUID categoryId,
             Pageable pageable);
 
+    // Date params are mandatory: PostgreSQL cannot type-infer ":param IS NULL" for date binds
+    @Query("SELECT a FROM FixedAsset a " +
+           "LEFT JOIN FETCH a.category " +
+           "WHERE " +
+           "(:status IS NULL OR a.status = :status) " +
+           "AND (:categoryId IS NULL OR a.category.id = :categoryId) " +
+           "AND a.purchaseDate BETWEEN :purchasedFrom AND :purchasedUntil " +
+           "ORDER BY a.assetCode")
+    Page<FixedAsset> findByFiltersAndPurchaseDateRange(
+            @Param("status") AssetStatus status,
+            @Param("categoryId") UUID categoryId,
+            @Param("purchasedFrom") LocalDate purchasedFrom,
+            @Param("purchasedUntil") LocalDate purchasedUntil,
+            Pageable pageable);
+
     @Query("SELECT COUNT(a) FROM FixedAsset a WHERE a.status = 'ACTIVE'")
     long countActiveAssets();
 

@@ -29,7 +29,9 @@
       { "scope": "analysis:write", "description": "Publish AI-generated analysis reports" },
       { "scope": "transactions:post", "description": "Post, update, void, and purge transactions" },
       { "scope": "data:import", "description": "Import bulk data via ZIP" },
-      { "scope": "tax-export:read", "description": "Export tax data (e-Faktur, e-Bupot, PPN/PPh reports), manage fiscal adjustments, employees, salary components, and payroll" }
+      { "scope": "tax-export:read", "description": "Export tax data (e-Faktur, e-Bupot, PPN/PPh reports), manage fiscal adjustments, employees, salary components, and payroll" },
+      { "scope": "assets:read", "description": "Read fixed assets and asset categories" },
+      { "scope": "assets:write", "description": "Register, update, and delete fixed assets" }
     ]
   },
   "x-workflows": [

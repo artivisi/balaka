@@ -191,7 +191,7 @@ class OpenApiTest extends PlaywrightTestBase {
         assertThat(auth.get("type").asText()).contains("Device Authorization");
         assertThat(auth.has("scopes")).isTrue();
         assertThat(auth.get("scopes").isArray()).isTrue();
-        assertThat(auth.get("scopes").size()).isEqualTo(8);
+        assertThat(auth.get("scopes").size()).isEqualTo(10);
 
         log.info("x-authentication: {} scopes", auth.get("scopes").size());
     }
