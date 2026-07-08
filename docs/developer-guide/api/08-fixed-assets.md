@@ -116,8 +116,21 @@ DELETE /api/fixed-assets/{id}
 
 Returns `204`. Only allowed for assets without depreciation history and without a purchase transaction; otherwise `409`. Assets with history should be disposed through the web disposal flow instead.
 
+## Depreciation Endpoints
+
+All under `/api/fixed-assets/depreciation`; listing needs `assets:read`, mutations `assets:write`.
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /depreciation?period=YYYY-MM&status=` | List entries. Both filters optional; status is `PENDING`/`POSTED`/`SKIPPED` |
+| `POST /depreciation/generate?period=YYYY-MM` | Generate entries for one month; without `period`, catch-up generates every owed month up to the previous month (idempotent per asset+month). Returns the PENDING entries |
+| `POST /depreciation/{entryId}/post` | Post a PENDING entry to the journal (`409` otherwise) |
+| `POST /depreciation/{entryId}/skip` | Mark a PENDING entry SKIPPED (`204`) |
+| `POST /depreciation/post-all?period=YYYY-MM` | Post every PENDING entry with period end ≤ the given month; returns `{"postedCount": n}` |
+
 ## Depreciation Behavior
 
-- Depreciation entries are generated monthly by the scheduler for `ACTIVE` assets whose `depreciationStartDate` has passed.
-- Entries are created as PENDING and reviewed in the web UI (`/assets/depreciation`), or posted automatically when the asset has `autoPost: true`.
+- The monthly scheduler (1st, 07:00) generates all owed months up to the previous month — an asset registered after its purchase month's run self-heals on the next run. `POST /depreciation/generate` (no period) triggers the same catch-up on demand.
+- Entry `periodNumber` is derived from the schedule (`months between depreciationStartDate and the period, + 1`), so consecutive months can be generated while earlier entries are still PENDING.
+- Entries are created as PENDING and reviewed in the web UI (`/assets/depreciation`) or via the endpoints above; assets with `autoPost: true` are posted by the scheduler directly.
 - Straight line: `(purchaseCost - residualValue) / usefulLifeMonths`. Declining balance: `bookValue × (depreciationRate / 12 / 100)`.

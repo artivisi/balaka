@@ -1153,7 +1153,9 @@ CREATE TABLE depreciation_entries (
     updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
 
     CONSTRAINT chk_depreciation_entry_status CHECK (status IN ('PENDING', 'POSTED', 'SKIPPED')),
-    CONSTRAINT uk_asset_period UNIQUE (id_fixed_asset, period_number)
+    -- Unique per month, matching the generator's dedupe check. period_number is
+    -- derived from the schedule and repeats only if the same month is regenerated.
+    CONSTRAINT uk_asset_period UNIQUE (id_fixed_asset, period_end)
 );
 
 CREATE INDEX idx_depreciation_entries_asset ON depreciation_entries(id_fixed_asset);

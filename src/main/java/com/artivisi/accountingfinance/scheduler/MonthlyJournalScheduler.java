@@ -45,16 +45,18 @@ public class MonthlyJournalScheduler {
 
     /**
      * Run on the 1st day of each month at 7:00 AM to process depreciation entries
-     * for the previous month. Entries are generated and auto-posted.
+     * up to and including the previous month. Catch-up generation (#31): assets
+     * registered after their purchase month's run get all missed periods
+     * generated on the next run instead of permanently skipping them.
      */
     @Scheduled(cron = "${app.depreciation.schedule:0 0 7 1 * *}")
     public void processDepreciationEntries() {
         YearMonth previousMonth = YearMonth.now().minusMonths(1);
-        log.info("Starting scheduled depreciation batch processing for period: {}", previousMonth);
+        log.info("Starting scheduled depreciation batch processing up to period: {}", previousMonth);
 
         try {
-            // Step 1: Generate depreciation entries
-            List<DepreciationEntry> generatedEntries = fixedAssetService.generateDepreciationEntries(previousMonth);
+            // Step 1: Generate all owed depreciation entries (catch-up, idempotent)
+            List<DepreciationEntry> generatedEntries = fixedAssetService.generateDepreciationCatchUp(previousMonth);
 
             if (generatedEntries.isEmpty()) {
                 log.info("No assets need depreciation for period {}", previousMonth);

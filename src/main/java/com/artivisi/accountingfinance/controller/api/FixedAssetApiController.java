@@ -3,6 +3,8 @@ package com.artivisi.accountingfinance.controller.api;
 import com.artivisi.accountingfinance.entity.AssetCategory;
 import com.artivisi.accountingfinance.entity.AssetStatus;
 import com.artivisi.accountingfinance.entity.ChartOfAccount;
+import com.artivisi.accountingfinance.entity.DepreciationEntry;
+import com.artivisi.accountingfinance.entity.DepreciationEntryStatus;
 import com.artivisi.accountingfinance.entity.DepreciationMethod;
 import com.artivisi.accountingfinance.entity.FixedAsset;
 import com.artivisi.accountingfinance.security.LogSanitizer;
@@ -25,6 +27,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -39,8 +42,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
+import java.security.Principal;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -164,6 +170,76 @@ public class FixedAssetApiController {
         log.info("API: Delete fixed asset - id={}", id);
         fixedAssetService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    // ==================== DEPRECIATION (issue #31) ====================
+
+    @GetMapping("/depreciation")
+    @PreAuthorize("hasAuthority('SCOPE_assets:read')")
+    @Operation(summary = "List depreciation entries",
+            description = "Optional filters: period (YYYY-MM) and status (PENDING/POSTED/SKIPPED).")
+    @ApiResponse(responseCode = "200", description = "Depreciation entries")
+    public ResponseEntity<List<DepreciationEntryResponse>> listDepreciationEntries(
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM") YearMonth period,
+            @RequestParam(required = false) DepreciationEntryStatus status) {
+        List<DepreciationEntryResponse> entries = fixedAssetService.findDepreciationEntries(period, status)
+                .stream()
+                .map(DepreciationEntryResponse::from)
+                .toList();
+        return ResponseEntity.ok(entries);
+    }
+
+    @PostMapping("/depreciation/generate")
+    @PreAuthorize("hasAuthority('SCOPE_assets:write')")
+    @Operation(summary = "Generate depreciation entries",
+            description = "With period (YYYY-MM): generates that month. Without period: catch-up "
+                    + "generation of every owed month up to the previous month, so late-registered "
+                    + "assets self-heal. Generation is idempotent per asset+month; entries are "
+                    + "created as PENDING.")
+    @ApiResponse(responseCode = "200", description = "PENDING entries after generation")
+    public ResponseEntity<List<DepreciationEntryResponse>> generateDepreciation(
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM") YearMonth period) {
+        log.info("API: Generate depreciation entries - period={}", period != null ? period : "catch-up");
+        List<DepreciationEntry> pending = period != null
+                ? fixedAssetService.generateDepreciationEntries(period)
+                : fixedAssetService.generateDepreciationCatchUp(YearMonth.now().minusMonths(1));
+        return ResponseEntity.ok(pending.stream().map(DepreciationEntryResponse::from).toList());
+    }
+
+    @PostMapping("/depreciation/{entryId}/post")
+    @PreAuthorize("hasAuthority('SCOPE_assets:write')")
+    @Operation(summary = "Post a pending depreciation entry to the journal")
+    @ApiResponse(responseCode = "200", description = "Entry posted")
+    @ApiResponse(responseCode = "404", description = "Entry not found")
+    @ApiResponse(responseCode = "409", description = "Entry is not PENDING")
+    public ResponseEntity<DepreciationEntryResponse> postDepreciationEntry(
+            @PathVariable UUID entryId, Principal principal) {
+        log.info("API: Post depreciation entry - id={}", entryId);
+        DepreciationEntry posted = fixedAssetService.postDepreciationEntry(entryId, principal.getName());
+        return ResponseEntity.ok(DepreciationEntryResponse.from(posted));
+    }
+
+    @PostMapping("/depreciation/{entryId}/skip")
+    @PreAuthorize("hasAuthority('SCOPE_assets:write')")
+    @Operation(summary = "Skip a pending depreciation entry")
+    @ApiResponse(responseCode = "204", description = "Entry skipped")
+    @ApiResponse(responseCode = "404", description = "Entry not found")
+    @ApiResponse(responseCode = "409", description = "Entry is not PENDING")
+    public ResponseEntity<Void> skipDepreciationEntry(@PathVariable UUID entryId) {
+        log.info("API: Skip depreciation entry - id={}", entryId);
+        fixedAssetService.skipDepreciationEntry(entryId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/depreciation/post-all")
+    @PreAuthorize("hasAuthority('SCOPE_assets:write')")
+    @Operation(summary = "Post all pending depreciation entries up to a period")
+    @ApiResponse(responseCode = "200", description = "Count of posted entries")
+    public ResponseEntity<Map<String, Integer>> postAllDepreciation(
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM") YearMonth period, Principal principal) {
+        log.info("API: Post all pending depreciation - period={}", period);
+        int count = fixedAssetService.postAllPendingDepreciation(period, principal.getName());
+        return ResponseEntity.ok(Map.of("postedCount", count));
     }
 
     // ==================== HELPERS ====================
@@ -418,6 +494,38 @@ public class FixedAssetApiController {
 
         private static String accountCode(ChartOfAccount account) {
             return account != null ? account.getAccountCode() : null;
+        }
+    }
+
+    public record DepreciationEntryResponse(
+            UUID id,
+            UUID assetId,
+            String assetCode,
+            String assetName,
+            Integer periodNumber,
+            LocalDate periodStart,
+            LocalDate periodEnd,
+            BigDecimal depreciationAmount,
+            BigDecimal accumulatedDepreciation,
+            BigDecimal bookValue,
+            String status,
+            UUID transactionId
+    ) {
+        public static DepreciationEntryResponse from(DepreciationEntry entry) {
+            return new DepreciationEntryResponse(
+                    entry.getId(),
+                    entry.getFixedAsset().getId(),
+                    entry.getFixedAsset().getAssetCode(),
+                    entry.getFixedAsset().getName(),
+                    entry.getPeriodNumber(),
+                    entry.getPeriodStart(),
+                    entry.getPeriodEnd(),
+                    entry.getDepreciationAmount(),
+                    entry.getAccumulatedDepreciation(),
+                    entry.getBookValue(),
+                    entry.getStatus().name(),
+                    entry.getTransaction() != null ? entry.getTransaction().getId() : null
+            );
         }
     }
 }

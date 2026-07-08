@@ -65,6 +65,21 @@ public interface DepreciationEntryRepository extends JpaRepository<DepreciationE
             @Param("status") DepreciationEntryStatus status,
             Pageable pageable);
 
+    @Query("SELECT e FROM DepreciationEntry e " +
+           "JOIN FETCH e.fixedAsset " +
+           "WHERE e.periodEnd = :periodEnd " +
+           "AND (:status IS NULL OR e.status = :status) " +
+           "ORDER BY e.periodEnd ASC, e.periodNumber ASC")
+    List<DepreciationEntry> findByPeriodEndAndOptionalStatus(
+            @Param("periodEnd") LocalDate periodEnd,
+            @Param("status") DepreciationEntryStatus status);
+
+    @Query("SELECT e FROM DepreciationEntry e " +
+           "JOIN FETCH e.fixedAsset " +
+           "WHERE (:status IS NULL OR e.status = :status) " +
+           "ORDER BY e.periodEnd ASC, e.periodNumber ASC")
+    List<DepreciationEntry> findAllByOptionalStatus(@Param("status") DepreciationEntryStatus status);
+
     @Query("SELECT COUNT(e) FROM DepreciationEntry e WHERE e.status = 'PENDING'")
     long countPending();
 

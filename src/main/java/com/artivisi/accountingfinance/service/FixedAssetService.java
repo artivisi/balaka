@@ -355,7 +355,10 @@ public class FixedAssetService {
                 // Create depreciation entry
                 DepreciationEntry entry = new DepreciationEntry();
                 entry.setFixedAsset(asset);
-                entry.setPeriodNumber(asset.getDepreciationPeriodsCompleted() + 1);
+                // Schedule-derived and independent of posting state: two months generated
+                // back-to-back while the first is still PENDING must not collide (#32)
+                entry.setPeriodNumber((int) java.time.temporal.ChronoUnit.MONTHS.between(
+                        YearMonth.from(asset.getDepreciationStartDate()), period) + 1);
                 entry.setPeriodStart(periodStart);
                 entry.setPeriodEnd(periodEnd);
                 entry.setDepreciationAmount(depreciationAmount);
@@ -370,6 +373,49 @@ public class FixedAssetService {
         }
 
         return depreciationEntryRepository.findAllPendingWithDetails();
+    }
+
+    /**
+     * Generate depreciation entries for every month still owed, up to and
+     * including the given period. Iterates from each asset's schedule position
+     * (lastDepreciationDate + 1 month, or depreciationStartDate for assets that
+     * never depreciated) so late-registered assets self-heal (#31). Generation
+     * is idempotent per asset+month.
+     *
+     * @return all PENDING entries after generation
+     */
+    @Transactional
+    public List<DepreciationEntry> generateDepreciationCatchUp(YearMonth upToPeriod) {
+        LocalDate upToEnd = upToPeriod.atEndOfMonth();
+        List<FixedAsset> assets = fixedAssetRepository.findAssetsNeedingDepreciation(upToEnd);
+
+        YearMonth earliest = upToPeriod;
+        for (FixedAsset asset : assets) {
+            YearMonth firstNeeded = asset.getLastDepreciationDate() != null
+                    ? YearMonth.from(asset.getLastDepreciationDate()).plusMonths(1)
+                    : YearMonth.from(asset.getDepreciationStartDate());
+            if (firstNeeded.isBefore(earliest)) {
+                earliest = firstNeeded;
+            }
+        }
+
+        if (earliest.isBefore(upToPeriod)) {
+            log.info("Depreciation catch-up: generating {} through {}", earliest, upToPeriod);
+        }
+        for (YearMonth period = earliest; !period.isAfter(upToPeriod); period = period.plusMonths(1)) {
+            generateDepreciationEntries(period);
+        }
+        return depreciationEntryRepository.findAllPendingWithDetails();
+    }
+
+    /**
+     * Filtered listing of depreciation entries for the REST API.
+     */
+    public List<DepreciationEntry> findDepreciationEntries(YearMonth period, DepreciationEntryStatus status) {
+        if (period == null) {
+            return depreciationEntryRepository.findAllByOptionalStatus(status);
+        }
+        return depreciationEntryRepository.findByPeriodEndAndOptionalStatus(period.atEndOfMonth(), status);
     }
 
     /**

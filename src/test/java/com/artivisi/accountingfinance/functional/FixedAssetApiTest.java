@@ -416,7 +416,94 @@ class FixedAssetApiTest extends PlaywrightTestBase {
         assertThat(response.status()).isEqualTo(404);
     }
 
-    // ==================== HELPER METHODS ====================
+    @Test
+    @DisplayName("Depreciation lifecycle via API: catch-up generate, list, post, skip, post-all (#31)")
+    void depreciationLifecycle() throws Exception {
+        // Late registration: purchased and depreciating since three months ago
+        String assetCode = "API-DEP-" + System.currentTimeMillis();
+        java.time.LocalDate purchaseDate = java.time.LocalDate.now().minusMonths(3).withDayOfMonth(10);
+        Map<String, Object> request = new HashMap<>();
+        request.put("assetCode", assetCode);
+        request.put("name", "Aset Susut Terlambat");
+        request.put("categoryCode", "KOMPUTER");
+        request.put("purchaseDate", purchaseDate.toString());
+        request.put("purchaseCost", 24000000);
+        request.put("usefulLifeMonths", 48);
+        request.put("fundingAccountCode", "1.1.02");
+        assertThat(post("/api/fixed-assets", request).status()).isEqualTo(201);
+
+        // Catch-up generation (no period param): all owed months up to previous month
+        APIResponse generateResponse = post("/api/fixed-assets/depreciation/generate", Map.of());
+        assertThat(generateResponse.status())
+                .as("Catch-up generate: " + generateResponse.text())
+                .isEqualTo(200);
+        JsonNode pending = parse(generateResponse);
+        long ourEntries = countByAssetCode(pending, assetCode);
+        assertThat(ourEntries)
+                .as("Three owed months must be generated: " + generateResponse.text())
+                .isEqualTo(3);
+
+        // List with period + status filter
+        String firstPeriod = java.time.YearMonth.from(purchaseDate.withDayOfMonth(1)).toString();
+        JsonNode firstMonthList = parse(get(
+                "/api/fixed-assets/depreciation?period=" + firstPeriod + "&status=PENDING"));
+        JsonNode firstEntry = findByField(firstMonthList, "assetCode", assetCode);
+        assertThat(firstEntry).isNotNull();
+        assertThat(firstEntry.get("periodNumber").asInt()).isEqualTo(1);
+        assertThat(firstEntry.get("depreciationAmount").asDouble()).isEqualTo(500000.0);
+
+        // Post the first entry
+        String firstEntryId = firstEntry.get("id").asText();
+        APIResponse postEntry = post("/api/fixed-assets/depreciation/" + firstEntryId + "/post", Map.of());
+        assertThat(postEntry.status())
+                .as("Post entry: " + postEntry.text())
+                .isEqualTo(200);
+        JsonNode posted = parse(postEntry);
+        assertThat(posted.get("status").asText()).isEqualTo("POSTED");
+        assertThat(posted.hasNonNull("transactionId")).isTrue();
+
+        // Skip the second entry
+        String secondPeriod = java.time.YearMonth.from(purchaseDate).plusMonths(1).toString();
+        JsonNode secondEntry = findByField(parse(get(
+                "/api/fixed-assets/depreciation?period=" + secondPeriod + "&status=PENDING")),
+                "assetCode", assetCode);
+        assertThat(secondEntry).isNotNull();
+        APIResponse skip = post("/api/fixed-assets/depreciation/" + secondEntry.get("id").asText() + "/skip", Map.of());
+        assertThat(skip.status()).isEqualTo(204);
+
+        // Post-all for the third month posts the remaining pending entry
+        String thirdPeriod = java.time.YearMonth.from(purchaseDate).plusMonths(2).toString();
+        APIResponse postAll = post("/api/fixed-assets/depreciation/post-all?period=" + thirdPeriod, Map.of());
+        assertThat(postAll.status())
+                .as("Post-all: " + postAll.text())
+                .isEqualTo(200);
+        assertThat(parse(postAll).get("postedCount").asInt()).isGreaterThanOrEqualTo(1);
+
+        // Final state: 1 POSTED + 1 SKIPPED + 1 POSTED for this asset
+        JsonNode allEntries = parse(get("/api/fixed-assets/depreciation"));
+        long postedCount = 0;
+        long skippedCount = 0;
+        for (JsonNode entry : allEntries) {
+            if (entry.get("assetCode").asText().equals(assetCode)) {
+                if (entry.get("status").asText().equals("POSTED")) postedCount++;
+                if (entry.get("status").asText().equals("SKIPPED")) skippedCount++;
+            }
+        }
+        assertThat(postedCount).isEqualTo(2);
+        assertThat(skippedCount).isEqualTo(1);
+    }
+
+        // ==================== HELPER METHODS ====================
+
+    private long countByAssetCode(JsonNode array, String assetCode) {
+        long count = 0;
+        for (JsonNode item : array) {
+            if (item.hasNonNull("assetCode") && item.get("assetCode").asText().equals(assetCode)) {
+                count++;
+            }
+        }
+        return count;
+    }
 
     private JsonNode findByField(JsonNode array, String field, String value) {
         if (array == null || !array.isArray()) {
