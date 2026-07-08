@@ -40,6 +40,8 @@ Indonesian accounting application for small businesses. Spring Boot 4.0 + Thymel
 - **Period Report:** ✅ Complete (`/reports/period` — fiscal period dropdown, closing-entry-excluded P&L)
 - **Sidebar Reorg:** ✅ Complete (Master Data separated from Pengaturan)
 - **Tax Filing (FR-001–006):** ✅ Complete (L1 non-operating expenses fix, L9 depreciation fallback, PKP rounding, excludeClosing API param, financial statements PDF, Coretax SPT export)
+- **Service Auth + Retry-Safe Posting (issues #28, #29):** ✅ Complete (OAuth2 client_credentials grant — `api_clients` table, `POST /api/oauth/token`, Pengaturan → API Klien; `Idempotency-Key` header on `POST /api/transactions` with replay semantics)
+- **Depreciation Fixes (issues #31, #32):** ✅ Complete (schedule-derived periodNumber + `uk_asset_period(id_fixed_asset, period_end)`; scheduler catch-up for late-registered assets; `/api/fixed-assets/depreciation` endpoints)
 - **Fixed Asset API (issue #30):** ✅ Complete (`/api/fixed-assets` CRUD + `/categories`, scopes `assets:read`/`assets:write`, register via funding account → acquisition DRAFT or `purchaseTransactionId` → link existing posted journal without new draft)
 - See `docs/06-implementation-plan.md` for full plan
 
