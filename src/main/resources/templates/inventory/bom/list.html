@@ -21,7 +21,8 @@
             <!-- Actions -->
             <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
                 <form th:action="@{/inventory/bom}" method="get" class="flex items-center gap-2">
-                    <input type="text" name="search" th:value="${search}" placeholder="Cari kode, nama, atau produk..."
+                    <label for="bom-search" class="sr-only">Cari kode, nama, atau produk</label>
+                    <input type="text" id="bom-search" name="search" th:value="${search}" placeholder="Cari kode, nama, atau produk..."
                            class="rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm w-64">
                     <button type="submit" class="px-4 py-2 bg-primary-600 text-white rounded-md text-sm hover:bg-primary-700">Cari</button>
                 </form>

@@ -270,6 +270,7 @@ class JournalEntryServiceTest {
             single.setCreditAmount(BigDecimal.ZERO);
             entries.add(single);
 
+            assertThat(entries).hasSize(1);
             assertThatThrownBy(() -> journalEntryService.create(header, entries))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("at least 2 lines");
@@ -325,6 +326,7 @@ class JournalEntryServiceTest {
             credit.setCreditAmount(new BigDecimal("3000"));
             entries.add(credit);
 
+            assertThat(entries).hasSize(2);
             assertThatThrownBy(() -> journalEntryService.validateBalance(entries))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("not balanced");

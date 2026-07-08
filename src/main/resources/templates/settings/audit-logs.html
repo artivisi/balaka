@@ -19,6 +19,7 @@
 
             <div class="flex flex-wrap items-center gap-2">
                 <!-- Event Type Filter -->
+                <label for="event-type-filter" class="sr-only">Filter jenis event</label>
                 <select id="event-type-filter" name="eventType"
                         class="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 min-w-48">
                     <option value="">Semua Event</option>
@@ -31,6 +32,7 @@
 
                 <!-- Username Filter -->
                 <div class="relative">
+                    <label for="username-filter" class="sr-only">Username</label>
                     <input id="username-filter" type="text" name="username" th:value="${selectedUsername}"
                            placeholder="Username..."
                            class="px-3 py-2 pl-9 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 w-40">
@@ -41,9 +43,11 @@
 
                 <!-- Date Range -->
                 <div class="flex items-center gap-1">
+                    <label for="start-date" class="sr-only">Tanggal mulai</label>
                     <input id="start-date" type="date" name="startDate" th:value="${startDate}"
                            class="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
                     <span class="text-gray-400">-</span>
+                    <label for="end-date" class="sr-only">Tanggal akhir</label>
                     <input id="end-date" type="date" name="endDate" th:value="${endDate}"
                            class="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
                 </div>

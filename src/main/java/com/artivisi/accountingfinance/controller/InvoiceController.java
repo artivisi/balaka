@@ -378,7 +378,7 @@ public class InvoiceController {
         try {
             Client c = clientService.findById(clientId);
             return c.getCode() + " - " + c.getName();
-        } catch (jakarta.persistence.EntityNotFoundException e) {
+        } catch (jakarta.persistence.EntityNotFoundException _) {
             return clientId.toString();
         }
     }
@@ -388,10 +388,8 @@ public class InvoiceController {
     }
 
     private void populateFormModel(Model model, List<InvoiceLine> lines) {
-        // Clients fetched on-demand via GET /clients/search by the combobox; we no
-        // longer dump the full client list into the form.
-        // Products fetched on-demand via GET /products/search by the line picker;
-        // we no longer dump the full catalog into the form (kept dropdowns ≤ 10 items).
+        // Client and product pickers fetch options on-demand through their search
+        // endpoints, so the form no longer preloads the full lists (dropdowns stay small).
         model.addAttribute(ATTR_PROJECTS, projectService.findActiveProjects());
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_INVOICES);
         model.addAttribute(ATTR_LINES, lines);
@@ -411,24 +409,32 @@ public class InvoiceController {
 
         for (int i = 0; i < descriptions.size(); i++) {
             String desc = descriptions.get(i);
-            if (desc == null || desc.isBlank()) continue;
-
-            InvoiceLine line = new InvoiceLine();
-            line.setDescription(desc);
-            line.setQuantity(quantities != null && i < quantities.size() && quantities.get(i) != null
-                    ? quantities.get(i) : BigDecimal.ONE);
-            line.setUnitPrice(unitPrices != null && i < unitPrices.size() && unitPrices.get(i) != null
-                    ? unitPrices.get(i) : BigDecimal.ZERO);
-            line.setTaxRate(taxRates != null && i < taxRates.size() ? taxRates.get(i) : null);
-            if (productIds != null && i < productIds.size()
-                    && productIds.get(i) != null && !productIds.get(i).isBlank()) {
-                line.setProduct(productService.findById(UUID.fromString(productIds.get(i))).orElse(null));
+            if (desc == null || desc.isBlank()) {
+                continue;
             }
-
-            line.calculateAmounts();
-            lines.add(line);
+            lines.add(buildInvoiceLine(desc,
+                    listValue(quantities, i), listValue(unitPrices, i),
+                    listValue(taxRates, i), listValue(productIds, i)));
         }
 
         return lines;
+    }
+
+    private InvoiceLine buildInvoiceLine(String description, BigDecimal quantity,
+                                         BigDecimal unitPrice, BigDecimal taxRate, String productId) {
+        InvoiceLine line = new InvoiceLine();
+        line.setDescription(description);
+        line.setQuantity(quantity != null ? quantity : BigDecimal.ONE);
+        line.setUnitPrice(unitPrice != null ? unitPrice : BigDecimal.ZERO);
+        line.setTaxRate(taxRate);
+        if (productId != null && !productId.isBlank()) {
+            line.setProduct(productService.findById(UUID.fromString(productId)).orElse(null));
+        }
+        line.calculateAmounts();
+        return line;
+    }
+
+    private static <T> T listValue(List<T> list, int index) {
+        return list != null && index < list.size() ? list.get(index) : null;
     }
 }

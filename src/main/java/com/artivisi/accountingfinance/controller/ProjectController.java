@@ -241,7 +241,7 @@ public class ProjectController {
         try {
             var c = clientService.findById(clientId);
             return c.getCode() + " - " + c.getName();
-        } catch (jakarta.persistence.EntityNotFoundException e) {
+        } catch (jakarta.persistence.EntityNotFoundException _) {
             return clientId.toString();
         }
     }

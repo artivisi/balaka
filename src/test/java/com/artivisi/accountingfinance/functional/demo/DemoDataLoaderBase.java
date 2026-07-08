@@ -196,7 +196,7 @@ public abstract class DemoDataLoaderBase extends PlaywrightTestBase {
 
             // Month boundary: run payroll + depreciation + close for completed month
             if (currentMonth != null && !actionMonth.equals(currentMonth)) {
-                completeMonth(currentMonth, action.status);
+                completeMonth(currentMonth);
                 currentMonth = actionMonth;
             }
             if (currentMonth == null) {
@@ -215,7 +215,7 @@ public abstract class DemoDataLoaderBase extends PlaywrightTestBase {
 
         // Complete the last month
         if (currentMonth != null) {
-            completeMonth(currentMonth, "POST");
+            completeMonth(currentMonth);
         }
 
         // Create fiscal adjustments for the year (typical koreksi fiskal)
@@ -233,7 +233,7 @@ public abstract class DemoDataLoaderBase extends PlaywrightTestBase {
     /**
      * Complete a month: run payroll → pay salary → pay BPJS → post depreciation → close period.
      */
-    private void completeMonth(YearMonth month, String lastStatus) {
+    private void completeMonth(YearMonth month) {
         // 1. Run payroll (create + calculate + approve + post)
         PayrollRun payrollResult = runPayroll(month);
 
@@ -466,7 +466,6 @@ public abstract class DemoDataLoaderBase extends PlaywrightTestBase {
             if (!"DRAFT".equals(action.status)) {
                 // Post the transaction via API call from the page context
                 String txUrl = page.url();
-                // Extract transaction ID from URL like /transactions/{uuid}
                 String txId = txUrl.substring(txUrl.lastIndexOf('/') + 1);
                 String postResult = (String) page.evaluate(
                         "async (txId) => { " +
@@ -487,7 +486,7 @@ public abstract class DemoDataLoaderBase extends PlaywrightTestBase {
 
             log.info("Transaction created: {} | {} | {} | {}", action.date, action.templateName,
                     action.amount > 0 ? action.amount : action.inputs, action.description);
-        } catch (Exception e) {
+        } catch (Exception _) {
             String currentUrl = page.url();
             log.error("Transaction FAILED: {} | {} | {} — URL: {}", action.date, action.templateName,
                     action.description, currentUrl);
@@ -528,7 +527,7 @@ public abstract class DemoDataLoaderBase extends PlaywrightTestBase {
             // Screenshot: payroll posted
             tutorialScreenshot("payroll-posted");
             log.info("Payroll posted for period: {}", period);
-        } catch (com.microsoft.playwright.TimeoutError e) {
+        } catch (com.microsoft.playwright.TimeoutError _) {
             log.warn("Payroll button not found for period {} — current URL: {}", period, page.url());
         }
 
@@ -803,7 +802,7 @@ public abstract class DemoDataLoaderBase extends PlaywrightTestBase {
 
     private long parseLong(String s) {
         if (s == null || s.isEmpty()) return 0;
-        try { return Long.parseLong(s); } catch (NumberFormatException e) { return 0; }
+        try { return Long.parseLong(s); } catch (NumberFormatException _) { return 0; }
     }
 
     private boolean isAccountHint(String key) {
@@ -931,11 +930,12 @@ public abstract class DemoDataLoaderBase extends PlaywrightTestBase {
     }
 
     private String padRight(String s, int width) {
-        return String.format("%-" + width + "s", s.length() > width ? s.substring(0, width) : s);
+        String truncated = s.length() > width ? s.substring(0, width) : s;
+        return truncated + " ".repeat(width - truncated.length());
     }
 
     private String padLeft(String s, int width) {
-        return String.format("%" + width + "s", s);
+        return s.length() >= width ? s : " ".repeat(width - s.length()) + s;
     }
 
     // ========== DATA RECORDS ==========

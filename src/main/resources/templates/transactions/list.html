@@ -20,6 +20,7 @@
                   class="flex flex-wrap items-center gap-2">
                 <!-- Search -->
                 <div class="relative">
+                    <label for="search-transaksi" class="sr-only">Cari transaksi</label>
                     <input id="search-transaksi" type="text" name="search" placeholder="Cari transaksi..."
                            th:value="${searchQuery}"
                            class="pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 w-48 lg:w-64">
@@ -30,14 +31,17 @@
 
                 <!-- Date Range -->
                 <div class="flex items-center gap-1">
-                    <input type="date" name="startDate" th:value="${startDate}"
+                    <label for="start-date" class="sr-only">Tanggal mulai</label>
+                    <input id="start-date" type="date" name="startDate" th:value="${startDate}"
                            class="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
                     <span class="text-gray-400">-</span>
-                    <input type="date" name="endDate" th:value="${endDate}"
+                    <label for="end-date" class="sr-only">Tanggal akhir</label>
+                    <input id="end-date" type="date" name="endDate" th:value="${endDate}"
                            class="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
                 </div>
 
                 <!-- Status Filter -->
+                <label for="filter-status" class="sr-only">Filter status</label>
                 <select id="filter-status" name="status"
                         hx-get="/transactions"
                         hx-target="#transaction-table"
@@ -50,6 +54,7 @@
                 </select>
 
                 <!-- Category Filter -->
+                <label for="filter-category" class="sr-only">Filter kategori</label>
                 <select id="filter-category" name="category"
                         hx-get="/transactions"
                         hx-target="#transaction-table"
@@ -64,6 +69,7 @@
                 </select>
 
                 <!-- Project Filter -->
+                <label for="filter-project" class="sr-only" th:if="${projects != null and !projects.isEmpty()}">Filter proyek</label>
                 <select id="filter-project" name="projectCode" th:if="${projects != null and !projects.isEmpty()}"
                         hx-get="/transactions"
                         hx-target="#transaction-table"
@@ -78,6 +84,7 @@
                 </select>
 
                 <!-- Tag Filter -->
+                <label for="filter-tag" class="sr-only" th:if="${tagsByType != null and !tagsByType.isEmpty()}">Filter label</label>
                 <select id="filter-tag" name="tagId" th:if="${tagsByType != null and !tagsByType.isEmpty()}"
                         hx-get="/transactions"
                         hx-target="#transaction-table"
@@ -115,6 +122,7 @@
                  id="template-search-container"
                  class="relative w-full lg:w-80">
                 <div class="relative">
+                    <label for="template-search" class="sr-only">Cari template transaksi</label>
                     <input id="template-search"
                            type="search"
                            data-testid="search-input"

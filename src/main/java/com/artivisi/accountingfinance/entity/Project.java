@@ -141,11 +141,11 @@ public class Project {
      */
     public String getClientLabel() {
         if (client == null) return "";
-        String code = client.getCode() == null ? "" : client.getCode();
-        String name = client.getName() == null ? "" : client.getName();
-        if (code.isEmpty() && name.isEmpty()) return "";
-        if (code.isEmpty()) return name;
-        if (name.isEmpty()) return code;
-        return code + " - " + name;
+        String clientCode = client.getCode() == null ? "" : client.getCode();
+        String clientName = client.getName() == null ? "" : client.getName();
+        if (clientCode.isEmpty() && clientName.isEmpty()) return "";
+        if (clientCode.isEmpty()) return clientName;
+        if (clientName.isEmpty()) return clientCode;
+        return clientCode + " - " + clientName;
     }
 }

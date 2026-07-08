@@ -28,7 +28,8 @@
           hx-target="#tag-list"
           hx-swap="outerHTML"
           class="inline-flex items-center gap-1">
-        <input type="text" name="tag"
+        <label for="tag-input" class="sr-only">Tambah tag</label>
+        <input type="text" id="tag-input" name="tag"
                placeholder="Tambah tag..."
                data-testid="tag-input"
                list="tag-suggestions"

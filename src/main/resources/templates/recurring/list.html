@@ -34,7 +34,8 @@
         <!-- Filters & Actions -->
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <form th:action="@{/recurring}" method="get" class="flex flex-wrap items-center gap-2">
-                <select name="status" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                <label for="status-filter" class="sr-only">Filter status</label>
+                <select id="status-filter" name="status" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
                     <option value="">Semua Status</option>
                     <option th:each="s : ${statuses}" th:value="${s}" th:text="${s.indonesianName}"
                             th:selected="${selectedStatus != null && selectedStatus.name() == s.name()}">Status</option>

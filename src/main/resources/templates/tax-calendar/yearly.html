@@ -12,6 +12,7 @@
         <!-- Header -->
         <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div class="flex flex-wrap items-center gap-4">
+                <label for="year-select" class="sr-only">Tahun</label>
                 <select id="year-select" name="year"
                         class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
                     <option th:each="y : ${#numbers.sequence(2020, 2030)}"

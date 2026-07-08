@@ -1,24 +1,12 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="id">
 <head><title>Period Selector Fragment</title></head>
-<!--
-  Reusable period/date selector fragment for report pages.
-
-  Usage (range mode — startDate + endDate):
-    <div th:replace="~{reports/fragments/period-selector :: period-selector('range')}"></div>
-
-  Usage (as-of mode — single asOfDate):
-    <div th:replace="~{reports/fragments/period-selector :: period-selector('as-of')}"></div>
-
-  Reads from model: yearPresets, periodYears, startDate, endDate, asOfDate
-  Must be placed inside a <form> element.
--->
 <body>
 <div th:fragment="period-selector(mode)">
 
     <!-- Quick Presets -->
     <div th:if="${yearPresets != null and !yearPresets.isEmpty()}" class="mb-3">
-        <label class="block text-sm font-medium text-gray-700 mb-2">Periode Cepat</label>
+        <span class="block text-sm font-medium text-gray-700 mb-2">Periode Cepat</span>
         <div th:each="yp : ${yearPresets}" class="mb-2">
             <div class="flex flex-wrap gap-1.5 items-center">
                 <!-- Year label -->

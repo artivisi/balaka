@@ -37,6 +37,7 @@
             <div class="flex items-center gap-4 flex-wrap">
                 <!-- Search -->
                 <div class="relative">
+                    <label for="search-input" class="sr-only">Cari aset</label>
                     <input type="text"
                            id="search-input"
                            name="search"
@@ -54,7 +55,9 @@
                 </div>
 
                 <!-- Filter Status -->
+                <label for="filter-status" class="sr-only">Filter status</label>
                 <select name="status"
+                        id="filter-status"
                         class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
                         hx-get="/assets"
                         hx-trigger="change"
@@ -68,7 +71,9 @@
                 </select>
 
                 <!-- Filter Category -->
+                <label for="filter-category" class="sr-only">Filter kategori</label>
                 <select name="categoryId"
+                        id="filter-category"
                         class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
                         hx-get="/assets"
                         hx-trigger="change"

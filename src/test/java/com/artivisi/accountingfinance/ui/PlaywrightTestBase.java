@@ -136,7 +136,7 @@ public abstract class PlaywrightTestBase {
             System.err.println("NAVFAIL screenshot=" + png + " html=" + html
                     + " url=" + page.url() + " cause=" + cause.getClass().getSimpleName()
                     + " message=" + cause.getMessage());
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             // Don't let debug capture mask the original failure.
         }
     }

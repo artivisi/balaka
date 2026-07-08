@@ -47,6 +47,7 @@
             <div class="flex items-center gap-4 flex-wrap">
                 <!-- Search -->
                 <div class="relative">
+                    <label for="search-input" class="sr-only">Cari produk</label>
                     <input type="text"
                            id="search-input"
                            name="search"
@@ -64,7 +65,9 @@
                 </div>
 
                 <!-- Filter Category -->
-                <select name="categoryId"
+                <label for="category-filter" class="sr-only">Filter kategori</label>
+                <select id="category-filter"
+                        name="categoryId"
                         class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
                         hx-get="/inventory/stock/table"
                         hx-trigger="change"

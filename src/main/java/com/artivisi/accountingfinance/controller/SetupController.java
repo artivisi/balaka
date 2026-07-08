@@ -37,6 +37,8 @@ import java.util.zip.ZipOutputStream;
 @Slf4j
 public class SetupController {
 
+    private static final String REDIRECT_LOGIN = "redirect:/login";
+
     public static final List<String> AVAILABLE_PACKS =
             List.of("it-service", "online-seller", "coffee-shop", "campus");
 
@@ -50,7 +52,7 @@ public class SetupController {
     @GetMapping
     public String form(Model model) {
         if (userRepository.count() > 0) {
-            return "redirect:/login";
+            return REDIRECT_LOGIN;
         }
         model.addAttribute("packs", AVAILABLE_PACKS);
         return "setup";
@@ -65,7 +67,7 @@ public class SetupController {
                          @RequestParam String industryPack,
                          RedirectAttributes ra) throws IOException {
         if (userRepository.count() > 0) {
-            return "redirect:/login";
+            return REDIRECT_LOGIN;
         }
         if (!AVAILABLE_PACKS.contains(industryPack)) {
             throw new IllegalArgumentException("Unknown industry pack: " + industryPack);
@@ -89,7 +91,7 @@ public class SetupController {
         log.info("Setup wizard created admin user: {}", LogSanitizer.username(username));
 
         ra.addFlashAttribute("setupComplete", true);
-        return "redirect:/login";
+        return REDIRECT_LOGIN;
     }
 
     private byte[] buildSeedZip(String pack) throws IOException {

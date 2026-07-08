@@ -27,7 +27,8 @@
                 <!-- Search -->
                 <form th:action="@{/users}" method="get" class="flex gap-2">
                     <div class="relative">
-                        <input type="text" name="search" th:value="${search}"
+                        <label for="search-user" class="sr-only">Cari username, nama, email</label>
+                        <input type="text" id="search-user" name="search" th:value="${search}"
                                placeholder="Cari username, nama, email..."
                                class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 w-64">
                         <svg class="absolute left-3 top-2.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

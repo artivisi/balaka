@@ -14,6 +14,7 @@
             <div class="flex items-center gap-4 flex-wrap">
                 <!-- Search -->
                 <div class="relative">
+                    <label for="search-input" class="sr-only">Cari komponen</label>
                     <input type="text"
                            id="search-input"
                            name="search"
@@ -31,7 +32,9 @@
                 </div>
 
                 <!-- Filter Type -->
-                <select name="type"
+                <label for="filter-type" class="sr-only">Filter tipe komponen</label>
+                <select id="filter-type"
+                        name="type"
                         class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
                         hx-get="/salary-components"
                         hx-trigger="change"
@@ -46,7 +49,9 @@
                 </select>
 
                 <!-- Filter Active -->
-                <select name="active"
+                <label for="filter-active" class="sr-only">Filter status aktif</label>
+                <select id="filter-active"
+                        name="active"
                         class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
                         hx-get="/salary-components"
                         hx-trigger="change"

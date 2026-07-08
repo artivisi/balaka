@@ -24,7 +24,9 @@
         <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div class="flex flex-wrap items-center gap-4">
                 <!-- Filter Year -->
+                <label for="filter-year" class="sr-only">Filter tahun</label>
                 <select name="year"
+                        id="filter-year"
                         class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
                         hx-get="/fiscal-periods"
                         hx-trigger="change"
@@ -39,7 +41,9 @@
                 </select>
 
                 <!-- Filter Status -->
+                <label for="filter-status" class="sr-only">Filter status</label>
                 <select name="status"
+                        id="filter-status"
                         class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
                         hx-get="/fiscal-periods"
                         hx-trigger="change"
@@ -58,7 +62,8 @@
                 <!-- Generate Year Button -->
                 <form th:action="@{/fiscal-periods/generate-year}" method="post" class="inline">
                     <div class="flex items-center gap-2">
-                        <input type="number" name="year" th:value="${#temporals.year(#temporals.createNow())}"
+                        <label for="generate-year-input" class="sr-only">Tahun yang akan digenerate</label>
+                        <input type="number" id="generate-year-input" name="year" th:value="${#temporals.year(#temporals.createNow())}"
                                class="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
                                min="2000" max="2100">
                         <button type="submit"

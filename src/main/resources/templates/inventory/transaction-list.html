@@ -14,7 +14,9 @@
         <div class="flex items-center justify-between flex-wrap gap-4">
             <div class="flex items-center gap-4 flex-wrap">
                 <!-- Filter Product -->
-                <select name="productId"
+                <label for="product-filter" class="sr-only">Filter produk</label>
+                <select id="product-filter"
+                        name="productId"
                         class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
                         hx-get="/inventory/transactions/table"
                         hx-trigger="change"
@@ -29,7 +31,9 @@
                 </select>
 
                 <!-- Filter Type -->
-                <select name="transactionType"
+                <label for="transaction-type-filter" class="sr-only">Filter tipe transaksi</label>
+                <select id="transaction-type-filter"
+                        name="transactionType"
                         class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
                         hx-get="/inventory/transactions/table"
                         hx-trigger="change"
@@ -44,7 +48,9 @@
                 </select>
 
                 <!-- Date Range -->
+                <label for="start-date" class="sr-only">Tanggal mulai</label>
                 <input type="date"
+                       id="start-date"
                        name="startDate"
                        th:value="${startDate}"
                        class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
@@ -54,7 +60,9 @@
                        hx-swap="outerHTML"
                        hx-include="[name='productId'], [name='transactionType'], [name='endDate']">
                 <span class="text-gray-500">s/d</span>
+                <label for="end-date" class="sr-only">Tanggal akhir</label>
                 <input type="date"
+                       id="end-date"
                        name="endDate"
                        th:value="${endDate}"
                        class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"

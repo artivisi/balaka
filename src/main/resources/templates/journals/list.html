@@ -19,6 +19,7 @@
             <!-- Filters Row -->
             <div class="flex flex-wrap items-center gap-2">
                 <!-- Account Filter -->
+                <label for="account-filter" class="sr-only">Pilih akun</label>
                 <select id="account-filter" name="accountId"
                         hx-get="/journals"
                         hx-target="#journal-ledger"
@@ -36,15 +37,18 @@
 
                 <!-- Date Range -->
                 <div class="flex items-center gap-1">
+                    <label for="start-date" class="sr-only">Tanggal mulai</label>
                     <input id="start-date" type="date" name="startDate" th:value="${startDate}"
                            class="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
                     <span class="text-gray-400">-</span>
+                    <label for="end-date" class="sr-only">Tanggal akhir</label>
                     <input id="end-date" type="date" name="endDate" th:value="${endDate}"
                            class="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
                 </div>
 
                 <!-- Search Input -->
                 <div class="relative">
+                    <label for="search-input" class="sr-only">Cari jurnal</label>
                     <input id="search-input" type="text" name="search" th:value="${searchQuery}"
                            placeholder="Cari jurnal..."
                            class="px-3 py-2 pl-9 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 w-48">

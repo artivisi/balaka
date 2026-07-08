@@ -84,14 +84,14 @@
                          x-data="accountPicker"
                          data-initial-id=""
                          data-initial-label="">
-                        <label th:for="${'quick-accountMapping_' + line.id}" class="block text-sm font-medium text-gray-700 mb-1">
+                        <label for="quick-account-mapping" th:for="${'quick-accountMapping_' + line.id}" class="block text-sm font-medium text-gray-700 mb-1">
                             <span th:text="${line.accountHint != null and !#strings.isEmpty(line.accountHint)} ? ${line.accountHint} : 'Akun ' + (${line.position.name() == 'DEBIT'} ? 'Debit' : 'Kredit')">
                                 Akun
                             </span>
                             <span class="text-red-500">*</span>
                         </label>
                         <div class="relative">
-                            <input type="text" th:id="${'quick-accountMapping_' + line.id}"
+                            <input type="text" id="quick-account-mapping" th:id="${'quick-accountMapping_' + line.id}"
                                    x-model="label"
                                    @input.debounce.300ms="search()"
                                    @focus="focusPicker()"

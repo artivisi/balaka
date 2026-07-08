@@ -33,7 +33,8 @@
         <!-- Filters & Actions -->
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <form th:action="@{/bills}" method="get" class="flex flex-wrap items-center gap-2">
-                <select name="status" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                <label for="filter-status" class="sr-only">Filter status</label>
+                <select name="status" id="filter-status" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
                     <option value="">Semua Status</option>
                     <option th:each="s : ${statuses}" th:value="${s}" th:text="${s.indonesianName}"
                             th:selected="${selectedStatus != null && selectedStatus.name() == s.name()}">Status</option>
@@ -42,7 +43,8 @@
                 <div x-data="vendorPicker" class="relative"
                      th:data-initial-id="${selectedVendorId}"
                      th:data-initial-label="${selectedVendorLabel}">
-                    <input type="text" x-model="label"
+                    <label for="vendor-picker-input" class="sr-only">Semua Vendor</label>
+                    <input type="text" id="vendor-picker-input" x-model="label"
                            @input.debounce.300ms="search()"
                            @focus="focusPicker()"
                            @click.away="open = false"

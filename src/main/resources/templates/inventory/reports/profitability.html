@@ -17,11 +17,14 @@
                 </div>
                 <div class="flex items-center gap-4">
                     <form th:action="@{/inventory/reports/profitability}" method="get" class="flex items-center gap-2">
-                        <input type="date" name="startDate" th:value="${startDate}"
+                        <label for="start-date" class="sr-only">Tanggal mulai</label>
+                        <input type="date" id="start-date" name="startDate" th:value="${startDate}"
                                class="rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm">
                         <span class="text-gray-400">-</span>
-                        <input type="date" name="endDate" th:value="${endDate}"
+                        <label for="end-date" class="sr-only">Tanggal akhir</label>
+                        <input type="date" id="end-date" name="endDate" th:value="${endDate}"
                                class="rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm">
+                        <label for="categoryId" class="sr-only">Filter kategori</label>
                         <select id="categoryId" name="categoryId"
                                 class="rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm">
                             <option value="">Semua Kategori</option>
@@ -29,6 +32,7 @@
                                     th:value="${cat.id}" th:text="${cat.name}"
                                     th:selected="${cat.id == categoryId}">Kategori</option>
                         </select>
+                        <label for="productId" class="sr-only">Filter produk</label>
                         <select id="productId" name="productId"
                                 class="rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm">
                             <option value="">Semua Produk</option>

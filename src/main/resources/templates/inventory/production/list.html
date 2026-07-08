@@ -21,7 +21,8 @@
             <!-- Actions -->
             <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
                 <form th:action="@{/inventory/production}" method="get" class="flex items-center gap-2">
-                    <select name="status" class="rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm">
+                    <label for="production-status-filter" class="sr-only">Filter status</label>
+                    <select id="production-status-filter" name="status" class="rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm">
                         <option value="">Semua Status</option>
                         <option th:each="s : ${statuses}" th:value="${s}" th:text="${s.displayName}" th:selected="${status != null && status == s}">Status</option>
                     </select>

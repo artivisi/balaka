@@ -209,19 +209,19 @@
 
         <script th:inline="javascript" th:attr="nonce=${cspNonce}">
             // CSP-compatible: Register Alpine component before Alpine processes the DOM
+            function blankLine() {
+                return {
+                    description: '',
+                    expenseAccountId: '',
+                    expenseAccountLabel: '',
+                    expenseAccountResults: [],
+                    pickerOpen: false,
+                    quantity: 1, unitPrice: 0, taxRate: '', amount: 0
+                };
+            }
             document.addEventListener('alpine:init', function() {
                 var existingLines = /*[[${bill.lines}]]*/ [];
                 Alpine.data('billForm', function() {
-                    function blankLine() {
-                        return {
-                            description: '',
-                            expenseAccountId: '',
-                            expenseAccountLabel: '',
-                            expenseAccountResults: [],
-                            pickerOpen: false,
-                            quantity: 1, unitPrice: 0, taxRate: '', amount: 0
-                        };
-                    }
                     return {
                         lines: existingLines.length > 0
                             ? existingLines.map(function(l) {

@@ -14,6 +14,7 @@
             <div class="flex items-center gap-4 flex-wrap">
                 <!-- Search -->
                 <div class="relative">
+                    <label for="search-input" class="sr-only">Cari karyawan</label>
                     <input type="text"
                            id="search-input"
                            name="search"
@@ -31,7 +32,9 @@
                 </div>
 
                 <!-- Filter Employment Status -->
+                <label for="filter-status" class="sr-only">Filter status kepegawaian</label>
                 <select name="status"
+                        id="filter-status"
                         class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
                         hx-get="/employees"
                         hx-trigger="change"
@@ -46,7 +49,9 @@
                 </select>
 
                 <!-- Filter Active -->
+                <label for="filter-active" class="sr-only">Filter status aktif</label>
                 <select name="active"
+                        id="filter-active"
                         class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
                         hx-get="/employees"
                         hx-trigger="change"

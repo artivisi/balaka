@@ -3,7 +3,8 @@ package com.artivisi.accountingfinance.security;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -36,7 +37,7 @@ public class LoginAttemptService {
         FailedLoginInfo info = attemptsCache.computeIfAbsent(key, k -> new FailedLoginInfo());
 
         // If lockout has expired, reset counter
-        if (info.lockedUntil != null && info.lockedUntil.isBefore(LocalDateTime.now())) {
+        if (info.lockedUntil != null && info.lockedUntil.isBefore(Instant.now())) {
             info.attempts = 0;
             info.lockedUntil = null;
         }
@@ -44,7 +45,7 @@ public class LoginAttemptService {
         info.attempts++;
 
         if (info.attempts >= MAX_ATTEMPTS) {
-            info.lockedUntil = LocalDateTime.now().plusMinutes(LOCK_TIME_MINUTES);
+            info.lockedUntil = Instant.now().plus(Duration.ofMinutes(LOCK_TIME_MINUTES));
             log.warn("Account locked due to {} failed login attempts: {}",
                     info.attempts, LogSanitizer.username(username));
         } else {
@@ -85,7 +86,7 @@ public class LoginAttemptService {
         }
 
         // Check if lockout has expired
-        if (info.lockedUntil.isBefore(LocalDateTime.now())) {
+        if (info.lockedUntil.isBefore(Instant.now())) {
             // Reset on expiry
             info.attempts = 0;
             info.lockedUntil = null;
@@ -110,12 +111,12 @@ public class LoginAttemptService {
             return 0;
         }
 
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = Instant.now();
         if (info.lockedUntil.isBefore(now)) {
             return 0;
         }
 
-        return java.time.Duration.between(now, info.lockedUntil).toMinutes() + 1;
+        return Duration.between(now, info.lockedUntil).toMinutes() + 1;
     }
 
     /**
@@ -144,6 +145,6 @@ public class LoginAttemptService {
      */
     private static class FailedLoginInfo {
         int attempts = 0;
-        LocalDateTime lockedUntil;
+        Instant lockedUntil;
     }
 }

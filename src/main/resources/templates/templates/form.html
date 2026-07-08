@@ -204,23 +204,29 @@
                                 <div class="grid grid-cols-12 gap-2 px-4 py-3 border-t border-gray-100 items-start">
                                     <!-- Account Selection -->
                                     <div class="col-span-3">
-                                        <select x-model="line.accountId"
-                                                data-testid="line-account-0"
-                                                :name="lineName(index, 'accountId')"
-                                                @change="setDynamic(line)"
-                                                class="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
-                                            <option value="">[ Pilih saat transaksi ]</option>
-                                            <option th:each="account : ${accounts}"
-                                                    th:value="${account.id}"
-                                                    th:text="${account.accountCode + ' - ' + account.accountName}">Account</option>
-                                        </select>
+                                        <label class="block">
+                                            <span class="sr-only">Akun</span>
+                                            <select x-model="line.accountId"
+                                                    data-testid="line-account-0"
+                                                    :name="lineName(index, 'accountId')"
+                                                    @change="setDynamic(line)"
+                                                    class="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                                                <option value="">[ Pilih saat transaksi ]</option>
+                                                <option th:each="account : ${accounts}"
+                                                        th:value="${account.id}"
+                                                        th:text="${account.accountCode + ' - ' + account.accountName}">Account</option>
+                                            </select>
+                                        </label>
                                         <!-- Account Hint (shown when account is not selected) -->
-                                        <input :class="{ 'hidden': hasAccountId(line) }"
-                                               type="text"
-                                               x-model="line.accountHint"
-                                               :name="lineName(index, 'accountHint')"
-                                               placeholder="Hint: Bank/Kas, Akun Beban, dll"
-                                               class="w-full px-2 py-1 text-xs border border-blue-300 rounded mt-1 bg-blue-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                        <label class="block">
+                                            <span class="sr-only">Hint akun</span>
+                                            <input :class="{ 'hidden': hasAccountId(line) }"
+                                                   type="text"
+                                                   x-model="line.accountHint"
+                                                   :name="lineName(index, 'accountHint')"
+                                                   placeholder="Hint: Bank/Kas, Akun Beban, dll"
+                                                   class="w-full px-2 py-1 text-xs border border-blue-300 rounded mt-1 bg-blue-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                        </label>
                                         <input type="hidden" :name="lineName(index, 'lineOrder')" :value="lineOrder(index)">
                                     </div>
 
@@ -249,11 +255,14 @@
 
                                     <!-- Formula Input -->
                                     <div class="col-span-2">
-                                        <input type="text" x-model="line.formula"
-                                               @input="updateLinePreview(index)"
-                                               :name="lineName(index, 'formula')"
-                                               placeholder="amount"
-                                               class="w-full px-2 py-1.5 text-xs font-mono border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                                        <label class="block">
+                                            <span class="sr-only">Formula</span>
+                                            <input type="text" x-model="line.formula"
+                                                   @input="updateLinePreview(index)"
+                                                   :name="lineName(index, 'formula')"
+                                                   placeholder="amount"
+                                                   class="w-full px-2 py-1.5 text-xs font-mono border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                                        </label>
                                     </div>
 
                                     <!-- Preview Result -->
@@ -404,6 +413,7 @@
                                         <span class="text-gray-400">-</span>
                                         <div class="relative flex-1">
                                             <span class="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">Rp</span>
+                                            <label for="typicalAmountMax" class="sr-only">Nominal maksimum</label>
                                             <input type="number" id="typicalAmountMax" name="typicalAmountMax"
                                                    th:value="${template?.typicalAmountMax} ?: ${sourceTemplate?.typicalAmountMax}"
                                                    placeholder="Max"

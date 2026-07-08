@@ -15,6 +15,7 @@
             <div class="flex items-center gap-4 flex-wrap">
                 <!-- Search -->
                 <div class="relative">
+                    <label for="search-input" class="sr-only">Cari kategori</label>
                     <input type="text"
                            id="search-input"
                            name="search"
@@ -32,7 +33,9 @@
                 </div>
 
                 <!-- Filter Active -->
+                <label for="filter-active" class="sr-only">Filter status aktif</label>
                 <select name="active"
+                        id="filter-active"
                         class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
                         hx-get="/assets/categories"
                         hx-trigger="change"

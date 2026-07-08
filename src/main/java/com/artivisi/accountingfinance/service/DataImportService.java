@@ -375,89 +375,38 @@ public class DataImportService {
         pendingCompanyConfigAccountCodes = null;
 
         // Initialize maps with existing data from database
-        accountMap = new HashMap<>();
-        for (ChartOfAccount a : accountRepository.findAll()) {
-            accountMap.put(a.getAccountCode(), a);
-        }
-
-        templateMap = new HashMap<>();
-        for (JournalTemplate t : templateRepository.findAll()) {
-            templateMap.put(t.getTemplateName(), t);
-        }
-
-        clientMap = new HashMap<>();
-        for (Client c : clientRepository.findAll()) {
-            clientMap.put(c.getCode(), c);
-        }
-
-        vendorMap = new HashMap<>();
-        for (Vendor v : vendorRepository.findAll()) {
-            vendorMap.put(v.getCode(), v);
-        }
-
-        projectMap = new HashMap<>();
-        for (Project p : projectRepository.findAll()) {
-            projectMap.put(p.getCode(), p);
-        }
-
-        employeeMap = new HashMap<>();
-        for (Employee e : employeeRepository.findAll()) {
-            employeeMap.put(e.getEmployeeId(), e);
-        }
-
-        salaryComponentMap = new HashMap<>();
-        for (SalaryComponent sc : salaryComponentRepository.findAll()) {
-            salaryComponentMap.put(sc.getCode(), sc);
-        }
-
-        userMap = new HashMap<>();
-        for (User u : userRepository.findAll()) {
-            userMap.put(u.getUsername(), u);
-        }
-
-        payrollRunMap = new HashMap<>();
-        for (PayrollRun pr : payrollRunRepository.findAll()) {
-            payrollRunMap.put(pr.getPayrollPeriod(), pr);
-        }
-
-        transactionMap = new HashMap<>();
-        for (Transaction t : transactionRepository.findAll()) {
-            transactionMap.put(t.getId(), t);
-        }
-
-        amortizationScheduleMap = new HashMap<>();
-        for (AmortizationSchedule as : amortizationScheduleRepository.findAll()) {
-            amortizationScheduleMap.put(as.getCode(), as);
-        }
+        accountMap = mapBy(accountRepository.findAll(), ChartOfAccount::getAccountCode);
+        templateMap = mapBy(templateRepository.findAll(), JournalTemplate::getTemplateName);
+        clientMap = mapBy(clientRepository.findAll(), Client::getCode);
+        vendorMap = mapBy(vendorRepository.findAll(), Vendor::getCode);
+        projectMap = mapBy(projectRepository.findAll(), Project::getCode);
+        employeeMap = mapBy(employeeRepository.findAll(), Employee::getEmployeeId);
+        salaryComponentMap = mapBy(salaryComponentRepository.findAll(), SalaryComponent::getCode);
+        userMap = mapBy(userRepository.findAll(), User::getUsername);
+        payrollRunMap = mapBy(payrollRunRepository.findAll(), PayrollRun::getPayrollPeriod);
+        transactionMap = mapBy(transactionRepository.findAll(), Transaction::getId);
+        amortizationScheduleMap = mapBy(amortizationScheduleRepository.findAll(), AmortizationSchedule::getCode);
 
         taxDeadlineMap = new EnumMap<>(TaxDeadlineType.class);
-        for (TaxDeadline td : taxDeadlineRepository.findAll()) {
-            taxDeadlineMap.put(td.getDeadlineType(), td);
-        }
+        taxDeadlineMap.putAll(mapBy(taxDeadlineRepository.findAll(), TaxDeadline::getDeadlineType));
 
-        milestoneMap = new HashMap<>();
-        for (ProjectMilestone m : milestoneRepository.findAll()) {
-            milestoneMap.put(m.getProject().getCode() + "_" + m.getSequence(), m);
-        }
+        milestoneMap = mapBy(milestoneRepository.findAll(), m -> m.getProject().getCode() + "_" + m.getSequence());
 
         // Initialize manufacturing maps
-        productCategoryMap = new HashMap<>();
-        for (ProductCategory pc : productCategoryRepository.findAll()) {
-            productCategoryMap.put(pc.getCode(), pc);
-        }
-
-        productMap = new HashMap<>();
-        for (Product p : productRepository.findAll()) {
-            productMap.put(p.getCode(), p);
-        }
-
-        billOfMaterialMap = new HashMap<>();
-        for (BillOfMaterial bom : billOfMaterialRepository.findAll()) {
-            billOfMaterialMap.put(bom.getCode(), bom);
-        }
+        productCategoryMap = mapBy(productCategoryRepository.findAll(), ProductCategory::getCode);
+        productMap = mapBy(productRepository.findAll(), Product::getCode);
+        billOfMaterialMap = mapBy(billOfMaterialRepository.findAll(), BillOfMaterial::getCode);
 
         // Initialize import functions registry
         initializeImportFunctions();
+    }
+
+    private static <K, V> Map<K, V> mapBy(Iterable<V> items, java.util.function.Function<V, K> keyFn) {
+        Map<K, V> map = new HashMap<>();
+        for (V item : items) {
+            map.put(keyFn.apply(item), item);
+        }
+        return map;
     }
 
     private void initializeImportFunctions() {

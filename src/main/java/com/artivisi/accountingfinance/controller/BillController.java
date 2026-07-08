@@ -329,7 +329,7 @@ public class BillController {
         try {
             Vendor v = vendorService.findById(vendorId);
             return v.getCode() + " - " + v.getName();
-        } catch (jakarta.persistence.EntityNotFoundException e) {
+        } catch (jakarta.persistence.EntityNotFoundException _) {
             return vendorId.toString();
         }
     }

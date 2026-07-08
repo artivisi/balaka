@@ -45,6 +45,9 @@ public class FixedAssetService {
 
     // Template IDs from V004 seed data
     private static final UUID DEPRECIATION_TEMPLATE_ID = UUID.fromString("e0000000-0000-0000-0000-000000000016");
+
+    private static final String HINT_ASET_TETAP = "ASET_TETAP";
+    private static final String ERR_DEPRECIATION_RATE_REQUIRED = "Tarif penyusutan wajib diisi untuk metode saldo menurun";
     private static final UUID DISPOSAL_TEMPLATE_ID = UUID.fromString("e0000000-0000-0000-0000-000000000017");
 
     private final FixedAssetRepository fixedAssetRepository;
@@ -131,7 +134,7 @@ public class FixedAssetService {
         // Validate depreciation settings after category defaults are applied
         if (asset.getDepreciationMethod() == DepreciationMethod.DECLINING_BALANCE
                 && (asset.getDepreciationRate() == null || asset.getDepreciationRate().compareTo(BigDecimal.ZERO) <= 0)) {
-            throw new IllegalArgumentException("Tarif penyusutan wajib diisi untuk metode saldo menurun");
+            throw new IllegalArgumentException(ERR_DEPRECIATION_RATE_REQUIRED);
         }
 
         // Set book value to purchase cost initially
@@ -166,7 +169,7 @@ public class FixedAssetService {
                     "Akun pendanaan aset belum dipilih (bank/hutang yang dipakai untuk pembelian)");
         }
         Map<String, UUID> hints = new HashMap<>();
-        hints.put("ASET_TETAP", saved.getAssetAccount().getId());
+        hints.put(HINT_ASET_TETAP, saved.getAssetAccount().getId());
         hints.put("BANK", saved.getFundingAccount().getId());
         Map<String, BigDecimal> variables = new HashMap<>();
         variables.put("assetCost", saved.getPurchaseCost());
@@ -213,7 +216,7 @@ public class FixedAssetService {
             if (assetData.getDepreciationMethod() == DepreciationMethod.DECLINING_BALANCE
                     && (assetData.getDepreciationRate() == null
                             || assetData.getDepreciationRate().compareTo(BigDecimal.ZERO) <= 0)) {
-                throw new IllegalArgumentException("Tarif penyusutan wajib diisi untuk metode saldo menurun");
+                throw new IllegalArgumentException(ERR_DEPRECIATION_RATE_REQUIRED);
             }
 
             existing.setAssetCode(assetData.getAssetCode());
@@ -295,7 +298,7 @@ public class FixedAssetService {
         } else {
             // Declining balance: Book Value * (Rate / 12)
             if (asset.getDepreciationRate() == null || asset.getDepreciationRate().compareTo(BigDecimal.ZERO) == 0) {
-                throw new IllegalStateException("Tarif penyusutan wajib diisi untuk metode saldo menurun");
+                throw new IllegalStateException(ERR_DEPRECIATION_RATE_REQUIRED);
             }
             BigDecimal monthlyRate = asset.getDepreciationRate().divide(BigDecimal.valueOf(1200), 6, RoundingMode.HALF_UP);
             BigDecimal calculated = asset.getBookValue().multiply(monthlyRate).setScale(2, RoundingMode.HALF_UP);
@@ -412,7 +415,7 @@ public class FixedAssetService {
                     case "BEBAN_PENYUSUTAN":
                         accountMappings.put(line.getId(), asset.getDepreciationExpenseAccount().getId());
                         break;
-                    case "ASET_TETAP":
+                    case HINT_ASET_TETAP:
                         accountMappings.put(line.getId(), asset.getAssetAccount().getId());
                         break;
                     default:
@@ -527,7 +530,7 @@ public class FixedAssetService {
                     case "AKUM_PENYUSUTAN":
                         accountMappings.put(line.getId(), asset.getAccumulatedDepreciationAccount().getId());
                         break;
-                    case "ASET_TETAP":
+                    case HINT_ASET_TETAP:
                         accountMappings.put(line.getId(), asset.getAssetAccount().getId());
                         break;
                     default:

@@ -112,6 +112,7 @@ class JournalEntryServiceIntegrationTest {
         creditEntry.setCreditAmount(BigDecimal.valueOf(900000)); // Unbalanced
         entries.add(creditEntry);
 
+        assertThat(entries).hasSize(2);
         assertThatThrownBy(() -> journalEntryService.validateBalance(entries))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("not balanced");
@@ -172,6 +173,7 @@ class JournalEntryServiceIntegrationTest {
         singleEntry.setCreditAmount(BigDecimal.ZERO);
         entries.add(singleEntry);
 
+        assertThat(entries).hasSize(1);
         assertThatThrownBy(() -> journalEntryService.create(transaction, entries))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("at least 2 lines");

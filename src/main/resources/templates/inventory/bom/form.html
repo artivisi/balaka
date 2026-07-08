@@ -88,7 +88,8 @@
                                 <!-- Template row (hidden, used for cloning) -->
                                 <tr id="component-row-template" class="hidden">
                                     <td class="px-4 py-2">
-                                        <select name="componentId[]" disabled
+                                        <label for="component-select-new" class="sr-only">Komponen</label>
+                                        <select name="componentId[]" id="component-select-new" disabled
                                                 class="component-select w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm">
                                             <option value="">-- Pilih Komponen --</option>
                                             <option th:each="product : ${products}"
@@ -97,11 +98,13 @@
                                         </select>
                                     </td>
                                     <td class="px-4 py-2">
-                                        <input type="number" name="componentQty[]" value="1" step="0.01" min="0.01" disabled
+                                        <label for="component-qty-new" class="sr-only">Jumlah</label>
+                                        <input type="number" name="componentQty[]" id="component-qty-new" value="1" step="0.01" min="0.01" disabled
                                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm text-right">
                                     </td>
                                     <td class="px-4 py-2">
-                                        <input type="text" name="componentNotes[]" disabled
+                                        <label for="component-notes-new" class="sr-only">Catatan</label>
+                                        <input type="text" name="componentNotes[]" id="component-notes-new" disabled
                                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm">
                                     </td>
                                     <td class="px-4 py-2 text-center">
@@ -115,7 +118,8 @@
                                 <!-- Existing lines -->
                                 <tr th:each="line : ${bom.lines}" class="component-row">
                                     <td class="px-4 py-2">
-                                        <select name="componentId[]" required
+                                        <label for="component-select-existing" th:for="|component-select-${line.id}|" class="sr-only">Komponen</label>
+                                        <select name="componentId[]" id="component-select-existing" th:id="|component-select-${line.id}|" required
                                                 class="component-select w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm">
                                             <option value="">-- Pilih Komponen --</option>
                                             <option th:each="product : ${products}"
@@ -125,11 +129,13 @@
                                         </select>
                                     </td>
                                     <td class="px-4 py-2">
-                                        <input type="number" name="componentQty[]" th:value="${line.quantity}" step="0.01" min="0.01" required
+                                        <label for="component-qty-existing" th:for="|component-qty-${line.id}|" class="sr-only">Jumlah</label>
+                                        <input type="number" name="componentQty[]" id="component-qty-existing" th:id="|component-qty-${line.id}|" th:value="${line.quantity}" step="0.01" min="0.01" required
                                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm text-right">
                                     </td>
                                     <td class="px-4 py-2">
-                                        <input type="text" name="componentNotes[]" th:value="${line.notes}"
+                                        <label for="component-notes-existing" th:for="|component-notes-${line.id}|" class="sr-only">Catatan</label>
+                                        <input type="text" name="componentNotes[]" id="component-notes-existing" th:id="|component-notes-${line.id}|" th:value="${line.notes}"
                                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm">
                                     </td>
                                     <td class="px-4 py-2 text-center">

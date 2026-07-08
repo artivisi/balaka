@@ -60,10 +60,9 @@ function registerBasicStates() {
         },
         search() {
             const q = encodeURIComponent(this.label || '')
-            const self = this
             fetch('/accounts/search?q=' + q, { headers: { 'Accept': 'application/json' } })
                 .then(r => r.ok ? r.json() : [])
-                .then(data => { self.results = data })
+                .then(data => { this.results = data })
         },
         select(a) {
             this.selectedId = a.id
@@ -91,10 +90,9 @@ function registerBasicStates() {
         },
         search() {
             const q = encodeURIComponent(this.label || '')
-            const self = this
             fetch('/clients/search?q=' + q, { headers: { 'Accept': 'application/json' } })
                 .then(r => r.ok ? r.json() : [])
-                .then(data => { self.results = data })
+                .then(data => { this.results = data })
         },
         select(c) {
             this.selectedId = c.id
@@ -122,10 +120,9 @@ function registerBasicStates() {
         },
         search() {
             const q = encodeURIComponent(this.label || '')
-            const self = this
             fetch('/vendors/search?q=' + q, { headers: { 'Accept': 'application/json' } })
                 .then(r => r.ok ? r.json() : [])
-                .then(data => { self.results = data })
+                .then(data => { this.results = data })
         },
         select(v) {
             this.selectedId = v.id
@@ -284,6 +281,21 @@ function registerNavigationStates() {
             this.open = !this.open
         }
     }))
+}
+
+// Blank line factory for the free-form journal entry form (journalEntryForm below).
+// Pure: captures no component state.
+function blankJournalLine() {
+    return {
+        label: '',
+        selectedId: '',
+        results: [],
+        pickerOpen: false,
+        debit: 0,
+        credit: 0,
+        debitText: '0',
+        creditText: '0'
+    }
 }
 
 function registerFormComponents() {
@@ -472,7 +484,7 @@ function registerFormComponents() {
                 if (response.ok) {
                     const result = await response.json()
                     document.getElementById('quick-transaction-modal')?.close()
-                    window.location.href = '/transactions/' + result.transactionId
+                    globalThis.location.href = '/transactions/' + result.transactionId
                 } else {
                     const errorText = await response.text()
                     alert('Gagal menyimpan: ' + errorText)
@@ -493,18 +505,6 @@ function registerFormComponents() {
     // Free-form journal entry form. State-driven via Alpine reactive lines
     // (x-for in template). Each line has its own accountPicker-style combobox
     // backed by GET /accounts/search; no full COA dump in the page.
-    function blankJournalLine() {
-        return {
-            label: '',
-            selectedId: '',
-            results: [],
-            pickerOpen: false,
-            debit: 0,
-            credit: 0,
-            debitText: '0',
-            creditText: '0'
-        }
-    }
     Alpine.data('journalEntryForm', () => ({
         transactionDate: new Date().toISOString().split('T')[0],
         description: '',
@@ -678,7 +678,7 @@ function registerFormComponents() {
                     throw new Error(err.message || err.error || 'Gagal menyimpan jurnal')
                 }
                 const result = await response.json()
-                window.location.href = '/transactions/' + result.transactionId
+                globalThis.location.href = '/transactions/' + result.transactionId
             } catch (e) {
                 this.errorMessage = e.message
             } finally {
@@ -711,7 +711,7 @@ function registerFormComponents() {
                     const err = await postResponse.json()
                     throw new Error(err.message || err.error || 'Gagal posting jurnal')
                 }
-                window.location.href = '/transactions/' + draft.transactionId
+                globalThis.location.href = '/transactions/' + draft.transactionId
             } catch (e) {
                 this.errorMessage = e.message
             } finally {

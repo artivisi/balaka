@@ -32,7 +32,8 @@
         <!-- Filters & Actions -->
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <form th:action="@{/invoices}" method="get" class="flex flex-wrap items-center gap-2">
-                <select name="status" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                <label for="status-filter" class="sr-only">Filter status</label>
+                <select id="status-filter" name="status" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
                     <option value="">Semua Status</option>
                     <option th:each="s : ${statuses}" th:value="${s}" th:text="${s.indonesianName}"
                             th:selected="${selectedStatus != null && selectedStatus.name() == s.name()}">Status</option>
@@ -41,7 +42,8 @@
                 <div x-data="clientPicker" class="relative"
                      th:data-initial-id="${selectedClientId}"
                      th:data-initial-label="${selectedClientLabel}">
-                    <input type="text" x-model="label"
+                    <label for="client-picker-input" class="sr-only">Cari klien</label>
+                    <input type="text" id="client-picker-input" x-model="label"
                            @input.debounce.300ms="search()"
                            @focus="focusPicker()"
                            @click.away="open = false"
@@ -62,7 +64,8 @@
                         </template>
                     </div>
                 </div>
-                <select name="projectId" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                <label for="project-filter" class="sr-only">Filter proyek</label>
+                <select id="project-filter" name="projectId" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
                     <option value="">Semua Proyek</option>
                     <option th:each="p : ${projects}" th:value="${p.id}" th:text="${p.name}"
                             th:selected="${selectedProjectId != null && selectedProjectId == p.id}">Project</option>

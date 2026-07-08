@@ -13,10 +13,12 @@
         <!-- Filters & Actions -->
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <form th:action="@{/vendors}" method="get" class="flex flex-wrap items-center gap-2">
-                <input type="text" name="search" th:value="${search}"
+                <label for="search-vendor" class="sr-only">Cari vendor</label>
+                <input type="text" id="search-vendor" name="search" th:value="${search}"
                        class="px-3 py-2 border border-gray-300 rounded-lg text-sm"
                        placeholder="Cari vendor...">
-                <select name="active" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                <label for="filter-active" class="sr-only">Filter status</label>
+                <select id="filter-active" name="active" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
                     <option value="">Semua Status</option>
                     <option value="true" th:selected="${selectedActive != null && selectedActive}">Aktif</option>
                     <option value="false" th:selected="${selectedActive != null && !selectedActive}">Nonaktif</option>

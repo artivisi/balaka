@@ -392,12 +392,6 @@ class DemoVerificationTest extends DemoDataLoaderBase {
     @Test @Order(8) @DisplayName("7. Verify transaction count by template")
     void verifyTransactionsByTemplate() {
         log.info("========== TRANSACTION SUMMARY BY TEMPLATE ==========");
-        var allTx = transactionRepository.findAll().stream()
-                .filter(t -> t.getStatus() == TransactionStatus.POSTED)
-                .collect(Collectors.groupingBy(
-                        t -> t.getReferenceNumber() != null && t.getReferenceNumber().startsWith("PAYROLL") ? "Post Gaji Bulanan" : "(other)",
-                        Collectors.counting()));
-
         // Count by reference prefix for a simpler breakdown
         var txByRef = transactionRepository.findAll().stream()
                 .filter(t -> t.getStatus() == TransactionStatus.POSTED)

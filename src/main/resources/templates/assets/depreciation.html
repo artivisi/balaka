@@ -32,7 +32,8 @@
             <div class="p-6 border-b flex items-center justify-between">
                 <h3 class="text-lg font-medium text-gray-900">Penyusutan Tertunda</h3>
                 <form th:if="${!#lists.isEmpty(pendingEntries)}" th:action="@{/assets/depreciation/post-all}" method="post" class="flex items-center gap-2">
-                    <input type="month" name="period" class="px-3 py-1 border border-gray-300 rounded text-sm" required>
+                    <label for="post-all-period" class="sr-only">Periode posting</label>
+                    <input type="month" id="post-all-period" name="period" class="px-3 py-1 border border-gray-300 rounded text-sm" required>
                     <button type="submit" class="px-4 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700">
                         Posting Semua
                     </button>

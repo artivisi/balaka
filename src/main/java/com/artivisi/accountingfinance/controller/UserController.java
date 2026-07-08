@@ -51,6 +51,8 @@ public class UserController {
     private static final String REDIRECT_USERS = "redirect:/users";
     private static final String REDIRECT_USERS_PREFIX = "redirect:/users/";
     private static final String USER_NOT_FOUND = "User not found: ";
+    private static final String STATUS_ACTIVE = "active";
+    private static final String STATUS_INACTIVE = "inactive";
     private static final String AUDIT_ID_SUFFIX = " (id: ";
 
     private final UserService userService;
@@ -290,8 +292,8 @@ public class UserController {
                 .orElseThrow(() -> new IllegalArgumentException(USER_NOT_FOUND + id));
         Boolean wasActive = user.getActive();
         userService.toggleActive(id);
-        String fromStatus = Boolean.TRUE.equals(wasActive) ? "active" : "inactive";
-        String toStatus = Boolean.TRUE.equals(wasActive) ? "inactive" : "active";
+        String fromStatus = Boolean.TRUE.equals(wasActive) ? STATUS_ACTIVE : STATUS_INACTIVE;
+        String toStatus = Boolean.TRUE.equals(wasActive) ? STATUS_INACTIVE : STATUS_ACTIVE;
         securityAuditService.log(AuditEventType.USER_STATUS_CHANGED,
                 "User " + user.getUsername() + AUDIT_ID_SUFFIX + id + ") status changed from " +
                         fromStatus + " to " + toStatus);

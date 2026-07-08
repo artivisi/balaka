@@ -93,8 +93,8 @@
                                 <div class="flex-1 grid grid-cols-1 md:grid-cols-4 gap-2">
                                     <!-- Tax Type -->
                                     <div>
-                                        <label th:for="${'taxType_' + trx.id}" class="block text-xs text-gray-500 mb-0.5">Jenis Pajak</label>
-                                        <select th:id="${'taxType_' + trx.id}" th:name="${'taxType_' + trx.id}" data-testid="bulk-tax-type"
+                                        <label for="taxType_placeholder" th:for="${'taxType_' + trx.id}" class="block text-xs text-gray-500 mb-0.5">Jenis Pajak</label>
+                                        <select id="taxType_placeholder" th:id="${'taxType_' + trx.id}" th:name="${'taxType_' + trx.id}" data-testid="bulk-tax-type"
                                                 class="w-full px-2 py-1.5 border border-gray-300 rounded text-xs focus:ring-primary-500 focus:border-primary-500">
                                             <option value="">--</option>
                                             <th:block th:if="${suggestionsMap.containsKey(trx.id)}">
@@ -110,16 +110,16 @@
 
                                     <!-- Faktur/Bupot Number -->
                                     <div>
-                                        <label th:for="${'fakturNumber_' + trx.id}" class="block text-xs text-gray-500 mb-0.5">No. Faktur/Bupot</label>
-                                        <input type="text" th:id="${'fakturNumber_' + trx.id}" th:name="${'fakturNumber_' + trx.id}" data-testid="bulk-faktur-number"
+                                        <label for="fakturNumber_placeholder" th:for="${'fakturNumber_' + trx.id}" class="block text-xs text-gray-500 mb-0.5">No. Faktur/Bupot</label>
+                                        <input type="text" id="fakturNumber_placeholder" th:id="${'fakturNumber_' + trx.id}" th:name="${'fakturNumber_' + trx.id}" data-testid="bulk-faktur-number"
                                                class="w-full px-2 py-1.5 border border-gray-300 rounded text-xs focus:ring-primary-500 focus:border-primary-500"
                                                placeholder="Nomor faktur/bupot">
                                     </div>
 
                                     <!-- Counterparty -->
                                     <div>
-                                        <label th:for="${'counterpartyName_' + trx.id}" class="block text-xs text-gray-500 mb-0.5">Lawan Transaksi</label>
-                                        <input type="text" th:id="${'counterpartyName_' + trx.id}" th:name="${'counterpartyName_' + trx.id}" data-testid="bulk-counterparty"
+                                        <label for="counterpartyName_placeholder" th:for="${'counterpartyName_' + trx.id}" class="block text-xs text-gray-500 mb-0.5">Lawan Transaksi</label>
+                                        <input type="text" id="counterpartyName_placeholder" th:id="${'counterpartyName_' + trx.id}" th:name="${'counterpartyName_' + trx.id}" data-testid="bulk-counterparty"
                                                th:value="${suggestionsMap.containsKey(trx.id) and !suggestionsMap.get(trx.id).isEmpty()} ? ${suggestionsMap.get(trx.id)[0].name} : ''"
                                                class="w-full px-2 py-1.5 border border-gray-300 rounded text-xs focus:ring-primary-500 focus:border-primary-500"
                                                placeholder="Nama">
@@ -127,8 +127,8 @@
 
                                     <!-- NPWP -->
                                     <div>
-                                        <label th:for="${'counterpartyNpwp_' + trx.id}" class="block text-xs text-gray-500 mb-0.5">NPWP</label>
-                                        <input type="text" th:id="${'counterpartyNpwp_' + trx.id}" th:name="${'counterpartyNpwp_' + trx.id}" data-testid="bulk-npwp"
+                                        <label for="counterpartyNpwp_placeholder" th:for="${'counterpartyNpwp_' + trx.id}" class="block text-xs text-gray-500 mb-0.5">NPWP</label>
+                                        <input type="text" id="counterpartyNpwp_placeholder" th:id="${'counterpartyNpwp_' + trx.id}" th:name="${'counterpartyNpwp_' + trx.id}" data-testid="bulk-npwp"
                                                th:value="${suggestionsMap.containsKey(trx.id) and !suggestionsMap.get(trx.id).isEmpty()} ? ${suggestionsMap.get(trx.id)[0].npwp} : ''"
                                                class="w-full px-2 py-1.5 border border-gray-300 rounded text-xs focus:ring-primary-500 focus:border-primary-500"
                                                placeholder="NPWP" maxlength="20">
