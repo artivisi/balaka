@@ -68,6 +68,25 @@ CREATE INDEX idx_device_tokens_token_hash ON device_tokens(token_hash);
 CREATE INDEX idx_device_tokens_expires_at ON device_tokens(expires_at) WHERE expires_at IS NOT NULL;
 CREATE INDEX idx_device_tokens_revoked ON device_tokens(revoked_at) WHERE revoked_at IS NULL;
 
+-- Service accounts for the OAuth2 client_credentials grant (issue #28).
+-- Headless machine-to-machine callers (e.g. subledger outbox dispatchers)
+-- exchange client_id + client_secret for a short-lived bearer token at
+-- POST /api/oauth/token; the token itself is stored in device_tokens.
+CREATE TABLE api_clients (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    client_id VARCHAR(50) NOT NULL UNIQUE,
+    client_secret_hash VARCHAR(255) NOT NULL,       -- BCrypt hash; plaintext shown once at creation
+    name VARCHAR(100) NOT NULL,
+    scopes VARCHAR(255) NOT NULL,                   -- Comma-separated, e.g. "transactions:post"
+    id_user UUID NOT NULL REFERENCES users(id),     -- Acting user for audit (created_by on postings)
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    last_used_at TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    created_by VARCHAR(100)
+);
+
+CREATE INDEX idx_api_clients_client_id ON api_clients(client_id);
+
 COMMENT ON TABLE device_tokens IS 'Long-lived access tokens for device authentication (OAuth 2.0 Device Flow)';
 COMMENT ON COLUMN device_tokens.token_hash IS 'BCrypt hash of the access token (never store plaintext)';
 COMMENT ON COLUMN device_tokens.device_name IS 'User-friendly device name for management UI';

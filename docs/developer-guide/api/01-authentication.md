@@ -108,6 +108,42 @@ GET /api/analysis/trial-balance?asOfDate=2025-12-31
 Authorization: Bearer bk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
+## Client Credentials Grant (Service-to-Service)
+
+Unattended backend callers (schedulers, outbox dispatchers) cannot complete the
+interactive device flow. For these, register an **API client** under
+Pengaturan → API Klien (requires `SETTINGS_EDIT`). The client_id and
+client_secret are shown once at creation.
+
+Exchange the credentials for a short-lived bearer token ([RFC 6749 §4.4](https://datatracker.ietf.org/doc/html/rfc6749#section-4.4)):
+
+```http
+POST /api/oauth/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=client_credentials&client_id=ar-outbox-1a2b3c4d&client_secret=...
+```
+
+HTTP Basic authentication is accepted as an alternative to body parameters.
+
+Response:
+
+```json
+{
+  "access_token": "opaque-token",
+  "token_type": "Bearer",
+  "expires_in": 3600,
+  "scope": "transactions:post"
+}
+```
+
+- Tokens are restricted to the client's registered scopes and expire after
+  `app.api-client.token-expiry-minutes` (default 60). Cache the token and
+  request a new one on expiry.
+- Postings authenticate as the client's configured service user (audit trail).
+- Errors follow RFC 6749: `401 {"error":"invalid_client"}` for unknown/inactive
+  clients or wrong secrets, `400 {"error":"unsupported_grant_type"}` otherwise.
+
 ## Scopes
 
 Tokens are issued with all available scopes. Each scope maps to a `SCOPE_` authority in Spring Security:

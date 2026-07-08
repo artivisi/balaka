@@ -38,6 +38,19 @@ Each exclusion must have a justification comment explaining the mitigation.
         <Bug pattern="CRLF_INJECTION_LOGS"/>
     </Match>
 
+    <!-- ApiClientService: All log statements use LogSanitizer for client ids/names/usernames -->
+    <Match>
+        <Class name="com.artivisi.accountingfinance.service.ApiClientService"/>
+        <Bug pattern="CRLF_INJECTION_LOGS"/>
+    </Match>
+
+    <!-- OAuthTokenApiController: the only log statement is a constant message (malformed
+         Basic header) with no user-controlled parameters -->
+    <Match>
+        <Class name="com.artivisi.accountingfinance.controller.api.OAuthTokenApiController"/>
+        <Bug pattern="CRLF_INJECTION_LOGS"/>
+    </Match>
+
     <!-- FixedAssetService: All log statements use LogSanitizer for asset codes -->
     <Match>
         <Class name="com.artivisi.accountingfinance.service.FixedAssetService"/>

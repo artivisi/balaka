@@ -325,6 +325,9 @@
                             <a sec:authorize="hasAuthority('SETTINGS_VIEW')" id="nav-devices" th:href="@{/settings/devices}"
                                th:classappend="${#strings.equals(currentPage, 'devices')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
                                class="flex items-center px-3 py-2 rounded-lg transition-colors">Perangkat API</a>
+                            <a sec:authorize="hasAuthority('SETTINGS_EDIT')" id="nav-api-clients" th:href="@{/settings/api-clients}"
+                               th:classappend="${#strings.equals(currentPage, 'api-clients')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
+                               class="flex items-center px-3 py-2 rounded-lg transition-colors">API Klien</a>
                             <a sec:authorize="hasAuthority('SETTINGS_VIEW')" id="nav-data-import" th:href="@{/settings/import}"
                                th:classappend="${#strings.equals(currentPage, 'data-import')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
                                class="flex items-center px-3 py-2 rounded-lg transition-colors">Import Data</a>
@@ -598,6 +601,8 @@
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Keamanan</a>
                             <a sec:authorize="hasAuthority('SETTINGS_VIEW')" th:href="@{/settings/devices}"
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Perangkat API</a>
+                            <a sec:authorize="hasAuthority('SETTINGS_EDIT')" th:href="@{/settings/api-clients}"
+                               class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">API Klien</a>
                             <a sec:authorize="hasAuthority('SETTINGS_VIEW')" th:href="@{/settings/import}"
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Import Data</a>
                             <a sec:authorize="hasAuthority('AUDIT_LOG_VIEW')" th:href="@{/audit-log}"

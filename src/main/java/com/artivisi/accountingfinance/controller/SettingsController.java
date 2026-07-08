@@ -11,6 +11,7 @@ import com.artivisi.accountingfinance.entity.User;
 import com.artivisi.accountingfinance.enums.AuditEventType;
 import com.artivisi.accountingfinance.repository.TelegramUserLinkRepository;
 import com.artivisi.accountingfinance.repository.UserRepository;
+import com.artivisi.accountingfinance.service.ApiClientService;
 import com.artivisi.accountingfinance.service.ChartOfAccountService;
 import com.artivisi.accountingfinance.service.CompanyBankAccountService;
 import com.artivisi.accountingfinance.service.CompanyConfigService;
@@ -88,6 +89,7 @@ public class SettingsController {
     private final CompanyBankAccountService bankAccountService;
     private final ChartOfAccountService chartOfAccountService;
     private final DeviceAuthService deviceAuthService;
+    private final ApiClientService apiClientService;
     private final DocumentStorageService documentStorageService;
     private final TelegramBotService telegramBotService;
     private final TelegramUserLinkRepository telegramLinkRepository;
@@ -581,6 +583,70 @@ public class SettingsController {
 
         redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Akun Telegram berhasil diputus");
         return "redirect:/settings/telegram";
+    }
+
+    // ==================== API Client Management (client_credentials) ====================
+
+    private static final String REDIRECT_SETTINGS_API_CLIENTS = "redirect:/settings/api-clients";
+    // Single-scope pattern; the list is split on commas first to keep matching linear
+    private static final java.util.regex.Pattern SCOPE_PATTERN =
+            java.util.regex.Pattern.compile("[a-z-]+:[a-z-]+");
+
+    @GetMapping("/api-clients")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAuthority('" + com.artivisi.accountingfinance.security.Permission.SETTINGS_EDIT + "')")
+    public String apiClients(Model model) {
+        model.addAttribute("apiClients", apiClientService.findAll());
+        model.addAttribute("users", userRepository.findAll());
+        model.addAttribute(ATTR_CURRENT_PAGE, PAGE_API_CLIENTS);
+        return "settings/api-clients";
+    }
+
+    @PostMapping("/api-clients")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAuthority('" + com.artivisi.accountingfinance.security.Permission.SETTINGS_EDIT + "')")
+    public String createApiClient(
+            @RequestParam String name,
+            @RequestParam String scopes,
+            @RequestParam UUID userId,
+            Authentication authentication,
+            RedirectAttributes redirectAttributes) {
+
+        if (name == null || name.isBlank()) {
+            redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, "Nama klien wajib diisi");
+            return REDIRECT_SETTINGS_API_CLIENTS;
+        }
+        if (scopes == null || scopes.isBlank() || !java.util.Arrays.stream(scopes.split(","))
+                .allMatch(sc -> SCOPE_PATTERN.matcher(sc.trim()).matches())) {
+            redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE,
+                    "Format scope tidak valid (contoh: transactions:post,accounts:read)");
+            return REDIRECT_SETTINGS_API_CLIENTS;
+        }
+
+        User serviceUser = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException(ERR_USER_NOT_FOUND));
+
+        ApiClientService.CreatedClient created =
+                apiClientService.create(name.trim(), scopes.trim(), serviceUser, authentication.getName());
+        securityAuditService.log(AuditEventType.SETTINGS_CHANGE,
+                "API client created: " + created.client().getClientId());
+
+        redirectAttributes.addFlashAttribute("newClientId", created.client().getClientId());
+        redirectAttributes.addFlashAttribute("newClientSecret", created.clientSecret());
+        redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE,
+                "API client berhasil dibuat. Simpan client secret sekarang - hanya ditampilkan sekali.");
+        return REDIRECT_SETTINGS_API_CLIENTS;
+    }
+
+    @PostMapping("/api-clients/{id}/deactivate")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAuthority('" + com.artivisi.accountingfinance.security.Permission.SETTINGS_EDIT + "')")
+    public String deactivateApiClient(
+            @PathVariable UUID id,
+            Authentication authentication,
+            RedirectAttributes redirectAttributes) {
+
+        apiClientService.deactivate(id, authentication.getName());
+        securityAuditService.log(AuditEventType.SETTINGS_CHANGE, "API client deactivated: " + id);
+        redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "API client berhasil dinonaktifkan");
+        return REDIRECT_SETTINGS_API_CLIENTS;
     }
 
     // ==================== Device Token Management ====================

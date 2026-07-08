@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/main :: layout('API Klien', ~{::#page-title}, ~{::section}, ~{::script})}"
+      lang="id">
+<head>
+    <title>API Klien</title>
+</head>
+<body>
+    <h1 id="page-title">API Klien</h1>
+
+    <section id="api-client-content">
+        <!-- Back Link -->
+        <div class="mb-4">
+            <a th:href="@{/settings}" class="inline-flex items-center text-sm text-gray-600 hover:text-gray-900">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+                Kembali ke Pengaturan
+            </a>
+        </div>
+
+        <!-- Success Message -->
+        <div th:if="${successMessage}" class="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg">
+            <span th:text="${successMessage}">Success message</span>
+        </div>
+
+        <!-- Error Message -->
+        <div th:if="${errorMessage}" class="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+            <span th:text="${errorMessage}">Error message</span>
+        </div>
+
+        <!-- One-time credentials display -->
+        <div th:if="${newClientSecret}" id="new-credentials"
+             class="mb-6 p-4 bg-amber-50 border border-amber-300 rounded-lg">
+            <h2 class="text-sm font-semibold text-amber-800 mb-2">Kredensial klien baru — hanya ditampilkan sekali</h2>
+            <dl class="text-sm font-mono">
+                <div class="mb-1">
+                    <dt class="inline text-gray-600">client_id:</dt>
+                    <dd class="inline" id="new-client-id" th:text="${newClientId}">client-id</dd>
+                </div>
+                <div>
+                    <dt class="inline text-gray-600">client_secret:</dt>
+                    <dd class="inline break-all" id="new-client-secret" th:text="${newClientSecret}">secret</dd>
+                </div>
+            </dl>
+            <p class="mt-2 text-xs text-amber-700">
+                Tukarkan dengan access token melalui
+                <code>POST /api/oauth/token</code> (<code>grant_type=client_credentials</code>).
+            </p>
+        </div>
+
+        <div class="max-w-4xl space-y-6">
+            <!-- Create form -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">Buat API Klien</h2>
+                <p class="text-sm text-gray-500 mb-4">
+                    Akun layanan untuk integrasi server-ke-server (grant OAuth2
+                    <code>client_credentials</code>). Token yang diterbitkan dibatasi pada scope
+                    terdaftar dan beratribut atas user layanan yang dipilih.
+                </p>
+                <form id="form-create-api-client" th:action="@{/settings/api-clients}" method="post"
+                      class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label for="client-name" class="block text-sm font-medium text-gray-700 mb-1">Nama</label>
+                        <input type="text" id="client-name" name="name" required maxlength="100"
+                               placeholder="account-receivable"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                    </div>
+                    <div>
+                        <label for="client-scopes" class="block text-sm font-medium text-gray-700 mb-1">Scopes</label>
+                        <input type="text" id="client-scopes" name="scopes" required maxlength="255"
+                               value="transactions:post"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                    </div>
+                    <div>
+                        <label for="client-user" class="block text-sm font-medium text-gray-700 mb-1">User Layanan</label>
+                        <select id="client-user" name="userId" required
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                            <option th:each="u : ${users}" th:value="${u.id}" th:text="${u.username}">user</option>
+                        </select>
+                    </div>
+                    <div class="md:col-span-3">
+                        <button type="submit" id="btn-create-api-client"
+                                class="px-4 py-2 bg-primary-700 hover:bg-primary-800 text-white rounded-lg transition-colors">
+                            Buat Klien
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Client list -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">Klien Terdaftar</h2>
+
+                <div th:if="${#lists.isEmpty(apiClients)}" id="empty-state"
+                     class="text-sm text-gray-400 py-8 text-center">
+                    Belum ada API klien
+                </div>
+
+                <div th:each="client : ${apiClients}" th:id="|api-client-${client.clientId}|"
+                     class="border border-gray-200 rounded-lg p-4 mb-3">
+                    <div class="flex items-start justify-between gap-4">
+                        <div>
+                            <div class="font-medium text-gray-900" th:text="${client.name}">name</div>
+                            <div class="text-sm font-mono text-gray-600" th:text="${client.clientId}">client-id</div>
+                            <div class="text-xs text-gray-500 mt-1">
+                                <span th:text="|Scopes: ${client.scopes}|">scopes</span>
+                                &middot;
+                                <span th:text="|User: ${client.user.username}|">user</span>
+                                &middot;
+                                <span th:if="${client.lastUsedAt != null}"
+                                      th:text="|Terakhir dipakai: ${#temporals.format(client.lastUsedAt, 'dd/MM/yyyy HH:mm')}|">last used</span>
+                                <span th:if="${client.lastUsedAt == null}">Belum pernah dipakai</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span th:if="${client.active}"
+                                  class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-700">Aktif</span>
+                            <span th:unless="${client.active}"
+                                  class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-500">Nonaktif</span>
+                            <form th:if="${client.active}"
+                                  th:action="@{/settings/api-clients/{id}/deactivate(id=${client.id})}"
+                                  method="post" class="inline">
+                                <button type="submit"
+                                        class="px-3 py-1 text-sm border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors">
+                                    Nonaktifkan
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</body>
+</html>

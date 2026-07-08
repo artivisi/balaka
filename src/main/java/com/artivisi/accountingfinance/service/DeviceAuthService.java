@@ -166,6 +166,42 @@ public class DeviceAuthService {
     }
 
     /**
+     * Mint a short-lived access token for an OAuth2 client_credentials service
+     * account. Stored like a device token so BearerTokenAuthenticationFilter
+     * introspects it identically; the returned copy carries the plaintext token
+     * in tokenHash (only returned once).
+     */
+    public DeviceToken createServiceToken(User user, String clientId, String name,
+                                          String scopes, int expiryMinutes) {
+        String token = generateSecureToken(32);
+
+        DeviceToken deviceToken = new DeviceToken();
+        deviceToken.setUser(user);
+        deviceToken.setTokenHash(passwordEncoder.encode(token));
+        deviceToken.setClientId(clientId);
+        deviceToken.setDeviceName("service:" + name);
+        deviceToken.setScopes(scopes);
+        deviceToken.setExpiresAt(LocalDateTime.now().plusMinutes(expiryMinutes));
+        deviceToken.setCreatedBy(clientId);
+
+        DeviceToken saved = deviceTokenRepository.save(deviceToken);
+        log.info("Issued client_credentials token for client {} (user {}, {} min)",
+                clientId, user.getUsername(), expiryMinutes);
+
+        DeviceToken result = new DeviceToken();
+        result.setId(saved.getId());
+        result.setUser(saved.getUser());
+        result.setTokenHash(token); // Plaintext for caller
+        result.setClientId(saved.getClientId());
+        result.setDeviceName(saved.getDeviceName());
+        result.setScopes(saved.getScopes());
+        result.setExpiresAt(saved.getExpiresAt());
+        result.setCreatedAt(saved.getCreatedAt());
+        result.setCreatedBy(saved.getCreatedBy());
+        return result;
+    }
+
+    /**
      * Validate access token and return associated user.
      */
     @Transactional(readOnly = true)

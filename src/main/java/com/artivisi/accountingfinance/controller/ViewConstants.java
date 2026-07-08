@@ -57,6 +57,7 @@ public final class ViewConstants {
 
     // Current page values - Device Management
     public static final String PAGE_DEVICES = "devices";
+    public static final String PAGE_API_CLIENTS = "api-clients";
 
     // Current page values - Analysis Reports
     public static final String PAGE_ANALYSIS_REPORTS = "analysis-reports";

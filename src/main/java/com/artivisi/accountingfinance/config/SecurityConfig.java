@@ -47,6 +47,8 @@ public class SecurityConfig {
                     .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                     // Device flow endpoints (unauthenticated)
                     .requestMatchers("/api/device/**").permitAll()
+                    // OAuth2 client_credentials token endpoint (authenticates via client secret)
+                    .requestMatchers("/api/oauth/token").permitAll()
                     .requestMatchers("/device/**").permitAll();
 
                 // API endpoints require Bearer token authentication (handled by filter)
