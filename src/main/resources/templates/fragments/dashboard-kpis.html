@@ -29,7 +29,7 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-xs font-medium text-gray-500">Pendapatan</p>
-                        <p class="text-lg font-bold text-gray-900" th:text="'Rp ' + ${#numbers.formatDecimal(kpi.revenue / 1000000, 0, 'POINT', 1, 'COMMA')} + 'jt'">Rp 0jt</p>
+                        <p class="text-lg font-bold text-gray-900" th:text="'Rp ' + ${#numbers.formatDecimal(kpi.revenue / 1000000, 1, 'POINT', 1, 'COMMA')} + 'jt'">Rp 0jt</p>
                         <p th:classappend="${kpi.revenueChange >= 0} ? 'text-accent-600' : 'text-red-600'"
                            class="text-xs flex items-center">
                             <svg th:if="${kpi.revenueChange >= 0}" class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -54,7 +54,7 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-xs font-medium text-gray-500">Pengeluaran</p>
-                        <p class="text-lg font-bold text-gray-900" th:text="'Rp ' + ${#numbers.formatDecimal(kpi.expense / 1000000, 0, 'POINT', 1, 'COMMA')} + 'jt'">Rp 0jt</p>
+                        <p class="text-lg font-bold text-gray-900" th:text="'Rp ' + ${#numbers.formatDecimal(kpi.expense / 1000000, 1, 'POINT', 1, 'COMMA')} + 'jt'">Rp 0jt</p>
                         <!-- For expenses, up arrow means increase (bad), down arrow means decrease (good) -->
                         <p th:classappend="${kpi.expenseChange <= 0} ? 'text-accent-600' : 'text-red-600'"
                            class="text-xs flex items-center">
@@ -82,7 +82,7 @@
                         <p class="text-xs font-medium text-gray-500">Laba Bersih</p>
                         <p th:classappend="${kpi.netProfit >= 0} ? 'text-gray-900' : 'text-red-600'"
                            class="text-lg font-bold"
-                           th:text="'Rp ' + ${#numbers.formatDecimal(kpi.netProfit / 1000000, 0, 'POINT', 1, 'COMMA')} + 'jt'">Rp 0jt</p>
+                           th:text="'Rp ' + ${#numbers.formatDecimal(kpi.netProfit / 1000000, 1, 'POINT', 1, 'COMMA')} + 'jt'">Rp 0jt</p>
                         <p th:classappend="${kpi.profitChange >= 0} ? 'text-accent-600' : 'text-red-600'"
                            class="text-xs flex items-center">
                             <svg th:if="${kpi.profitChange >= 0}" class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -154,7 +154,7 @@
                     <div>
                         <p class="text-xs font-medium text-gray-500">Kas & Bank</p>
                         <p class="text-lg font-bold text-gray-900"
-                           th:text="'Rp ' + ${#numbers.formatDecimal(kpi.cashBalance / 1000000, 0, 'POINT', 1, 'COMMA')} + 'jt'">Rp 0jt</p>
+                           th:text="'Rp ' + ${#numbers.formatDecimal(kpi.cashBalance / 1000000, 1, 'POINT', 1, 'COMMA')} + 'jt'">Rp 0jt</p>
                         <p class="text-xs text-gray-500">Saldo akhir</p>
                     </div>
                     <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -171,7 +171,7 @@
                     <div>
                         <p class="text-xs font-medium text-gray-500">Piutang Usaha</p>
                         <p class="text-lg font-bold text-gray-900"
-                           th:text="'Rp ' + ${#numbers.formatDecimal(kpi.receivablesBalance / 1000000, 0, 'POINT', 1, 'COMMA')} + 'jt'">Rp 0jt</p>
+                           th:text="'Rp ' + ${#numbers.formatDecimal(kpi.receivablesBalance / 1000000, 1, 'POINT', 1, 'COMMA')} + 'jt'">Rp 0jt</p>
                         <p class="text-xs text-gray-500">Belum tertagih</p>
                     </div>
                     <div class="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
@@ -188,7 +188,7 @@
                     <div>
                         <p class="text-xs font-medium text-gray-500">Hutang Usaha</p>
                         <p class="text-lg font-bold text-gray-900"
-                           th:text="'Rp ' + ${#numbers.formatDecimal(kpi.payablesBalance / 1000000, 0, 'POINT', 1, 'COMMA')} + 'jt'">Rp 0jt</p>
+                           th:text="'Rp ' + ${#numbers.formatDecimal(kpi.payablesBalance / 1000000, 1, 'POINT', 1, 'COMMA')} + 'jt'">Rp 0jt</p>
                         <p class="text-xs text-gray-500">Harus dibayar</p>
                     </div>
                     <div class="w-10 h-10 bg-rose-100 rounded-lg flex items-center justify-center">

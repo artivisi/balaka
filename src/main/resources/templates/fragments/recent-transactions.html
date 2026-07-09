@@ -40,10 +40,10 @@
                     <div class="text-right flex-shrink-0 ml-2">
                         <p th:if="${tx.category().name() == 'INCOME'}" 
                            class="text-sm font-semibold text-accent-600"
-                           th:text="'+Rp ' + ${#numbers.formatDecimal(tx.amount() / 1000000, 0, 'POINT', 1, 'COMMA')} + 'jt'">+Rp 0jt</p>
+                           th:text="'+Rp ' + ${#numbers.formatDecimal(tx.amount() / 1000000, 1, 'POINT', 1, 'COMMA')} + 'jt'">+Rp 0jt</p>
                         <p th:unless="${tx.category().name() == 'INCOME'}" 
                            class="text-sm font-semibold text-red-600"
-                           th:text="'-Rp ' + ${#numbers.formatDecimal(tx.amount() / 1000000, 0, 'POINT', 1, 'COMMA')} + 'jt'">-Rp 0jt</p>
+                           th:text="'-Rp ' + ${#numbers.formatDecimal(tx.amount() / 1000000, 1, 'POINT', 1, 'COMMA')} + 'jt'">-Rp 0jt</p>
                         <p class="text-xs text-gray-500" th:text="${#temporals.format(tx.transactionDate(), 'd MMM')}">1 Nov</p>
                     </div>
                 </div>

@@ -29,14 +29,14 @@
                     <span class="ml-2 text-xs text-gray-700" th:text="${item.accountName().replace('Bank ', '')}">Account</span>
                 </div>
                 <span class="text-xs font-semibold text-gray-900" 
-                      th:text="'Rp ' + ${#numbers.formatDecimal(item.balance() / 1000000, 0, 'POINT', 1, 'COMMA')} + 'jt'">Rp 0jt</span>
+                      th:text="'Rp ' + ${#numbers.formatDecimal(item.balance() / 1000000, 1, 'POINT', 1, 'COMMA')} + 'jt'">Rp 0jt</span>
             </div>
         </div>
         <div class="pt-2 border-t border-gray-200 mt-2 flex-shrink-0">
             <div class="flex items-center justify-between">
                 <span class="text-xs font-medium text-gray-700">Total</span>
                 <span class="text-sm font-bold text-primary-700" 
-                      th:text="'Rp ' + ${#numbers.formatDecimal(totalCash / 1000000, 0, 'POINT', 1, 'COMMA')} + 'jt'">Rp 0jt</span>
+                      th:text="'Rp ' + ${#numbers.formatDecimal(totalCash / 1000000, 1, 'POINT', 1, 'COMMA')} + 'jt'">Rp 0jt</span>
             </div>
         </div>
     </div>
