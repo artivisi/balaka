@@ -1,0 +1,27 @@
+# The image build only consumes pom.xml, .git, src/ and industry-seed/.
+# Everything else is excluded so it is not shipped to the build daemon —
+# without this the context is ~554 MB, dominated by target/ and local data dirs.
+#
+# Do NOT exclude .git: git-commit-id-maven-plugin reads it during the build.
+
+target/
+logs/
+data/
+db-accounting/
+
+docs/
+deploy/
+clients/
+examples/
+brand/
+
+# Rebuilt inside the container by frontend-maven-plugin; the host copy holds
+# darwin/arm64 native modules that are wrong for a linux image.
+src/main/frontend/node_modules/
+node/
+
+*.log
+.DS_Store
+.idea/
+.vscode/
+.claude/

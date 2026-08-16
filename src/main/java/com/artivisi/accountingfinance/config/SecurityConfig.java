@@ -49,6 +49,9 @@ public class SecurityConfig {
                     .requestMatchers("/api/device/**").permitAll()
                     // OAuth2 client_credentials token endpoint (authenticates via client secret)
                     .requestMatchers("/api/oauth/token").permitAll()
+                    // Container/platform health probes. Only the health group is
+                    // exposed and show-details is never, so this returns status only.
+                    .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                     .requestMatchers("/device/**").permitAll();
 
                 // API endpoints require Bearer token authentication (handled by filter)

@@ -4,13 +4,22 @@
 # Multi-stage build: Maven build + layered Spring Boot runtime on Alpine.
 # No Nginx, no PostgreSQL — external managed DB, platform handles SSL/routing.
 
-FROM maven:3.9-eclipse-temurin-25-alpine AS build
+# Build stage is glibc (Debian), not Alpine: frontend-maven-plugin downloads a
+# Node.js distribution, and no linux-arm64 musl build is published upstream, so
+# an Alpine build stage fails on Apple Silicon with "Could not download Node.js:
+# 404". glibc has both linux-x64 and linux-arm64. Stage is discarded anyway —
+# only the layers copied into the runtime stage below affect image size.
+FROM maven:3.9-eclipse-temurin-25 AS build
 WORKDIR /src
 COPY pom.xml .
 RUN --mount=type=cache,target=/root/.m2 mvn -q -B dependency:go-offline
 COPY .git ./.git
 COPY src ./src
 COPY industry-seed ./industry-seed
+# Required: it sets lombok.copyableAnnotations for @Lazy, which breaks the
+# InvoiceService self-injection cycle. Without it the jar compiles fine but the
+# app dies at startup with "dependencies of some of the beans form a cycle".
+COPY lombok.config .
 RUN --mount=type=cache,target=/root/.m2 mvn -q -B -DskipTests package && \
     mkdir -p /out && cp target/*.jar /out/app.jar && \
     cd /out && java -Djarmode=tools -jar app.jar extract --layers --destination layers
@@ -36,13 +45,19 @@ COPY --from=build --chown=app:app /out/layers/application/ ./
 
 USER app
 VOLUME ["/opt/app/documents"]
-EXPOSE 8080
+# Matches server.port in application.properties. Keep the two in sync — the
+# healthcheck below probes this port, and a mismatch marks the container
+# permanently unhealthy even though the app is serving fine.
+EXPOSE 10000
 
 ENV JAVA_OPTS="-XX:MaxRAMPercentage=75 -XX:+UseG1GC -XX:+ExitOnOutOfMemoryError" \
     SPRING_PROFILES_ACTIVE=production \
     APP_DOCUMENT_STORAGE_PATH=/opt/app/documents
 
-ENTRYPOINT ["/sbin/tini", "--", "sh", "-c", "exec java $JAVA_OPTS org.springframework.boot.loader.launch.JarLauncher"]
+# `jarmode=tools extract --layers` (Spring Boot 3.2+) emits a runnable app.jar
+# plus lib/, not the exploded BOOT-INF/org layout that JarLauncher needs — so
+# launch the jar directly. Using JarLauncher here fails with ClassNotFoundException.
+ENTRYPOINT ["/sbin/tini", "--", "sh", "-c", "exec java $JAVA_OPTS -jar /opt/app/app.jar"]
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=90s --retries=3 \
-  CMD wget -qO- http://localhost:8080/actuator/health/liveness || exit 1
+  CMD wget -qO- http://localhost:10000/actuator/health/liveness || exit 1

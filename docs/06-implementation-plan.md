@@ -1872,7 +1872,11 @@ Git-versioned sample data for 4 industry demo instances. Full plan: `aplikasi-ak
 
 ### Docker Image (for Sumopod template & container deployment)
 - [x] Create Dockerfile — **decision: custom multi-stage** (not `spring-boot:build-image`). Rationale: JDK 25 control (Paketo lags on bleeding-edge JDK), OSS auditability (handcrafted Dockerfile vs buildpack black box), Indonesian locale/timezone via `apk add tzdata`, sub-300MB target via Alpine base, standard entrypoint expected by Sumopod marketplace. File: `Dockerfile` at repo root. **Achieved: 208 MB** (verified via first successful publish 2026-04-09).
-- [x] Multi-stage Dockerfile: stage 1 = `maven:3.9-eclipse-temurin-25-alpine` build with BuildKit cache mount, stage 2 = `azul/zulu-openjdk-alpine:25-jre` + layered JAR extract (`jarmode=tools extract --layers`). Runs as non-root `app` user, `/opt/app/documents` declared as VOLUME, tini as PID 1, healthcheck against `/actuator/health/liveness`.
+- [x] Multi-stage Dockerfile: stage 1 = `maven:3.9-eclipse-temurin-25` build with BuildKit cache mount, stage 2 = `azul/zulu-openjdk-alpine:25-jre` + layered JAR extract (`jarmode=tools extract --layers`). Runs as non-root `app` user, `/opt/app/documents` declared as VOLUME, tini as PID 1, healthcheck against `/actuator/health/liveness`.
+  - Build stage is **glibc, not Alpine** (changed 2026-08-16): frontend-maven-plugin downloads Node.js, and no `linux-arm64-musl` build is published, so an Alpine build stage cannot build on arm64. Only the runtime stage is Alpine; final image size is unaffected.
+  - Stage 1 must `COPY lombok.config` — it sets `lombok.copyableAnnotations` for `@Lazy`, without which `InvoiceService`'s self-injection becomes a bean cycle and the container dies at startup.
+  - ENTRYPOINT launches `java -jar app.jar`. `jarmode=tools` output is a runnable jar + `lib/`, **not** the exploded layout `JarLauncher` expects.
+  - `EXPOSE`/healthcheck use port **10000** (`server.port` in application.properties), not 8080.
 - [ ] Externalize all config via environment variables: `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`, `JAVA_OPTS`, `APP_ENCRYPTION_KEY`, `APP_DOCUMENT_STORAGE_PATH`. Most already work via Spring Boot externalized config — verify and document.
 - [x] Integrate into release procedure: on `*-RELEASE` git tag, CI builds and pushes Docker image to **two registries** with CalVer tagging matching `docs/03-operations-guide.md` release convention:
   - **Primary:** GitHub Container Registry — `ghcr.io/artivisi/balaka:2025.12-RELEASE`, `:2025.12`, `:latest`
@@ -1891,7 +1895,7 @@ Git-versioned sample data for 4 industry demo instances. Full plan: `aplikasi-ak
   - GHA build cache (cache-from/cache-to type=gha)
   - **Secrets to configure in repo settings before first run:** `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN` (Docker Hub PAT). GHCR auth uses built-in `GITHUB_TOKEN` automatically — no setup needed.
 - [x] First successful publish 2026-04-09 — `artivisi/balaka:main` + `ghcr.io/artivisi/balaka:main` (208 MB, amd64).
-- [ ] Test image locally: `docker build -t balaka:dev . && docker run` with external PostgreSQL (via `docker compose` with PG sidecar for local testing)
+- [x] Test image locally (2026-08-16): built native arm64 and `--platform linux/amd64`, ran against a PostgreSQL sidecar. App reaches "Started AccountingFinanceApplication", `/login` returns 200, and the container HEALTHCHECK command exits 0 with `{"status":"UP"}`. This first local run is what surfaced the missing `lombok.config`, the wrong ENTRYPOINT, the 8080/10000 port mismatch, and the missing `spring-boot-starter-actuator` — all four meant published images could never start or never report healthy.
 - [x] Implement first-run setup: if no users exist in DB, show setup wizard (create admin user + select industry seed pack) on first access
 - [ ] Target image size: < 300 MB (JRE ~200 MB + JAR ~140 MB, Alpine base)
 - [ ] Minimum resource: 2 GB RAM, 1 vCPU
