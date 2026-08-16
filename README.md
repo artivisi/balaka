@@ -30,7 +30,11 @@ Accounting application for Indonesian small businesses. Spring Boot 4.0.3 + Thym
 ## Quick Start
 
 ```bash
-# Prerequisites: Java 25, Docker
+# Prerequisites: Java 25 + a Docker-API container runtime for Testcontainers
+# (Docker Engine on Linux; Apple Container + socktainer on macOS)
+
+# Pre-pull test images (required on Apple Container, see CLAUDE.md)
+./pull-test-images.sh
 
 # Run tests
 ./mvnw test

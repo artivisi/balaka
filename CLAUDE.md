@@ -85,7 +85,8 @@ Indonesian accounting application for small businesses. Spring Boot 4.0 + Thymel
 ./setup-ubuntu.sh
 
 # Run all tests (unit, integration, functional, DAST)
-# Requires Docker for Testcontainers (PostgreSQL, ZAP)
+# Requires a Docker-API container runtime for Testcontainers (PostgreSQL, ZAP)
+# — see "Container Runtime" below
 # IMPORTANT: Full test suite takes 60-90 minutes. Always run in background
 # with log capture. NEVER run multiple instances simultaneously.
 ./mvnw test 2>&1 | tee target/test-output.log
@@ -108,6 +109,29 @@ nohup ./mvnw test > target/test-output.log 2>&1 &
 
 # Run DAST in quick mode (passive scan only, ~1 min)
 ./mvnw test -Dtest=ZapDastTest -DexcludedGroups= -Ddast.enabled=true -Ddast.quick=true
+```
+
+## Container Runtime
+
+Testcontainers needs a Docker-API endpoint. Linux/CI uses Docker Engine. The macOS dev machine uses **Apple Container** (`container` CLI) with **socktainer** providing the Docker API, registered as docker context `socktainer`.
+
+Testcontainers 2.0.5 resolves the docker context automatically — do **not** set `DOCKER_HOST` or `TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE`. Plain `./mvnw test` works.
+
+**Pre-pull images before the first run.** docker-java cannot parse socktainer's pull-progress stream and aborts with `Could not pull image: Image digest: sha256:...`, even though the image downloads successfully. The failing test passes on re-run, so pull up front:
+
+```bash
+./pull-test-images.sh
+```
+
+Keep the image list in that script in sync with the test code (`postgres:18-alpine`, `ghcr.io/zaproxy/zaproxy:stable`) and with the Testcontainers version in `pom.xml` (`testcontainers/ryuk`, `testcontainers/sshd`).
+
+**Every container is its own VM.** Unlike Docker Engine and OrbStack, Apple Container gives each container a dedicated VM with a *fixed* reservation — 1 GB and 4 CPUs by default — so container count multiplies real RAM. A full suite run holds ~17 Postgres containers concurrently: 18 GB reserved on a 16 GB machine, which swaps hard and makes Playwright navigations exceed their 15s timeout (tests then fail as `TimeoutError`, not as logic errors).
+
+`TestcontainersConfiguration` therefore caps each Postgres at 512 MB / 2 CPUs via `withCreateContainerCmdModifier`. If you see functional tests timing out in bulk, check reservations before suspecting the code:
+
+```bash
+container list          # CPUS and MEMORY columns, per container
+container builder stop  # the build VM alone reserves 2 GB when idle
 ```
 
 ## Database

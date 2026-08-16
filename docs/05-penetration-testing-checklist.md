@@ -14,7 +14,7 @@ This document provides a checklist for manual security testing of the applicatio
 Run OWASP ZAP integration tests before manual testing:
 
 ```bash
-# Run DAST only (requires Docker)
+# Run DAST only (requires a Docker-API container runtime)
 ./mvnw test -Dtest=ZapDastTest -Ddast.enabled=true
 
 # Run full test suite including DAST
@@ -31,7 +31,7 @@ The ZapDastTest performs:
 - Passive vulnerability scanning
 - Thresholds: 0 HIGH, max 5 MEDIUM alerts allowed
 
-Note: DAST is automatically run in CI (GitHub Actions). Local runs require Docker.
+Note: DAST is automatically run in CI (GitHub Actions). Local runs require a Docker-API container runtime. On the macOS dev machine (Apple Container + socktainer), run `./pull-test-images.sh` first — DAST needs `ghcr.io/zaproxy/zaproxy:stable` and `testcontainers/sshd:1.3.0`, and Testcontainers cannot pull them itself. See CLAUDE.md "Container Runtime".
 
 ## 1. Authentication Testing
 
