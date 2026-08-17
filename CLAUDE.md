@@ -89,9 +89,10 @@ Indonesian accounting application for small businesses. Spring Boot 4.0 + Thymel
 # — see "Container Runtime" below
 # IMPORTANT: Full test suite takes 60-90 minutes. Always run in background
 # with log capture. NEVER run multiple instances simultaneously.
-./mvnw test 2>&1 | tee target/test-output.log
+# On macOS ALWAYS wrap in caffeinate and stay on AC power — see "Sleep" below.
+caffeinate -is ./mvnw test 2>&1 | tee target/test-output.log
 # Or in background:
-nohup ./mvnw test > target/test-output.log 2>&1 &
+nohup caffeinate -is ./mvnw test > target/test-output.log 2>&1 &
 
 # Run specific functional test
 ./mvnw test -Dtest=MfgBomTest
@@ -129,11 +130,23 @@ Keep the image list in that script in sync with the test code (`postgres:18-alpi
 
 **Every container is its own VM.** Unlike Docker Engine and OrbStack, Apple Container gives each container a dedicated VM with a *fixed* reservation — 1 GB and 4 CPUs by default — so container count multiplies real RAM. A full suite run holds ~17 Postgres containers concurrently: 18 GB reserved on a 16 GB machine, which swaps hard and makes Playwright navigations exceed their 15s timeout (tests then fail as `TimeoutError`, not as logic errors).
 
-`TestcontainersConfiguration` therefore caps each Postgres at 512 MB / 2 CPUs via `withCreateContainerCmdModifier`. If you see functional tests timing out in bulk, check reservations before suspecting the code:
+`ContainerResourceDefaults` (registered via `META-INF/services`) therefore caps every container — 512 MB / 2 CPUs by default, 2 GB for ZAP, 256 MB for Ryuk and the sshd helper. Note the reservation is a *ceiling*, not a pre-wired allocation: idle containers cost almost nothing, so this bounds worst-case over-commit rather than steady-state usage.
+
+**Do not let the machine sleep during a run.** This is the failure mode that actually bites. macOS sleeps on idle every ~15 min on battery, and closing the lid sleeps unconditionally. Sleeping mid-run suspends the container VMs and the engine's XPC services, which:
+
+- makes Playwright navigations and awaitility waits blow their timeouts, so tests fail as `TimeoutError` and single tests report 400–900s elapsed
+- can wedge the engine — `container list` then fails with `XPC timeout for request to com.apple.container.apiserver/containerList`
+- can strand VM memory as **wired** if containers are force-removed while the engine is unresponsive. Wired memory is not reclaimable from userspace; observed 14 GB wired with only 0.5 GB total process RSS, recoverable only by reboot
+
+Verified 2026-08-16: a suite run was interrupted by seven sleeps plus a one-hour clamshell sleep, which produced exactly this. Always `caffeinate -is`, stay on AC, and leave the lid open. Check afterwards with `pmset -g log | grep -E "Sleep|Wake"` before believing any bulk timeout failure.
+
+If you see functional tests timing out in bulk, check sleep history and reservations before suspecting the code:
 
 ```bash
-container list          # CPUS and MEMORY columns, per container
-container builder stop  # the build VM alone reserves 2 GB when idle
+pmset -g log | grep -E "Sleep|Wake"   # did the machine sleep mid-run?
+vm_stat                               # "Pages wired down" — 14 GB wired means stranded VMs
+container list                        # CPUS and MEMORY columns, per container
+container builder stop                # the build VM alone reserves 2 GB when idle
 ```
 
 ## Database
