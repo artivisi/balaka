@@ -51,6 +51,75 @@ import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertTha
 @Slf4j
 public abstract class DemoDataLoaderBase extends PlaywrightTestBase {
 
+    /**
+     * Postings this loader failed to create.
+     *
+     * <p>
+     * Every step below used to log its failure and carry on. A single dropped
+     * transaction does not fail where it happens — it surfaces much later as a
+     * balance that is short by exactly that amount, with the real cause buried
+     * in the middle of a ten-minute log. That is what "Beban Keamanan 33.000.000
+     * instead of 36.000.000" (eleven months instead of twelve) actually was.
+     *
+     * <p>
+     * Failures are collected rather than thrown at the first occurrence so one
+     * run reports every gap at once, then {@link #failIfPostingsWereDropped()}
+     * fails the load. This follows the project rule: throw on missing data
+     * rather than silently continuing.
+     */
+    private final List<String> droppedPostings = new java.util.ArrayList<>();
+
+    /**
+     * Settle time after typing into an account picker, in milliseconds.
+     *
+     * <p>
+     * The picker debounces 300ms in the browser and then fetches; this waits for
+     * that to land before the caller reads the result list. Tune it for a slow
+     * or a fast machine:
+     *
+     * <pre>
+     *   ./run-tests.sh -Dtest=CampusVerificationTest -Ddemo.picker.settle.ms=250
+     * </pre>
+     *
+     * <p>
+     * Deliberately a fixed settle rather than "wait until results appear". The
+     * loader auto-selects accounts by taking the first result it has not used
+     * yet, so <em>which</em> results have rendered when the list is read decides
+     * which account is chosen. Waiting longer surfaces more candidates and
+     * changes the selection: switching to a wait-for-visible dropped the demo's
+     * 35.000.000 lab server onto the wrong account, leaving Tanah at zero and
+     * Bank BCA at CREDIT 35.000.000 instead of its real balance. Keep this a
+     * settle, and keep it close to the 300ms debounce.
+     */
+    private static final double PICKER_SETTLE_MS =
+            Double.parseDouble(System.getProperty("demo.picker.settle.ms", "400"));
+
+    /** Records a posting that could not be created, for the end-of-load check. */
+    protected void recordDroppedPosting(String what, String detail) {
+        String entry = what + " — " + detail;
+        droppedPostings.add(entry);
+        log.error("DROPPED POSTING: {}", entry);
+    }
+
+    /**
+     * Fails the load if any posting was dropped, listing all of them. Called
+     * once transactions are loaded, so the failure names the real cause instead
+     * of leaving a later balance assertion to report the symptom.
+     */
+    private void failIfPostingsWereDropped() {
+        if (droppedPostings.isEmpty()) {
+            return;
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append(droppedPostings.size())
+          .append(" posting(s) were dropped while loading demo data. Expected balances")
+          .append(" cannot match, so failing here rather than in a later assertion:\n");
+        for (String d : droppedPostings) {
+            sb.append("  - ").append(d).append('\n');
+        }
+        throw new IllegalStateException(sb.toString());
+    }
+
     @Autowired
     protected DataImportService dataImportService;
 
@@ -223,6 +292,10 @@ public abstract class DemoDataLoaderBase extends PlaywrightTestBase {
 
         log.info("Executed {} transactions via Playwright", txCount);
 
+        // Fail now, naming the dropped postings, rather than letting a later
+        // expected-balance assertion report the shortfall without the cause.
+        failIfPostingsWereDropped();
+
         // Log transaction status summary
         var allTx = transactionRepository.findAll();
         long posted = allTx.stream().filter(t -> t.getStatus() == com.artivisi.accountingfinance.enums.TransactionStatus.POSTED).count();
@@ -324,7 +397,8 @@ public abstract class DemoDataLoaderBase extends PlaywrightTestBase {
                                            String description, String reference) {
         UUID templateId = templateIdCache.get(templateName);
         if (templateId == null) {
-            log.error("Template not found for post-payroll transaction: {}", templateName);
+            recordDroppedPosting("post-payroll transaction",
+                    "template '" + templateName + "' not found on " + date);
             return;
         }
 
@@ -335,7 +409,9 @@ public abstract class DemoDataLoaderBase extends PlaywrightTestBase {
     private void createTransaction(DemoAction action) {
         UUID templateId = templateIdCache.get(action.templateName);
         if (templateId == null) {
-            log.error("Template not found: '{}' — skipping transaction: {}", action.templateName, action.description);
+            recordDroppedPosting("transaction",
+                    "template '" + action.templateName + "' not found on " + action.date
+                            + " (" + action.description + ")");
             return;
         }
 
@@ -405,7 +481,7 @@ public abstract class DemoDataLoaderBase extends PlaywrightTestBase {
 
             input.click();
             input.fill(codePrefix);
-            page.waitForTimeout(400); // debounce + fetch
+            page.waitForTimeout(PICKER_SETTLE_MS); // debounce + fetch
             var results = page.locator("[data-testid='account-picker-result']");
             int n = Math.min(results.count(), 10);
             String pickedCode = null;
@@ -486,10 +562,12 @@ public abstract class DemoDataLoaderBase extends PlaywrightTestBase {
 
             log.info("Transaction created: {} | {} | {} | {}", action.date, action.templateName,
                     action.amount > 0 ? action.amount : action.inputs, action.description);
-        } catch (Exception _) {
-            String currentUrl = page.url();
-            log.error("Transaction FAILED: {} | {} | {} — URL: {}", action.date, action.templateName,
-                    action.description, currentUrl);
+        } catch (Exception e) {
+            recordDroppedPosting("transaction",
+                    action.date + " | " + action.templateName + " | " + action.description
+                            + " — " + e.getClass().getSimpleName() + ": "
+                            + String.valueOf(e.getMessage()).lines().findFirst().orElse("")
+                            + " — URL: " + page.url());
         }
     }
 
@@ -527,8 +605,13 @@ public abstract class DemoDataLoaderBase extends PlaywrightTestBase {
             // Screenshot: payroll posted
             tutorialScreenshot("payroll-posted");
             log.info("Payroll posted for period: {}", period);
-        } catch (com.microsoft.playwright.TimeoutError _) {
-            log.warn("Payroll button not found for period {} — current URL: {}", period, page.url());
+        } catch (com.microsoft.playwright.TimeoutError e) {
+            // Payroll drives salary, BPJS and PPh 21 postings for the month, so
+            // losing it shifts several expected balances at once.
+            recordDroppedPosting("payroll run",
+                    "period " + period + " — button not found ("
+                            + String.valueOf(e.getMessage()).lines().findFirst().orElse("")
+                            + ") — URL: " + page.url());
         }
 
         // Return the payroll run so caller can use the amounts
@@ -821,7 +904,7 @@ public abstract class DemoDataLoaderBase extends PlaywrightTestBase {
 
             input.click();
             input.fill(accountCode);
-            page.waitForTimeout(400); // debounce + fetch
+            page.waitForTimeout(PICKER_SETTLE_MS); // debounce + fetch
             var results = page.locator("[data-testid='account-picker-result']");
             int n = Math.min(results.count(), 10);
             for (int i = 0; i < n; i++) {
