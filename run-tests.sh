@@ -84,6 +84,34 @@ if ! docker info >/dev/null 2>&1; then
     exit 1
 fi
 
+# Ryuk reaps containers when its heartbeat from the JVM drops, and it cannot
+# tell that apart from the JVM exiting. On this engine it does so spuriously:
+# twice now it destroyed an entire live session mid-run — 16 containers on
+# 2026-08-17 20:10 and 10 on 2026-08-18 00:34 — after which every remaining
+# test failed with "Connection to localhost:<port> refused" against a database
+# that no longer existed, and the containers never came back because the cached
+# Spring contexts still referenced the dead ports.
+#
+# The second occurrence ruled out the obvious causes: at the moment of the reap
+# `container list` answered rc=0, the engine reported running, 1.79 GB was free,
+# wired was a normal 3.47 GB, load was 2.12 and pmset recorded no sleep. Capping
+# the context cache cut peak containers 16 -> 10 and swap 4378 -> 2919 MB and did
+# not prevent it.
+#
+# Ryuk exists to clean up after a JVM that died without tidying. This wrapper
+# refuses to run concurrently and reaps Testcontainers containers itself on exit,
+# so that guarantee is preserved without leaving a process that can destroy a
+# healthy run. Left enabled on CI, where Docker Engine is used and the behaviour
+# has not been seen.
+export TESTCONTAINERS_RYUK_DISABLED=true
+
+# Remove containers this project's tests created. Filtered by the Testcontainers
+# label so a hand-started container is never caught by it.
+reap_testcontainers() {
+    docker ps -aq --filter "label=org.testcontainers=true" 2>/dev/null \
+        | xargs -r docker rm -f >/dev/null 2>&1
+}
+
 CAFFEINATE=""
 if [ "$(uname -s)" = "Darwin" ]; then
     if ! command -v caffeinate >/dev/null 2>&1; then
@@ -196,8 +224,9 @@ START_EPOCH=$(date +%s)
 START_CLOCK=$(date '+%H:%M:%S')
 
 sampler & SAMPLER_PID=$!
+# Ryuk is disabled above, so this wrapper owns cleanup — including on Ctrl-C.
 # shellcheck disable=SC2064
-trap "kill $SAMPLER_PID 2>/dev/null; rm -f '${OUT}/.list.tmp' '${OUT}/.forensic.tmp'" EXIT INT TERM
+trap "kill $SAMPLER_PID 2>/dev/null; rm -f '${OUT}/.list.tmp' '${OUT}/.forensic.tmp'; reap_testcontainers" EXIT INT TERM
 
 # shellcheck disable=SC2086
 $CAFFEINATE ./mvnw test "$@" > "$TEST_LOG" 2>&1
