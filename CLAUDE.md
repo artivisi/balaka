@@ -87,12 +87,16 @@ Indonesian accounting application for small businesses. Spring Boot 4.0 + Thymel
 # Run all tests (unit, integration, functional, DAST)
 # Requires a Docker-API container runtime for Testcontainers (PostgreSQL, ZAP)
 # — see "Container Runtime" below
-# IMPORTANT: Full test suite takes 60-90 minutes. Always run in background
-# with log capture. NEVER run multiple instances simultaneously.
-# On macOS ALWAYS wrap in caffeinate and stay on AC power — see "Sleep" below.
-caffeinate -is ./mvnw test 2>&1 | tee target/test-output.log
-# Or in background:
-nohup caffeinate -is ./mvnw test > target/test-output.log 2>&1 &
+# IMPORTANT: Full test suite takes 60-90 minutes. NEVER run two at once.
+# Use the wrapper — it holds off sleep, writes logs outside target/ (which
+# `mvn clean` would delete mid-run), samples memory/engine health every 30s,
+# and dumps forensics if the engine wedges. Maven args pass straight through.
+./run-tests.sh                        # full suite
+./run-tests.sh -Dtest=MfgBomTest      # single test
+nohup ./run-tests.sh > /dev/null 2>&1 &   # background; logs land in logs/
+
+# Artifacts: logs/test-run-<timestamp>/{test-output.log,metrics.tsv,events.log}
+# If it reports the machine slept, re-run before investigating any TimeoutError.
 
 # Run specific functional test
 ./mvnw test -Dtest=MfgBomTest
