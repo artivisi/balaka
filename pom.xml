@@ -287,6 +287,19 @@
 					<!-- Allow CI step timeout (45 min) to be the safety net instead of
 				     surefire fork timeout, which killed the fork before tests completed -->
 					<forkedProcessExitTimeoutInSeconds>60</forkedProcessExitTimeoutInSeconds>
+					<systemPropertyVariables>
+						<!-- Bound the Spring test context cache. Every cached context holds
+						     its own Testcontainers Postgres, and the default of 32 let 16
+						     accumulate concurrently: 7.7 GB reserved, 4.4 GB swap on a 16 GB
+						     machine. Ryuk cannot tell a dropped heartbeat from an exited JVM,
+						     so a long stall under that pressure made it reap all 16 mid-run
+						     while the JVM kept going with cached contexts still pointing at
+						     the dead ports — every later test then failed with "Connection to
+						     localhost:<port> refused", which reads as an application fault.
+						     Capping the cache trades some context rebuilds for a bounded
+						     container count. Raise deliberately, watching metrics.tsv. -->
+						<spring.test.context.cache.maxSize>8</spring.test.context.cache.maxSize>
+					</systemPropertyVariables>
 					<!-- ByteBuddy/Mockito needs these for Java 17+ module access -->
 					<argLine>
 						@{argLine}

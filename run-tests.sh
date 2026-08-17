@@ -130,6 +130,14 @@ forensics() {
 sampler() {
     printf 'time\twiredGB\tfreeGB\tcompGB\tswapMB\tcontainers\treservedMB\tengineRC\tengineSecs\tload1\n' > "$METRICS"
     local alerted_wired=0
+    # Ryuk cannot distinguish a dropped heartbeat from an exited JVM. Under
+    # memory pressure a long JVM stall makes it reap every container mid-run
+    # while the suite keeps going against dead ports, and every later test
+    # fails with "Connection refused" — which looks like an application fault.
+    # Observed 2026-08-17: 16 containers to 0 in 2.5 minutes, 140 failures,
+    # engine healthy and no sleep the whole time. Neither the engine-health
+    # nor the wired-memory trigger fired, so watch for the collapse directly.
+    local prev_count=0 peak_count=0 alerted_collapse=0
     while true; do
         local w f c
         read -r w f c <<<"$(vm_stat 2>/dev/null | awk '
@@ -157,14 +165,23 @@ sampler() {
             "$(date '+%H:%M:%S')" "$w" "$f" "$c" "$swap" "$count" "$reserved" "$rc" "$secs" "$load1" >> "$METRICS"
 
         # Anomalies worth a full dump.
+        [ "$count" -gt "$peak_count" ] && peak_count=$count
         if [ $rc -ne 0 ]; then
             forensics "container list failed rc=$rc"
         elif [ "$secs" -ge "$ENGINE_SLOW_SECONDS" ]; then
             forensics "container list slow (${secs}s)"
+        elif [ "$alerted_collapse" -eq 0 ] && [ "$peak_count" -ge 4 ] \
+             && [ "$count" -lt $(( peak_count / 2 )) ] && pgrep -f "classworlds.launcher.Launcher" >/dev/null 2>&1; then
+            # Containers vanished while maven is still running: Ryuk reaped a live
+            # session. Every subsequent test will fail against a dead database.
+            alerted_collapse=1
+            forensics "containers collapsed ${peak_count} -> ${count} while suite still running (Ryuk reaped a live session?)"
+            note "!! CONTAINERS COLLAPSED ${peak_count} -> ${count} mid-run — remaining failures are not real"
         elif [ "$alerted_wired" -eq 0 ] && awk -v a="$w" -v b="$WIRED_ALERT_GB" 'BEGIN{exit !(a>b)}'; then
             alerted_wired=1
             forensics "wired memory ${w}GB exceeds ${WIRED_ALERT_GB}GB"
         fi
+        prev_count=$count
 
         sleep "$SAMPLE_SECONDS"
     done
