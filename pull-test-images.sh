@@ -7,6 +7,10 @@
 #   DockerClientException: Could not pull image: Image digest: sha256:...
 # even though the image downloads fine. Pulling via the CLI first avoids it.
 #
+# Upstream: https://github.com/socktainer/socktainer/issues/359 — fixed on main by
+# PR #365 (2026-08-16) but not in a release yet (latest v1.2.1, 2026-08-01).
+# Delete this script once an installed release carries the fix.
+#
 # Harmless (and still useful, as a warm cache) on Docker Engine / Linux / CI.
 #
 # Keep RYUK/SSHD in sync with the Testcontainers version in pom.xml — they are

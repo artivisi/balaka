@@ -117,13 +117,15 @@ Testcontainers needs a Docker-API endpoint. Linux/CI uses Docker Engine. The mac
 
 Testcontainers 2.0.5 resolves the docker context automatically — do **not** set `DOCKER_HOST` or `TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE`. Plain `./mvnw test` works.
 
-**Pre-pull images before the first run.** docker-java cannot parse socktainer's pull-progress stream and aborts with `Could not pull image: Image digest: sha256:...`, even though the image downloads successfully. The failing test passes on re-run, so pull up front:
+**Pre-pull images before the first run.** docker-java cannot parse socktainer's pull-progress stream and aborts with `Could not pull image: Image digest: sha256:...`, even though the image downloads successfully. `POST /images/create` ends the stream with `Image digest: sha256:…` where Docker sends `Status: Downloaded newer image for <image>:<tag>`, and docker-java accepts only the latter. The failing test passes on re-run, so pull up front:
 
 ```bash
 ./pull-test-images.sh
 ```
 
 Keep the image list in that script in sync with the test code (`postgres:18-alpine`, `ghcr.io/zaproxy/zaproxy:stable`) and with the Testcontainers version in `pom.xml` (`testcontainers/ryuk`, `testcontainers/sshd`).
+
+**Delete the pre-pull step once socktainer ships a release containing PR #365.** Reported as [socktainer#359](https://github.com/socktainer/socktainer/issues/359) (repro: [socktainer-pull-repro](https://github.com/endymuhardin/socktainer-pull-repro)); fixed on `main` 2026-08-16, but the latest release is still v1.2.1 (2026-08-01), which predates it. Check with `brew list --versions socktainer` against the [releases](https://github.com/socktainer/socktainer/releases).
 
 **Every container is its own VM.** Unlike Docker Engine and OrbStack, Apple Container gives each container a dedicated VM with a *fixed* reservation — 1 GB and 4 CPUs by default — so container count multiplies real RAM. A full suite run holds ~17 Postgres containers concurrently: 18 GB reserved on a 16 GB machine, which swaps hard and makes Playwright navigations exceed their 15s timeout (tests then fail as `TimeoutError`, not as logic errors).
 
