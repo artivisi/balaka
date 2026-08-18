@@ -136,6 +136,10 @@ Keep the image list in that script in sync with the test code (`postgres:18-alpi
 
 `ContainerResourceDefaults` (registered via `META-INF/services`) therefore caps every container — 512 MB / 2 CPUs by default, 2 GB for ZAP, 256 MB for Ryuk and the sshd helper. Note the reservation is a *ceiling*, not a pre-wired allocation: idle containers cost almost nothing, so this bounds worst-case over-commit rather than steady-state usage.
 
+**Ryuk is disabled locally** (`TESTCONTAINERS_RYUK_DISABLED=true` in `run-tests.sh`, which reaps containers itself on exit). Twice it destroyed a live session mid-run — 16 containers on 2026-08-17 20:10, 10 on 2026-08-18 00:34 — after which every remaining test failed with `Connection to localhost:<port> refused` and the containers never returned, because the cached Spring contexts still referenced the dead ports. Ryuk reaps when its heartbeat from the JVM drops and cannot tell that apart from the JVM exiting.
+
+Not reported upstream: it has never been reproduced outside the real suite, and may be specific to this machine (M5 MacBook Air, macOS 26.5, Apple Container 1.2.2, socktainer 1.2.1, often with a second Testcontainers suite running). Four deliberate attempts failed to trigger it, so **do not re-test these** — churning 400 containers in 5m27s; Postgres containers holding live JDBC connections; sustained host starvation at `free` 0.06 GB for 13 minutes; and elapsed time alone. Exhausting the test JVM's heap *does* cause a reap, but correctly — the JVM really did die. Untested and still plausible: Playwright's browser lifecycle and Spring context eviction, both bursty events absent from those attempts. Since disabling it: 4 full runs, ~15,000 tests, zero collapses.
+
 **Do not let the machine sleep during a run.** This is the failure mode that actually bites. macOS sleeps on idle every ~15 min on battery, and closing the lid sleeps unconditionally. Sleeping mid-run suspends the container VMs and the engine's XPC services, which:
 
 - makes Playwright navigations and awaitility waits blow their timeouts, so tests fail as `TimeoutError` and single tests report 400–900s elapsed
