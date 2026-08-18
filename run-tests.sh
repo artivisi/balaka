@@ -166,7 +166,27 @@ sampler() {
     # engine healthy and no sleep the whole time. Neither the engine-health
     # nor the wired-memory trigger fired, so watch for the collapse directly.
     local prev_count=0 peak_count=0 alerted_collapse=0
+    # caffeinate holds off idle and system sleep but CANNOT stop clamshell
+    # sleep — closing the lid suspends the host regardless. That happened at
+    # 05:19:59 on 2026-08-18, twenty minutes into a run, and the suite kept
+    # going for two more hours producing meaningless timeouts before anyone
+    # noticed. Sleep was only reported in the end-of-run summary, far too late.
+    # A suspended host freezes this loop too, so a sample gap much larger than
+    # the interval is itself the evidence: flag it the moment we wake.
+    local last_epoch=0 alerted_sleep=0
     while true; do
+        local now_epoch; now_epoch=$(date +%s)
+        if [ "$last_epoch" -ne 0 ]; then
+            local gap=$(( now_epoch - last_epoch ))
+            if [ "$gap" -gt $(( SAMPLE_SECONDS * 4 )) ]; then
+                note "!! HOST SUSPENDED ~${gap}s (sampler gap) — lid closed? Results from here are NOT trustworthy"
+                if [ "$alerted_sleep" -eq 0 ]; then
+                    alerted_sleep=1
+                    forensics "host suspended ~${gap}s mid-run (sampler gap)"
+                fi
+            fi
+        fi
+        last_epoch=$now_epoch
         local w f c
         read -r w f c <<<"$(vm_stat 2>/dev/null | awk '
             /Pages free/ {gsub(/\./,"",$3); fr=$3}
