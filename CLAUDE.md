@@ -132,6 +132,18 @@ Keep the image list in that script in sync with the test code (`postgres:18-alpi
 
 **Delete the pre-pull step once socktainer ships a release containing PR #365.** Reported as [socktainer#359](https://github.com/socktainer/socktainer/issues/359) (repro: [socktainer-pull-repro](https://github.com/endymuhardin/socktainer-pull-repro)); fixed on `main` 2026-08-16, but the latest release is still v1.2.1 (2026-08-01), which predates it. Check with `brew list --versions socktainer` against the [releases](https://github.com/socktainer/socktainer/releases).
 
+**Kickstart socktainer after every `container` upgrade or engine restart.**
+
+```bash
+launchctl kickstart -k gui/$(id -u)/com.socktainer.local
+```
+
+socktainer binds to the engine's network at startup. An upgrade rebuilds that network — the subnet visibly changes, e.g. `192.168.64.x` → `192.168.65.x` — and socktainer keeps serving the old view. Nothing announces this: `docker ps` works, `docker run` works, Testcontainers works. Only container-name DNS breaks, so a compose stack fails with NXDOMAIN on its own service names while every container reports healthy, which reads as an application fault. Hit twice: 2026-08-17 (after `container system stop/start`) and 2026-08-25 (after brew took the engine 1.2.2 → 1.3.0 while socktainer stayed up from three hours earlier). Check ordering with:
+
+```bash
+ps -eo pid,lstart,comm | grep -E "container-apiserver|socktainer"   # socktainer must be the later one
+```
+
 **Every container is its own VM.** Unlike Docker Engine and OrbStack, Apple Container gives each container a dedicated VM with a *fixed* reservation — 1 GB and 4 CPUs by default — so container count multiplies real RAM. A full suite run holds ~17 Postgres containers concurrently: 18 GB reserved on a 16 GB machine, which swaps hard and makes Playwright navigations exceed their 15s timeout (tests then fail as `TimeoutError`, not as logic errors).
 
 `ContainerResourceDefaults` (registered via `META-INF/services`) therefore caps every container — 512 MB / 2 CPUs by default, 2 GB for ZAP, 256 MB for Ryuk and the sshd helper. Note the reservation is a *ceiling*, not a pre-wired allocation: idle containers cost almost nothing, so this bounds worst-case over-commit rather than steady-state usage.
