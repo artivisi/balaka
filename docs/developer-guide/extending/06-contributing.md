@@ -45,7 +45,7 @@ If you encounter a false positive, add an exclusion to `spotbugs-exclude.xml` wi
 
 ## Migration Strategy
 
-Pre-production: modify existing migration files (V001-V004) instead of creating new ones. The migrations have not been applied to external databases that would break on checksum changes.
+V001-V004 have been applied to production databases, so editing them breaks Flyway checksum validation there and forces the schema to be created by hand. Add new schema as a new migration file (V005 onwards).
 
 | File | Purpose |
 |------|---------|

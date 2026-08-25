@@ -123,7 +123,7 @@ Buat service file untuk setiap instance (lihat contoh di [Multi-Instance](07-mul
 
 Saat pertama dijalankan:
 
-1. Flyway akan membuat schema (V001-V004)
+1. Flyway akan membuat schema (V001-V005)
 2. Login sebagai admin
 3. Buka **Pengaturan > Import Data**
 4. Import seed pack sesuai industri

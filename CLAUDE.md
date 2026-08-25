@@ -43,6 +43,7 @@ Indonesian accounting application for small businesses. Spring Boot 4.0 + Thymel
 - **Service Auth + Retry-Safe Posting (issues #28, #29):** ✅ Complete (OAuth2 client_credentials grant — `api_clients` table, `POST /api/oauth/token`, Pengaturan → API Klien; `Idempotency-Key` header on `POST /api/transactions` with replay semantics)
 - **Depreciation Fixes (issues #31, #32):** ✅ Complete (schedule-derived periodNumber + `uk_asset_period(id_fixed_asset, period_end)`; scheduler catch-up for late-registered assets; `/api/fixed-assets/depreciation` endpoints)
 - **Fixed Asset API (issue #30):** ✅ Complete (`/api/fixed-assets` CRUD + `/categories`, scopes `assets:read`/`assets:write`, register via funding account → acquisition DRAFT or `purchaseTransactionId` → link existing posted journal without new draft)
+- **Tax Filing Register (issue #35):** ✅ Complete (`/api/tax-filings` CRUD + document attachments, `tax_filings`/`tax_documents` tables, scopes `tax-filings:read`/`tax-filings:write`, per-masa SPT/BPE/STP/SP2DK records with STP→teguran chains, filing status surfaced on `GET /api/analysis/tax-summary`)
 - See `docs/06-implementation-plan.md` for full plan
 
 ## Key Files
@@ -62,9 +63,10 @@ Indonesian accounting application for small businesses. Spring Boot 4.0 + Thymel
 | Services | `src/main/java/.../service/` |
 | Controllers | `src/main/java/.../controller/` |
 | Templates | `src/main/resources/templates/` |
-| Migrations (Production) | `src/main/resources/db/migration/` (V001-V004) |
+| Migrations (Production) | `src/main/resources/db/migration/` (V001-V005) |
 | Test Migrations (Integration) | `src/test/resources/db/test/integration/` (V900-V912) |
 | Industry Seed Packs | `industry-seed/{it-service,online-seller,coffee-shop,campus}/` (loaded via DataImportService) |
+| API Reference (developer) | `docs/developer-guide/api/*.md` |
 | Functional Tests | `src/test/java/.../functional/` |
 | Infrastructure (Pulumi) | `deploy/pulumi/` |
 | Configuration (Ansible) | `deploy/ansible/` |
@@ -75,7 +77,7 @@ Indonesian accounting application for small businesses. Spring Boot 4.0 + Thymel
 2. **No fallback/default values:** Throw errors instead of silently handling missing data
 3. **Technical language:** No marketing speak, strictly technical documentation
 4. **Test-driven:** Write functional tests for new features
-5. **Migration strategy:** Modify existing migrations instead of creating new ones (pre-production)
+5. **Migration strategy:** V001-V004 are applied on production; do not edit them. New schema goes in a new migration (V005 onwards). Editing an applied file fails Flyway checksum validation everywhere it already ran.
 6. **Code quality:** Maintain SpotBugs 0-issue status. Any new exclusions in `spotbugs-exclude.xml` must have comprehensive justifications with mitigation details
 
 ## Running the App
@@ -158,7 +160,7 @@ failures indistinguishable from real ones; `run-tests.sh` flags it, and
 ## Database
 
 - PostgreSQL via Testcontainers (tests)
-- Production migrations: V001-V004 (V001 security, V002 core schema, V003 feature schema, V004 seed data)
+- Production migrations: V001-V005 (V001 security, V002 core schema, V003 feature schema, V004 seed data, V005 tax filing register)
 - **Migration caveat:** Modifying already-applied migrations requires manual schema fix on production + checksum update in `flyway_schema_history`. See `docs/03-operations-guide.md` Troubleshooting section.
 - Test data:
   - Functional tests: NO migrations - all data loaded via `@TestConfiguration` initializers from industry-seed/ packs

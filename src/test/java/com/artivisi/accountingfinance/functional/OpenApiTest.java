@@ -124,7 +124,7 @@ class OpenApiTest extends PlaywrightTestBase {
     }
 
     @Test
-    @DisplayName("x-workflows extension present with expected count")
+    @DisplayName("x-workflows extension present with named workflows")
     void testWorkflowsExtension() throws Exception {
         APIResponse response = apiContext.get(API_DOCS_URL);
         JsonNode body = objectMapper.readTree(response.text());
@@ -132,9 +132,20 @@ class OpenApiTest extends PlaywrightTestBase {
         JsonNode workflows = body.get("x-workflows");
         assertThat(workflows).as("x-workflows present").isNotNull();
         assertThat(workflows.isArray()).isTrue();
-        assertThat(workflows.size()).isEqualTo(19);
 
-        log.info("x-workflows: {} workflows", workflows.size());
+        // Named rather than counted: a bare count breaks on every workflow the API gains
+        java.util.Set<String> names = new java.util.HashSet<>();
+        workflows.forEach(workflow -> {
+            assertThat(workflow.hasNonNull("name")).isTrue();
+            assertThat(workflow.get("steps").isArray()).isTrue();
+            names.add(workflow.get("name").asText());
+        });
+        assertThat(names).contains(
+                "Receipt-Based Transaction", "Financial Analysis", "Bank Reconciliation",
+                "Payroll Processing", "Tax Export for SPT Preparation",
+                "Tax Filing Register (SPT / BPE / STP per masa)");
+
+        log.info("x-workflows: {} workflows", names.size());
     }
 
     @Test
@@ -191,9 +202,21 @@ class OpenApiTest extends PlaywrightTestBase {
         assertThat(auth.get("type").asText()).contains("Device Authorization");
         assertThat(auth.has("scopes")).isTrue();
         assertThat(auth.get("scopes").isArray()).isTrue();
-        assertThat(auth.get("scopes").size()).isEqualTo(10);
 
-        log.info("x-authentication: {} scopes", auth.get("scopes").size());
+        // Named rather than counted: a bare count breaks on every scope the API gains
+        java.util.Set<String> scopes = new java.util.HashSet<>();
+        auth.get("scopes").forEach(scope -> {
+            assertThat(scope.hasNonNull("scope")).isTrue();
+            assertThat(scope.hasNonNull("description")).isTrue();
+            scopes.add(scope.get("scope").asText());
+        });
+        assertThat(scopes).contains(
+                "drafts:create", "drafts:approve", "drafts:read",
+                "analysis:read", "analysis:write", "transactions:post", "data:import",
+                "tax-export:read", "assets:read", "assets:write",
+                "tax-filings:read", "tax-filings:write");
+
+        log.info("x-authentication: {} scopes", scopes.size());
     }
 
     @Test

@@ -254,7 +254,7 @@ tail -f /var/log/nginx/access.log
 
 Setelah deployment pertama, pastikan:
 
-1. **Flyway migrations** berhasil dijalankan (V001-V004)
+1. **Flyway migrations** berhasil dijalankan (V001-V005)
 2. **Health endpoint** merespons:
    ```bash
    curl -s http://localhost:10000/actuator/health

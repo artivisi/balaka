@@ -430,6 +430,127 @@ Autentikasi: Bearer token dengan scope `tax-export:read`.
 
 ---
 
+## Register Pelaporan Pajak
+
+Dokumen Coretax terbagi dua. Dokumen yang menempel pada transaksi — faktur pajak keluaran, bukti potong PPh 23, kode billing atas setoran yang sudah dijurnal — disimpan pada transaksi terkait melalui lampiran dan detail pajak transaksi. Dokumen yang menempel pada **masa pajak** tidak punya transaksi untuk ditumpangi: SPT Masa PPN, SPT Masa PPh 21, BPE, STP, surat teguran, SP2DK, SKPLB. Register pelaporan pajak adalah tempat dokumen jenis kedua ini.
+
+Register menjawab tiga pertanyaan yang sebelumnya tidak bisa dijawab aplikasi:
+
+- Masa mana yang sudah dilaporkan, kapan, dan dengan nomor BPE berapa
+- Berapa kurang bayar sebuah masa, kode billing dan NTPN-nya, serta transaksi setoran mana yang membukukannya
+- Rangkaian STP → surat teguran → kode billing → BPN untuk masa yang bermasalah
+
+### Kunci Periode
+
+Satu catatan pelaporan diidentifikasi oleh kombinasi **jenis pajak + periode + nomor pembetulan**. Mendaftarkan kombinasi yang sama dua kali ditolak.
+
+| Jenis pajak | Dilaporkan | Format periode |
+|-------------|------------|----------------|
+| `PPN` | per masa | `YYYY-MM` |
+| `PPH21` | per masa | `YYYY-MM` |
+| `PPH23_UNIFIKASI` | per masa | `YYYY-MM` |
+| `PPH_BADAN` | per tahun | `YYYY` |
+
+Nomor pembetulan `0` berarti SPT normal. Pembetulan dicatat sebagai record terpisah dengan `pembetulanNo: 1`, dan status SPT aslinya diubah menjadi `CORRECTED`.
+
+### Status Pelaporan
+
+| Status | Arti |
+|--------|------|
+| `NOT_FILED` | Masa sudah diketahui, SPT belum dilaporkan |
+| `FILED` | Sudah dilaporkan tepat waktu |
+| `LATE` | Dilaporkan lewat batas waktu |
+| `CORRECTED` | Sudah digantikan oleh pembetulan |
+
+Status diisi oleh pengguna. Aplikasi mencatat apa yang terjadi di DJP, tidak menyimpulkannya sendiri dari tanggal deadline.
+
+### Mengelola Register via API
+
+Register dikelola melalui REST API:
+
+```
+GET    /api/tax-filings?taxType=PPN&year=2025     — daftar pelaporan
+GET    /api/tax-filings/{id}                      — detail + dokumen
+POST   /api/tax-filings                           — daftarkan pelaporan
+PUT    /api/tax-filings/{id}                      — update pelaporan
+DELETE /api/tax-filings/{id}                      — hapus (hanya bila tanpa dokumen)
+```
+
+Contoh mendaftarkan SPT Masa PPN yang terlambat dan sudah dibayar:
+
+```json
+{
+  "taxType": "PPN",
+  "period": "2025-04",
+  "pembetulanNo": 0,
+  "status": "LATE",
+  "filedDate": "2025-06-12",
+  "bpeNumber": "BPE-25040012345",
+  "bpeDate": "2025-06-12",
+  "kurangBayar": 1250000,
+  "billingCode": "820250612001234",
+  "ntpn": "0912B4C7D1E2F3A4",
+  "paidDate": "2025-06-11",
+  "paymentTransactionId": "uuid-transaksi-setoran"
+}
+```
+
+Validasi:
+- `period` harus `YYYY-MM` untuk SPT Masa dan `YYYY` untuk SPT Tahunan Badan
+- `kurangBayar` dan `lebihBayar` tidak boleh diisi bersamaan
+- SPT `nihil` tidak boleh punya kurang bayar atau lebih bayar
+- `paymentTransactionId` opsional — masa nihil tidak punya setoran, dan masa yang seluruhnya FP 03 (BUMN pemungut) bersifat lapor saja karena PPN disetor oleh BUMN
+
+Autentikasi: Bearer token dengan scope `tax-filings:read` (baca) dan `tax-filings:write` (tulis).
+
+### Melampirkan Dokumen
+
+Dokumen diunggah sebagai multipart ke pelaporan yang bersangkutan:
+
+```
+POST   /api/tax-filings/{id}/documents                        — unggah dokumen
+GET    /api/tax-filings/{id}/documents                        — daftar dokumen
+GET    /api/tax-filings/{id}/documents/{docId}/download       — unduh berkas
+DELETE /api/tax-filings/{id}/documents/{docId}                — hapus dokumen
+```
+
+Field metadata: `docType` (wajib), `docNumber`, `docDate`, `dueDate`, `amount`, `referenceNumber`, `notes`.
+
+| `docType` | Dokumen |
+|-----------|---------|
+| `SPT` | Surat Pemberitahuan |
+| `BPE` | Bukti Penerimaan Elektronik |
+| `STP` | Surat Tagihan Pajak |
+| `TEGURAN` | Surat Teguran |
+| `SP2DK` | Surat Permintaan Penjelasan atas Data dan/atau Keterangan |
+| `SKPLB` | Surat Ketetapan Pajak Lebih Bayar |
+| `SKPKPP` | Surat Keputusan Pengembalian Kelebihan Pembayaran Pajak |
+| `KODE_BILLING` | Kode billing |
+| `BPN` | Bukti Penerimaan Negara |
+| `SURAT` | Surat lainnya |
+
+Berkas disimpan di penyimpanan dokumen yang sama dengan lampiran transaksi: terenkripsi, ber-checksum SHA-256, dan tunduk pada retensi 10 tahun.
+
+`referenceNumber` mencatat dokumen yang dijawab atau ditagih oleh dokumen ini. Inilah yang membuat rangkaian penagihan bisa dibaca kembali:
+
+```
+SPT PPN 2025-04  ──▶  STP-07643        (tagihan kurang bayar)
+                       └──▶ TEG-00112  referenceNumber: "STP-07643"
+                              └──▶ kode billing ──▶ BPN
+```
+
+STP ganda atas masa yang sudah lunas akan terlihat sebagai dua dokumen `STP` pada pelaporan yang sama — satu punya `BPN`, satu tidak.
+
+Pelaporan yang masih punya dokumen tidak bisa dihapus. Dokumen SPT/BPE/STP terikat kewajiban retensi 10 tahun, jadi penghapusan dilakukan satu per satu secara sadar, bukan ikut terhapus bersama induknya.
+
+### Status Pelaporan di Ringkasan Pajak
+
+Endpoint ringkasan pajak `GET /api/analysis/tax-summary?startDate=&endDate=` kini menyertakan array `filings` di samping saldo akun pajak, berisi seluruh pelaporan yang periodenya beririsan dengan rentang tanggal yang diminta — lengkap dengan status, nomor BPE, kurang/lebih bayar, dan tanggal setor.
+
+Hanya pelaporan yang sudah terdaftar yang muncul. Masa yang tidak ada di daftar berarti belum punya catatan sama sekali — dan itulah sinyal bahwa masa tersebut masih perlu ditangani.
+
+---
+
 ## Tips Kepatuhan
 
 1. **Catat tepat waktu** - Jangan menunda pencatatan transaksi pajak

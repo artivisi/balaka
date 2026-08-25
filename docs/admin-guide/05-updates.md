@@ -86,7 +86,7 @@ Proses:
 
 ## Flyway Migration Caveats
 
-Balaka menggunakan konsolidasi migrasi (V001-V004) yang bisa dimodifikasi saat development. Ini memiliki implikasi saat update:
+Balaka menggunakan konsolidasi migrasi V001-V004 yang sudah dijalankan di production, ditambah migrasi baru mulai V005. V001-V004 tidak boleh diubah lagi — skema baru selalu masuk sebagai file migrasi baru. Ini memiliki implikasi saat update:
 
 ### Migrasi Baru (Tidak Bermasalah)
 

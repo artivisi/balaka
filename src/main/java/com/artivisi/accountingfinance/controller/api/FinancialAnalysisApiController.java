@@ -4,10 +4,13 @@ import com.artivisi.accountingfinance.entity.ChartOfAccount;
 import com.artivisi.accountingfinance.entity.CompanyConfig;
 import com.artivisi.accountingfinance.enums.AccountType;
 import com.artivisi.accountingfinance.enums.AuditEventType;
+import com.artivisi.accountingfinance.enums.TaxFilingStatus;
+import com.artivisi.accountingfinance.enums.TaxFilingType;
 import com.artivisi.accountingfinance.repository.CompanyConfigRepository;
 import com.artivisi.accountingfinance.service.DashboardService;
 import com.artivisi.accountingfinance.service.ReportService;
 import com.artivisi.accountingfinance.service.SecurityAuditService;
+import com.artivisi.accountingfinance.service.TaxFilingService;
 import com.artivisi.accountingfinance.service.TaxReportService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -49,6 +52,7 @@ public class FinancialAnalysisApiController {
     private final ReportService reportService;
     private final DashboardService dashboardService;
     private final TaxReportService taxReportService;
+    private final TaxFilingService taxFilingService;
     private final CompanyConfigRepository companyConfigRepository;
     private final SecurityAuditService securityAuditService;
 
@@ -257,7 +261,17 @@ public class FinancialAnalysisApiController {
                         i.label(), i.debit(), i.credit(), i.balance()))
                 .toList();
 
-        TaxSummaryDto data = new TaxSummaryDto(items, report.totalBalance());
+        // Filing status comes from the tax filing register (issue #35). Only registered
+        // filings are listed — a masa absent from this list has no record at all, which
+        // is itself the signal that it still needs filing.
+        List<TaxFilingStatusDto> filings = taxFilingService.findOverlapping(start, end).stream()
+                .map(f -> new TaxFilingStatusDto(
+                        f.getTaxType(), f.getPeriod(), f.getPembetulanNo(), f.getStatus(),
+                        f.getFiledDate(), f.getBpeNumber(), f.getKurangBayar(), f.getLebihBayar(),
+                        f.isNihil(), f.getPaidDate()))
+                .toList();
+
+        TaxSummaryDto data = new TaxSummaryDto(items, report.totalBalance(), filings);
 
         auditAccess("tax-summary", Map.of(PARAM_START_DATE, startDate, PARAM_END_DATE, endDate));
 
@@ -267,7 +281,9 @@ public class FinancialAnalysisApiController {
                 data,
                 Map.of(META_CURRENCY, META_CURRENCY_IDR,
                         META_DESCRIPTION, "Tax account summary for period " + startDate + " to " + endDate
-                                + ". Includes PPN (VAT), PPh (income tax), and other tax accounts.")));
+                                + ". Includes PPN (VAT), PPh (income tax), and other tax accounts. "
+                                + "filings lists the SPT registered for periods overlapping this range; "
+                                + "a masa with no entry has not been registered as filed.")));
     }
 
     @GetMapping("/receivables")
@@ -454,7 +470,21 @@ public class FinancialAnalysisApiController {
 
     public record TaxSummaryDto(
             List<TaxItemDto> items,
-            BigDecimal totalBalance
+            BigDecimal totalBalance,
+            List<TaxFilingStatusDto> filings
+    ) {}
+
+    public record TaxFilingStatusDto(
+            TaxFilingType taxType,
+            String period,
+            Integer pembetulanNo,
+            TaxFilingStatus status,
+            LocalDate filedDate,
+            String bpeNumber,
+            BigDecimal kurangBayar,
+            BigDecimal lebihBayar,
+            boolean nihil,
+            LocalDate paidDate
     ) {}
 
     public record TaxItemDto(

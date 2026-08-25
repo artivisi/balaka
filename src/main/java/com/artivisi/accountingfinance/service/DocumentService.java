@@ -7,6 +7,7 @@ import com.artivisi.accountingfinance.entity.Transaction;
 import com.artivisi.accountingfinance.repository.DocumentRepository;
 import com.artivisi.accountingfinance.repository.InvoiceRepository;
 import com.artivisi.accountingfinance.repository.JournalEntryRepository;
+import com.artivisi.accountingfinance.repository.TaxDocumentRepository;
 import com.artivisi.accountingfinance.repository.TransactionRepository;
 import com.artivisi.accountingfinance.security.LogSanitizer;
 import jakarta.persistence.EntityNotFoundException;
@@ -32,6 +33,7 @@ public class DocumentService {
     private final TransactionRepository transactionRepository;
     private final JournalEntryRepository journalEntryRepository;
     private final InvoiceRepository invoiceRepository;
+    private final TaxDocumentRepository taxDocumentRepository;
 
     public Document findById(UUID id) {
         return documentRepository.findById(id)
@@ -99,9 +101,29 @@ public class DocumentService {
         return saved;
     }
 
+    /**
+     * Stores a file with no owning transaction, journal entry, or invoice. Used by
+     * the tax filing register, which links documents through its own tax_documents
+     * metadata table rather than through a foreign key on this row.
+     */
+    @Transactional
+    public Document upload(MultipartFile file, String uploadedBy) throws IOException {
+        Document saved = documentRepository.save(createDocument(file, uploadedBy));
+        log.info("Uploaded standalone document {}", LogSanitizer.sanitize(saved.getId().toString()));
+        return saved;
+    }
+
     @Transactional
     public void delete(UUID id) throws IOException {
         Document document = findById(id);
+
+        // A soft-deleted row is invisible to @SQLRestriction, which would leave any
+        // tax_documents record pointing at it unresolvable. Unlink there first.
+        long taxLinks = taxDocumentRepository.countByDocumentId(id);
+        if (taxLinks > 0) {
+            throw new IllegalStateException("Dokumen terikat pada register pelaporan pajak; "
+                    + "hapus melalui DELETE /api/tax-filings/{id}/documents/{docId}");
+        }
 
         // Delete file from storage
         storageService.delete(document.getStoragePath());
