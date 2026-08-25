@@ -5,9 +5,9 @@ import com.artivisi.accountingfinance.entity.TaxDeadlineCompletion;
 import com.artivisi.accountingfinance.enums.TaxDeadlineType;
 import com.artivisi.accountingfinance.repository.TaxDeadlineCompletionRepository;
 import com.artivisi.accountingfinance.repository.TaxDeadlineRepository;
+import com.artivisi.accountingfinance.security.CurrentUser;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -201,6 +201,6 @@ public class TaxDeadlineService {
     }
 
     private String getCurrentUsername() {
-        return SecurityContextHolder.getContext().getAuthentication().getName();
+        return CurrentUser.name();
     }
 }

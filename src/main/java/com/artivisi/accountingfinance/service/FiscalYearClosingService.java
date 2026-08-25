@@ -11,10 +11,10 @@ import com.artivisi.accountingfinance.repository.JournalEntryRepository;
 import com.artivisi.accountingfinance.repository.JournalTemplateRepository;
 import com.artivisi.accountingfinance.repository.TransactionRepository;
 import com.artivisi.accountingfinance.repository.TransactionSequenceRepository;
+import com.artivisi.accountingfinance.security.CurrentUser;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -471,7 +471,7 @@ public class FiscalYearClosingService {
     }
 
     private String getCurrentUsername() {
-        return SecurityContextHolder.getContext().getAuthentication().getName();
+        return CurrentUser.name();
     }
 
     // Record classes for preview data

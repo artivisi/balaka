@@ -117,7 +117,11 @@ public class FormulaEvaluator {
         
         @Override
         public TypedValue read(EvaluationContext context, Object target, String name) throws AccessException {
-            FormulaContext formulaContext = (FormulaContext) target;
+            // Spring declares target @Nullable. canRead() already rejects null and foreign
+            // types, but read() is a public interface method — guard rather than assume.
+            if (!(target instanceof FormulaContext formulaContext)) {
+                throw new AccessException("FormulaContext expected, got: " + target);
+            }
             
             if (VAR_AMOUNT.equals(name)) {
                 return new TypedValue(formulaContext.amount());

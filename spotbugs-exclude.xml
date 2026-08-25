@@ -63,6 +63,26 @@ Each exclusion must have a justification comment explaining the mitigation.
         <Bug pattern="CRLF_INJECTION_LOGS"/>
     </Match>
 
+    <!-- TaxFilingApiController: every user-controlled log parameter passes through
+         LogSanitizer — the period string, document numbers, uploaded filenames, and the
+         authenticated username. The remaining parameters are UUID path variables (parsed
+         by Spring, so non-conforming input never reaches the log) and enum constants
+         (TaxFilingType, TaxDocumentType), neither of which can carry CR/LF. -->
+    <Match>
+        <Class name="com.artivisi.accountingfinance.controller.api.TaxFilingApiController"/>
+        <Bug pattern="CRLF_INJECTION_LOGS"/>
+    </Match>
+
+    <!-- TaxFilingService: document numbers are sanitized via LogSanitizer. Every other
+         logged parameter is derived, not user text: UUID entity ids, the TaxFilingType /
+         TaxFilingStatus / TaxDocumentType enum constants, and TaxFiling.getPeriod(), which
+         is formatted from the validated integer year and month rather than echoed from the
+         request. -->
+    <Match>
+        <Class name="com.artivisi.accountingfinance.service.TaxFilingService"/>
+        <Bug pattern="CRLF_INJECTION_LOGS"/>
+    </Match>
+
     <!--
     SPRING_CSRF_UNRESTRICTED_REQUEST_MAPPING - Error Controller False Positive
 

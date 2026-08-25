@@ -5,11 +5,11 @@ import com.artivisi.accountingfinance.enums.FiscalPeriodStatus;
 import com.artivisi.accountingfinance.enums.TransactionStatus;
 import com.artivisi.accountingfinance.repository.FiscalPeriodRepository;
 import com.artivisi.accountingfinance.repository.TransactionRepository;
+import com.artivisi.accountingfinance.security.CurrentUser;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -165,6 +165,6 @@ public class FiscalPeriodService {
     }
 
     private String getCurrentUsername() {
-        return SecurityContextHolder.getContext().getAuthentication().getName();
+        return CurrentUser.name();
     }
 }

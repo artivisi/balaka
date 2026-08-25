@@ -15,11 +15,11 @@ import com.artivisi.accountingfinance.repository.InventoryFifoLayerRepository;
 import com.artivisi.accountingfinance.repository.InventoryTransactionRepository;
 import com.artivisi.accountingfinance.repository.JournalTemplateRepository;
 import com.artivisi.accountingfinance.repository.ProductRepository;
+import com.artivisi.accountingfinance.security.CurrentUser;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -434,11 +434,7 @@ public class InventoryService {
     }
 
     private String getCurrentUsername() {
-        try {
-            return SecurityContextHolder.getContext().getAuthentication().getName();
-        } catch (Exception _) {
-            return "system";
-        }
+        return CurrentUser.nameOrSystem();
     }
 
     /**

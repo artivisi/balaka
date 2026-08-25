@@ -12,11 +12,11 @@ import com.artivisi.accountingfinance.repository.JournalTemplateRepository;
 import com.artivisi.accountingfinance.repository.TransactionRepository;
 import com.artivisi.accountingfinance.repository.TransactionSequenceRepository;
 import com.artivisi.accountingfinance.entity.TransactionSequence;
+import com.artivisi.accountingfinance.security.CurrentUser;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -598,7 +598,11 @@ public class JournalEntryService {
         return String.format("MJ-%d-%04d", year, sequence.getLastNumber());
     }
 
+    /**
+     * Scheduler-reachable: MonthlyJournalScheduler -> AmortizationBatchService ->
+     * AmortizationEntryService.postEntry() lands here with no security context.
+     */
     private String getCurrentUsername() {
-        return SecurityContextHolder.getContext().getAuthentication().getName();
+        return CurrentUser.nameOrSystem();
     }
 }

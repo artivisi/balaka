@@ -3,12 +3,12 @@ package com.artivisi.accountingfinance.service;
 import com.artivisi.accountingfinance.entity.User;
 import com.artivisi.accountingfinance.enums.Role;
 import com.artivisi.accountingfinance.repository.UserRepository;
+import com.artivisi.accountingfinance.security.CurrentUser;
 import com.artivisi.accountingfinance.security.LogSanitizer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -153,6 +153,6 @@ public class UserService {
     }
 
     private String getCurrentUsername() {
-        return SecurityContextHolder.getContext().getAuthentication().getName();
+        return CurrentUser.name();
     }
 }

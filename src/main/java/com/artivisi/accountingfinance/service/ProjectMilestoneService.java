@@ -8,10 +8,10 @@ import com.artivisi.accountingfinance.enums.MilestoneStatus;
 import com.artivisi.accountingfinance.repository.ProjectMilestoneRepository;
 import com.artivisi.accountingfinance.repository.ProjectPaymentTermRepository;
 import com.artivisi.accountingfinance.repository.ProjectRepository;
+import com.artivisi.accountingfinance.security.CurrentUser;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -150,7 +150,7 @@ public class ProjectMilestoneService {
 
             // Auto-post if configured
             if (Boolean.TRUE.equals(term.getAutoPost())) {
-                String username = SecurityContextHolder.getContext().getAuthentication().getName();
+                String username = CurrentUser.name();
                 transactionService.post(savedTransaction.getId(), username);
                 log.info("Auto-posted transaction {}", savedTransaction.getTransactionNumber());
             }

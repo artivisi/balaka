@@ -11,6 +11,7 @@ import com.artivisi.accountingfinance.enums.BankStatementParserType;
 import com.artivisi.accountingfinance.enums.ReconciliationStatus;
 import com.artivisi.accountingfinance.enums.StatementItemMatchStatus;
 import com.artivisi.accountingfinance.repository.BankStatementItemRepository;
+import com.artivisi.accountingfinance.security.CurrentUser;
 import com.artivisi.accountingfinance.security.Permission;
 import com.artivisi.accountingfinance.service.BankReconciliationReportService;
 import com.artivisi.accountingfinance.service.BankReconciliationService;
@@ -29,7 +30,6 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -296,7 +296,7 @@ public class BankReconciliationController {
             RedirectAttributes redirectAttributes) {
 
         try {
-            String username = SecurityContextHolder.getContext().getAuthentication().getName();
+            String username = CurrentUser.name();
             var importParams = new BankStatementImportService.BankStatementImportParams(
                     bankAccountId, parserConfigId, periodStart, periodEnd,
                     openingBalance, closingBalance, file, username);
@@ -369,7 +369,7 @@ public class BankReconciliationController {
             RedirectAttributes redirectAttributes) {
 
         try {
-            String username = SecurityContextHolder.getContext().getAuthentication().getName();
+            String username = CurrentUser.name();
             BankReconciliation recon = reconciliationService.create(bankStatementId, notes, username);
             securityAuditService.log(AuditEventType.SETTINGS_CHANGE,
                     "Bank reconciliation created for statement: " + bankStatementId);
@@ -420,7 +420,7 @@ public class BankReconciliationController {
     @PreAuthorize("hasAuthority('" + Permission.BANK_RECONCILIATION_MATCH + "')")
     public String autoMatch(@PathVariable UUID id, RedirectAttributes redirectAttributes) {
         try {
-            String username = SecurityContextHolder.getContext().getAuthentication().getName();
+            String username = CurrentUser.name();
             int matchCount = reconciliationService.autoMatch(id, username);
             redirectAttributes.addFlashAttribute(ATTR_SUCCESS,
                     "Auto-match selesai: " + matchCount + " transaksi berhasil dicocokkan");
@@ -439,7 +439,7 @@ public class BankReconciliationController {
             RedirectAttributes redirectAttributes) {
 
         try {
-            String username = SecurityContextHolder.getContext().getAuthentication().getName();
+            String username = CurrentUser.name();
             reconciliationService.manualMatch(id, statementItemId, transactionId, username);
             redirectAttributes.addFlashAttribute(ATTR_SUCCESS, "Transaksi berhasil dicocokkan");
         } catch (Exception e) {
@@ -457,7 +457,7 @@ public class BankReconciliationController {
             RedirectAttributes redirectAttributes) {
 
         try {
-            String username = SecurityContextHolder.getContext().getAuthentication().getName();
+            String username = CurrentUser.name();
             reconciliationService.markBankOnly(id, statementItemId, notes, username);
             redirectAttributes.addFlashAttribute(ATTR_SUCCESS, "Item ditandai sebagai hanya di bank");
         } catch (Exception e) {
@@ -509,7 +509,7 @@ public class BankReconciliationController {
             RedirectAttributes redirectAttributes) {
 
         try {
-            String username = SecurityContextHolder.getContext().getAuthentication().getName();
+            String username = CurrentUser.name();
             reconciliationService.createTransactionFromStatementItem(
                     id, statementItemId, templateId, description, username);
             redirectAttributes.addFlashAttribute(ATTR_SUCCESS, "Transaksi berhasil dibuat dan dicocokkan");
@@ -523,7 +523,7 @@ public class BankReconciliationController {
     @PreAuthorize("hasAuthority('" + Permission.BANK_RECONCILIATION_COMPLETE + "')")
     public String completeReconciliation(@PathVariable UUID id, RedirectAttributes redirectAttributes) {
         try {
-            String username = SecurityContextHolder.getContext().getAuthentication().getName();
+            String username = CurrentUser.name();
             reconciliationService.complete(id, username);
             securityAuditService.log(AuditEventType.SETTINGS_CHANGE,
                     "Bank reconciliation completed: " + id);

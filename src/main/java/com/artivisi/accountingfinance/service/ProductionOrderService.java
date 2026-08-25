@@ -6,9 +6,9 @@ import com.artivisi.accountingfinance.entity.ProductionOrder;
 import com.artivisi.accountingfinance.entity.ProductionOrderStatus;
 import com.artivisi.accountingfinance.repository.BillOfMaterialRepository;
 import com.artivisi.accountingfinance.repository.ProductionOrderRepository;
+import com.artivisi.accountingfinance.security.CurrentUser;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -274,10 +274,6 @@ public class ProductionOrderService {
     }
 
     private String getCurrentUsername() {
-        try {
-            return SecurityContextHolder.getContext().getAuthentication().getName();
-        } catch (Exception _) {
-            return "system";
-        }
+        return CurrentUser.nameOrSystem();
     }
 }

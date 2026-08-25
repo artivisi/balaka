@@ -13,12 +13,12 @@ import com.artivisi.accountingfinance.repository.BillRepository;
 import com.artivisi.accountingfinance.repository.ChartOfAccountRepository;
 import com.artivisi.accountingfinance.repository.ProductRepository;
 import com.artivisi.accountingfinance.repository.VendorRepository;
+import com.artivisi.accountingfinance.security.CurrentUser;
 import jakarta.persistence.EntityNotFoundException;
 import java.math.BigDecimal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -173,7 +173,7 @@ public class BillService {
 
         bill.setStatus(BillStatus.APPROVED);
         bill.setApprovedAt(LocalDateTime.now());
-        bill.setApprovedBy(SecurityContextHolder.getContext().getAuthentication().getName());
+        bill.setApprovedBy(CurrentUser.name());
         return billRepository.save(bill);
     }
 
