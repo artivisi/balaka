@@ -118,56 +118,42 @@ nohup ./run-tests.sh > /dev/null 2>&1 &   # background; logs land in logs/
 
 ## Container Runtime
 
-Testcontainers needs a Docker-API endpoint. Linux/CI uses Docker Engine. The macOS dev machine uses **Apple Container** (`container` CLI) with **socktainer** providing the Docker API, registered as docker context `socktainer`.
+Testcontainers needs a Docker-API endpoint. Linux/CI uses Docker Engine. This macOS dev
+machine uses **Apple Container** with **socktainer** providing the Docker API, as docker
+context `socktainer`.
 
-Testcontainers 2.0.5 resolves the docker context automatically — do **not** set `DOCKER_HOST` or `TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE`. Plain `./mvnw test` works.
+**Engine-level knowledge lives in `~/workspace/apple-container-notes`** — install, known
+bugs and their removal triggers, sleep damage, wired-memory accumulation, the
+kickstart-after-upgrade rule, and the upstream issue tracker. It is shared with the other
+projects on this machine; read it before debugging anything that looks like a runtime
+fault. What follows is only what is specific to this suite.
 
-**Pre-pull images before the first run.** docker-java cannot parse socktainer's pull-progress stream and aborts with `Could not pull image: Image digest: sha256:...`, even though the image downloads successfully. `POST /images/create` ends the stream with `Image digest: sha256:…` where Docker sends `Status: Downloaded newer image for <image>:<tag>`, and docker-java accepts only the latter. The failing test passes on re-run, so pull up front:
+**Use `./run-tests.sh`, not a bare `./mvnw test`.** It holds off sleep with `caffeinate`,
+writes logs to `logs/` (which `mvn clean` cannot delete mid-run), samples memory and
+engine health every 30s, and captures forensics if the engine wedges, containers collapse,
+or the host suspends.
 
-```bash
-./pull-test-images.sh
-```
+**Pre-pull images first** with `./pull-test-images.sh` — socktainer's pull stream breaks
+docker-java, so the first test needing an uncached image fails. See the shared notes §2.1
+for the removal trigger.
 
-Keep the image list in that script in sync with the test code (`postgres:18-alpine`, `ghcr.io/zaproxy/zaproxy:stable`) and with the Testcontainers version in `pom.xml` (`testcontainers/ryuk`, `testcontainers/sshd`).
+**Container resources are capped** by `ContainerResourceDefaults` (registered via
+`META-INF/services`): 512 MB / 2 CPUs by default, 2 GB for ZAP, 256 MB for Ryuk and the
+sshd helper. Without an explicit limit socktainer sizes every container at 1 GiB / 4 CPUs
+regardless of Apple Container's own config. The reservation is a ceiling rather than a
+pre-wired allocation, so this bounds worst-case over-commit rather than steady-state use.
 
-**Delete the pre-pull step once socktainer ships a release containing PR #365.** Reported as [socktainer#359](https://github.com/socktainer/socktainer/issues/359) (repro: [socktainer-pull-repro](https://github.com/endymuhardin/socktainer-pull-repro)); fixed on `main` 2026-08-16, but the latest release is still v1.2.1 (2026-08-01), which predates it. Check with `brew list --versions socktainer` against the [releases](https://github.com/socktainer/socktainer/releases).
+**Ryuk is disabled for this suite** (`TESTCONTAINERS_RYUK_DISABLED=true` in
+`run-tests.sh`, which reaps containers itself on exit). It twice destroyed a live session
+mid-run, after which every remaining test failed with `Connection to localhost:<port>
+refused`. Note whitelist-alert-manager reports Ryuk working fine on the same engine — the
+evidence and the four failed reproduction attempts are recorded in the shared notes §5.1.
+**Do not re-test those.**
 
-**Kickstart socktainer after every `container` upgrade or engine restart.**
-
-```bash
-launchctl kickstart -k gui/$(id -u)/com.socktainer.local
-```
-
-socktainer binds to the engine's network at startup. An upgrade rebuilds that network — the subnet visibly changes, e.g. `192.168.64.x` → `192.168.65.x` — and socktainer keeps serving the old view. Nothing announces this: `docker ps` works, `docker run` works, Testcontainers works. Only container-name DNS breaks, so a compose stack fails with NXDOMAIN on its own service names while every container reports healthy, which reads as an application fault. Hit twice: 2026-08-17 (after `container system stop/start`) and 2026-08-25 (after brew took the engine 1.2.2 → 1.3.0 while socktainer stayed up from three hours earlier). Check ordering with:
-
-```bash
-ps -eo pid,lstart,comm | grep -E "container-apiserver|socktainer"   # socktainer must be the later one
-```
-
-**Every container is its own VM.** Unlike Docker Engine and OrbStack, Apple Container gives each container a dedicated VM with a *fixed* reservation — 1 GB and 4 CPUs by default — so container count multiplies real RAM. A full suite run holds ~17 Postgres containers concurrently: 18 GB reserved on a 16 GB machine, which swaps hard and makes Playwright navigations exceed their 15s timeout (tests then fail as `TimeoutError`, not as logic errors).
-
-`ContainerResourceDefaults` (registered via `META-INF/services`) therefore caps every container — 512 MB / 2 CPUs by default, 2 GB for ZAP, 256 MB for Ryuk and the sshd helper. Note the reservation is a *ceiling*, not a pre-wired allocation: idle containers cost almost nothing, so this bounds worst-case over-commit rather than steady-state usage.
-
-**Ryuk is disabled locally** (`TESTCONTAINERS_RYUK_DISABLED=true` in `run-tests.sh`, which reaps containers itself on exit). Twice it destroyed a live session mid-run — 16 containers on 2026-08-17 20:10, 10 on 2026-08-18 00:34 — after which every remaining test failed with `Connection to localhost:<port> refused` and the containers never returned, because the cached Spring contexts still referenced the dead ports. Ryuk reaps when its heartbeat from the JVM drops and cannot tell that apart from the JVM exiting.
-
-Not reported upstream: it has never been reproduced outside the real suite, and may be specific to this machine (M5 MacBook Air, macOS 26.5, Apple Container 1.2.2, socktainer 1.2.1, often with a second Testcontainers suite running). Four deliberate attempts failed to trigger it, so **do not re-test these** — churning 400 containers in 5m27s; Postgres containers holding live JDBC connections; sustained host starvation at `free` 0.06 GB for 13 minutes; and elapsed time alone. Exhausting the test JVM's heap *does* cause a reap, but correctly — the JVM really did die. Untested and still plausible: Playwright's browser lifecycle and Spring context eviction, both bursty events absent from those attempts. Since disabling it: 4 full runs, ~15,000 tests, zero collapses.
-
-**Do not let the machine sleep during a run.** This is the failure mode that actually bites. macOS sleeps on idle every ~15 min on battery, and closing the lid sleeps unconditionally. Sleeping mid-run suspends the container VMs and the engine's XPC services, which:
-
-- makes Playwright navigations and awaitility waits blow their timeouts, so tests fail as `TimeoutError` and single tests report 400–900s elapsed
-- can wedge the engine — `container list` then fails with `XPC timeout for request to com.apple.container.apiserver/containerList`
-- can strand VM memory as **wired** if containers are force-removed while the engine is unresponsive. Wired memory is not reclaimable from userspace; observed 14 GB wired with only 0.5 GB total process RSS, recoverable only by reboot
-
-Verified 2026-08-16: a suite run was interrupted by seven sleeps plus a one-hour clamshell sleep, which produced exactly this. Always `caffeinate -is`, stay on AC, and leave the lid open. Check afterwards with `pmset -g log | grep -E "Sleep|Wake"` before believing any bulk timeout failure.
-
-If you see functional tests timing out in bulk, check sleep history and reservations before suspecting the code:
-
-```bash
-pmset -g log | grep -E "Sleep|Wake"   # did the machine sleep mid-run?
-vm_stat                               # "Pages wired down" — 14 GB wired means stranded VMs
-container list                        # CPUS and MEMORY columns, per container
-container builder stop                # the build VM alone reserves 2 GB when idle
-```
+**Never let the machine sleep during a run.** `caffeinate` cannot stop clamshell sleep, so
+leave the lid open and stay on AC. A run interrupted by sleep produces `TimeoutError`
+failures indistinguishable from real ones; `run-tests.sh` flags it, and
+`pmset -g log | grep -E "Sleep|Wake"` confirms it. Shared notes §4.1.
 
 ## Database
 
