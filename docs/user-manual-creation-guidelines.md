@@ -17,37 +17,44 @@ The generator reads markdown files, extracts specific H2 sections based on secti
 
 `extractSectionContent()` extracts content from a markdown file based on the section title. It applies these rules in order:
 
-1. **H2 match**: If the section title matches an `## H2` heading in the file, return that H2's content (up to the next H2 or end of file).
+1. **Single section for the file**: If no other `Section` entry references the same markdown file, the whole file is returned. H2 registration is irrelevant — nothing can be dropped.
 
-2. **H1 match / fallback (aggregate)**: If no H2 matches, return content from the start of the file (after H1), **excluding** any H2 sections that have their own separate section definitions (sibling sections referencing the same file).
+2. **H2 match**: If the section title matches an `## H2` heading **exactly** (case-insensitive, trimmed), return that H2's content (up to the next H2 or end of file).
 
-### CRITICAL: Avoid Duplicate Section Rendering
+3. **Aggregate**: If no H2 matches the title, return content from the start of the file (after H1), **excluding** any H2 that has its own `Section` entry.
 
-**Problem**: When multiple `Section` entries reference the same markdown file, a section whose title matches the file's H1 heading will aggregate all H2 content — EXCEPT H2 sections that are separately defined as their own `Section` entries. If a new H2 is added to the markdown but not registered as a separate section, it will be included in the H1-matching section's content.
+### Title Matching Is Exact
 
-**Rules to prevent duplicates**:
+`titlesMatch()` is a case-insensitive equality check. It previously also accepted substring and keyword-overlap matches, which silently mis-assigned content: the section titled `Transaksi PPh` matched the H2 `## Transaksi PPN` because both reduce to the single significant word *transaksi*, so the entire PPh chapter was replaced by a second copy of PPN and never rendered. Forty-one H2 sections were lost this way across ten files.
 
-1. **Each section title must match exactly one H2 heading** in the markdown file. The title matching uses `titlesMatch()` (case-insensitive, contains, keyword overlap).
+**Register every H2 with its exact heading text.** If you rename an H2 in the markdown, rename the `Section` title to match in the same commit.
 
-2. **When multiple sections reference the same file**, every H2 that should be rendered separately MUST have its own `Section` entry. The "primary" section (matching H1 or acting as catch-all) will automatically exclude H2 sections that have their own entries.
+### CRITICAL: Every H2 in a Multi-Section File Must Be Registered
 
-3. **Never use the H1 title as a section title** if you also want to split H2s into separate sections AND want precise control over which H2s are included in the primary section. The H1-matching section acts as a catch-all for un-mapped H2s.
+**Problem**: When two or more `Section` entries reference the same markdown file and *all* of them match an H2, there is no aggregate. Any H2 without its own entry is then rendered nowhere — no error, no warning, the content simply never reaches the published page.
 
-4. **After adding a new H2 to a markdown file**, check `getSectionGroups()` to verify it will be rendered correctly — either as part of an existing aggregate section or as its own new `Section` entry.
+**Rules**:
+
+1. **Each section title must exactly equal one H2 heading** in the markdown file, or be an intentional aggregate that matches no H2.
+
+2. **When multiple sections reference the same file**, every H2 MUST have its own `Section` entry unless the file has an aggregate section to sweep it up.
+
+3. **Section ids must be globally unique** — `all.html` concatenates every group, so a reused id produces a duplicate anchor. Prefix with the group id when a natural slug is already taken (`pendidikan-laporan-keuangan`).
+
+4. **After adding a new H2 to a markdown file**, add the matching `Section` entry in `getSectionGroups()` in document order. `UserManualSectionCoverageTest` fails the build if you forget.
 
 ### Example: Correct Multi-Section File
 
 ```java
-// 13-bantuan-ai.md has H1 "Bantuan AI untuk Pencatatan Transaksi"
-// and H2s: "Cara Kerja", "Setup Autentikasi", ..., "Publikasi Laporan Analisis", ...
-
-new Section("bantuan-ai", "Bantuan AI untuk Pencatatan Transaksi", "13-bantuan-ai.md", ...),
-new Section("publikasi-analisis", "Publikasi Laporan Analisis", "13-bantuan-ai.md", ...)
+// 04-perpajakan.md H2s, in document order — every one registered with its exact text
+new Section("jenis-pajak", "Jenis Pajak di Indonesia", "04-perpajakan.md", List.of()),
+new Section("transaksi-ppn", "Transaksi PPN", "04-perpajakan.md", List.of(...)),
+new Section("transaksi-pph", "Transaksi PPh", "04-perpajakan.md", List.of(...)),
+...
+new Section("perpajakan-tips-kepatuhan", "Tips Kepatuhan", "04-perpajakan.md", List.of())
 ```
 
-Result:
-- Section "Bantuan AI untuk Pencatatan Transaksi" renders ALL H2s EXCEPT "Publikasi Laporan Analisis"
-- Section "Publikasi Laporan Analisis" renders only that specific H2
+Result: each section renders exactly its own H2. Nothing is duplicated, nothing is dropped.
 
 ### Example: Single-Section File
 
