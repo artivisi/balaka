@@ -38,9 +38,16 @@
         mode: "0644"
       notify: reload nginx
 
-    - name: Setup certbot auto-renewal cron
+    # Same cron name as roles/nginx so this playbook and a site.yml run manage one
+    # entry rather than two identical renewals at 03:00
+    - name: Remove legacy certbot renewal cron entry
       ansible.builtin.cron:
         name: "Certbot renewal"
+        state: absent
+
+    - name: Setup certbot auto-renewal cron
+      ansible.builtin.cron:
+        name: "Renew Let's Encrypt certificates"
         minute: "0"
         hour: "3"
         job: "certbot renew --quiet --post-hook 'systemctl reload nginx'"

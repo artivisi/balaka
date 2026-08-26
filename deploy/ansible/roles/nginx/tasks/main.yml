@@ -102,6 +102,15 @@
   changed_when: false
   when: ssl_enabled | default(false)
 
+# setup-ssl.yml used to install this same job under the name "Certbot renewal".
+# ansible.builtin.cron keys on `name`, so running both paths left two identical
+# certbot renewals at 03:00 in root's crontab. Both now use the name below; the old
+# one is removed explicitly since Ansible never touches entries it does not know.
+- name: Remove legacy certbot renewal cron entry
+  ansible.builtin.cron:
+    name: "Certbot renewal"
+    state: absent
+
 - name: Setup certbot auto-renewal cron
   ansible.builtin.cron:
     name: "Renew Let's Encrypt certificates"

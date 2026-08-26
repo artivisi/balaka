@@ -39,6 +39,22 @@
     group: root
     mode: "0755"
 
+# An earlier version of this role named its cron entries with hyphens
+# ("aplikasi-akunting-backup") before they were renamed to the spaced form below.
+# ansible.builtin.cron keys on `name`, so the rename created new entries instead of
+# replacing the old ones: artivisi ran two identical backups racing at 02:00 every
+# night, plus a superseded cloud-sync.sh alongside the B2/GDrive jobs. Ansible will
+# never remove an entry it does not know about, so the orphans are named explicitly
+# here. Harmless on hosts that never had them.
+- name: Remove legacy cron entries from the pre-rename role
+  ansible.builtin.cron:
+    name: "{{ item }}"
+    user: "{{ app_user }}"
+    state: absent
+  loop:
+    - "{{ app_name }}-backup"
+    - "{{ app_name }}-cloud-sync"
+
 - name: Configure backup cron job
   ansible.builtin.cron:
     name: "{{ app_name }} daily backup"
