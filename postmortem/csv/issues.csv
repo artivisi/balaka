@@ -1,0 +1,17 @@
+number,state,class,created,closed,cycle_days,title
+21,CLOSED,feature,2026-03-20,2026-03-20,0,API: Add CRUD endpoints for Chart of Accounts
+22,CLOSED,defect,2026-03-20,2026-03-20,0,Bug: 409 Conflict when creating account 2.1.16 Hutang Kartu Kredit
+23,CLOSED,feature,2026-03-21,2026-03-21,0,Add API endpoint to purge voided transactions
+24,CLOSED,defect,2026-04-19,2026-04-19,0,BUG-019: FormulaEvaluator FLOOR rounding causes Rp 1 imbalance in multi-line PPN+PPh23 templates
+25,CLOSED,defect,2026-04-19,2026-04-19,0,BUG-020: FormulaEvaluator FLOOR rounding contradicts PER-11/PJ/2025 — should be HALF_UP
+28,CLOSED,feature,2026-06-27,2026-07-09,11,API: add OAuth2 client_credentials grant for unattended service posting
+29,CLOSED,feature,2026-06-27,2026-07-09,11,API: idempotency key on POST /api/transactions to make posting retry-safe
+30,CLOSED,feature,2026-07-08,2026-07-08,0,API: fixed-asset registration endpoints (CRUD) so new assets get auto-depreciation
+31,CLOSED,feature,2026-07-08,2026-07-09,0,API: depreciation generate/post endpoints + scheduler catch-up for late-registered assets
+32,CLOSED,defect,2026-07-08,2026-07-09,0,"Bug: uk_asset_period(id_fixed_asset, period_number) collides when a second period is generated before the first is posted"
+33,CLOSED,defect,2026-07-09,2026-07-09,0,Bug: depreciation posting always 409s — journal template 'Penyusutan Aset' missing in prod (no depreciation ever posts)
+34,CLOSED,defect,2026-07-09,2026-07-09,0,"Bug: PUT /api/fixed-assets/{id} ignores autoPost — flag can only be set at creation, never changed"
+35,CLOSED,feature,2026-08-25,2026-08-26,0,API: tax filing register (per-masa SPT/BPE/STP/SP2DK records + attachments) so Coretax documents can be stored against a tax period
+36,OPEN,defect,2026-08-26,,,Backup uploads never verify archive freshness — hid a 48-day outage
+37,OPEN,defect,2026-08-26,,,backup manifest.json is invalid JSON — documents checksum written twice
+38,OPEN,defect,2026-08-26,,,BankReconciliationApiController has no test coverage (1.1% of lines)

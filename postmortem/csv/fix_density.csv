@@ -1,0 +1,12 @@
+area,files,loc_nonblank,commits,fix_commits,fix_per_kloc
+test,371,73217,259,102,1.4
+main-java,439,54208,224,77,1.4
+templates,223,30969,84,32,1.0
+docs,151,23542,188,10,0.4
+build-other,30,3213,136,31,9.6
+deploy,17,2072,27,11,5.3
+migrations,5,1842,5,3,1.6
+seed-data,100,1449,5,2,1.4
+frontend,9,974,25,8,8.2
+ci,4,466,36,19,40.8
+resources,2,151,4,0,0.0

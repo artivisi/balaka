@@ -1,0 +1,994 @@
+hash,date,hour,author,type,area,subject
+07d2f8b69,2026-08-26,8,Endy Muhardin,fix,deploy,fix(ansible): renamed cron entries left duplicates behind
+218ad29e3,2026-08-26,7,Endy Muhardin,chore,build-other,chore: prepare for next development iteration
+8b0598692,2026-08-26,5,Endy Muhardin,release,docs,release: bump version to 2026.08-RELEASE
+af66e0e19,2026-08-26,5,Endy Muhardin,fix,test,fix(manual): 41 sections were written but never published
+393d2f08e,2026-08-26,5,Endy Muhardin,fix,main-java,fix(scheduler): scheduled amortization could never post
+a1bc62579,2026-08-26,5,Endy Muhardin,feat,main-java,feat(api): tax filing register for period-linked tax records (issue #35)
+294dfefde,2026-08-25,21,Endy Muhardin,docs,build-other,"docs(container): move engine knowledge to shared notes, keep suite specifics"
+c1b4d3504,2026-08-25,21,Endy Muhardin,docs,build-other,docs(container): kickstart socktainer after an engine upgrade
+5c6596bab,2026-08-19,6,Endy Muhardin,docs,build-other,docs(container): record why Ryuk is disabled and what was ruled out
+7cc3eb0d4,2026-08-18,7,Endy Muhardin,test,build-other,"test(tooling): flag host suspension during a run, not after it"
+70e3710e0,2026-08-18,2,Endy Muhardin,test,build-other,"test: disable Ryuk locally, wrapper owns container cleanup"
+ee3f4289f,2026-08-17,22,Endy Muhardin,test,build-other,test: bound context cache so Ryuk cannot reap a live session
+9eacddc2b,2026-08-17,19,Endy Muhardin,test,test,"test(demo): surface dropped postings, make picker settle tunable"
+aab17f447,2026-08-17,16,Endy Muhardin,test,build-other,test(tooling): instrument every suite run so the next incident is reportable
+bfaa38f33,2026-08-17,13,Endy Muhardin,docs,build-other,docs(container): sleep during a test run is the real failure mode
+744e44230,2026-08-17,12,Endy Muhardin,docs,build-other,docs(container): cite socktainer#359 and give the workaround a removal trigger
+6e590267b,2026-08-17,12,Endy Muhardin,test,test,"test(containers): cap resources for every container, not just Postgres"
+80d3e96f4,2026-08-16,20,Endy Muhardin,fix,build-other,fix(docker): repair image that could never start
+f512ca518,2026-08-16,20,Endy Muhardin,build,frontend,"build(deps): update to latest stable, add actuator"
+e73ea8add,2026-08-16,20,Endy Muhardin,chore,build-other,chore(dev): switch local container runtime to Apple Container
+f9eea0af7,2026-07-10,6,Endy Muhardin,fix,templates,fix(dashboard): keep leading zero in Rp juta amounts (minIntegerDigits)
+45d697ec2,2026-07-09,22,Endy Muhardin,fix,test,fix(assets): persist autoPost on PUT /api/fixed-assets/{id} (issue #34)
+73bea13a0,2026-07-09,21,Endy Muhardin,fix,main-java,fix(quality): clear SonarCloud new-code reliability bugs (gate: rating A)
+439c0e3ae,2026-07-09,21,Endy Muhardin,fix,test,fix(assets): surface missing depreciation-template config error (issue #33)
+339445a08,2026-07-09,14,Endy Muhardin,build,build-other,build(deps): pin logback-core 1.5.35 + jackson-databind 2.21.5 (CVE fixes)
+025c66218,2026-07-09,6,Endy Muhardin,docs,build-other,docs(claude.md): record issues #28/#29/#31/#32 as complete
+e53f09683,2026-07-09,6,Endy Muhardin,fix,main-java,"fix(assets): schedule-derived depreciation periods + catch-up and API (issues #31, #32)"
+e93f66290,2026-07-09,6,Endy Muhardin,feat,main-java,feat(auth): OAuth2 client_credentials grant for unattended service posting (issue #28)
+2b61c9f11,2026-07-09,6,Endy Muhardin,feat,test,feat(api): Idempotency-Key header on POST /api/transactions (issue #29)
+5c8597ad4,2026-07-08,22,Endy Muhardin,fix,test,fix(test): raise Playwright default timeout 5s -> 15s
+67f3e06c5,2026-07-08,21,Endy Muhardin,fix,test,fix(test): FixedAssetApiTest leaked assets referencing transactions
+35c1092fc,2026-07-08,18,Endy Muhardin,refactor,main-java,refactor(sonar): eliminate new-code duplication and 10-parameter method
+cc8637cb1,2026-07-08,17,Endy Muhardin,fix,templates,"fix(sonar): resolve SonarCloud bugs, blockers, criticals, and template label a11y findings"
+6b6ffa64a,2026-07-08,14,Endy Muhardin,feat,main-java,feat(api): fixed-asset registration endpoints with auto-depreciation (issue #30)
+5fd5a31a3,2026-06-16,12,Endy Muhardin,build,frontend,"build(deps): bump Spring Boot 4.0.6→4.1.0, drop redundant CVE pins, upgrade frontend libs"
+72a07acce,2026-06-01,11,Endy Muhardin,docs,build-other,docs(claude.md): cherry-pick architecture + runtime notes from PR #26
+4d84fae7c,2026-06-01,9,Endy Muhardin,chore,build-other,chore: prepare for next development iteration
+c53c24a88,2026-06-01,9,Endy Muhardin,release,docs,release: bump version to 2026.06-RELEASE
+ce8be1d4b,2026-06-01,6,Endy Muhardin,docs,docs,docs(user-manual): register DRAFT-by-default + Akun Posting in generator
+f62b64a2a,2026-06-01,5,Endy Muhardin,docs,docs,docs(user-manual): document DRAFT-by-default + combobox UX + bridge accounts
+fa560e346,2026-05-31,22,Endy Muhardin,feat,templates,feat(ui): convert remaining client/vendor selects to comboboxes
+ab8a5d69e,2026-05-30,5,Endy Muhardin,feat,frontend,feat(ui): convert journal-entry-form to combobox per-line
+baaf580eb,2026-05-29,21,Endy Muhardin,feat,test,feat(ui): convert client/vendor/account dropdowns to search comboboxes
+a9892fd29,2026-05-29,11,Endy Muhardin,fix,main-java,fix(settings): add label fields to CompanyConfigForm for POST-error re-render
+47df718ec,2026-05-29,9,Endy Muhardin,fix,test,fix(invoice): JsonIgnoreProperties on entities Jackson follows lazily
+f17cc641b,2026-05-29,7,Endy Muhardin,fix,templates,fix(forms): replace COA <select>s with search combobox (≤10 results)
+5fb29053a,2026-05-29,5,Endy Muhardin,fix,templates,fix(invoice): replace product dropdown with search combobox
+ac6552dd0,2026-05-28,22,Endy Muhardin,feat,test,"feat(demo): populate invoices, vendors, and bills across demo instances"
+2022a4a3d,2026-05-28,19,Endy Muhardin,fix,test,fix(#15): demo loader selects fundingAccount + checks autoPost on assets
+a31102205,2026-05-28,16,Endy Muhardin,fix,test,fix(#15): closing entries stay POSTED; PaymentTracking/Statement use products
+17698358b,2026-05-28,13,Endy Muhardin,feat,main-java,feat(production): DRAFT journal per BOM component on completion
+1da642a93,2026-05-28,13,Endy Muhardin,feat,templates,feat(asset): fundingAccount + autoPost selectors on the asset form
+a576bfdc2,2026-05-28,12,Endy Muhardin,feat,main-java,feat(asset): autoPost flag — depreciation scheduler honors opt-in
+3c97032d8,2026-05-28,12,Endy Muhardin,refactor,main-java,refactor(closing): fiscal-year closing entries land as DRAFT for approval
+2733aa3fb,2026-05-28,12,Endy Muhardin,refactor,main-java,refactor(inventory): inventory transactions create DRAFT journal (no auto-post)
+2b3de3960,2026-05-28,12,Endy Muhardin,test,test,test(asset): set fundingAccount on assets in scheduler/persistence/controller tests
+9ecb68007,2026-05-28,11,Endy Muhardin,test,test,test(asset): inject ChartOfAccountRepository + set fundingAccount in FixedAssetServiceTest
+35a091ee1,2026-05-28,11,Endy Muhardin,feat,main-java,feat(asset): compose DRAFT acquisition journal on FixedAssetService.create
+a790bb581,2026-05-28,11,Endy Muhardin,test,test,test(bill): include expenseAccountCode in approve/mark-paid API tests
+81dffdb68,2026-05-28,6,Endy Muhardin,feat,main-java,feat(bill): recognize expense/payable as DRAFT journal on approval (R2)
+dfa88b036,2026-05-28,6,Endy Muhardin,test,test,test(invoice): attach product to lifecycle invoice lines
+6a1c024ca,2026-05-28,6,Endy Muhardin,test,seed-data,test(invoice): seed revenue template + config accounts for it-service
+ae3263bd3,2026-05-28,5,Endy Muhardin,feat,main-java,feat(import): resolve company-config posting accounts post-import
+dabb928b7,2026-05-28,4,Endy Muhardin,feat,main-java,feat(invoice): product/service picker on invoice lines
+a54d3253f,2026-05-28,4,Endy Muhardin,test,test,test(invoice): verify revenue-recognition DRAFT bridge end-to-end
+b4907f028,2026-05-28,4,Endy Muhardin,test,test,test(invoice): seed revenue-recognition template + config accounts
+62bea756f,2026-05-28,0,Endy Muhardin,feat,main-java,feat(invoice): recognize revenue as DRAFT journal(s) on issue (R2)
+95f4a2a91,2026-05-28,0,Endy Muhardin,feat,main-java,feat(posting): generic source-document link on transactions
+b4c79298e,2026-05-27,23,Endy Muhardin,feat,main-java,feat(posting): reusable DocumentPostingService bridge helper
+301275ce9,2026-05-27,23,Endy Muhardin,feat,templates,feat(config): company-settings UI for invoice/bill posting accounts
+0b1ad90ee,2026-05-27,22,Endy Muhardin,ci,ci,ci: raise test step timeout 180→240 min
+ac23a0413,2026-05-27,22,Endy Muhardin,fix,migrations,fix(migration): add company_config bridge-account FKs after chart_of_accounts
+a3a534bd1,2026-05-27,22,Endy Muhardin,feat,main-java,feat(config): add invoice/bill posting-bridge accounts to CompanyConfig
+9c6b79508,2026-05-27,16,Endy Muhardin,feat,main-java,feat(api): expose build version + commit id in OpenAPI info
+46e81ca7a,2026-05-27,10,Endy Muhardin,docs,build-other,docs: update current release to 2026.05-RELEASE
+90d1c19b2,2026-05-27,10,Endy Muhardin,chore,build-other,chore: prepare for next development iteration
+93d146fa9,2026-05-27,9,Endy Muhardin,release,docs,release: bump version to 2026.05-RELEASE
+a687d1d4d,2026-05-27,8,Endy Muhardin,ci,ci,ci: bump checkout/setup-java/upload-artifact to v5 for Node 24
+d5019fbf0,2026-05-27,6,Endy Muhardin,fix,test,fix(test): make RecurringSchedulerTest date-independent
+c6a4fb9e6,2026-05-26,21,Endy Muhardin,fix,build-other,"fix(deps): bump Spring Boot to 4.0.6, override Tomcat 11.0.22 + PostgreSQL 42.7.11"
+7272149b0,2026-05-26,21,Endy Muhardin,test,test,test: let demo loaders target an external DB via demo.external-db
+770dd9f62,2026-05-26,21,Endy Muhardin,feat,deploy,feat(deploy): emit app.demo-mode for demo instances
+7bffc7558,2026-05-26,21,Endy Muhardin,fix,deploy,fix(deploy): install acl + id_ID.UTF-8 locale in common role
+dc99570ce,2026-04-27,14,Endy Muhardin,fix,test,fix(manual): pass fiscal year 2025 date params to report screenshots
+519d1e880,2026-04-19,17,Endy Muhardin,fix,main-java,fix(invoice): 500 on form re-render after validation error
+13838315a,2026-04-19,15,Endy Muhardin,fix,test,fix(manual): sidebar independent scroll + rewrite .md cross-refs to .html
+2e6976551,2026-04-19,12,Endy Muhardin,fix,main-java,"fix(BUG-020): rounding mode HALF_UP per PER-11/PJ/2025, preserve input line"
+e89e9ddbe,2026-04-19,12,Endy Muhardin,fix,test,fix(BUG-019): absorb sub-rupiah rounding residual into largest line
+c3648140e,2026-04-11,20,Endy Muhardin,docs,build-other,docs(examples): revision-1 fixes to agent-pipeline artifact
+f2f2fc6f9,2026-04-11,19,Endy Muhardin,docs,build-other,docs(examples): add agent-pipeline companion artifact for IFESDC 2026 paper §3.5
+0b881dca3,2026-04-11,4,Endy Muhardin,docs,build-other,docs: update current release to 2026.04-RELEASE
+b6a55a2b8,2026-04-11,4,Endy Muhardin,chore,build-other,chore: prepare for next development iteration
+5a0cc52c3,2026-04-11,4,Endy Muhardin,release,docs,release: bump version to 2026.04-RELEASE
+e2e146c0a,2026-04-10,22,Endy Muhardin,fix,test,fix(test): DataImportApiTest dirties context after reimporting seed data
+f547f6698,2026-04-10,17,Endy Muhardin,fix,build-other,fix: add SetupController to SpotBugs CRLF_INJECTION_LOGS exclusions
+a2c0977bf,2026-04-10,16,Endy Muhardin,fix,main-java,fix: SpotBugs CRLF_INJECTION_LOGS in SetupController
+1206ec728,2026-04-10,5,Endy Muhardin,feat,main-java,feat: first-run setup wizard
+e039eb42a,2026-04-09,21,Endy Muhardin,fix,migrations,fix: ON DELETE SET NULL on recurring_transaction_logs.id_transaction
+14368fc29,2026-04-09,20,Endy Muhardin,fix,test,fix(test): ServiceReportsTest cleanup misses recurring_transaction_logs
+4e69cfaf8,2026-04-09,18,Endy Muhardin,fix,test,fix(manual): return full file when section has no siblings
+38c811b6e,2026-04-09,18,Endy Muhardin,docs,docs,"docs: mark Docker image as published, note arm64 follow-up"
+e8b864d76,2026-04-09,13,Endy Muhardin,fix,ci,"fix(ci): build amd64 only, drop arm64 for now"
+edb2b8bb6,2026-04-09,13,Endy Muhardin,fix,ci,fix(ci): publish-manual missed OnlineSellerVerificationTest
+e3f683576,2026-04-09,6,Endy Muhardin,docs,docs,docs: add industry-distinctive screenshots to seller/coffee/campus tutorials
+9b098fa69,2026-04-09,6,Endy Muhardin,fix,build-other,fix(docker): copy .git into build stage for git-commit-id-maven-plugin
+a4ead29ef,2026-04-09,6,Endy Muhardin,fix,ci,fix(ci): docker-publish workflow validation errors
+f33134363,2026-04-09,6,Endy Muhardin,other,ci,add Docker image build with multi-stage Dockerfile and CI publish workflow
+8eda73645,2026-04-09,4,Endy Muhardin,fix,test,fix: screenshot test navigates to correct SPT checklist URL
+88d155dc4,2026-04-08,15,Endy Muhardin,fix,docs,"fix: docs index links point to actual HTML pages, not dead fragments"
+7d9ac043b,2026-04-04,16,Endy Muhardin,fix,build-other,"fix: update jackson-core 3.1.0→3.1.1, 2.21.1→2.21.2"
+61727e386,2026-04-04,16,Endy Muhardin,other,docs,add 49 screenshots to tutorials and fix 4 broken tables
+5de45dc9b,2026-04-03,23,Endy Muhardin,fix,docs,fix: last broken image — device-sessions.png path in setup-awal markdown
+72b0fbec7,2026-04-03,21,Endy Muhardin,fix,test,fix: generate all 21 missing screenshots for user manual
+99cdbdda3,2026-04-03,21,Endy Muhardin,fix,docs,fix: remove broken image reference in tutorial setup guide
+d4f66150f,2026-04-03,16,Endy Muhardin,fix,test,fix: ScreenshotCaptureTest for multi-page manual generator
+b1a52da1b,2026-04-03,12,Endy Muhardin,fix,test,fix: resolve 20 SonarCloud issues (18 BLOCKER + 2 CRITICAL)
+1ba529a94,2026-04-03,11,Endy Muhardin,refactor,test,refactor: split documentation into multi-page site
+bc7b763cb,2026-04-03,10,Endy Muhardin,fix,docs,fix: landing page links use #section-id anchors instead of file paths
+b51f51e58,2026-04-03,4,Endy Muhardin,docs,docs,docs: complete documentation restructure for 5 audiences
+f7fdd14b5,2026-04-03,0,Endy Muhardin,other,test,add documentation landing page and restructure generator for 5 audiences
+ef2f8512b,2026-04-02,23,Endy Muhardin,fix,frontend,fix: update picomatch 2.3.1→2.3.2 (GHSA-3v7f-55p6-f55p)
+707ae3e88,2026-04-02,20,Endy Muhardin,fix,test,fix: manufacturing tests get fresh Spring context via @DirtiesContext
+2f6321ba0,2026-04-02,16,Endy Muhardin,other,test,integrate tutorials into GitHub Pages user manual
+20ae0b4d1,2026-04-02,16,Endy Muhardin,docs,docs,"docs: complete all industry tutorials (Online Seller, Coffee Shop, Campus)"
+51ad5940a,2026-04-02,15,Endy Muhardin,docs,docs,docs: complete IT Service tutorial (8 chapters)
+ba7611238,2026-04-02,15,Endy Muhardin,docs,docs,docs: complete all 13 common tutorial guides
+ddd0041c1,2026-04-02,15,Endy Muhardin,docs,docs,docs: add first 4 common tutorial guides
+a459ad41c,2026-04-02,15,Endy Muhardin,other,test,add tutorial plan and screenshot captures to demo loaders
+dde289c92,2026-04-02,15,Endy Muhardin,fix,test,"fix: keep demo tests in CI, use @DirtiesContext for isolation"
+05c7560e5,2026-04-02,14,Endy Muhardin,fix,test,fix: CI timeout and demo test isolation
+1c74ba6d8,2026-04-02,11,Endy Muhardin,fix,test,fix: data-driven balance assertions handle loss-making companies
+857103daa,2026-04-02,11,Endy Muhardin,other,test,add expected-balances.csv per industry and data-driven verification
+76f000eae,2026-04-02,9,Endy Muhardin,fix,test,fix: ensure positive Kas and Bank BCA for all industries
+66068e08d,2026-04-01,19,Endy Muhardin,fix,test,fix: bank account selection order and coffee shop transfer amounts
+7f11498af,2026-04-01,19,Endy Muhardin,fix,test,fix: online seller add TikTok withdrawals for positive bank balance
+df9c5c60d,2026-04-01,18,Endy Muhardin,fix,test,"fix: coffee shop template variable, bank transfers, and auto-select dedup"
+28d4c2262,2026-04-01,17,Endy Muhardin,other,test,"add demo data for online seller, coffee shop, and campus industries"
+9410c3599,2026-04-01,16,Endy Muhardin,fix,test,fix: seller tests to accommodate new seed data products
+b92775f6b,2026-04-01,16,Endy Muhardin,docs,test,docs: add comprehensive demo data implementation guide
+9abbc6acd,2026-04-01,16,Endy Muhardin,other,test,"verify fiscal adjustments, tax auto-populate, and Coretax SPT lampiran"
+3a03923d0,2026-04-01,15,Endy Muhardin,other,test,"verify P&L, balance sheet, fiscal year closing, and Coretax export"
+bdbf39897,2026-04-01,9,Endy Muhardin,fix,test,fix: asset purchase accounts and SCENARIO.md with verified numbers
+bc6664708,2026-04-01,8,Endy Muhardin,fix,test,fix: depreciation posting and PPN deposits working correctly
+3d16acebb,2026-04-01,6,Endy Muhardin,fix,test,"fix: account mapping auto-select, depreciation generation, clean trial balance"
+b1ecbd139,2026-04-01,4,Endy Muhardin,fix,test,fix: payroll journal entries now created correctly
+42e8053c1,2026-04-01,1,Endy Muhardin,other,test,"add demo datasets, Playwright loaders, and demo banner for balaka.id instances"
+268c95b66,2026-03-31,13,Endy Muhardin,other,docs,add demo datasets and Playwright loaders to implementation plan
+abf7db461,2026-03-31,13,Endy Muhardin,other,docs,add Docker image creation to implementation plan
+865ec35d7,2026-03-23,8,Endy Muhardin,docs,docs,docs: add publish-manual workflow step to section creation checklist
+98f58566a,2026-03-23,8,Endy Muhardin,fix,ci,fix: add JournalEntryUiTest to publish-manual workflow for screenshots
+96cb8d6d2,2026-03-22,4,Endy Muhardin,fix,test,fix: update OpenAPI workflow count assertion from 18 to 19
+8f7b7f2a7,2026-03-21,23,Endy Muhardin,fix,build-other,fix: upgrade Spring Boot 4.0.3 → 4.0.4 to resolve 3 security vulnerabilities
+468536bb1,2026-03-21,23,Endy Muhardin,feat,frontend,feat: add free-form journal entry UI for manual debit/credit entries
+47ca1b76b,2026-03-21,18,Endy Muhardin,docs,docs,docs: add purge-voided API to user manual and OpenAPI extensions
+627d016d7,2026-03-21,13,Endy Muhardin,feat,test,feat: add API endpoint to purge voided transactions (#23)
+84497d8eb,2026-03-20,18,Endy Muhardin,fix,main-java,fix: add LogSanitizer to ChartOfAccountApiController log statements
+0980202c6,2026-03-20,16,Endy Muhardin,feat,test,feat: add CRUD API endpoints for Chart of Accounts (#21)
+70b6bc703,2026-03-20,14,Endy Muhardin,fix,test,fix: handle null checkbox values in form-to-entity mapping (#22)
+200196664,2026-03-19,17,Endy Muhardin,chore,build-other,chore: prepare for next development iteration
+70930d716,2026-03-19,17,Endy Muhardin,release,docs,release: bump version to 2026.03.4-RELEASE
+1dc10a4c2,2026-03-19,12,Endy Muhardin,fix,main-java,fix: catch NumberFormatException in parseYearMonth API method
+75b189204,2026-03-19,12,Endy Muhardin,fix,templates,fix: add lang and title to period-selector fragment HTML wrapper
+cc214d919,2026-03-19,11,Endy Muhardin,fix,main-java,fix: resolve all SonarCloud issues (54 → 0)
+2bbc52e64,2026-03-19,11,Endy Muhardin,fix,templates,"fix: scope test locators to #period-report-content, fix SonarCloud JS issues"
+efc36ad5b,2026-03-19,10,Endy Muhardin,fix,templates,fix: highlight active period preset button on page load
+24ec3fbb9,2026-03-19,10,Endy Muhardin,test,test,test: verify actual report content from seed data in PeriodReportTest
+5a96316ba,2026-03-19,7,Endy Muhardin,fix,test,fix: replace inline onclick handlers with event delegation for CSP
+8a9157075,2026-03-19,7,Endy Muhardin,style,frontend,style: sync logo proportions to theme and user manual
+4603825c5,2026-03-19,6,Endy Muhardin,feat,templates,feat: reusable period selector fragment across all report pages
+4197de91d,2026-03-19,6,Endy Muhardin,other,build-other,update logo proportion and layout
+47003f478,2026-03-19,6,Endy Muhardin,refactor,templates,"refactor: reorganize reports index page, cap period dates to today"
+96a514417,2026-03-19,6,Endy Muhardin,fix,build-other,fix: widen full logo SVG viewBox from 720 to 850
+825de9a5a,2026-03-19,5,Endy Muhardin,style,build-other,"style: unify brand assets — full logo SVGs, brand guidelines, consistent logos"
+01a8e3deb,2026-03-19,5,Endy Muhardin,chore,build-other,chore: remove unused logo variants from brand/
+dac30b5d6,2026-03-19,5,Endy Muhardin,fix,test,fix: period report page crash due to Thymeleaf #strings.padLeft type mismatch
+dc4a2526d,2026-03-19,5,Endy Muhardin,fix,templates,fix: use correct logo b-mark-final.svg in README
+d5e169d27,2026-03-19,3,Endy Muhardin,style,build-other,style: apply Balaka brand to README and user manual
+b9f4bb8f0,2026-03-18,23,Endy Muhardin,chore,build-other,chore: prepare for next development iteration
+faffe9a88,2026-03-18,23,Endy Muhardin,release,build-other,release: bump version to 2026.03.3-RELEASE
+e3a57c962,2026-03-18,23,Endy Muhardin,docs,docs,"docs: update 2026.03.3 release notes with FR-001–006, BUG-016–018, sidebar reorg"
+6f4842e94,2026-03-18,23,Endy Muhardin,docs,docs,docs: update user manual and API docs for FR-001–006
+a344cba31,2026-03-18,23,Endy Muhardin,feat,main-java,feat: tax filing improvements FR-001–006
+28608977b,2026-03-18,23,Endy Muhardin,docs,build-other,"docs: add brand assets, release notes, and user manual updates"
+91fb51b48,2026-03-18,21,Endy Muhardin,other,templates,rebrand: rename Aplikasi Akunting to Balaka
+2b73464c2,2026-03-18,14,Endy Muhardin,docs,docs,"docs: update implementation plan and status for BUG-016–018, period report, sidebar reorg"
+9324d752b,2026-03-18,13,Endy Muhardin,docs,main-java,docs: clarify accountSlots accepts both accountHint and lineOrder keys
+873cc783d,2026-03-18,13,Endy Muhardin,fix,main-java,fix: resolve accountSlots by lineOrder fallback (BUG-018)
+630ae9811,2026-03-18,12,Endy Muhardin,refactor,templates,refactor: reorganize sidebar — separate Master Data from Pengaturan
+43b1cda8e,2026-03-18,12,Endy Muhardin,feat,templates,feat: add period report page with closing entry exclusion
+729aece24,2026-03-18,9,Endy Muhardin,fix,test,fix: BUG-016 asset mapping and BUG-017 pasal field for SPT lampiran
+3f14ca0b6,2026-03-18,5,Endy Muhardin,feat,main-java,feat: add consolidated SPT Tahunan lampiran endpoint
+0f32e40a2,2026-03-18,4,Endy Muhardin,fix,main-java,fix: exclude closing journal entries from tax export P&L (BUG-014)
+a2355c208,2026-03-17,22,Endy Muhardin,fix,deploy,fix: switch from ZGC to SerialGC for 2GB VPS
+c8ecb2fe1,2026-03-17,22,Endy Muhardin,feat,test,feat: add free-form journal entry API — Phase 20
+53540f065,2026-03-17,16,Endy Muhardin,fix,main-java,fix: add DTO validation for payroll schedule and table headers for accessibility
+13fa0a3ea,2026-03-17,12,Endy Muhardin,fix,main-java,fix: enable remember-me authentication for login
+cfc35ffa7,2026-03-17,12,Endy Muhardin,fix,main-java,fix: redirect to original URL after login instead of always /dashboard
+4cb593ed5,2026-03-17,12,Endy Muhardin,fix,templates,fix: device authorization success page buttons not working
+5f11a2ee7,2026-03-17,11,Endy Muhardin,test,test,test: add functional tests for scheduled payroll — Phase 19
+0131e01a2,2026-03-17,11,Endy Muhardin,feat,main-java,feat: implement scheduled payroll — Phase 19
+3832e5f86,2026-03-17,10,Endy Muhardin,docs,docs,docs: explain zero PPh 21 behavior for low-salary UMKM employees
+54cadcce6,2026-03-17,10,Endy Muhardin,fix,main-java,fix: skip zero-amount journal entries in template execution
+a59963cb3,2026-03-17,10,Endy Muhardin,docs,main-java,docs: add transaction query cross-reference to payroll post endpoint
+46bee53d9,2026-03-17,9,Endy Muhardin,feat,main-java,"feat: split BPJS variables in payroll posting, configurable template ID"
+a1010bab2,2026-03-17,9,Endy Muhardin,fix,main-java,fix: look up payroll template by name instead of hardcoded UUID
+51130f402,2026-03-17,9,Endy Muhardin,docs,main-java,docs: add payroll API lifecycle and status requirements to OpenAPI annotations
+28ef0e673,2026-03-17,8,Endy Muhardin,feat,main-java,feat: implement PPh 21 TER method (PMK 168/2023) — Phase 18
+62f6263e7,2026-03-17,1,Endy Muhardin,docs,docs,docs: document non-overlapping salary component assignment behavior
+7cd321410,2026-03-16,21,Endy Muhardin,fix,test,"fix: extend encrypted columns to VARCHAR(255), allow non-overlapping salary assignments (BUG-007, BUG-008)"
+03b3d93c5,2026-03-16,16,Endy Muhardin,fix,main-java,fix: return 400 instead of 500 for missing employeeId in POST /api/employees (BUG-005)
+15b8f8cf1,2026-03-16,11,Endy Muhardin,test,test,test: add functional test for snapshot API separate month+year params
+65b9c1a37,2026-03-16,11,Endy Muhardin,fix,main-java,fix: support separate month+year params in snapshot API
+2e7cc0b11,2026-03-16,11,Endy Muhardin,fix,main-java,fix: resolve SonarCloud production code issues
+b0bd25859,2026-03-16,10,Endy Muhardin,fix,main-java,fix: resolve SonarCloud reliability and maintainability issues
+363145a66,2026-03-16,5,Endy Muhardin,fix,test,fix: stabilize SptChecklistFunctionalTest for CI
+44a4e4eeb,2026-03-16,4,Endy Muhardin,fix,test,fix: correct SptTahunanApiTest JSON field name assertions
+b0d834e34,2026-03-16,2,Endy Muhardin,test,test,test: add SPT Tahunan API endpoint tests and update checklist test data
+65db3460f,2026-03-15,23,Endy Muhardin,fix,test,fix: update OpenAPI workflow count assertion from 16 to 18
+9b361e2b5,2026-03-15,20,Endy Muhardin,fix,build-other,fix: resolve InvoiceService circular dependency with lombok.config
+430cebcf4,2026-03-15,20,Endy Muhardin,feat,main-java,feat: implement Phase 17 SPT Tahunan Badan data export
+3084e9669,2026-03-15,20,Endy Muhardin,docs,docs,docs: add Phase 17 (SPT Tahunan data export) and Phase 18 (WhatsApp)
+12598ffdc,2026-03-15,19,Endy Muhardin,fix,main-java,fix: resolve SonarCloud issues and exclude false positives
+e9f618a14,2026-03-15,11,Endy Muhardin,ci,ci,ci: remove redundant weekly scheduled run
+ca453599d,2026-03-15,10,Endy Muhardin,ci,build-other,ci: add codecov config with custom badge color range
+2c0b71454,2026-03-15,10,Endy Muhardin,docs,docs,docs: sync documentation with current project state
+d2d8389fe,2026-03-15,5,Endy Muhardin,test,test,test: add coverage tests to achieve 80% line coverage (57% → 81%)
+55777f508,2026-03-14,4,Endy Muhardin,ci,ci,ci: increase test step timeout from 60 to 90 minutes
+658d2d257,2026-03-14,3,Endy Muhardin,refactor,templates,refactor: migrate from thymeleaf-layout-dialect to built-in parameterized fragments
+a79f3bad4,2026-03-11,4,Endy Muhardin,test,test,"test: add coverage tests for controllers, services, and inventory reports"
+985bd1963,2026-03-10,20,Endy Muhardin,fix,test,fix: improve test coverage for low-coverage controllers and services
+af1960027,2026-03-10,17,Endy Muhardin,fix,main-java,fix: address all 141 SonarCloud code smells
+de9b91622,2026-03-10,9,Endy Muhardin,fix,templates,fix: add title and lang attributes to Thymeleaf fragment templates
+7900b5359,2026-03-10,6,Endy Muhardin,fix,main-java,fix: reduce code duplication with shared superclasses and template fragments
+8951556e7,2026-03-09,7,Endy Muhardin,chore,build-other,chore: prepare for next development iteration
+fff3f6350,2026-03-09,7,Endy Muhardin,release,docs,release: 2026.03.2-RELEASE (security hardening + code quality)
+cd31e1603,2026-03-09,7,Endy Muhardin,fix,main-java,"fix: address SonarCloud code smells — string duplication, wildcard types, accessibility"
+7a59e6dde,2026-03-09,5,Endy Muhardin,fix,deploy,fix: resolve all 6 Dependabot security alerts
+d11dc4acf,2026-03-08,19,Endy Muhardin,fix,build-other,fix: suppress BEAN_PROPERTY_INJECTION false positives in SpotBugs
+07994c877,2026-03-08,12,Endy Muhardin,fix,main-java,fix: replace JPA entities with form DTOs in MVC controllers (S4684)
+ec4545044,2026-03-08,5,Endy Muhardin,fix,main-java,"fix: address SonarCloud issues — S6218 bug, S4684 API vulnerability, log injection"
+4df2766c7,2026-03-08,5,Endy Muhardin,fix,main-java,"fix: address code scanning alerts — unused param, log injection"
+f7080dd08,2026-03-08,5,Endy Muhardin,docs,build-other,docs: update current release to 2026.03.1-RELEASE
+54814fcab,2026-03-08,5,Endy Muhardin,chore,build-other,chore: prepare for next development iteration
+8cae422f6,2026-03-08,5,Endy Muhardin,release,docs,"release: 2026.03.1-RELEASE (Phase 14 + 15 + 16, Spring Boot 4.0.3)"
+02de5514b,2026-03-08,5,Endy Muhardin,docs,docs,docs: remove credentials and server-specific references from operations guide
+48e22424a,2026-03-08,5,Endy Muhardin,docs,resources,"docs: update OpenAPI extensions — clarify DRAFT workflow, add payroll/fiscal workflows"
+8c2b24b96,2026-03-08,4,Endy Muhardin,docs,docs,docs: update features and roadmap — all phases complete
+9403d1209,2026-03-08,4,Endy Muhardin,chore,build-other,chore: upgrade Spring Boot 4.0.2 → 4.0.3
+808f0b26a,2026-03-08,3,Endy Muhardin,fix,build-other,fix: add SpotBugs exclusions for Phase 14/15 API controllers
+a03702c57,2026-03-08,1,Endy Muhardin,fix,test,fix: use verifyMinimumEmployeeCount to avoid shared context interference
+77a971297,2026-03-07,23,Endy Muhardin,docs,docs,docs: Phase 16 — revamp AI manual to cover full application lifecycle
+e29ce499a,2026-03-07,22,Endy Muhardin,fix,test,fix: resolve 4 transaction API bugs (BUG-001 through BUG-004)
+5db1a8ab3,2026-03-07,22,Endy Muhardin,feat,main-java,feat: Phase 15 — Payroll API + PPh 21 / 1721-A1
+895d4d8d9,2026-03-07,21,Endy Muhardin,feat,test,feat: Phase 14 — Fiscal Adjustments CRUD API
+35b015125,2026-02-26,18,Endy Muhardin,release,docs,release: 2026.02.5-RELEASE (Phase 12 + Phase 13 complete)
+ab64ae510,2026-02-26,17,Endy Muhardin,docs,docs,docs: update implementation plan — Phase 12 and 13 complete
+7a2d01fdd,2026-02-26,17,Endy Muhardin,fix,test,fix: hide MVC controllers from OpenAPI spec with @Hidden
+17bdfd626,2026-02-26,16,Endy Muhardin,other,main-java,revert: remove unnecessary WebSecurityCustomizer for OpenAPI endpoints
+c51bfbeb3,2026-02-26,15,Endy Muhardin,fix,main-java,fix: use WebSecurityCustomizer to fully bypass security for OpenAPI endpoints
+8965bc19a,2026-02-26,15,Endy Muhardin,feat,frontend,feat: complete Phase 13 — OpenAPI migration (replace capabilities.json with springdoc-openapi)
+1c7e6180b,2026-02-26,11,Endy Muhardin,feat,main-java,feat: complete Phase 12 — tax export API (12.10) and PPN docs update (12.11)
+a460be94f,2026-02-26,5,Endy Muhardin,docs,docs,docs: add 12.10 tax export API details and 12.11 PPN docs update
+9cc240a10,2026-02-26,5,Endy Muhardin,docs,docs,"docs: complete Phase 12.9 verification, add 12.10 tax export API"
+2369382be,2026-02-26,5,Endy Muhardin,docs,docs,docs: update Phase 12.9 — step 4 (tax details + FP PDFs) completed
+2a1c8f5cd,2026-02-26,4,Endy Muhardin,docs,docs,docs: update Phase 12.9 status — steps 1-3 verified on production
+6858d04ce,2026-02-26,4,Endy Muhardin,fix,main-java,fix: accept 16-digit Coretax NPWP format in Client entity
+20be2902c,2026-02-25,21,Endy Muhardin,chore,build-other,chore: add Phase 12.9 retrofit 2025 data scripts
+b4922a4d6,2026-02-25,18,Endy Muhardin,fix,migrations,fix: remove dead UPDATE from V004 migration
+e98aa1188,2026-02-25,18,Endy Muhardin,docs,docs,docs: add user manual for client management and fiscal period management (Phase 12.5/12.6)
+f7c5eaa53,2026-02-25,16,Endy Muhardin,feat,seed-data,feat: update tax payment deadlines from 10th to 15th per PMK 81/2024 (Phase 12.8)
+28ba25197,2026-02-25,15,Endy Muhardin,feat,main-java,"feat: add tax report detail pages with PPN/PPh23 breakdown, crosscheck, and rekonsiliasi fiskal (Phase 12.7)"
+9454d6d29,2026-02-25,13,Endy Muhardin,feat,test,feat: complete fiscal period management with posting guards and sidebar link (Phase 12.6)
+c7e253967,2026-02-25,12,Endy Muhardin,feat,templates,"feat: complete client management UI with invoices, tax summary, and NPWP validation (Phase 12.5)"
+d7f9f7bae,2026-02-25,10,Endy Muhardin,docs,docs,docs: mark Phase 10 and 11 sub-items as complete in implementation plan
+581b16120,2026-02-25,10,Endy Muhardin,feat,test,feat: auto-populate tax details when posting tax-related transactions (Phase 12.4)
+187f0d777,2026-02-25,9,Endy Muhardin,feat,main-java,feat: add tax detail and document REST API endpoints (Phase 12.3)
+05332b2d9,2026-02-25,6,Endy Muhardin,docs,docs,docs: mark Phase 12.2 (tax detail entry UI) as complete in implementation plan
+1bd40ca00,2026-02-25,6,Endy Muhardin,feat,main-java,feat: add tax detail entry UI for transaction detail page (Phase 12.2)
+49ea3a7a8,2026-02-25,4,Endy Muhardin,docs,docs,docs: mark Phase 12.1 (PPN formula fix) as complete in implementation plan
+7a5844b95,2026-02-25,4,Endy Muhardin,fix,docs,fix: update PPN template formulas to DPP Nilai Lain (PMK 131/2024)
+911875a37,2026-02-24,22,Endy Muhardin,docs,docs,docs: add Phase 12 (Tax Data Management) to implementation plan
+0d32c4dc9,2026-02-24,18,Endy Muhardin,fix,main-java,fix: handle HttpMessageNotReadableException as 400 in RestExceptionHandler
+8ed3bfdec,2026-02-24,17,Endy Muhardin,fix,main-java,"fix: handle malformed request body as 400, document VoidReason enum in capabilities"
+7ca18ab66,2026-02-24,17,Endy Muhardin,fix,test,"fix: add void transaction API endpoint, fix depreciation template accountHint"
+7b991f6da,2026-02-24,15,Endy Muhardin,fix,main-java,"fix: add account ledger API endpoint, dynamically detect cash/bank accounts"
+be7159f57,2026-02-24,11,Endy Muhardin,fix,test,fix: pass formula variables through API for DETAILED templates
+9843d89c4,2026-02-24,9,Endy Muhardin,fix,templates,fix: truncate transaction list pagination to show neighbors + ellipsis
+00c358ebc,2026-02-24,8,Endy Muhardin,fix,test,"fix: replace lineAccountOverrides with accountSlots, add post-time validation"
+a7d69e127,2026-02-24,5,Endy Muhardin,fix,build-other,fix: sanitize log input in TransactionApiController journal-preview endpoint
+30750c7d8,2026-02-24,5,Endy Muhardin,other,docs,"Revert ""release: 2026.02.5-RELEASE"""
+a0135b46e,2026-02-24,5,Endy Muhardin,release,docs,release: 2026.02.5-RELEASE
+8dd86cfdf,2026-02-24,4,Endy Muhardin,docs,docs,docs: update user manual with new API endpoints and features
+89b433093,2026-02-24,0,Endy Muhardin,feat,main-java,feat: add GET /api/transactions/{id}/journal-preview endpoint
+24a862dd5,2026-02-24,0,Endy Muhardin,feat,main-java,feat: add POST /api/drafts for direct DRAFT transaction creation
+54376add0,2026-02-24,0,Endy Muhardin,docs,frontend,docs: document draftId naming convention in capabilities.json
+dd05066a0,2026-02-24,0,Endy Muhardin,feat,test,feat: add transactionId to DraftResponse after approval
+14e610f78,2026-02-24,0,Endy Muhardin,feat,test,feat: expose template lines in GET /api/templates responses
+4abfaf7fa,2026-02-24,0,Endy Muhardin,fix,test,fix: flush after clearing account mappings to prevent 409 on re-apply
+3b9dee59b,2026-02-23,23,Endy Muhardin,fix,ci,fix: bump CI timeout to 60min and upgrade CodeQL to v4
+784904d0b,2026-02-23,22,Endy Muhardin,feat,main-java,feat: add lineAccountOverrides to POST/PUT /api/transactions
+d67cd3c0b,2026-02-23,21,Endy Muhardin,fix,main-java,fix: POST/PUT /api/templates now accepts lines via request DTO
+1229dcf9b,2026-02-23,21,Endy Muhardin,fix,frontend,fix: remove accountId from template lines in capabilities.json
+54befb813,2026-02-23,21,Endy Muhardin,fix,frontend,fix: add missing lines field to POST/PUT templates in capabilities.json
+63127dd13,2026-02-23,21,Endy Muhardin,docs,docs,docs: document capabilities.json and correction endpoints in user manual
+af583d067,2026-02-23,20,Endy Muhardin,fix,frontend,fix: sync capabilities.json with actual API validation
+43498e838,2026-02-23,20,Endy Muhardin,feat,test,feat: add draft and transaction correction API endpoints
+0a1a0b00a,2026-02-23,19,Endy Muhardin,fix,main-java,"fix: resolve 20 critical SonarCloud code smells (S6814, S6809, S1192, S3776)"
+d9de3f8a8,2026-02-23,8,Endy Muhardin,fix,main-java,fix: use long literal in plusMonths to avoid integer overflow (S2184)
+80b20307a,2026-02-23,5,Endy Muhardin,chore,build-other,chore: bump version to 2026.03-SNAPSHOT
+7f2e78478,2026-02-23,5,Endy Muhardin,docs,docs,docs: add 2026.02.4-RELEASE notes for migration consolidation
+d87c5fdd8,2026-02-22,23,Endy Muhardin,refactor,migrations,refactor: consolidate 11 migrations into 4 domain-based files
+02445477f,2026-02-22,18,Endy Muhardin,fix,test,fix: make TagCrudTest idempotent by cleaning up test tags in @BeforeEach
+8cafdfd5c,2026-02-22,17,Endy Muhardin,docs,docs,"docs: update status for Phase 10+11 complete, add 2026.02.3 release notes"
+db0a63d81,2026-02-22,17,Endy Muhardin,fix,test,fix: remove flaky waitForURL in TagCrudTest.shouldCreateNewTag
+cbdaf064d,2026-02-22,15,Endy Muhardin,feat,main-java,feat: implement Phase 11 — Recurring Transactions
+cfd8cb000,2026-02-22,8,Endy Muhardin,docs,docs,docs: add user manual section for Phase 10 — Faktur & Tagihan
+3d0c1bdea,2026-02-22,5,Endy Muhardin,fix,test,fix: make PaymentTrackingTest and StatementTest resilient in full suite
+77f15bee4,2026-02-22,4,Endy Muhardin,test,test,test: add E2E lifecycle tests for invoice and bill with screenshots
+6a31b3b7b,2026-02-22,4,Endy Muhardin,feat,templates,feat: implement Phase 10.6 — Customer/Vendor Statements
+9e4c97623,2026-02-22,4,Endy Muhardin,feat,main-java,feat: implement Phase 10.4+10.5 — Aging Reports + Payment Tracking
+466446176,2026-02-21,23,Endy Muhardin,feat,test,feat: implement Phase 10.3 — Vendor Bill REST API
+f8a56b2bc,2026-02-21,22,Endy Muhardin,feat,main-java,feat: implement Phase 10.1+10.2 — Invoice Line Items + Vendor & Bill
+08ca0fbb7,2026-02-21,13,Endy Muhardin,docs,build-other,docs: update CLAUDE.md with Phase 10-12 roadmap
+1ace7cdd9,2026-02-21,13,Endy Muhardin,docs,docs,"docs: clarify Vendor as dedicated table, not Client type flag"
+55293e679,2026-02-21,13,Endy Muhardin,docs,docs,docs: add Vendor Bill API (10.3) for AI-assisted bill entry
+a09a2d445,2026-02-21,13,Endy Muhardin,docs,docs,docs: restructure Phase 10 as Invoice & Bill Management
+9e0030cee,2026-02-21,13,Endy Muhardin,docs,docs,docs: add Phase 10-12 to implementation plan
+4480212bb,2026-02-21,13,Endy Muhardin,docs,docs,"docs: clean up future enhancements, remove marketplace and redundant items"
+b74f1327c,2026-02-21,13,Endy Muhardin,docs,docs,docs: remove Budget Management from implementation plan
+1b057b4a5,2026-02-21,13,Endy Muhardin,docs,docs,"docs: mark Phase 9 (Analytics & Insights) complete, update phase numbering"
+f920f1663,2026-02-21,12,Endy Muhardin,docs,docs,docs: add user manual section 15 (Peringatan/Smart Alerts) with automated screenshots
+7bdf5b162,2026-02-21,11,Endy Muhardin,feat,main-java,"feat: implement smart alerts with configurable rules, evaluation, and dashboard widget"
+264e01e31,2026-02-21,10,Endy Muhardin,feat,main-java,"feat: implement transaction tags with CRUD, assignment, filtering, and reporting"
+f7bb7c74d,2026-02-20,23,Endy Muhardin,fix,ci,fix: add DeviceTokenManagementTest to user manual CI screenshot capture
+cb1650933,2026-02-20,23,Endy Muhardin,docs,docs,docs: update user manual with device token management self-service page
+599431ec5,2026-02-20,23,Endy Muhardin,feat,test,feat: add self-service device token management UI at /settings/devices
+45ed7f2b9,2026-02-20,22,Endy Muhardin,docs,docs,docs: update CLAUDE.md and implementation plan for completed API pagination
+7eb3035d9,2026-02-20,22,Endy Muhardin,feat,main-java,feat: add pagination to analysis reports and drafts API endpoints
+362836e89,2026-02-20,21,Endy Muhardin,fix,main-java,fix: resolve GitHub code scanning alerts
+c67db4320,2026-02-20,21,Endy Muhardin,feat,frontend,feat: add static /api/capabilities.json for AI assistant discovery
+c04473908,2026-02-20,12,Endy Muhardin,fix,seed-data,fix: make seed pack company_config header-only to prevent test interference
+1b34fea8c,2026-02-20,10,Endy Muhardin,fix,deploy,fix: upgrade minimatch to resolve ReDoS vulnerability (CVE-2026-26996)
+6c2b0df73,2026-02-20,9,Endy Muhardin,fix,templates,fix: resolve SonarCloud reliability issues in HTML templates
+93110b088,2026-02-19,20,Endy Muhardin,chore,build-other,chore: prepare next development iteration 2026.02-SNAPSHOT
+0d77b9e83,2026-02-19,20,Endy Muhardin,release,docs,release: bump version to 2026.02.2-RELEASE
+d5fbc4cbf,2026-02-19,19,Endy Muhardin,refactor,frontend,refactor: externalize per-client theme assets to filesystem
+b68998272,2026-02-19,19,Endy Muhardin,fix,frontend,fix: use white fills for tazkia sidebar logo on dark background
+db930d92b,2026-02-19,19,Endy Muhardin,fix,main-java,fix: permit /themes/** static resources in Spring Security
+48285cec6,2026-02-19,18,Endy Muhardin,feat,frontend,feat: add per-client theming via application.properties
+28dfdc883,2026-02-19,4,Endy Muhardin,feat,test,feat: add device session management UI to user detail page
+900c0df93,2026-02-18,23,Endy Muhardin,test,test,test: add functional tests for POST /api/data-import endpoint
+b8d1887d9,2026-02-18,22,Endy Muhardin,fix,deploy,fix: upgrade tar override to >=7.5.8 to resolve CVE hardlink symlink escape
+209f37006,2026-02-18,22,Endy Muhardin,feat,docs,feat: expose data import as API endpoint for AI-driven client onboarding
+212e6bcd0,2026-02-18,18,Endy Muhardin,feat,main-java,feat: add transaction list/detail/post API endpoints
+8419b6194,2026-02-18,16,Endy Muhardin,chore,build-other,chore: prepare next development iteration 2026.02-SNAPSHOT
+19a41f769,2026-02-18,16,Endy Muhardin,release,docs,release: bump version to 2026.02.1-RELEASE
+b28b55c72,2026-02-18,16,Endy Muhardin,release,docs,release: bump version to 2026.03-RELEASE
+e3b92ed11,2026-02-18,15,Endy Muhardin,fix,test,fix: prevent duplicate section rendering in user manual generator
+dfefbc6fe,2026-02-18,13,Endy Muhardin,docs,test,docs: add screenshots for AI metadata in template UI
+f062ba27c,2026-02-18,13,Endy Muhardin,docs,docs,docs: update user manual with AI metadata UI instructions
+dc898985e,2026-02-18,11,Endy Muhardin,feat,templates,feat: add AI metadata fields to template form and detail view
+4320302f6,2026-02-18,8,Endy Muhardin,feat,deploy,feat: add AI semantic metadata to journal templates
+c5b6e6057,2026-02-18,8,Endy Muhardin,docs,docs,docs: update ops guide to match production setup and add Flyway troubleshooting
+989cf8a37,2026-02-18,7,Endy Muhardin,chore,build-other,chore: prepare next development iteration 2026.02-SNAPSHOT
+650d95210,2026-02-18,7,Endy Muhardin,release,docs,release: bump version to 2026.02-RELEASE
+1fee8bb2a,2026-02-17,23,Endy Muhardin,fix,test,fix: move Lampiran section to end of user manual
+9e98f9455,2026-02-17,23,Endy Muhardin,fix,docs,fix: add h4/h5/hr CSS styles and format per-industry metrics as lists
+a9da9a9b6,2026-02-17,22,Endy Muhardin,fix,docs,fix: restore inline screenshots in AI chapter for proper text flow
+7bd9d44c6,2026-02-17,21,Endy Muhardin,fix,ci,fix: include all analysis report tests in publish-manual CI workflow
+d77c9ea7a,2026-02-17,20,Endy Muhardin,fix,test,fix: resolve broken screenshot links in user manual HTML
+50ec24846,2026-02-17,16,Endy Muhardin,feat,test,feat: add AI analysis report publishing with per-industry KPIs
+569f36c94,2026-02-17,14,Endy Muhardin,docs,docs,docs(manual): add financial analysis API section to AI chapter
+8821c8c01,2026-02-17,14,Endy Muhardin,feat,main-java,feat(api): add read-only financial analysis API for AI tools
+ffac21114,2026-02-17,13,Endy Muhardin,docs,build-other,docs: update CLAUDE.md for Apache-2.0 license and Phase 9 completion
+1fb9f74c7,2026-02-17,12,Endy Muhardin,chore,build-other,chore: change license from AGPL-3.0 to Apache License 2.0
+56f2e3693,2026-02-17,12,Endy Muhardin,fix,test,fix(manual): register bank reconciliation chapter in UserManualGenerator
+c67bc3780,2026-02-17,11,Endy Muhardin,fix,build-other,fix(spotbugs): sanitize log params in BankReconciliationService
+0d62f3633,2026-02-17,10,Endy Muhardin,docs,docs,docs(phase9): add bank reconciliation user manual with screenshots
+7e2a25308,2026-02-17,9,Endy Muhardin,feat,main-java,"feat(phase9): implement bank reconciliation (import, matching, reports)"
+de5699f47,2026-02-17,5,Endy Muhardin,fix,main-java,fix(sonar): resolve 46 SonarCloud issues across production and test code
+03711d756,2026-02-16,23,Endy Muhardin,fix,test,fix(ci): fix flaky AiTransactionFlowTest and remove fork timeout
+01f863bb1,2026-02-16,22,Endy Muhardin,fix,ci,fix(ci): increase test timeout to 45 min for full suite on CI runners
+94390d393,2026-02-16,21,Endy Muhardin,fix,build-other,fix(ci): redirect test output to file to prevent Maven/Surefire pipe deadlock
+96f412dd0,2026-02-16,16,Endy Muhardin,fix,test,fix(ci): fail-fast when ZAP API becomes unresponsive to prevent CI hang
+c8515ff84,2026-02-16,8,Endy Muhardin,fix,test,fix(ci): add timeouts to ZAP API calls to prevent indefinite blocking in CI
+7f261ac90,2026-02-16,7,Endy Muhardin,fix,build-other,fix(ci): add surefire timeout and test-level timeout to prevent Maven hang
+2efd2469c,2026-02-16,4,Endy Muhardin,fix,test,fix(ci): share single ZAP container across DAST tests to prevent Maven hang
+4d88a2ac4,2026-02-15,23,Endy Muhardin,fix,main-java,fix: eliminate all ERROR log noise from test suite (626 → 0)
+268f2840d,2026-02-15,10,Endy Muhardin,fix,test,fix(test): add required component to BOM create tests
+337ff94bf,2026-02-15,10,Endy Muhardin,fix,templates,fix: remove non-existent company.city reference in depreciation print
+f9a33460e,2026-02-15,10,Endy Muhardin,fix,main-java,fix: break Client-Project circular reference for Jackson serialization
+aa50008cd,2026-02-15,10,Endy Muhardin,fix,templates,fix: add missing bank-table fragment and bank-accounts templates
+2f803a90e,2026-02-15,10,Endy Muhardin,fix,test,fix(test): add journalNumber and transactionNumber to ServiceReportsTest
+b3d514c23,2026-02-15,8,Endy Muhardin,fix,main-java,fix: assign journalNumber when posting pre-existing journal entries
+606de1dc1,2026-02-14,21,Endy Muhardin,fix,ci,fix(ci): skip JaCoCo to isolate Maven hang issue
+767607e3d,2026-02-14,15,Endy Muhardin,fix,ci,fix(ci): remove parallel test execution causing Maven hang
+20efa94d2,2026-02-14,14,Endy Muhardin,fix,build-other,fix(deps): prevent dependency-check from failing build on analysis errors
+32452e780,2026-02-14,8,Endy Muhardin,fix,ci,fix(ci): increase memory and parallelize tests to prevent timeout
+d34e64bb6,2026-02-13,21,Endy Muhardin,fix,ci,fix(ci): disable fail-on-error for test reporter to investigate flaky failures
+ab0d01ad7,2026-02-13,18,Endy Muhardin,fix,docs,fix(manual): correct Starbucks coffee expense categorization
+0dd324c5a,2026-02-13,7,Endy Muhardin,fix,deploy,fix(deps): update tar to 7.5.7 to resolve security vulnerabilities
+44de14070,2026-02-13,0,Endy Muhardin,docs,docs,docs(academic): add analysis of paper publication opportunities
+b953059fd,2026-02-12,23,Endy Muhardin,fix,main-java,fix(sonar): resolve 7 SonarCloud code quality issues
+d3991aa98,2026-02-12,22,Endy Muhardin,fix,test,fix(manual): return full content when section title matches H1
+b3c4f6730,2026-02-12,20,Endy Muhardin,fix,test,fix(manual): remove duplicate AI section content
+770b4a708,2026-02-12,19,Endy Muhardin,fix,test,fix(manual): correct screenshot paths for AI transaction documentation
+e4b83e596,2026-02-12,17,Endy Muhardin,fix,build-other,fix(security): resolve SpotBugs and Dependabot vulnerabilities
+efbb418aa,2026-02-12,16,Endy Muhardin,chore,test,chore(manual): register AI assistance section in user manual generator
+60fbf98ec,2026-02-12,15,Endy Muhardin,feat,docs,feat(api): add AI-assisted transaction posting v2 with direct posting
+ed6754529,2026-02-12,12,Endy Muhardin,feat,main-java,feat(api): add OAuth 2.0 Device Flow and AI-assisted transaction API
+2964bd151,2026-02-03,11,Endy Muhardin,fix,test,fix(sonar): resolve 49 SonarCloud issues in test files
+25ba303ea,2026-01-25,16,Endy Muhardin,fix,test,fix(test): add @Transactional to prevent LazyInitializationException
+c4cd5fc79,2026-01-19,17,Endy Muhardin,test,test,test(coverage): add functional tests for controller APIs and services
+37b4e7a84,2026-01-19,10,Endy Muhardin,fix,test,fix(test): ensure tests create own data instead of skipping
+9cf09a268,2026-01-19,5,Endy Muhardin,test,test,test(coverage): add functional tests for low-coverage services
+5c0a0938c,2026-01-17,22,Endy Muhardin,fix,deploy,fix(security): upgrade Pulumi dependencies and fix tar vulnerability
+d287ea07a,2026-01-17,22,Endy Muhardin,fix,build-other,fix(security): upgrade npm to 11.7.0 to resolve tar vulnerability
+2803e7632,2026-01-17,21,Endy Muhardin,fix,test,fix(sonar): resolve BLOCKER and MAJOR issues
+5cb232ece,2026-01-17,18,Endy Muhardin,test,test,test(coverage): add unit tests to reach 75% coverage target
+0cb6b2f25,2026-01-17,14,Endy Muhardin,test,test,test(coverage): add exception class tests
+f9c92d152,2026-01-17,14,Endy Muhardin,docs,docs,docs(user-manual): add missing screenshots to industry guides
+3a34c9f6d,2026-01-17,10,Endy Muhardin,fix,main-java,fix(db): resolve PostgreSQL null parameter type inference in queries
+ba774a0d9,2026-01-16,20,Endy Muhardin,fix,main-java,fix(tests): resolve multiple functional test failures
+61dac1a95,2026-01-16,19,Endy Muhardin,fix,main-java,fix: lookup manual entry template by name instead of hardcoded UUID
+092290861,2026-01-16,17,Endy Muhardin,test,test,test(coverage): improve FixedAssetController coverage 37% → 62%
+74605ab28,2026-01-16,17,Endy Muhardin,test,test,test(coverage): improve BillOfMaterialController coverage 35% → 94%
+6c22dfcd5,2026-01-16,16,Endy Muhardin,test,test,test(coverage): improve DataExportController coverage from 32% to 79%
+20d2a6360,2026-01-16,16,Endy Muhardin,test,test,test(coverage): improve DraftTransactionController coverage from 31% to 65%
+4afe80d06,2026-01-16,14,Endy Muhardin,test,test,test(coverage): improve ProductionOrderController coverage from 30% to 80%
+2c6734453,2026-01-16,11,Endy Muhardin,test,test,test(coverage): improve SelfServiceController coverage from 25% to 74%
+aa8730348,2026-01-16,11,Endy Muhardin,test,test,test(coverage): improve DocumentController coverage from 19% to 47%
+950fb419e,2026-01-16,10,Endy Muhardin,fix,test,fix(test): handle JavaScript confirm dialog in DataImportController tests
+ae926ec38,2026-01-16,6,Endy Muhardin,fix,test,fix(test): use specific button IDs in form submission tests
+ce91de7dd,2026-01-15,4,Endy Muhardin,test,test,test(coverage): expand functional tests for multiple controllers
+727244e43,2026-01-14,21,Endy Muhardin,test,test,test(coverage): expand BillOfMaterialController functional tests
+ae3a81e78,2026-01-14,18,Endy Muhardin,test,test,test(coverage): fix URL paths and expand FixedAssetController tests
+8c55aa85d,2026-01-14,17,Endy Muhardin,test,test,test(coverage): expand functional tests for controllers
+4fd276449,2026-01-14,14,Endy Muhardin,fix,test,fix(test): use unique sequences in payment term and milestone tests
+0127f4186,2026-01-14,13,Endy Muhardin,test,test,test(coverage): expand functional tests for low-coverage controllers
+a8b9c005a,2026-01-14,7,Endy Muhardin,test,test,test(coverage): improve test coverage and fix test issues
+c7f8b02e5,2026-01-13,4,Endy Muhardin,fix,test,fix(test): resolve CI failures in MilestoneController and PaymentTerm tests
+1b6e558b7,2026-01-13,4,Endy Muhardin,test,test,test(coverage): add validation and export functional tests
+b2d9686af,2026-01-12,21,Endy Muhardin,test,test,test(functional): fix @Nested test detection and add controller tests
+c7a1eb0bb,2026-01-12,8,Endy Muhardin,test,test,test(coverage): add functional and service tests to improve coverage to 68%
+6a4b1ba04,2026-01-10,16,Endy Muhardin,test,test,test(coverage): add 240 tests to improve coverage from 49% to 55%
+09859de89,2026-01-10,10,Endy Muhardin,docs,build-other,"docs(readme): add CI, coverage, and quality badges"
+cb0685d5a,2026-01-10,10,Endy Muhardin,other,build-other,config(sonar): simplify app.css exclusion pattern
+8cf16207d,2026-01-10,10,Endy Muhardin,fix,build-other,fix(code-quality): resolve final 3 SonarCloud issues
+73a805820,2026-01-10,10,Endy Muhardin,fix,main-java,fix(code-quality): resolve remaining SonarCloud issues
+53a253b23,2026-01-10,7,Endy Muhardin,refactor,frontend,refactor(code-quality): add radix to parseInt and use List.of
+509a2fda3,2026-01-10,7,Endy Muhardin,refactor,main-java,refactor(java): replace Arrays.asList with List.of
+8331ac38d,2026-01-10,7,Endy Muhardin,refactor,templates,refactor(js): remove console.log statements from production code
+7dc1743b3,2026-01-10,7,Endy Muhardin,refactor,templates,refactor(js): replace var with const declarations
+571dcabc3,2026-01-10,7,Endy Muhardin,fix,templates,fix(a11y): improve color contrast in print templates
+44cdf4df9,2026-01-10,7,Endy Muhardin,refactor,main-java,refactor(code-quality): fix multiple SonarCloud issues
+359fcd6e0,2026-01-10,6,Endy Muhardin,other,build-other,config(sonar): exclude SQL migrations from analysis
+fc04886ae,2026-01-10,5,Endy Muhardin,refactor,templates,refactor(code-quality): fix S1871 duplicate code in template form
+4f1850113,2026-01-10,4,Endy Muhardin,refactor,test,refactor(code-quality): fix SonarCloud issues and improve test coverage
+ed11508aa,2026-01-09,23,Endy Muhardin,refactor,build-other,refactor(code-quality): fix S5778 and configure rule exclusions
+0a8e66c96,2026-01-09,23,Endy Muhardin,other,build-other,config(sonar): ignore Oracle-specific PL/SQL rules for PostgreSQL
+600e8f1e8,2026-01-09,23,Endy Muhardin,refactor,main-java,refactor(code-quality): fix S1135 TODO comments and suppress S2925
+7c2e920b8,2026-01-09,22,Endy Muhardin,refactor,main-java,refactor(code-quality): fix additional SonarCloud code smells
+bb8d81987,2026-01-09,22,Endy Muhardin,refactor,templates,refactor(code-quality): fix additional SonarCloud issues
+d2847f5fa,2026-01-09,22,Endy Muhardin,refactor,test,refactor(code-quality): fix SonarCloud bugs and code smells
+fc4a18808,2026-01-09,21,Endy Muhardin,refactor,test,refactor(code-quality): fix S7158 and S5786 code smells
+09b69dfb3,2026-01-09,21,Endy Muhardin,refactor,main-java,refactor(code-quality): fix remaining S7467 unused exception patterns
+a6a8d850d,2026-01-09,21,Endy Muhardin,refactor,test,refactor(code-quality): fix S5841 test emptiness before assertion
+54399593b,2026-01-09,21,Endy Muhardin,refactor,main-java,refactor(code-quality): fix S1125 and S1488 code smells
+47fdedd01,2026-01-09,20,Endy Muhardin,refactor,templates,refactor(code-quality): fix S7764 replace window with globalThis
+44630b845,2026-01-09,20,Endy Muhardin,refactor,test,refactor(code-quality): fix S5853 join assertion chains
+1e45dacf1,2026-01-09,20,Endy Muhardin,refactor,main-java,refactor(code-quality): fix S1640 EnumMap and S7467 unnamed patterns
+1bc92fe5d,2026-01-09,20,Endy Muhardin,refactor,main-java,refactor(code-quality): fix S1659 variable declarations
+3ff67f313,2026-01-09,19,Endy Muhardin,refactor,main-java,refactor(code-quality): extract nested try blocks to methods (S1141)
+4ec04b7b5,2026-01-09,19,Endy Muhardin,refactor,main-java,refactor(code-quality): merge collapsible if statements (S1066)
+f371a7bf4,2026-01-09,19,Endy Muhardin,refactor,test,refactor(code-quality): fix S5786 JUnit5 visibility issues
+1fb0bc538,2026-01-09,19,Endy Muhardin,refactor,main-java,refactor(code-quality): fix additional SonarCloud issues
+793c9693e,2026-01-09,19,Endy Muhardin,refactor,main-java,refactor(code-quality): fix SonarCloud code quality issues
+1d8458547,2026-01-09,16,Endy Muhardin,refactor,main-java,refactor(code-quality): fix remaining S1192 string duplication issues
+84af390af,2026-01-09,12,Endy Muhardin,refactor,main-java,refactor(code-quality): add YEAR_SUFFIX constant in FiscalYearClosingService
+9a349a23f,2026-01-09,10,Endy Muhardin,refactor,main-java,refactor(code-quality): remove duplicate constants in controllers
+d2847d41f,2026-01-09,8,Endy Muhardin,refactor,main-java,refactor(code-quality): fix S1192 string duplication issues
+e8fcfd248,2026-01-09,6,Endy Muhardin,refactor,main-java,refactor(code-quality): extract string constants for S1192 compliance
+752c348f4,2026-01-09,4,Endy Muhardin,refactor,main-java,refactor(code-quality): extract string constants for SonarCloud S1192
+80856873a,2026-01-08,18,Endy Muhardin,chore,main-java,chore(sonar): suppress S1192 for DataImportService table/file names
+dc3cdf901,2026-01-08,17,Endy Muhardin,refactor,main-java,refactor(controller): extract constants for Transaction and JournalTemplate controllers
+1bc1d43a8,2026-01-08,17,Endy Muhardin,refactor,main-java,refactor(controller): extract constants for Project and Invoice controllers
+687fb4826,2026-01-08,15,Endy Muhardin,refactor,main-java,refactor(controller): extract constants for PaymentTerm and Client controllers
+ee99908c3,2026-01-08,15,Endy Muhardin,refactor,main-java,refactor(controller): extract constants for ReportController
+a76d76148,2026-01-08,15,Endy Muhardin,refactor,main-java,refactor(controller): extract constants for MilestoneController
+79a6e7410,2026-01-08,15,Endy Muhardin,refactor,main-java,refactor(controllers): extract constants for employee and salary components
+d36477a30,2026-01-08,15,Endy Muhardin,refactor,main-java,refactor(services): extract constants for string duplications
+433173c74,2026-01-08,14,Endy Muhardin,fix,templates,fix(ui): resolve S7740 JavaScript this-assignment issue
+b6d2d21d2,2026-01-08,14,Endy Muhardin,refactor,main-java,refactor(controllers): extract constants for category controllers
+4bd3ac4c0,2026-01-08,14,Endy Muhardin,refactor,main-java,refactor(controllers): extract more constants for string duplications
+fff6596f8,2026-01-08,14,Endy Muhardin,fix,main-java,fix(security): resolve S2229 transactional compatibility issues
+dee1b93ad,2026-01-08,13,Endy Muhardin,refactor,main-java,refactor(controllers): extract constants for string duplications
+3fb6fb4e9,2026-01-08,13,Endy Muhardin,refactor,main-java,refactor(code-quality): fix Impact HIGH and MEDIUM SonarCloud issues
+87a8960ec,2026-01-08,13,Endy Muhardin,refactor,main-java,refactor(controller): extract timestamp attribute constant
+816ad5f8b,2026-01-08,13,Endy Muhardin,refactor,main-java,refactor(code-quality): fix string duplications in report services
+b1d1462ed,2026-01-08,12,Endy Muhardin,fix,main-java,fix(code-quality): resolve additional transactional self-call issues
+19cf392b9,2026-01-08,12,Endy Muhardin,refactor,main-java,refactor(code-quality): fix string literal duplications in services
+220f1550b,2026-01-08,12,Endy Muhardin,fix,main-java,fix(code-quality): resolve remaining transactional self-call issues
+8d7176ffc,2026-01-08,11,Endy Muhardin,refactor,main-java,refactor(code-quality): update remaining controllers to use ViewConstants
+cce373b5c,2026-01-08,11,Endy Muhardin,refactor,main-java,refactor(code-quality): add ViewConstants to reduce string duplications
+2b9722551,2026-01-08,9,Endy Muhardin,fix,main-java,fix(code-quality): resolve CRITICAL SonarCloud issues
+1a44bfbd1,2026-01-08,9,Endy Muhardin,test,test,test(assertions): fix BLOCKER SonarCloud issues - missing assertions
+ff1a588bf,2026-01-08,9,Endy Muhardin,refactor,main-java,refactor(code-quality): reduce DataImportService complexity
+402b7aa72,2026-01-08,8,Endy Muhardin,refactor,main-java,refactor(code-quality): reduce complexity - batch 3
+424ea2479,2026-01-08,8,Endy Muhardin,refactor,main-java,refactor(code-quality): reduce cognitive complexity in ReportService
+4358010c9,2026-01-08,8,Endy Muhardin,refactor,main-java,refactor(code-quality): reduce cognitive complexity - batch 2
+e8689a29f,2026-01-08,7,Endy Muhardin,refactor,main-java,refactor(code-quality): reduce cognitive complexity in 3 services
+9fd5b7793,2026-01-08,6,Endy Muhardin,refactor,test,refactor(code-quality): fix additional SonarCloud MINOR findings
+55a47f2cb,2026-01-08,6,Endy Muhardin,refactor,frontend,refactor(code-quality): fix SonarCloud MINOR findings
+2c3ba8581,2026-01-08,5,Endy Muhardin,refactor,main-java,refactor(code-quality): fix SonarCloud top priority findings
+dc0d70e79,2026-01-06,21,Endy Muhardin,fix,seed-data,fix(seed-data): add is_permanent column to COA seed files
+eadfffdd0,2026-01-06,7,Endy Muhardin,feat,test,feat(accounts): auto-suggest permanent field based on account type
+89527fed0,2026-01-05,20,Endy Muhardin,fix,test,fix(accounts): resolve edit form validation and field persistence bugs
+bdccb04aa,2026-01-05,11,Endy Muhardin,other,deploy,revert(infra): simplify JVM settings back to ZGC
+b6bd1cef5,2026-01-05,10,Endy Muhardin,fix,main-java,fix(code-quality): resolve SonarCloud findings
+e910ebfd5,2026-01-05,10,Endy Muhardin,fix,build-other,fix(test): add JVM args for Mockito/ByteBuddy on Java 25
+124debb18,2026-01-04,18,Endy Muhardin,fix,main-java,fix(security): add nosemgrep comments to suppress false positives
+42077ab2e,2026-01-04,14,Endy Muhardin,fix,main-java,fix(security): suppress CSRF hotspot for error controller
+6b3a85d8e,2026-01-04,11,Endy Muhardin,fix,frontend,fix(security): resolve SonarCloud security hotspots
+163f26649,2026-01-04,11,Endy Muhardin,fix,main-java,fix(code-quality): resolve SonarCloud issues
+f25aa5fc2,2026-01-04,7,Endy Muhardin,fix,main-java,fix(security): add explicit HTML escaping for exception messages
+dfb2d5cd9,2026-01-04,7,Endy Muhardin,fix,main-java,fix(security): eliminate SQL string concatenation in DataImportService
+8a845dfa5,2026-01-04,6,Endy Muhardin,fix,main-java,fix(security): resolve CodeQL and Semgrep alerts
+80cb7620f,2026-01-04,5,Endy Muhardin,fix,ci,fix(ci): fix semgrep rule exclusion syntax
+e6d04de1a,2026-01-04,5,Endy Muhardin,fix,ci,fix(ci): skip semgrep SARIF upload when file doesn't exist
+9633ddf02,2026-01-04,5,Endy Muhardin,fix,build-other,fix(deps): resolve high severity dependency vulnerabilities
+2a9a8517b,2026-01-04,4,Endy Muhardin,fix,main-java,fix(code-quality): resolve remaining CodeQL alerts
+95d667c04,2026-01-04,4,Endy Muhardin,fix,main-java,fix(code-quality): fix test failures from unmodifiable collection pattern
+755e51268,2026-01-03,23,Endy Muhardin,fix,main-java,fix(code-quality): address CodeQL alerts for code quality issues
+e4fdf7444,2026-01-03,23,Endy Muhardin,fix,main-java,fix(security): add log-injection protection with LogSanitizer
+828e0e7ef,2026-01-03,22,Endy Muhardin,fix,ci,fix(ci): exclude Python/generic rules from Semgrep scan
+c565f2cb6,2026-01-03,22,Endy Muhardin,fix,ci,fix(ci): add Codecov token for protected branch upload
+eb8f282cb,2026-01-03,22,Endy Muhardin,chore,build-other,chore: prepare for next development iteration
+77b46cf55,2026-01-03,22,Endy Muhardin,release,docs,release: bump version to 2026.01-RELEASE
+a3a7d7235,2026-01-03,20,Endy Muhardin,fix,test,fix(ci): remove remaining IS_CI/DAST_ENABLED check in setupZap
+b0b4d6b4c,2026-01-03,20,Endy Muhardin,ci,ci,ci: consolidate workflows and enable DAST on every test run
+a6aa819e9,2026-01-03,14,Endy Muhardin,fix,build-other,fix(build): correct Maven wrapper version to 3.9.9
+9b8d41ccb,2026-01-03,11,Endy Muhardin,docs,docs,docs: update documentation with PostgreSQL 18 and capacity planning
+dd7d9e52d,2026-01-03,10,Endy Muhardin,fix,deploy,fix(ansible): resolve deployment issues found during production upgrade
+c9d8cb05d,2026-01-03,10,Endy Muhardin,other,deploy,infra: upgrade PostgreSQL 18 and optimize stack for 2GB VPS
+11a894700,2025-12-29,7,Endy Muhardin,other,build-other,upgrade to spring boot 4.0.1
+2836b0827,2025-12-28,23,Endy Muhardin,fix,build-other,fix(spotbugs): exclude error controller CSRF false positive
+85cd4a5b5,2025-12-28,23,Endy Muhardin,docs,build-other,docs: update documentation with DAST graybox testing improvements
+a6f01537f,2025-12-28,22,Endy Muhardin,fix,main-java,fix(security): address DAST findings and improve CSP header coverage
+bd6d43eb2,2025-12-28,20,Endy Muhardin,refactor,test,refactor(security): use graybox endpoint enumeration for DAST tests
+8c59b9b99,2025-12-28,17,Endy Muhardin,feat,test,feat(security): enhance DAST test with comprehensive coverage
+d20d45ded,2025-12-28,16,Endy Muhardin,chore,build-other,chore: remove obsolete session summary files
+115fe1fdd,2025-12-28,15,Endy Muhardin,fix,build-other,fix(deps): update zap-clientapi to 1.17.0 for ZAP 2.17.0 compatibility
+e439e69e0,2025-12-27,21,Endy Muhardin,chore,build-other,chore: prepare for next development iteration
+072bb67ed,2025-12-27,20,Endy Muhardin,release,docs,release: bump version to 2025.12.7-RELEASE
+9bfea8126,2025-12-27,17,Endy Muhardin,fix,templates,fix(ui): add actual balance validation to journal preview
+a60b01485,2025-12-27,17,Endy Muhardin,fix,main-java,fix(ui): sort chart of accounts children by account code
+fa64f71fd,2025-12-27,15,Endy Muhardin,feat,test,feat(tax): add tax profile page for company tax classification
+3fea42323,2025-12-27,6,Endy Muhardin,fix,test,fix(ui): resolve race condition in transaction form preview
+08e40f20a,2025-12-27,5,Endy Muhardin,feat,templates,feat(ui): show D/K accounts in template selection on transaction form
+145552374,2025-12-27,5,Endy Muhardin,fix,templates,fix(ui): display all page numbers in transaction list pagination
+42bc050a3,2025-12-26,11,Endy Muhardin,feat,main-java,feat(templates): implement template versioning and add template info to transaction detail
+ee8cf8bdf,2025-12-25,17,Endy Muhardin,fix,test,fix(docs): add missing payroll sections to UserManualGenerator
+c1766b988,2025-12-25,14,Endy Muhardin,fix,test,fix(test): fix ServicePayrollLifecycleTest assertions and bank selection
+a37eb6009,2025-12-25,1,Claude,docs,docs,docs(payroll): enhance user manual with complete payroll lifecycle guide
+327ab2458,2025-12-25,7,Endy Muhardin,chore,build-other,chore: prepare for next development iteration
+6a893a4b7,2025-12-25,7,Endy Muhardin,release,docs,release: bump version to 2025.12.6-RELEASE
+a30fc0b4d,2025-12-24,22,Endy Muhardin,refactor,templates,refactor(csp): add nonces to all inline scripts and fix CSP violations
+727e9591b,2025-12-24,19,Endy Muhardin,chore,frontend,chore(deps): upgrade htmx from 2.0.4 to 2.0.7
+8ba6a84ea,2025-12-24,19,Endy Muhardin,refactor,test,refactor(csp): upgrade Alpine.js to 3.15.3 and fix CSP compatibility
+977cdbd97,2025-12-24,13,Endy Muhardin,test,test,test: remove debug logging from UserPermissionIntegrationTest
+043212098,2025-12-24,13,Endy Muhardin,refactor,templates,refactor(security): eliminate unsafe-inline from CSP for styles
+2e049e4cb,2025-12-23,21,Endy Muhardin,chore,build-other,chore: prepare for next development iteration
+78be9058c,2025-12-23,21,Endy Muhardin,release,docs,release: bump version to 2025.12.5-RELEASE
+3dec6e949,2025-12-23,12,Claude,fix,build-other,fix(ci): remove spring-datasource-password rule causing false positives
+82c17a14e,2025-12-23,12,Claude,fix,build-other,fix(ci): remove invalid entropy config from gitleaks
+f6eea02f1,2025-12-23,12,Claude,fix,ci,fix(ci): replace gitleaks-action with CLI to avoid license requirement
+32ed5cefb,2025-12-23,18,Endy Muhardin,fix,test,fix(dast): replace deprecated core.htmlreport with reports.generate
+806539477,2025-12-23,18,Endy Muhardin,fix,frontend,fix(csp): make Alpine.js fully CSP-compatible
+d7fe8dd9f,2025-12-23,13,Endy Muhardin,fix,frontend,fix(security): implement CSP nonces and fix DAST vulnerabilities
+5b3fa03f6,2025-12-23,11,Endy Muhardin,docs,docs,docs: remove unimplemented nuclei scanner from plan
+6e4f9d635,2025-12-23,11,Endy Muhardin,docs,build-other,docs: update CLAUDE.md with SpotBugs audit completion
+a0c34aff7,2025-12-23,11,Endy Muhardin,docs,docs,docs: update documentation for completed SpotBugs security audit
+2747f0744,2025-12-23,10,Endy Muhardin,docs,build-other,docs(security): add SpotBugs exclusions for Spring DI false positives
+b0584aca5,2025-12-23,10,Endy Muhardin,other,build-other,ignore log files
+2b9f72512,2025-12-23,10,Endy Muhardin,fix,main-java,fix(code-quality): fix final 2 SpotBugs issues
+81e07d8ce,2025-12-23,10,Endy Muhardin,refactor,main-java,refactor(code-quality): replace static fields with instance fields in converter
+f211df719,2025-12-23,10,Endy Muhardin,fix,main-java,fix(code-quality): add null checks for potential NPE issues
+e8959a692,2025-12-23,9,Endy Muhardin,fix,main-java,fix(code-quality): use platform-independent newline in format strings
+5177e5b3f,2025-12-23,9,Endy Muhardin,refactor,main-java,refactor(code-quality): fix SpotBugs style issues
+757e7721f,2025-12-23,9,Endy Muhardin,fix,main-java,fix(security): specify explicit UTF-8 charset in encryption services
+5a5609431,2025-12-23,9,Endy Muhardin,feat,templates,feat(ui): replace template dropdown with autocomplete search
+e96f18841,2025-12-23,9,Endy Muhardin,feat,build-other,feat(security): fix all critical SpotBugs security vulnerabilities
+c8ad5d060,2025-12-23,7,Endy Muhardin,feat,build-other,feat(security): implement DevSecOps quick wins and re-enable SpotBugs for Java 25
+123fd757a,2025-12-18,10,Endy Muhardin,chore,build-other,chore: prepare for next development iteration
+78782b120,2025-12-18,9,Endy Muhardin,release,docs,release: bump version to 2025.12.4-RELEASE
+ce47f4974,2025-12-18,6,Endy Muhardin,fix,templates,fix(ui): make transaction table responsive for mobile
+89bfe6fa4,2025-12-17,23,Endy Muhardin,fix,templates,fix(ui): fix invalid HTML structure causing row duplication in transaction list
+44f9884f7,2025-12-17,20,Endy Muhardin,fix,main-java,fix(templates): resolve detached entity error when creating/duplicating templates
+50fb27cad,2025-12-17,16,Endy Muhardin,feat,templates,feat(ui): add frontend double-submission prevention to transaction form
+f56d993bb,2025-12-17,11,Endy Muhardin,feat,templates,feat(ui): auto-reload transaction list after Quick Transaction submission
+343e65807,2025-12-17,11,Endy Muhardin,fix,templates,fix(ui): fix draft transaction edit form variable scope in Thymeleaf
+1ebd759db,2025-12-17,10,Endy Muhardin,feat,test,feat(security): implement optimistic locking to prevent double-submission
+1d8bddb5f,2025-12-16,23,Endy Muhardin,fix,templates,fix(security): resolve two security regression test failures
+93b9f0ce2,2025-12-16,21,Endy Muhardin,feat,templates,feat(ui): improve quick transaction modal UX
+361f951e7,2025-12-16,20,Endy Muhardin,fix,templates,fix(ui): fix quick transaction form submission and HTMX loading
+2c2a4ef22,2025-12-16,20,Endy Muhardin,feat,test,feat(ui): add quick transaction FAB with smart template picker
+98fdfcf25,2025-12-16,19,Endy Muhardin,fix,main-java,fix(ui): preselect previously chosen accounts in draft transaction edit form
+f2beda961,2025-12-16,18,Endy Muhardin,fix,main-java,fix(import): trim whitespace from CSV field values
+dc24a02d2,2025-12-16,18,Endy Muhardin,fix,templates,fix(ui): display journal preview for draft transactions in detail view
+4eaf1a822,2025-12-15,9,Endy Muhardin,fix,test,fix(test): isolate SellerTransactionExecutionTest context to prevent state sharing
+9744953cb,2025-12-14,22,Endy Muhardin,build,build-other,build: add Ubuntu setup script for test environment configuration
+66479b1eb,2025-12-13,7,Endy Muhardin,fix,test,fix(docs): fix education industry manual issues on live site
+02b691c72,2025-12-13,6,Endy Muhardin,docs,docs,docs: clarify that GitHub Actions auto-creates releases
+b82a6902d,2025-12-12,23,Endy Muhardin,chore,build-other,chore: prepare for next development iteration
+fe5405a64,2025-12-12,23,Endy Muhardin,release,docs,release: bump version to 2025.12.3-RELEASE
+982706c27,2025-12-12,22,Endy Muhardin,docs,docs,docs: complete education industry manual and update all documentation
+b85b4ca29,2025-12-12,21,Endy Muhardin,test,test,test(campus): implement Phase 4 of functional test revamp
+cd4b9a4dc,2025-12-12,21,Endy Muhardin,fix,test,fix(tests): navigate directly to user form instead of clicking
+656060110,2025-12-12,20,Endy Muhardin,fix,test,fix(tests): use admin login for self-service screenshot tests
+512242a3d,2025-12-12,19,Endy Muhardin,fix,test,fix(docs): add missing screenshots and fix BPJS table rendering
+8f176c184,2025-12-12,18,Endy Muhardin,fix,test,fix(tests): standardize report screenshot names to use singular form
+2be3a579d,2025-12-12,18,Endy Muhardin,fix,docs,fix(docs): fix inconsistent screenshot filenames in user manual
+c1d24b4d8,2025-12-12,16,Endy Muhardin,fix,test,fix(docs): fix broken image links and add screenshot capture to functional tests
+444449860,2025-12-12,10,Endy Muhardin,refactor,test,refactor(tests): eliminate all text-based locators from functional tests
+e54a1a627,2025-12-12,9,Endy Muhardin,docs,docs,docs(manual): complete manufacturing industry user manual (09-industri-manufaktur.md)
+0a722b857,2025-12-12,9,Endy Muhardin,docs,docs,docs: update status for Phase 5 manufacturing tests and coffee shop seed pack
+ad7268c5b,2025-12-12,8,Endy Muhardin,feat,test,feat(manufacturing): add coffee shop seed data and refactor tests with data-testid
+125197472,2025-12-12,6,Endy Muhardin,other,docs,update functional test creation plan
+41d1d7c33,2025-12-12,6,Endy Muhardin,docs,docs,docs: add CSV-specific transaction walkthroughs for Service and Seller industries
+b1fb0c677,2025-12-11,23,Endy Muhardin,refactor,test,refactor(manual): move screenshots from docs/ to target/
+083bf4959,2025-12-11,23,Endy Muhardin,docs,docs,docs: update user manual guidelines with target/ screenshot strategy
+077bd14ea,2025-12-11,22,Endy Muhardin,fix,test,fix(tests): add V800 to integration tests and fix SecurityRegressionTest profile
+a828c81c5,2025-12-11,21,Endy Muhardin,refactor,test,refactor(tests): reorganize test migrations and fix data loading
+323fdf628,2025-12-11,21,Endy Muhardin,docs,docs,docs: update test data architecture in plan document
+63995bd9a,2025-12-11,19,Endy Muhardin,refactor,test,refactor(tests): convert ServiceReportsTest to CSV-driven architecture
+a58ef588f,2025-12-11,18,Endy Muhardin,docs,docs,docs: add test independence and CSV-driven architecture patterns
+b4dac4209,2025-12-11,16,Endy Muhardin,other,test,WIP functional test revamp
+eed951514,2025-12-11,15,Endy Muhardin,feat,test,feat(tests): add service industry functional tests with data verification
+54894a2db,2025-12-11,10,Endy Muhardin,other,test,Fix user manual section extraction to prevent duplication and ensure complete content
+aca459cf9,2025-12-11,9,Endy Muhardin,docs,docs,docs(user-manual): remove old 43-file structure
+a7c24a314,2025-12-11,9,Endy Muhardin,docs,docs,docs(user-manual): implement new 12-section structure
+15c32014c,2025-12-11,9,Endy Muhardin,docs,docs,docs: add user manual creation guidelines
+bbbc5bc34,2025-12-11,9,Endy Muhardin,other,docs,"user manual creation guideline, draft version"
+dbebb7d18,2025-12-11,8,Endy Muhardin,fix,test,fix(tests): resolve CI failures for security and screenshot tests
+c2e075190,2025-12-11,6,Endy Muhardin,feat,test,feat(tests): add Online Seller Industry functional tests (Phase 2)
+fdd493e39,2025-12-11,6,Endy Muhardin,feat,test,feat(tests): add Service Industry functional tests (Phase 1)
+9cee90aab,2025-12-11,4,Endy Muhardin,refactor,test,refactor(tests): clean slate for multi-industry test architecture
+e6183c351,2025-12-11,3,Endy Muhardin,docs,docs,docs: add screenshot capture for user manual updates
+a1f056e13,2025-12-11,3,Endy Muhardin,docs,docs,docs: add campus industry (STMIK Tazkia) to test revamp plan
+3534f8b39,2025-12-10,21,Endy Muhardin,docs,docs,docs: add functional test architecture revamp plan
+67091fdad,2025-12-10,20,Endy Muhardin,fix,test,fix(tests): rename V004a migration and update template counts
+de7351143,2025-12-10,18,Endy Muhardin,other,seed-data,"unfinished feature, CI will be failed"
+9cc7401e4,2025-12-10,13,Endy Muhardin,feat,build-other,feat(seed): add multi-industry seed data support
+df452ba3d,2025-12-10,10,Endy Muhardin,fix,build-other,fix(docs): correct migration count in CLAUDE.md
+67188788d,2025-12-10,9,Endy Muhardin,release,docs,release: bump version to 2025.12.2-RELEASE
+be3bedb9f,2025-12-10,7,Endy Muhardin,fix,test,fix(tests): update tests for consolidated transaction form
+3134dc099,2025-12-09,23,Endy Muhardin,refactor,main-java,refactor(transactions): consolidate template execute into transaction form
+f8406cf87,2025-12-09,19,Endy Muhardin,chore,deploy,chore: add gcp-credentials.json and get-pip.py to gitignore
+72f777ea1,2025-12-09,16,Endy Muhardin,fix,templates,fix(ui): improve journal preview account code styling
+d087e248f,2025-12-09,15,Endy Muhardin,fix,build-other,fix(seed-data): change template_type to DETAILED for multi-variable templates
+eed23b191,2025-12-09,15,Endy Muhardin,fix,templates,fix(ui): improve dashboard spacing between KPI cards and content sections
+419499a42,2025-12-09,15,Endy Muhardin,chore,deploy,chore: add gcp-credentials.yml to gitignore
+a0fd06d14,2025-12-09,10,Endy Muhardin,test,test,test(payroll): add integration tests for PayrollService#postPayroll
+061facdc4,2025-12-08,21,Endy Muhardin,other,main-java,Fix transaction form preview and sequence number issues
+f4066abc2,2025-12-08,19,Endy Muhardin,refactor,build-other,refactor(seed-data): improve tax expense account structure
+e7e189f93,2025-12-08,19,Endy Muhardin,docs,docs,docs: add scenarios for delayed tax payments to user manuals
+621d100ac,2025-12-08,18,Endy Muhardin,other,build-other,ignore macos file
+b31d3a308,2025-12-08,18,Endy Muhardin,feat,build-other,feat(seed-data): add initial balance transaction and flexible bank templates
+1fada3c6b,2025-12-08,16,Endy Muhardin,other,docs,Bump version to 2025.12.1-RELEASE
+a0c8adda9,2025-12-08,16,Endy Muhardin,other,build-other,Remove isFavorite field from JournalTemplate entity
+2dc88315b,2025-12-08,11,Endy Muhardin,other,main-java,Fix favorites filter and deprecate template-level isFavorite field
+b66ee5976,2025-12-08,9,Endy Muhardin,other,main-java,Remove unused JournalEntryStatus enum
+f5cc19b99,2025-12-08,8,Endy Muhardin,other,templates,Redirect to transaction detail after template execution
+3a81edc03,2025-12-08,6,Endy Muhardin,other,main-java,Improve transaction list ordering consistency
+85dec85d2,2025-12-08,5,Endy Muhardin,other,frontend,Fix DetailedTemplatePreviewTest to select dynamic accounts
+a5181030f,2025-12-07,22,Endy Muhardin,other,main-java,Fix journal entry ordering in Buku Besar view
+dbe8f0184,2025-12-07,22,Endy Muhardin,other,main-java,Fix dynamic account selection for journal template execution
+7b52180a5,2025-12-07,21,Endy Muhardin,fix,templates,fix: replace T(Math).min() with ternary in Thymeleaf templates
+1a1c2ff4c,2025-12-07,20,Endy Muhardin,feat,test,feat: add rich test data for user manual screenshots
+e26ec6adc,2025-12-07,18,Endy Muhardin,ci,docs,ci: add automated release workflow with release notes
+0019fe755,2025-12-07,18,Endy Muhardin,ci,ci,ci: restrict CI and user manual workflows to main branch only
+cc2518b7a,2025-12-07,18,Endy Muhardin,feat,main-java,feat: add HTML error pages and consolidate exception handling
+09c9f2e90,2025-12-07,15,Endy Muhardin,refactor,ci,refactor: use SpringBootTest for user manual screenshot capture
+e3fb4da0e,2025-12-07,7,Claude,fix,ci,fix: include test classpath for spring-boot:run
+d2a7cd059,2025-12-07,6,Claude,fix,test,fix: use test migrations for screenshot sample data
+26f6a7b2b,2025-12-07,6,Claude,fix,test,fix: use list pages for screenshots when detail data unavailable
+d16ce5f81,2025-12-07,5,Claude,fix,docs,fix: correct screenshot paths in user manual
+1356b9ccf,2025-12-07,5,Claude,docs,docs,docs: add inline screenshots to all remaining user manual files
+244ca9369,2025-12-07,4,Claude,docs,docs,docs: add inline screenshots at each step in user manual
+4fa047606,2025-12-07,4,Claude,docs,docs,docs: add detailed beginner-friendly instructions to user manual
+5709402d5,2025-12-07,3,Claude,docs,docs,docs: reorganize user manual from basic to advanced features
+b4af9cbb3,2025-12-06,22,Endy Muhardin,release,build-other,release: 2025.12-RELEASE - First GA release
+ae2a11c70,2025-12-06,22,Endy Muhardin,fix,test,fix: load git.properties for version info display on about page
+117a3bfa5,2025-12-06,19,Endy Muhardin,refactor,test,refactor: replace brittle test locators with stable ID-based selectors
+b52a1384f,2025-12-06,19,Endy Muhardin,docs,docs,docs: update documentation to reflect Phase 5 and 6 status
+e66ddfd76,2025-12-06,18,Endy Muhardin,other,build-other,logo artivisi
+87ef92426,2025-12-06,18,Endy Muhardin,fix,test,fix: add company logo to export/import and fix flaky tests
+1c44a9d0c,2025-12-06,17,Endy Muhardin,feat,test,feat: add DETAILED template variable support and manual journal template
+130982a75,2025-12-06,16,Endy Muhardin,fix,main-java,fix: correct encryption key env var and add TELEGRAM_MANAGE to ADMIN/OWNER
+73abb5d1e,2025-12-06,10,Endy Muhardin,fix,main-java,fix: improve error logging - use appropriate levels without stack traces
+798502dbe,2025-12-06,10,Endy Muhardin,fix,deploy,fix: enable HSTS header in nginx SSL configuration
+be7415390,2025-12-06,9,Endy Muhardin,docs,docs,docs: mark sensitive data in error messages test as complete
+46b28cb4c,2025-12-06,9,Endy Muhardin,test,test,test: add Input Validation security tests for oversized files and SSTI
+b760ca90d,2025-12-06,9,Endy Muhardin,test,test,"test: add Error Handling, Rate Limiting, and Audit Logging security tests"
+92eb309c3,2025-12-06,9,Endy Muhardin,test,test,test: add Data Protection and Business Logic security tests
+142373185,2025-12-06,8,Endy Muhardin,fix,test,fix: implement proper 403 access denied handling and fix authorization tests
+1e2337417,2025-12-06,7,Endy Muhardin,test,test,test: add IDOR (Insecure Direct Object Reference) security tests
+fd93014aa,2025-12-06,7,Endy Muhardin,test,test,test: add authorization and business logic security tests
+2e7da8793,2025-12-06,7,Endy Muhardin,test,test,test: enhance security regression tests with actual assertions
+997bc62fe,2025-12-06,7,Endy Muhardin,docs,docs,docs: reorganize and consolidate documentation
+f18f86989,2025-12-06,6,Endy Muhardin,refactor,test,refactor: update ZAP client API to 1.16.0 and fix deprecated methods
+558841a87,2025-12-06,6,Endy Muhardin,chore,docs,chore: remove obsolete security audit report
+ef0fdf1d7,2025-12-06,6,Endy Muhardin,docs,docs,docs: add security policy and penetration testing checklist
+390f77a61,2025-12-06,6,Endy Muhardin,fix,main-java,fix: disable CORS filter to resolve login form submission error
+1acd6723a,2025-12-06,6,Endy Muhardin,test,test,test: add JUnit security unit tests
+a41969f66,2025-12-06,6,Endy Muhardin,docs,docs,docs: update user manual with security documentation
+a3222fc65,2025-12-06,4,Endy Muhardin,feat,templates,feat: add data subject rights UI for GDPR/UU PDP compliance
+c07ab8420,2025-12-06,4,Endy Muhardin,test,test,test: add comprehensive tests for GDPR/UU PDP data subject rights
+6512b6a2f,2025-12-06,4,Endy Muhardin,fix,test,fix: resolve AuditLogViewerTest isolation issue with @DirtiesContext
+c98249149,2025-12-05,22,Endy Muhardin,feat,deploy,feat: add document encryption key deployment via systemd EnvironmentFile
+c1c5e6b11,2025-12-05,22,Endy Muhardin,fix,deploy,fix: improve PostgreSQL SSL verification and document security requirements
+158e353e5,2025-12-05,22,Endy Muhardin,other,docs,delete obsolete file
+a07ba6f5f,2025-12-05,16,Endy Muhardin,feat,test,feat: add security audit log viewer and settings audit logging
+d3f9ecbfa,2025-12-05,15,Endy Muhardin,feat,deploy,feat: add security hardening in Ansible deployment
+bb2df620e,2025-12-05,15,Endy Muhardin,docs,docs,docs: update Data in Transit Protection checklist
+5b78e4608,2025-12-05,15,Endy Muhardin,feat,build-other,feat: enable SSL for PostgreSQL database connections
+2544c9c66,2025-12-05,15,Endy Muhardin,feat,test,feat: implement document storage encryption with AES-256-GCM
+9e9879e38,2025-12-05,14,Endy Muhardin,docs,docs,docs: update Phase 6.9 security testing checklist
+7cf506f72,2025-12-05,14,Endy Muhardin,fix,test,fix(test): correct routes and selectors in SecurityRegressionTest
+c44fd7400,2025-12-05,1,Claude,fix,test,fix: make DAST tests CI-only by default
+0181821f4,2025-12-05,1,Claude,fix,build-other,fix: exclude DAST tests from default test runs
+c09fbef41,2025-12-05,1,Claude,refactor,ci,refactor: simplify DAST workflow to use Spring-integrated approach only
+2fcbdde19,2025-12-05,0,Claude,feat,test,feat: add Spring-integrated OWASP ZAP DAST testing
+cf191e862,2025-12-05,0,Claude,feat,ci,feat: add comprehensive DevSecOps security testing pipeline
+41a363ffc,2025-12-05,13,Endy Muhardin,fix,test,fix(test): reset admin password after data import in FullDataExportImportTest
+65954a405,2025-12-05,8,Endy Muhardin,feat,main-java,feat(security): implement Phase 6 security hardening
+fe2ce1e33,2025-12-05,8,Endy Muhardin,feat,main-java,feat(security): implement Phase 6 security hardening
+6392f74fc,2025-12-05,0,Claude,docs,docs,docs: add comprehensive data state security coverage
+495d034a7,2025-12-05,0,Claude,docs,docs,docs: add GDPR/UU PDP compliance requirements
+4a0748163,2025-12-05,0,Claude,docs,docs,docs: add Phase 6 Security Hardening to implementation plan
+c04d1a706,2025-12-05,0,Claude,docs,docs,docs: add comprehensive security audit report
+2262ddc4d,2025-12-05,5,Endy Muhardin,chore,build-other,chore: expand sonar exclusions for Thymeleaf fragment patterns
+a66043405,2025-12-05,5,Endy Muhardin,chore,build-other,chore: expand sonar exclusions for Thymeleaf fragment patterns
+291bf2a01,2025-12-05,5,Endy Muhardin,fix,test,fix: address SonarCloud reliability bugs and update exclusions
+ea8e0f745,2025-12-05,4,Endy Muhardin,refactor,main-java,refactor: replace RuntimeException with custom ReportGenerationException
+55b616d4d,2025-12-05,4,Endy Muhardin,refactor,main-java,refactor: address SonarCloud critical/major code quality issues
+db32304d6,2025-12-05,4,Endy Muhardin,fix,main-java,fix: address SonarCloud security hotspots and code quality issues
+bef3397de,2025-12-05,4,Endy Muhardin,feat,templates,feat: add amortization dashboard widget with pending/overdue/due counts
+3d681fe19,2025-12-05,4,Endy Muhardin,chore,deploy,chore: update ansible config for newer ansible-core compatibility
+9ef950537,2025-12-05,4,Endy Muhardin,feat,test,feat: add PDF/Excel exports and functional tests for inventory/depreciation reports
+87a210043,2025-12-04,23,Endy Muhardin,fix,build-other,fix: change Saldo Awal Tahun template category from ADJUSTMENT to TRANSFER
+35a89a9ba,2025-12-04,23,Endy Muhardin,feat,test,feat: implement milestone overdue detection with functional test
+e205c514b,2025-12-04,22,Endy Muhardin,feat,templates,feat: implement Phase 5.5 Sales Integration with margin display
+7ccb129e9,2025-12-04,22,Endy Muhardin,feat,main-java,feat: implement Phase 5.4 Simple Production (BOM)
+cc657bf9c,2025-12-04,13,Endy Muhardin,docs,docs,docs: update documentation for transaction-centric architecture
+488c19e3e,2025-12-04,10,Endy Muhardin,refactor,test,refactor: consolidate to transaction-centric architecture
+1c3894480,2025-12-03,22,Claude,refactor,main-java,refactor: update queries and code to use Transaction fields
+dc0343de3,2025-12-03,22,Claude,feat,main-java,feat: add computed getters to JournalEntry for Transaction delegation
+29c395380,2025-12-03,22,Claude,refactor,main-java,refactor: remove per-line description in JournalEntryController
+3db0f19b7,2025-12-03,22,Claude,refactor,main-java,refactor: implement Transaction as header for journal entries
+9e6265653,2025-12-04,5,Endy Muhardin,fix,test,fix: TaxExportTest fails when test data spans month boundaries
+1b38d5faa,2025-12-04,4,Endy Muhardin,feat,main-java,feat: add auto-journal generation and inventory reports (Phase 5.2-5.3)
+df45dd850,2025-12-03,23,Endy Muhardin,feat,main-java,feat: implement Depreciation Report (4.4) and Fiscal Year Closing (4.5)
+d0337c9c5,2025-12-03,23,Endy Muhardin,feat,main-java,feat: implement Depreciation Report (4.4) and Fiscal Year Closing (4.5)
+6530fb543,2025-12-03,22,Endy Muhardin,feat,main-java,feat: implement Phase 5 Inventory & Production (5.1 Product Master + 5.2 Inventory Transactions)
+5adf050a0,2025-12-03,22,Endy Muhardin,feat,build-other,feat: add sharia-compliant interest handling (Dana Non-Halal)
+97c89eb7f,2025-12-03,21,Endy Muhardin,docs,docs,docs: add Depreciation Report and Fiscal Year Closing to implementation plan
+0e2172649,2025-12-03,21,Endy Muhardin,feat,build-other,feat: add Saldo Awal Tahun template for opening balance entry
+1f800e676,2025-12-03,21,Endy Muhardin,feat,build-other,feat: update Artivisi seed data to v3.0 with expanded CSV format
+afd9ed8c4,2025-12-03,20,Endy Muhardin,feat,main-java,feat: implement Phase 4 Fixed Assets Management
+9d62d10a9,2025-12-03,18,Endy Muhardin,docs,docs,docs: reorganize implementation phases by value and focus
+2fefcaa86,2025-12-03,18,Endy Muhardin,docs,docs,docs: add inventory/production phase and home industry analysis
+364735ef5,2025-12-03,17,Endy Muhardin,docs,docs,docs: add technical analysis for fund accounting limitations
+8d31216e2,2025-12-03,17,Endy Muhardin,docs,docs,docs: add multi-industry expansion strategy and reorganize phases
+9b0531271,2025-12-03,17,Endy Muhardin,test,test,test: expand functional tests and fix Invoice date binding
+5257adf70,2025-12-03,11,Endy Muhardin,fix,templates,fix: adjust textarea padding in company settings page
+03c72fc94,2025-12-03,11,Endy Muhardin,feat,test,feat: add company logo upload and bundle JS assets locally
+030c2c50e,2025-12-03,8,Endy Muhardin,fix,main-java,fix: resolve SonarCloud security vulnerabilities
+eb4866d19,2025-12-03,6,Endy Muhardin,refactor,test,refactor: update TransactionServiceTest and coverage tracking doc
+4fcadb610,2025-12-03,6,Endy Muhardin,test,test,test: add service integration tests and functional tests for coverage
+24a9d2cd6,2025-12-02,22,Endy Muhardin,test,test,"test: add unit tests for ReceiptParser, TelegramBot, and Transaction services"
+633d49383,2025-12-02,21,Endy Muhardin,fix,build-other,fix: selective table truncation in data import and add seed data converter
+230bb13e4,2025-12-02,19,Endy Muhardin,feat,main-java,feat: implement full data export/import with round-trip verification
+27cec6e42,2025-12-02,13,Endy Muhardin,docs,docs,docs: add Phase 3.9 Full Data Export/Import specification
+45e1eb685,2025-12-02,13,Endy Muhardin,feat,test,feat: add DocumentStorageTest and DraftTransactionTest
+43cfd1413,2025-12-02,5,Endy Muhardin,feat,test,feat: add PayrollReportTest with 24 functional tests
+577bfe664,2025-12-01,21,Endy Muhardin,other,docs,update architecture docs
+c18046ae1,2025-12-01,20,Endy Muhardin,docs,docs,docs: add comprehensive TODO for achieving 80% test coverage
+6139ee1ff,2025-12-01,14,Endy Muhardin,other,main-java,Fix test regressions after natural key refactoring
+291f55eb8,2025-12-01,7,Endy Muhardin,refactor,main-java,refactor: Use journal numbers in URLs instead of UUIDs
+8c6c39780,2025-12-01,7,Endy Muhardin,fix,test,fix: Display account names in template execution preview
+b21aaebed,2025-12-01,7,Endy Muhardin,test,templates,test: Fix E2E tests with ID-based locators and dashboard links
+053f051b4,2025-12-01,7,Endy Muhardin,test,test,test: Fix functional tests to use ID-based locators instead of CSS classes
+2fc4804e5,2025-11-30,22,Endy Muhardin,fix,templates,fix: Replace all hardcoded values in template detail page
+b913700c5,2025-11-30,21,Endy Muhardin,fix,templates,fix: Collect account mappings in transaction form submission
+15b5661da,2025-11-30,21,Endy Muhardin,feat,templates,feat: Transaction form supports dynamic account selection
+979a6b94c,2025-11-30,21,Endy Muhardin,feat,templates,feat: Add dynamic account selection (?) for template lines
+d4e016204,2025-11-30,21,Endy Muhardin,feat,main-java,feat: Add TELEGRAM_MANAGE permission for ACCOUNTANT and STAFF
+a6130804c,2025-11-30,20,Endy Muhardin,fix,main-java,fix: Handle missing company config ID in settings update
+79ed87f91,2025-11-30,20,Endy Muhardin,fix,templates,fix: Add proper drag and drop handlers for import file upload
+660407c3f,2025-11-30,19,Endy Muhardin,fix,build-other,fix: Correct property name to disable OSS Index Analyzer
+cce38286b,2025-11-30,19,Endy Muhardin,fix,ci,fix: Disable Sonatype OSS Index in GitHub Actions security scan
+784489e47,2025-11-30,19,Endy Muhardin,refactor,main-java,refactor: Remove unused account_balances materialization code
+a33197542,2025-11-30,18,Endy Muhardin,fix,templates,fix: Add comprehensive permission checks to controllers and UI components
+03d403d32,2025-11-30,16,Endy Muhardin,feat,deploy,feat: Enable Google Cloud Vision for receipt OCR
+c734c1a81,2025-11-30,16,Endy Muhardin,other,main-java,Refactor: Use Spring Data JPA web support for entity path variables
+7bb5be49e,2025-11-30,15,Endy Muhardin,other,templates,Fix: Alpine.js form values not displaying in transaction edit mode
+0ec1aef6e,2025-11-30,14,Endy Muhardin,other,main-java,Fix Telegram bot message parsing and verification flow
+f31701044,2025-11-30,14,Endy Muhardin,other,main-java,Fix version info by adding git-commit-id-maven-plugin
+3f0dea3f3,2025-11-30,13,Endy Muhardin,other,main-java,Replace telegrambots-client with custom DTOs and Spring HTTP Interface
+9ffd69d85,2025-11-30,11,Endy Muhardin,other,templates,Add about page with git version info and functional tests
+8181e0ba4,2025-11-30,11,Endy Muhardin,other,build-other,ignore local data storage for storing receipt
+da4e5a0e2,2025-11-30,11,Endy Muhardin,other,resources,sync application properties database port to docker compose config
+e059c0ee6,2025-11-30,11,Endy Muhardin,other,test,Add document upload functionality to transaction form with tests
+76ed05492,2025-11-30,6,Endy Muhardin,other,templates,Fix transaction form preview to evaluate formulas dynamically
+e8f06c008,2025-11-30,6,Endy Muhardin,other,templates,Make dashboard load data dynamically
+76aba9c73,2025-11-29,22,Endy Muhardin,other,build-other,Remove duplicate 'Bayar Hutang Gaji' template
+0b323479e,2025-11-29,22,Endy Muhardin,other,test,Fix formula validation to support dynamic variables
+c42a58bcb,2025-11-29,21,Endy Muhardin,other,test,Update test data to include description field
+d21d90f1b,2025-11-29,21,Endy Muhardin,other,main-java,Add description field to TemplateImportFileDto
+e8be5bde8,2025-11-29,21,Endy Muhardin,other,docs,Update deployment guide and fix COA import
+05f613138,2025-11-29,21,Endy Muhardin,other,docs,Add comprehensive release procedure documentation
+3e84fa0bc,2025-11-29,21,Endy Muhardin,other,deploy,Improve Ansible output formatting and scrollability
+6c4ffeaf6,2025-11-29,20,Endy Muhardin,other,docs,rclone setup for gdrive
+a3740924f,2025-11-29,20,Endy Muhardin,other,deploy,Fix backup system for system user without home directory
+74958d7a1,2025-11-29,19,Endy Muhardin,other,docs,Fix Google Drive OAuth timing and remove manual verification steps
+812bb9d10,2025-11-29,19,Endy Muhardin,other,docs,Update deployment guide to reflect complete Ansible workflow
+47c348213,2025-11-29,16,Endy Muhardin,other,build-other,Fix dependency-check OSS Index rate limit errors
+6b28bea45,2025-11-29,16,Endy Muhardin,other,ci,Fix NVD API key configuration in GitHub Actions
+45d406d09,2025-11-29,16,Endy Muhardin,other,build-other,Fix broken Decisions & Questions link in README
+9ea2f3f88,2025-11-29,16,Endy Muhardin,other,build-other,Add initial balance setup guide to README
+acdc73689,2025-11-29,12,Endy Muhardin,other,deploy,Security: configurable admin username to prevent enumeration attacks
+782f0a11e,2025-11-29,12,Endy Muhardin,other,docs,"Add deployment guide, architecture docs, and CI/CD workflow"
+1a8d048db,2025-11-29,11,Endy Muhardin,other,docs,Add capacity planning document for Artivisi deployment
+8b850b080,2025-11-29,10,Endy Muhardin,other,build-other,Remove obsolete TODO-PROJECT-TRACKING.md
+3470d4e63,2025-11-29,10,Endy Muhardin,other,build-other,Update artivisi templates to v2.1 with investment accounts
+c2c328a22,2025-11-29,10,Endy Muhardin,other,docs,Reorganize decisions into Architecture Decision Records (ADR)
+cc3cedf47,2025-11-29,10,Endy Muhardin,other,docs,Move data retention policy to project root for regulatory visibility
+dfbdfe2da,2025-11-29,10,Endy Muhardin,other,deploy,"Update ansible configs: add document storage, Telegram, and GCP Vision settings"
+4aba099cc,2025-11-29,10,Endy Muhardin,other,templates,Fix accessibility issues: form labels and color contrast
+ba110af8d,2025-11-29,10,Endy Muhardin,other,main-java,Fix SonarCloud issues: security vulnerabilities and code smells
+8c1f396d2,2025-11-29,9,Endy Muhardin,other,ci,"Fix security scan: suppress CVE false positive, disable SpotBugs for Java 25"
+337870a7a,2025-11-29,6,Endy Muhardin,other,test,Fix SelfServiceTest: remove invalid year filter assertions
+db85cb777,2025-11-29,5,Endy Muhardin,other,ci,Add security scanning with OWASP and SpotBugs
+12af8d78b,2025-11-29,5,Endy Muhardin,other,main-java,Add Data Export feature for regulatory compliance
+713798d7a,2025-11-29,5,Endy Muhardin,other,docs,Add Data Retention Policy documentation
+98de5ac8f,2025-11-29,5,Endy Muhardin,other,templates,Add Employee Self-Service feature (Phase 3.8)
+8ab56397a,2025-11-29,4,Endy Muhardin,other,main-java,Add User Management & RBAC feature (Phase 3.7)
+9d1541c07,2025-11-28,23,Endy Muhardin,other,build-other,Update artivisi templates to v2.0 with payroll support
+344e80f79,2025-11-28,23,Endy Muhardin,other,test,Reorganize user manual sidebar with collapsible groups
+d7d079cba,2025-11-28,23,Endy Muhardin,other,main-java,Add Payroll Reports feature (Phase 3.6)
+6f101b666,2025-11-28,23,Endy Muhardin,other,docs,Add Telegram integration setup guide to user manual
+6ab94446c,2025-11-28,23,Endy Muhardin,other,test,Add payroll sections to user manual generator
+6fde97ff9,2025-11-28,22,Endy Muhardin,other,docs,Add Employee Self-Service and RBAC enhancements to implementation plan
+9b4c150aa,2025-11-28,22,Endy Muhardin,other,docs,Reorganize implementation plan phases
+8735ca663,2025-11-28,22,Endy Muhardin,other,docs,Add payroll journal posting via Transaction/Template system (Phase 3.5)
+9d41e363e,2025-11-28,21,Endy Muhardin,other,main-java,Add Payroll Processing feature (Phase 3.5)
+b1a8e6da1,2025-11-28,20,Endy Muhardin,other,test,Add PPh 21 Calculator feature (Phase 3.4)
+7648d13c4,2025-11-28,19,Endy Muhardin,other,docs,Add BPJS Calculator user manual documentation
+19b73cd95,2025-11-28,19,Endy Muhardin,other,test,Add BPJS Calculation feature with UI (Phase 3.3)
+ba1536d1c,2025-11-28,19,Endy Muhardin,other,main-java,Add Salary Component feature (Phase 3.2)
+b377f41d0,2025-11-28,15,Endy Muhardin,other,build-other,Update docs: mark Phase 3.1 Employee Management complete
+4118db280,2025-11-28,15,Endy Muhardin,other,main-java,Add Employee Management feature (Phase 3.1)
+e4b43a48f,2025-11-28,12,Endy Muhardin,other,docs,Update implementation plan: add user manual references
+0b5e6c273,2025-11-28,12,Endy Muhardin,other,docs,Add user manual for Fiscal Period and Tax Calendar
+66ec71913,2025-11-28,12,Endy Muhardin,other,templates,Add Cash Flow Statement report (Phase 2.10)
+ef1f2b5bc,2025-11-28,8,Endy Muhardin,other,main-java,Add Tax Calendar feature (Phase 2.8)
+bb384f962,2025-11-28,7,Endy Muhardin,other,test,Fix test isolation: use 2025 dates to prevent report data contamination
+22e970758,2025-11-28,7,Endy Muhardin,other,docs,Trim implementation plan: remove completed implementation details
+a5bab9050,2025-11-28,6,Endy Muhardin,other,docs,Restructure implementation phases
+ab45d7a17,2025-11-28,6,Endy Muhardin,other,docs,Update docs: mark 2.7 Fiscal Period Management complete
+341e57bb5,2025-11-27,23,Endy Muhardin,other,main-java,Add Fiscal Period Management feature (Phase 2.7)
+7ddc6c087,2025-11-27,22,Endy Muhardin,other,templates,Fix ClientTest selector matching multiple elements
+2cb362ac7,2025-11-27,21,Endy Muhardin,other,test,Add TaxExport functional tests and fix DocumentAttachment tests
+e41170e2a,2025-11-27,13,Claude,other,test,Update screenshot and manual generators for new structure
+5b0981507,2025-11-27,13,Claude,other,docs,Reorganize user manual from menu-based to task-based structure
+cf9fad78f,2025-11-27,13,Claude,other,main-java,Add Coretax export feature (Phase 2.6)
+a0dbc68f9,2025-11-27,20,Endy Muhardin,other,main-java,Add Telegram Receipt Import feature (Phase 2.2)
+e254ae3d8,2025-11-27,17,Endy Muhardin,other,test,Add Tax Reports feature (Phase 2.6)
+a16b1ab48,2025-11-27,15,Endy Muhardin,other,resources,Add Artivisi COA and journal templates with tax support (2.3-2.5)
+f4759439a,2025-11-27,15,Endy Muhardin,other,docs,"Update implementation plan: mark 2.0, 2.1, CI/CD complete"
+40aed4735,2025-11-27,15,Endy Muhardin,other,ci,Add CI workflow with test results and coverage reporting
+770092cec,2025-11-27,13,Endy Muhardin,other,main-java,Add Document Attachment feature for transactions (2.1)
+590574560,2025-11-27,6,Endy Muhardin,other,deploy,Add Ansible backup and restore playbooks (1.13)
+42f3e9229,2025-11-26,22,Endy Muhardin,other,docs,Remove not-required todo item
+48a1b2bc9,2025-11-26,22,Endy Muhardin,other,main-java,Add Data Import feature for COA and Journal Templates (1.12)
+c8244cbb6,2025-11-26,11,Claude,other,docs,Add Google Cloud Vision setup documentation
+c0f206624,2025-11-26,11,Claude,other,docs,Add Telegram bot setup documentation
+97fa0c528,2025-11-26,11,Claude,other,docs,Update Telegram integration to use webhook mode
+01fdf805a,2025-11-26,10,Claude,other,docs,Add Telegram Receipt Import feature to Phase 2 implementation plan
+804fdc7f0,2025-11-26,12,Claude,other,docs,Add User Management & RBAC (2.13) to Phase 2
+9d516c021,2025-11-26,12,Claude,other,docs,Update data migration plan with correct transaction count and timeline
+4d4d343f7,2025-11-26,12,Claude,other,docs,Add Data Migration plan to 1.13 Deployment & Operations
+010c3491c,2025-11-26,12,Claude,other,docs,Add Deployment & Operations (1.13) to Phase 1
+3e867d45c,2025-11-26,11,Claude,other,docs,Add Clear Data feature to 1.12 Data Import
+755867cf7,2025-11-26,11,Claude,other,build-other,Add Data Import feature (1.12) and importable COA/template files
+c14610a53,2025-11-26,19,Endy Muhardin,other,deploy,Add Pulumi and Ansible deployment scripts for Digital Ocean
+8406ed770,2025-11-26,12,Endy Muhardin,other,test,Add downloadable PDF samples to user manual
+5885522f2,2025-11-26,12,Endy Muhardin,other,test,Fix print template SpEL expressions and add PDF preview test
+3b8a82ac7,2025-11-26,11,Endy Muhardin,other,frontend,Use existing Artivisi logo instead of placeholder
+7f0fd3c3b,2025-11-26,11,Endy Muhardin,other,templates,Add professional printable templates for invoices and financial reports
+8c51348bc,2025-11-26,11,Endy Muhardin,other,main-java,Implement Company Settings with multiple bank accounts
+6c3e4055d,2025-11-26,10,Endy Muhardin,other,migrations,Consolidate migration files into 4 logical groups
+cbf39b703,2025-11-26,10,Endy Muhardin,other,docs,Mark Phase 1 (Core Accounting MVP) as complete
+aec0544eb,2025-11-26,10,Endy Muhardin,other,docs,Implement User Manual (1.11) - Complete documentation infrastructure
+fd6987241,2025-11-26,9,Endy Muhardin,other,docs,Add User Manual (1.11) to Phase 1 implementation plan
+1374f967f,2025-11-26,7,Endy Muhardin,other,templates,Implement Dashboard KPIs (1.10) with HTMX
+6bd773da8,2025-11-26,6,Endy Muhardin,other,test,Add functional tests for Project Tracking payment and invoice flows
+543dc1b82,2025-11-26,5,Endy Muhardin,other,main-java,Implement Revenue Recognition and Invoice Payment Integration (1.9)
+b9bf82335,2025-11-25,21,Endy Muhardin,other,docs,Update implementation plan: mark profitability reports complete
+b40d4095f,2025-11-25,21,Endy Muhardin,other,test,Implement Profitability Reports (1.9 Phase 7)
+ef04a3f08,2025-11-25,20,Endy Muhardin,other,main-java,"Implement Milestone, Payment Terms, Invoice, and Transaction-Project linking (1.9)"
+89b54c1d8,2025-11-25,19,Endy Muhardin,other,main-java,Implement Project Tracking (1.9) - Client and Project management
+bc8b72dd1,2025-11-25,17,Endy Muhardin,other,templates,Fix HTMX CSRF token and amortization entry tests
+b576f91ba,2025-11-25,17,Endy Muhardin,other,main-java,Implement Amortization Schedules (1.8) and add Project Tracking TODO
+7c9b82ce9,2025-11-25,15,Endy Muhardin,other,build-other,Add TODO for Amortization Schedules (1.8) and update status
+2cbb6655e,2025-11-25,13,Endy Muhardin,other,templates,htmx optimization
+8e4a60604,2025-11-25,13,Endy Muhardin,other,build-other,Add HTMX optimization TODO and update implementation plan
+9186b2ac6,2025-11-25,13,Endy Muhardin,other,docs,Update implementation plan: mark Template Enhancements (1.7) as complete
+0b89b2625,2025-11-25,13,Endy Muhardin,other,main-java,"Implement Template Enhancements (1.7) with search, tags, and user favorites"
+992217c83,2025-11-25,11,Endy Muhardin,other,build-other,Cleanup completed TODOs and create TODO for Template Enhancements (1.7)
+d7c391b6b,2025-11-25,11,Endy Muhardin,other,docs,Move Account Balances (Materialized) from Phase 1 to Phase 2
+d6656fe83,2025-11-25,11,Endy Muhardin,other,docs,Update implementation plan: mark Formula Support (1.6) as complete
+51e86e529,2025-11-25,11,Endy Muhardin,other,templates,Implement Transactions (1.5) with dynamic Thymeleaf templates
+d43eec1fd,2025-11-25,10,Endy Muhardin,other,templates,Add live formula preview (Coba Formula) feature
+4ea5b64ff,2025-11-25,9,Endy Muhardin,other,test,Implement Formula Support (1.6) with unified SpEL evaluation
+0c1b14f0a,2025-11-25,9,Endy Muhardin,other,build-other,Add Formula Support (1.6) before Transactions in implementation order
+bb7cbb920,2025-11-25,8,Endy Muhardin,other,build-other,"Update TODO: Journal Templates complete, start Transactions (1.5)"
+d18ce3a00,2025-11-25,8,Endy Muhardin,other,build-other,Update implementation plan and TODO documentation
+6faaa6b52,2025-11-25,8,Endy Muhardin,other,templates,Implement Journal Templates (Section 1.4) with CRUD and execution
+160e9e7a1,2025-11-24,22,Endy Muhardin,other,build-other,Update TODO-JOURNAL-TEMPLATES.md with accurate scope from implementation plan
+b8cb3767f,2025-11-24,15,Claude,other,docs,"Add project milestones, payment terms, and invoice tracking to Phase 1"
+709505e66,2025-11-24,15,Claude,other,docs,"Add business analysis features: KPIs, client profitability, and smart alerts"
+e7fbb1533,2025-11-24,15,Claude,other,docs,Add project tracking (1.10) and defer tags to Phase 2
+6e206a2a5,2025-11-24,21,Endy Muhardin,other,build-other,Update README and CLAUDE.md to reflect completed Basic Reports
+e94e03af6,2025-11-24,21,Endy Muhardin,other,main-java,Implement Export Features (Section 5) for Basic Reports
+04ff8bfc8,2025-11-24,14,Claude,other,docs,Add amortization schedules feature to Phase 1 (section 1.9)
+cf4c89ca2,2025-11-24,20,Endy Muhardin,other,test,Implement Income Statement Report (Section 4) with Playwright tests
+9493e161e,2025-11-24,19,Endy Muhardin,other,test,Implement Balance Sheet Report (Section 3) with Playwright tests
+dbc896a44,2025-11-24,19,Endy Muhardin,other,test,Implement Trial Balance Report (Section 1.1) with Playwright tests
+50a395cbb,2025-11-24,18,Endy Muhardin,other,build-other,Add test data preparation section to TODO-BASIC-REPORTS.md
+8ad015441,2025-11-24,18,Endy Muhardin,other,build-other,Replace TODO-JOURNAL-ENTRIES.md with TODO-BASIC-REPORTS.md
+5596ad932,2025-11-24,18,Endy Muhardin,other,build-other,Update README and CLAUDE.md to reflect completed Journal Entries
+ee3d05d81,2025-11-24,18,Endy Muhardin,other,test,Add Account Impact section to Journal Entry detail view
+2e647ea9e,2025-11-24,18,Endy Muhardin,other,test,Implement Account Validation (Section 9) with Playwright tests
+e64b5aa3d,2025-11-24,16,Endy Muhardin,other,test,Implement Void Journal Entry (Section 8) with Playwright tests
+9b4ce45be,2025-11-24,16,Endy Muhardin,other,test,Implement Post Journal Entry (Section 7) with Playwright tests
+fa509d129,2025-11-24,15,Endy Muhardin,other,test,Implement Journal Entry Edit and View Detail with Playwright tests
+43ab89ee7,2025-11-24,14,Endy Muhardin,other,build-other,Add JaCoCo plugin for code coverage reporting
+ccf2ff494,2025-11-24,14,Endy Muhardin,other,build-other,Update TODO-JOURNAL-ENTRIES.md: mark Section 4 and Balance Validation complete
+eb3c18182,2025-11-24,13,Endy Muhardin,other,templates,Implement Journal Entry Create form with Alpine.js dynamic lines and Playwright tests
+1e9be92de,2025-11-24,12,Endy Muhardin,other,test,"Implement Journal Entry List UI with pagination, search, and Playwright tests"
+b8ec7b319,2025-11-24,11,Endy Muhardin,other,main-java,Implement JournalEntryService CRUD and workflow methods
+41e7f69fa,2025-11-24,11,Endy Muhardin,other,main-java,Add status workflow fields to JournalEntry entity
+c2434be1f,2025-11-24,11,Endy Muhardin,other,build-other,Add TODO for Journal Entries (1.2) with current state analysis
+e1d9f7554,2025-11-24,11,Endy Muhardin,other,build-other,"Mark COA (1.1) complete, retire TODO-COA.md"
+2684f0abc,2025-11-24,11,Endy Muhardin,other,test,"Add Playwright tests for hierarchy, seed data, and soft delete verification"
+ca46e5189,2025-11-24,10,Endy Muhardin,other,test,Implement Activate/Deactivate Account feature with Playwright tests
+827f71c72,2025-11-24,3,Claude,other,docs,Reorder Phase 1 implementation to prioritize journal entries and reports
+6f8e034a1,2025-11-24,10,Endy Muhardin,other,test,Implement Delete Account feature with Playwright tests
+071f7a064,2025-11-24,10,Endy Muhardin,other,test,Implement Edit Account feature with Playwright tests
+4065043c4,2025-11-24,9,Endy Muhardin,other,test,Implement Create Account feature with Playwright tests
+523e950a6,2025-11-24,8,Endy Muhardin,other,resources,disable sql logging
+54997b529,2025-11-24,8,Endy Muhardin,other,test,Add permanent field to ChartOfAccount and complete Account List Display tests
+09038a718,2025-11-23,23,Endy Muhardin,other,main-java,Implement soft delete with deleted_at timestamp
+506f35a96,2025-11-23,23,Endy Muhardin,other,build-other,Update implementation plan and project documentation
+601217eeb,2025-11-23,23,Endy Muhardin,other,frontend,Add SVG favicon using green swoosh from logo
+f239ffcfd,2025-11-23,22,Endy Muhardin,other,test,Implement Chart of Account UI with Playwright tests
+25af0b1ad,2025-11-23,9,Claude,other,test,Fix syntax errors in ReportAlternateTest
+d8d1b141c,2025-11-23,9,Claude,other,test,Add comprehensive functional tests using Playwright
+706800ffd,2025-11-23,9,Claude,other,main-java,"Implement database schema, entities, repositories, services, and API layer"
+ca21dd719,2025-11-23,9,Claude,other,templates,"Add basic reports UI mockups with trial balance, income statement, balance sheet, and cash flow"
+9628c7ff4,2025-11-23,8,Claude,other,main-java,Fix: add missing isDuplicate attribute to template form routes
+d42d7cfcc,2025-11-23,8,Claude,other,ci,Skip deployment on feature branches (only deploy from main/master)
+d0a521f4a,2025-11-23,8,Claude,other,ci,Enable workflow to run on claude/* branches
+96c0d1530,2025-11-23,8,Claude,other,ci,Fix workflow: set SERVER_PORT=8080 to ensure app starts on expected port
+b8f154f24,2025-11-23,7,Claude,other,build-other,Refactor user manual generator to use Playwright Java
+63435dcd7,2025-11-23,7,Claude,other,build-other,Add user manual generator with Playwright and GitHub Pages deployment
+d2f2d0946,2025-11-23,6,Claude,other,templates,"Add Journal Template UI mockup with list, detail, and form pages"
+a947c1e92,2025-11-23,6,Claude,other,templates,Add Journal Entry (Buku Besar) UI mockup
+220f806ca,2025-11-23,6,Claude,other,templates,"Add Transaction UI mockup with list, form, detail, and void pages"
+e957e594f,2025-11-22,23,Endy Muhardin,other,test,Add is_permanent field to account form with smart defaults
+ecbb5939f,2025-11-22,22,Endy Muhardin,other,templates,Add Chart of Accounts UI and Playwright test infrastructure
+2e1591622,2025-11-22,21,Endy Muhardin,other,frontend,Add login and dashboard UI with Tailwind CSS v4
+ba9cb82d3,2025-11-22,20,Endy Muhardin,other,docs,Add phased implementation plan focused on IT Services MVP
+66c964659,2025-11-22,20,Endy Muhardin,other,docs,Complete all design decisions and update documentation
+e00b6e330,2025-11-22,16,Endy Muhardin,other,build-other,starter spring 4 app
+22bafceb7,2025-11-19,22,Endy Muhardin,other,docs,Document 3-phase deployment progression
+e1d16d3fc,2025-11-19,22,Endy Muhardin,other,docs,Refactor to single-tenant architecture
+cb204fc5d,2025-11-19,22,Endy Muhardin,other,docs,"Complete technology stack with Java 25, Spring Boot 4.0, and DevSecOps"
+3c84fb414,2025-11-19,21,Endy Muhardin,other,docs,"Add document management, auditor features, and update README"
+efc0892e0,2025-11-19,21,Endy Muhardin,other,docs,Add initial design documentation
+f6a7a0936,2025-11-19,20,Endy Muhardin,other,build-other,Initial commit
