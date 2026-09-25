@@ -41,6 +41,7 @@ import static com.artivisi.accountingfinance.security.Permission.VENDOR_VIEW;
 public class VendorController {
 
     private static final String ATTR_VENDOR = "vendor";
+    private static final String ATTR_VENDOR_CODE = "vendorCode";
     private static final String ATTR_SUCCESS_MESSAGE = "successMessage";
     private static final String ATTR_ERROR_MESSAGE = "errorMessage";
     private static final String ATTR_EXPENSE_ACCOUNTS = "expenseAccounts";
@@ -220,6 +221,7 @@ public class VendorController {
         Vendor vendor = vendorService.findByCode(code);
 
         model.addAttribute(ATTR_VENDOR, toForm(vendor));
+        model.addAttribute(ATTR_VENDOR_CODE, code);
         model.addAttribute(ATTR_EXPENSE_ACCOUNTS, chartOfAccountService.findByAccountType(AccountType.EXPENSE));
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_VENDORS);
         model.addAttribute(ATTR_IS_EDIT, true);
@@ -238,6 +240,7 @@ public class VendorController {
         if (bindingResult.hasErrors()) {
             Vendor existing = vendorService.findByCode(code);
             form.setId(existing.getId());
+            model.addAttribute(ATTR_VENDOR_CODE, code);
             model.addAttribute(ATTR_EXPENSE_ACCOUNTS, chartOfAccountService.findByAccountType(AccountType.EXPENSE));
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_VENDORS);
             model.addAttribute(ATTR_IS_EDIT, true);
@@ -254,6 +257,7 @@ public class VendorController {
             bindingResult.rejectValue("code", "duplicate", e.getMessage());
             Vendor existing = vendorService.findByCode(code);
             form.setId(existing.getId());
+            model.addAttribute(ATTR_VENDOR_CODE, code);
             model.addAttribute(ATTR_EXPENSE_ACCOUNTS, chartOfAccountService.findByAccountType(AccountType.EXPENSE));
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_VENDORS);
             model.addAttribute(ATTR_IS_EDIT, true);
