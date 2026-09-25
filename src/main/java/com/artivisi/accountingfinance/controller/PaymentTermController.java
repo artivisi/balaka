@@ -4,6 +4,7 @@ import com.artivisi.accountingfinance.entity.Project;
 import com.artivisi.accountingfinance.entity.ProjectMilestone;
 import com.artivisi.accountingfinance.entity.ProjectPaymentTerm;
 import com.artivisi.accountingfinance.enums.PaymentTrigger;
+import com.artivisi.accountingfinance.security.Permission;
 import com.artivisi.accountingfinance.service.InvoiceService;
 import com.artivisi.accountingfinance.service.ProjectMilestoneService;
 import com.artivisi.accountingfinance.service.ProjectPaymentTermService;
@@ -18,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import org.springframework.beans.BeanUtils;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -37,6 +39,7 @@ import static com.artivisi.accountingfinance.controller.ViewConstants.*;
 @Controller
 @RequestMapping("/projects/{projectCode}/payment-terms")
 @RequiredArgsConstructor
+@PreAuthorize("hasAuthority('" + Permission.PROJECT_VIEW + "')")
 public class PaymentTermController {
 
     private static final String ATTR_PROJECT = "project";
@@ -107,6 +110,7 @@ public class PaymentTermController {
     }
 
     @GetMapping("/new")
+    @PreAuthorize("hasAuthority('" + Permission.PROJECT_EDIT + "')")
     public String newForm(@PathVariable String projectCode, Model model) {
         Project project = projectService.findByCode(projectCode);
         PaymentTermForm form = new PaymentTermForm();
@@ -121,6 +125,7 @@ public class PaymentTermController {
     }
 
     @PostMapping("/new")
+    @PreAuthorize("hasAuthority('" + Permission.PROJECT_EDIT + "')")
     public String create(
             @PathVariable String projectCode,
             @Valid @ModelAttribute(ATTR_PAYMENT_TERM) PaymentTermForm form,
@@ -155,6 +160,7 @@ public class PaymentTermController {
     }
 
     @GetMapping("/{id}/edit")
+    @PreAuthorize("hasAuthority('" + Permission.PROJECT_EDIT + "')")
     public String editForm(
             @PathVariable String projectCode,
             @PathVariable UUID id,
@@ -172,6 +178,7 @@ public class PaymentTermController {
     }
 
     @PostMapping("/{id}")
+    @PreAuthorize("hasAuthority('" + Permission.PROJECT_EDIT + "')")
     public String update(
             @PathVariable String projectCode,
             @PathVariable UUID id,
@@ -208,6 +215,7 @@ public class PaymentTermController {
     }
 
     @PostMapping("/{id}/delete")
+    @PreAuthorize("hasAuthority('" + Permission.PROJECT_EDIT + "')")
     public String delete(
             @PathVariable String projectCode,
             @PathVariable UUID id,
@@ -219,6 +227,7 @@ public class PaymentTermController {
     }
 
     @PostMapping("/{id}/generate-invoice")
+    @PreAuthorize("hasAuthority('" + Permission.INVOICE_CREATE + "')")
     public String generateInvoice(
             @PathVariable String projectCode,
             @PathVariable UUID id,

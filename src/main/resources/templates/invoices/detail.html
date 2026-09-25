@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
       th:replace="~{layouts/main :: layout('Detail Invoice', ~{::#page-title}, ~{::section}, ~{::script})}"
       lang="id">
 <head>
@@ -159,7 +160,7 @@
         </div>
 
         <!-- Record Payment Form (Alpine.js toggle) -->
-        <div th:if="${invoice.status.name() == 'SENT' || invoice.status.name() == 'OVERDUE' || invoice.status.name() == 'PARTIAL'}"
+        <div sec:authorize="hasAuthority('INVOICE_MARK_PAID')" th:if="${invoice.status.name() == 'SENT' || invoice.status.name() == 'OVERDUE' || invoice.status.name() == 'PARTIAL'}"
              class="bg-white rounded-lg shadow p-6" x-data="{ showForm: false }" data-testid="payment-form-section">
             <div class="flex items-center justify-between mb-4">
                 <h3 class="text-lg font-medium text-gray-900">Catat Pembayaran</h3>
@@ -222,14 +223,14 @@
                 </a>
 
                 <!-- Edit (only draft) -->
-                <a th:if="${invoice.status.name() == 'DRAFT'}"
+                <a sec:authorize="hasAuthority('INVOICE_EDIT')" th:if="${invoice.status.name() == 'DRAFT'}"
                    th:href="@{/invoices/{invoiceNumber}/edit(invoiceNumber=${invoice.invoiceNumber})}"
                    class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
                     Edit
                 </a>
 
                 <!-- Send (only draft) -->
-                <form th:if="${invoice.status.name() == 'DRAFT'}" id="form-send"
+                <form sec:authorize="hasAuthority('INVOICE_SEND')" th:if="${invoice.status.name() == 'DRAFT'}" id="form-send"
                       th:action="@{/invoices/{invoiceNumber}/send(invoiceNumber=${invoice.invoiceNumber})}"
                       method="post" class="inline">
                     <button type="submit" class="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">
@@ -238,14 +239,14 @@
                 </form>
 
                 <!-- Mark as Paid (sent, overdue, or partial) - redirects to transaction form -->
-                <a th:if="${invoice.status.name() == 'SENT' || invoice.status.name() == 'OVERDUE' || invoice.status.name() == 'PARTIAL'}"
+                <a sec:authorize="hasAuthority('INVOICE_MARK_PAID')" th:if="${invoice.status.name() == 'SENT' || invoice.status.name() == 'OVERDUE' || invoice.status.name() == 'PARTIAL'}"
                    th:href="@{/invoices/{invoiceNumber}/pay(invoiceNumber=${invoice.invoiceNumber})}"
                    class="px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors">
                     Tandai Lunas
                 </a>
 
                 <!-- Cancel (not paid) -->
-                <form th:if="${invoice.status.name() != 'PAID' && invoice.status.name() != 'CANCELLED'}" id="form-cancel"
+                <form sec:authorize="hasAuthority('INVOICE_EDIT')" th:if="${invoice.status.name() != 'PAID' && invoice.status.name() != 'CANCELLED'}" id="form-cancel"
                       th:action="@{/invoices/{invoiceNumber}/cancel(invoiceNumber=${invoice.invoiceNumber})}"
                       method="post" class="inline">
                     <button type="submit" class="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">
@@ -254,7 +255,7 @@
                 </form>
 
                 <!-- Delete (draft or cancelled) -->
-                <form th:if="${invoice.status.name() == 'DRAFT' || invoice.status.name() == 'CANCELLED'}" id="form-delete"
+                <form sec:authorize="hasAuthority('INVOICE_EDIT')" th:if="${invoice.status.name() == 'DRAFT' || invoice.status.name() == 'CANCELLED'}" id="form-delete"
                       th:action="@{/invoices/{invoiceNumber}/delete(invoiceNumber=${invoice.invoiceNumber})}"
                       method="post" class="inline">
                     <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">

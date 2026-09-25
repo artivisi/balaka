@@ -9,6 +9,7 @@ import com.artivisi.accountingfinance.entity.InvoicePayment;
 import com.artivisi.accountingfinance.entity.Project;
 import com.artivisi.accountingfinance.enums.InvoiceStatus;
 import com.artivisi.accountingfinance.enums.PaymentMethod;
+import com.artivisi.accountingfinance.security.Permission;
 import com.artivisi.accountingfinance.service.ClientService;
 import com.artivisi.accountingfinance.service.CompanyBankAccountService;
 import com.artivisi.accountingfinance.service.CompanyConfigService;
@@ -27,6 +28,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -148,6 +150,7 @@ public class InvoiceController {
     }
 
     @GetMapping("/new")
+    @PreAuthorize("hasAuthority('" + Permission.INVOICE_CREATE + "')")
     public String newForm(
             @RequestParam(required = false) UUID clientId,
             @RequestParam(required = false) UUID projectId,
@@ -169,6 +172,7 @@ public class InvoiceController {
     }
 
     @PostMapping("/new")
+    @PreAuthorize("hasAuthority('" + Permission.INVOICE_CREATE + "')")
     public String create(
             @Valid @ModelAttribute(ATTR_INVOICE) InvoiceForm form,
             BindingResult bindingResult,
@@ -212,6 +216,7 @@ public class InvoiceController {
     }
 
     @GetMapping("/{invoiceNumber}/edit")
+    @PreAuthorize("hasAuthority('" + Permission.INVOICE_EDIT + "')")
     public String editForm(@PathVariable String invoiceNumber, Model model) {
         Invoice invoice = invoiceService.findByInvoiceNumber(invoiceNumber);
 
@@ -225,6 +230,7 @@ public class InvoiceController {
     }
 
     @PostMapping("/{invoiceNumber}")
+    @PreAuthorize("hasAuthority('" + Permission.INVOICE_EDIT + "')")
     public String update(
             @PathVariable String invoiceNumber,
             @Valid @ModelAttribute(ATTR_INVOICE) InvoiceForm form,
@@ -267,6 +273,7 @@ public class InvoiceController {
     }
 
     @PostMapping("/{invoiceNumber}/send")
+    @PreAuthorize("hasAuthority('" + Permission.INVOICE_SEND + "')")
     public String send(@PathVariable String invoiceNumber, RedirectAttributes redirectAttributes) {
         try {
             Invoice invoice = invoiceService.findByInvoiceNumber(invoiceNumber);
@@ -279,6 +286,7 @@ public class InvoiceController {
     }
 
     @GetMapping("/{invoiceNumber}/pay")
+    @PreAuthorize("hasAuthority('" + Permission.INVOICE_MARK_PAID + "')")
     public String payForm(@PathVariable String invoiceNumber, RedirectAttributes redirectAttributes) {
         Invoice invoice = invoiceService.findByInvoiceNumber(invoiceNumber);
 
@@ -294,6 +302,7 @@ public class InvoiceController {
     }
 
     @PostMapping("/{invoiceNumber}/mark-paid")
+    @PreAuthorize("hasAuthority('" + Permission.INVOICE_MARK_PAID + "')")
     public String markPaid(@PathVariable String invoiceNumber, RedirectAttributes redirectAttributes) {
         try {
             Invoice invoice = invoiceService.findByInvoiceNumber(invoiceNumber);
@@ -306,6 +315,7 @@ public class InvoiceController {
     }
 
     @PostMapping("/{invoiceNumber}/payments")
+    @PreAuthorize("hasAuthority('" + Permission.INVOICE_MARK_PAID + "')")
     public String recordPayment(
             @PathVariable String invoiceNumber,
             @RequestParam LocalDate paymentDate,
@@ -332,6 +342,7 @@ public class InvoiceController {
     }
 
     @PostMapping("/{invoiceNumber}/cancel")
+    @PreAuthorize("hasAuthority('" + Permission.INVOICE_EDIT + "')")
     public String cancel(@PathVariable String invoiceNumber, RedirectAttributes redirectAttributes) {
         try {
             Invoice invoice = invoiceService.findByInvoiceNumber(invoiceNumber);
@@ -344,6 +355,7 @@ public class InvoiceController {
     }
 
     @PostMapping("/{invoiceNumber}/delete")
+    @PreAuthorize("hasAuthority('" + Permission.INVOICE_EDIT + "')")
     public String delete(@PathVariable String invoiceNumber, RedirectAttributes redirectAttributes) {
         try {
             Invoice invoice = invoiceService.findByInvoiceNumber(invoiceNumber);

@@ -2,6 +2,7 @@ package com.artivisi.accountingfinance.controller;
 
 import com.artivisi.accountingfinance.entity.Project;
 import com.artivisi.accountingfinance.enums.ProjectStatus;
+import com.artivisi.accountingfinance.security.Permission;
 import com.artivisi.accountingfinance.service.ProjectService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -14,6 +15,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -140,6 +142,7 @@ public class ProjectController {
     }
 
     @GetMapping("/new")
+    @PreAuthorize("hasAuthority('" + Permission.PROJECT_CREATE + "')")
     public String newForm(Model model) {
         model.addAttribute(ATTR_PROJECT, new ProjectForm());
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_PROJECTS);
@@ -147,6 +150,7 @@ public class ProjectController {
     }
 
     @PostMapping("/new")
+    @PreAuthorize("hasAuthority('" + Permission.PROJECT_CREATE + "')")
     public String create(
             @Valid @ModelAttribute(ATTR_PROJECT) ProjectForm form,
             BindingResult bindingResult,
@@ -178,6 +182,7 @@ public class ProjectController {
     }
 
     @GetMapping("/{code}/edit")
+    @PreAuthorize("hasAuthority('" + Permission.PROJECT_EDIT + "')")
     public String editForm(@PathVariable String code, Model model) {
         Project existing = projectService.findByCode(code);
         model.addAttribute(ATTR_PROJECT, toForm(existing));
@@ -187,6 +192,7 @@ public class ProjectController {
     }
 
     @PostMapping("/{code}")
+    @PreAuthorize("hasAuthority('" + Permission.PROJECT_EDIT + "')")
     public String update(
             @PathVariable String code,
             @Valid @ModelAttribute(ATTR_PROJECT) ProjectForm form,
@@ -218,6 +224,7 @@ public class ProjectController {
     }
 
     @PostMapping("/{code}/complete")
+    @PreAuthorize("hasAuthority('" + Permission.PROJECT_EDIT + "')")
     public String complete(
             @PathVariable String code,
             RedirectAttributes redirectAttributes) {
@@ -229,6 +236,7 @@ public class ProjectController {
     }
 
     @PostMapping("/{code}/archive")
+    @PreAuthorize("hasAuthority('" + Permission.PROJECT_EDIT + "')")
     public String archive(
             @PathVariable String code,
             RedirectAttributes redirectAttributes) {
@@ -240,6 +248,7 @@ public class ProjectController {
     }
 
     @PostMapping("/{code}/reactivate")
+    @PreAuthorize("hasAuthority('" + Permission.PROJECT_EDIT + "')")
     public String reactivate(
             @PathVariable String code,
             RedirectAttributes redirectAttributes) {

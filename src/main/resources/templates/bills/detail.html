@@ -230,7 +230,7 @@
                 </form>
 
                 <!-- Cancel (not paid) -->
-                <form th:if="${bill.status.name() != 'PAID' && bill.status.name() != 'CANCELLED'}" id="form-cancel"
+                <form sec:authorize="hasAuthority('BILL_EDIT')" th:if="${bill.status.name() != 'PAID' && bill.status.name() != 'CANCELLED'}" id="form-cancel"
                       th:action="@{/bills/{billNumber}/cancel(billNumber=${bill.billNumber})}"
                       method="post" class="inline">
                     <button type="submit" class="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">
@@ -239,7 +239,7 @@
                 </form>
 
                 <!-- Delete (draft or cancelled) -->
-                <form th:if="${bill.status.name() == 'DRAFT' || bill.status.name() == 'CANCELLED'}" id="form-delete"
+                <form sec:authorize="hasAuthority('BILL_EDIT')" th:if="${bill.status.name() == 'DRAFT' || bill.status.name() == 'CANCELLED'}" id="form-delete"
                       th:action="@{/bills/{billNumber}/delete(billNumber=${bill.billNumber})}"
                       method="post" class="inline">
                     <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">

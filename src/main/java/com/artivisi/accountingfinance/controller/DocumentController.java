@@ -2,6 +2,7 @@ package com.artivisi.accountingfinance.controller;
 
 import com.artivisi.accountingfinance.entity.Document;
 import com.artivisi.accountingfinance.enums.AuditEventType;
+import com.artivisi.accountingfinance.security.Permission;
 import com.artivisi.accountingfinance.service.DocumentService;
 import com.artivisi.accountingfinance.service.SecurityAuditService;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +12,7 @@ import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -33,6 +35,7 @@ import java.util.UUID;
 @RequestMapping("/documents")
 @RequiredArgsConstructor
 @Slf4j
+@PreAuthorize("hasAnyAuthority('" + Permission.TRANSACTION_VIEW + "', '" + Permission.INVOICE_VIEW + "', '" + Permission.DRAFT_VIEW + "')")
 public class DocumentController {
 
     private static final String MSG_UPLOAD_FAILED = "Gagal mengunggah dokumen: ";
@@ -55,6 +58,7 @@ public class DocumentController {
      * Upload document for a transaction (HTMX endpoint).
      */
     @PostMapping("/transaction/{transactionId}")
+    @PreAuthorize("hasAnyAuthority('" + Permission.TRANSACTION_CREATE + "', '" + Permission.TRANSACTION_EDIT + "')")
     public String uploadForTransaction(
             @PathVariable UUID transactionId,
             @RequestParam("file") MultipartFile file,
@@ -91,6 +95,7 @@ public class DocumentController {
      * Upload document for a journal entry (HTMX endpoint).
      */
     @PostMapping("/journal-entry/{journalEntryId}")
+    @PreAuthorize("hasAuthority('" + Permission.JOURNAL_EDIT + "')")
     public String uploadForJournalEntry(
             @PathVariable UUID journalEntryId,
             @RequestParam("file") MultipartFile file,
@@ -126,6 +131,7 @@ public class DocumentController {
      * Upload document for an invoice (HTMX endpoint).
      */
     @PostMapping("/invoice/{invoiceId}")
+    @PreAuthorize("hasAuthority('" + Permission.INVOICE_EDIT + "')")
     public String uploadForInvoice(
             @PathVariable UUID invoiceId,
             @RequestParam("file") MultipartFile file,
@@ -226,6 +232,7 @@ public class DocumentController {
      * Delete a document (HTMX endpoint).
      */
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyAuthority('" + Permission.TRANSACTION_EDIT + "', '" + Permission.JOURNAL_EDIT + "', '" + Permission.INVOICE_EDIT + "')")
     public String deleteDocument(
             @PathVariable UUID id,
             @RequestParam(required = false) UUID transactionId,

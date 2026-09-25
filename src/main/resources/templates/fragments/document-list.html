@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" lang="id">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security" lang="id">
 <head><title>document list Fragment</title></head>
 <body>
 
@@ -20,7 +21,7 @@
     </div>
 
     <!-- Upload Form -->
-    <form th:if="${transactionId != null}"
+    <form sec:authorize="hasAnyAuthority('TRANSACTION_CREATE', 'TRANSACTION_EDIT')" th:if="${transactionId != null}"
           id="document-upload-form"
           data-testid="document-upload-form"
           th:hx-post="@{/documents/transaction/{id}(id=${transactionId})}"
@@ -101,7 +102,7 @@
                     </svg>
                 </a>
                 <!-- Delete button -->
-                <button th:hx-delete="@{/documents/{id}(id=${doc.id}, transactionId=${transactionId}, journalEntryId=${journalEntryId}, invoiceId=${invoiceId})}"
+                <button sec:authorize="hasAnyAuthority('TRANSACTION_EDIT', 'JOURNAL_EDIT', 'INVOICE_EDIT')" th:hx-delete="@{/documents/{id}(id=${doc.id}, transactionId=${transactionId}, journalEntryId=${journalEntryId}, invoiceId=${invoiceId})}"
                         th:data-testid="${'btn-delete-document-' + doc.id}"
                         hx-target="#document-list-container"
                         hx-swap="outerHTML"

@@ -3,6 +3,7 @@ package com.artivisi.accountingfinance.controller;
 import com.artivisi.accountingfinance.entity.ChartOfAccount;
 import com.artivisi.accountingfinance.entity.Vendor;
 import com.artivisi.accountingfinance.enums.AccountType;
+import com.artivisi.accountingfinance.security.Permission;
 import com.artivisi.accountingfinance.service.ChartOfAccountService;
 import com.artivisi.accountingfinance.service.VendorService;
 import jakarta.validation.Valid;
@@ -169,6 +170,7 @@ public class VendorController {
     }
 
     @GetMapping("/new")
+    @PreAuthorize("hasAuthority('" + Permission.VENDOR_CREATE + "')")
     public String newForm(Model model) {
         model.addAttribute(ATTR_VENDOR, new VendorForm());
         model.addAttribute(ATTR_EXPENSE_ACCOUNTS, chartOfAccountService.findByAccountType(AccountType.EXPENSE));
@@ -177,6 +179,7 @@ public class VendorController {
     }
 
     @PostMapping("/new")
+    @PreAuthorize("hasAuthority('" + Permission.VENDOR_CREATE + "')")
     public String create(
             @Valid @ModelAttribute(ATTR_VENDOR) VendorForm form,
             BindingResult bindingResult,
@@ -212,6 +215,7 @@ public class VendorController {
     }
 
     @GetMapping("/{code}/edit")
+    @PreAuthorize("hasAuthority('" + Permission.VENDOR_EDIT + "')")
     public String editForm(@PathVariable String code, Model model) {
         Vendor vendor = vendorService.findByCode(code);
 
@@ -223,6 +227,7 @@ public class VendorController {
     }
 
     @PostMapping("/{code}")
+    @PreAuthorize("hasAuthority('" + Permission.VENDOR_EDIT + "')")
     public String update(
             @PathVariable String code,
             @Valid @ModelAttribute(ATTR_VENDOR) VendorForm form,
@@ -257,6 +262,7 @@ public class VendorController {
     }
 
     @PostMapping("/{code}/deactivate")
+    @PreAuthorize("hasAuthority('" + Permission.VENDOR_DELETE + "')")
     public String deactivate(@PathVariable String code, RedirectAttributes redirectAttributes) {
         Vendor vendor = vendorService.findByCode(code);
         vendorService.deactivate(vendor.getId());
@@ -265,6 +271,7 @@ public class VendorController {
     }
 
     @PostMapping("/{code}/activate")
+    @PreAuthorize("hasAuthority('" + Permission.VENDOR_EDIT + "')")
     public String activate(@PathVariable String code, RedirectAttributes redirectAttributes) {
         Vendor vendor = vendorService.findByCode(code);
         vendorService.activate(vendor.getId());

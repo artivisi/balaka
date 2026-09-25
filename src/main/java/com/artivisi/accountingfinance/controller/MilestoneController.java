@@ -3,6 +3,7 @@ package com.artivisi.accountingfinance.controller;
 import com.artivisi.accountingfinance.entity.Project;
 import com.artivisi.accountingfinance.entity.ProjectMilestone;
 import com.artivisi.accountingfinance.enums.MilestoneStatus;
+import com.artivisi.accountingfinance.security.Permission;
 import com.artivisi.accountingfinance.service.ProjectMilestoneService;
 import com.artivisi.accountingfinance.service.ProjectService;
 import jakarta.validation.Valid;
@@ -15,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import org.springframework.beans.BeanUtils;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -34,6 +36,7 @@ import static com.artivisi.accountingfinance.controller.ViewConstants.*;
 @Controller
 @RequestMapping("/projects/{projectCode}/milestones")
 @RequiredArgsConstructor
+@PreAuthorize("hasAuthority('" + Permission.PROJECT_VIEW + "')")
 public class MilestoneController {
 
     private static final String REDIRECT_PROJECT_PREFIX = "redirect:/projects/";
@@ -81,6 +84,7 @@ public class MilestoneController {
     }
 
     @GetMapping("/new")
+    @PreAuthorize("hasAuthority('" + Permission.PROJECT_EDIT + "')")
     public String newForm(@PathVariable String projectCode, Model model) {
         Project project = projectService.findByCode(projectCode);
 
@@ -91,6 +95,7 @@ public class MilestoneController {
     }
 
     @PostMapping("/new")
+    @PreAuthorize("hasAuthority('" + Permission.PROJECT_EDIT + "')")
     public String create(
             @PathVariable String projectCode,
             @Valid @ModelAttribute("milestone") MilestoneForm form,
@@ -121,6 +126,7 @@ public class MilestoneController {
     }
 
     @GetMapping("/{id}/edit")
+    @PreAuthorize("hasAuthority('" + Permission.PROJECT_EDIT + "')")
     public String editForm(
             @PathVariable String projectCode,
             @PathVariable UUID id,
@@ -136,6 +142,7 @@ public class MilestoneController {
     }
 
     @PostMapping("/{id}")
+    @PreAuthorize("hasAuthority('" + Permission.PROJECT_EDIT + "')")
     public String update(
             @PathVariable String projectCode,
             @PathVariable UUID id,
@@ -172,6 +179,7 @@ public class MilestoneController {
     }
 
     @PostMapping("/{id}/start")
+    @PreAuthorize("hasAuthority('" + Permission.PROJECT_EDIT + "')")
     public String start(
             @PathVariable String projectCode,
             @PathVariable UUID id,
@@ -189,6 +197,7 @@ public class MilestoneController {
     }
 
     @PostMapping("/{id}/complete")
+    @PreAuthorize("hasAuthority('" + Permission.PROJECT_EDIT + "')")
     public String complete(
             @PathVariable String projectCode,
             @PathVariable UUID id,
@@ -206,6 +215,7 @@ public class MilestoneController {
     }
 
     @PostMapping("/{id}/reset")
+    @PreAuthorize("hasAuthority('" + Permission.PROJECT_EDIT + "')")
     public String reset(
             @PathVariable String projectCode,
             @PathVariable UUID id,
@@ -223,6 +233,7 @@ public class MilestoneController {
     }
 
     @PostMapping("/{id}/delete")
+    @PreAuthorize("hasAuthority('" + Permission.PROJECT_EDIT + "')")
     public String delete(
             @PathVariable String projectCode,
             @PathVariable UUID id,

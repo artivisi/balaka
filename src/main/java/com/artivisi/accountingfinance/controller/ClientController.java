@@ -5,6 +5,7 @@ import com.artivisi.accountingfinance.entity.Invoice;
 import com.artivisi.accountingfinance.entity.TaxTransactionDetail;
 import com.artivisi.accountingfinance.repository.InvoiceRepository;
 import com.artivisi.accountingfinance.repository.TaxTransactionDetailRepository;
+import com.artivisi.accountingfinance.security.Permission;
 import com.artivisi.accountingfinance.service.ClientService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
@@ -18,6 +19,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -154,6 +156,7 @@ public class ClientController {
     }
 
     @GetMapping("/new")
+    @PreAuthorize("hasAuthority('" + Permission.CLIENT_CREATE + "')")
     public String newForm(Model model) {
         model.addAttribute(ATTR_CLIENT, new ClientForm());
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_CLIENTS);
@@ -161,6 +164,7 @@ public class ClientController {
     }
 
     @PostMapping("/new")
+    @PreAuthorize("hasAuthority('" + Permission.CLIENT_CREATE + "')")
     public String create(
             @Valid @ModelAttribute(ATTR_CLIENT) ClientForm form,
             BindingResult bindingResult,
@@ -221,6 +225,7 @@ public class ClientController {
     }
 
     @GetMapping("/{code}/edit")
+    @PreAuthorize("hasAuthority('" + Permission.CLIENT_EDIT + "')")
     public String editForm(@PathVariable String code, Model model) {
         Client existing = clientService.findByCode(code);
         model.addAttribute(ATTR_CLIENT, toForm(existing));
@@ -230,6 +235,7 @@ public class ClientController {
     }
 
     @PostMapping("/{code}")
+    @PreAuthorize("hasAuthority('" + Permission.CLIENT_EDIT + "')")
     public String update(
             @PathVariable String code,
             @Valid @ModelAttribute(ATTR_CLIENT) ClientForm form,
@@ -262,6 +268,7 @@ public class ClientController {
     }
 
     @PostMapping("/{code}/deactivate")
+    @PreAuthorize("hasAuthority('" + Permission.CLIENT_EDIT + "')")
     public String deactivate(
             @PathVariable String code,
             RedirectAttributes redirectAttributes) {
@@ -273,6 +280,7 @@ public class ClientController {
     }
 
     @PostMapping("/{code}/activate")
+    @PreAuthorize("hasAuthority('" + Permission.CLIENT_EDIT + "')")
     public String activate(
             @PathVariable String code,
             RedirectAttributes redirectAttributes) {

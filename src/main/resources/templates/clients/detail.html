@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
       th:replace="~{layouts/main :: layout('Detail Klien', ~{::#page-title}, ~{::section}, ~{::script})}"
       lang="id">
 <head>
@@ -90,18 +91,18 @@
                    data-testid="view-statement">
                     Lihat Laporan
                 </a>
-                <a th:href="@{/clients/{code}/edit(code=${client.code})}"
+                <a sec:authorize="hasAuthority('CLIENT_EDIT')" th:href="@{/clients/{code}/edit(code=${client.code})}"
                    class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
                     Edit
                 </a>
-                <form th:if="${client.active}" id="form-deactivate"
+                <form sec:authorize="hasAuthority('CLIENT_EDIT')" th:if="${client.active}" id="form-deactivate"
                       th:action="@{/clients/{code}/deactivate(code=${client.code})}"
                       method="post" class="inline">
                     <button type="submit" class="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">
                         Nonaktifkan
                     </button>
                 </form>
-                <form th:unless="${client.active}"
+                <form sec:authorize="hasAuthority('CLIENT_EDIT')" th:unless="${client.active}"
                       th:action="@{/clients/{code}/activate(code=${client.code})}"
                       method="post" class="inline">
                     <button type="submit" class="px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors">

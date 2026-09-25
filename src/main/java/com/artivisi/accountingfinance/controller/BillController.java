@@ -7,6 +7,7 @@ import com.artivisi.accountingfinance.entity.ChartOfAccount;
 import com.artivisi.accountingfinance.entity.Vendor;
 import com.artivisi.accountingfinance.enums.BillStatus;
 import com.artivisi.accountingfinance.enums.PaymentMethod;
+import com.artivisi.accountingfinance.security.Permission;
 import com.artivisi.accountingfinance.service.BillService;
 import com.artivisi.accountingfinance.service.VendorService;
 import jakarta.validation.Valid;
@@ -129,6 +130,7 @@ public class BillController {
     }
 
     @GetMapping("/new")
+    @PreAuthorize("hasAuthority('" + Permission.BILL_CREATE + "')")
     public String newForm(
             @RequestParam(required = false) UUID vendorId,
             Model model) {
@@ -146,6 +148,7 @@ public class BillController {
     }
 
     @PostMapping("/new")
+    @PreAuthorize("hasAuthority('" + Permission.BILL_CREATE + "')")
     public String create(
             @Valid @ModelAttribute(ATTR_BILL) BillForm form,
             BindingResult bindingResult,
@@ -187,6 +190,7 @@ public class BillController {
     }
 
     @GetMapping("/{billNumber}/edit")
+    @PreAuthorize("hasAuthority('" + Permission.BILL_EDIT + "')")
     public String editForm(@PathVariable String billNumber, Model model) {
         Bill bill = billService.findByBillNumber(billNumber);
 
@@ -200,6 +204,7 @@ public class BillController {
     }
 
     @PostMapping("/{billNumber}")
+    @PreAuthorize("hasAuthority('" + Permission.BILL_EDIT + "')")
     public String update(
             @PathVariable String billNumber,
             @Valid @ModelAttribute(ATTR_BILL) BillForm form,
@@ -240,6 +245,7 @@ public class BillController {
     }
 
     @PostMapping("/{billNumber}/approve")
+    @PreAuthorize("hasAuthority('" + Permission.BILL_APPROVE + "')")
     public String approve(@PathVariable String billNumber, RedirectAttributes redirectAttributes) {
         try {
             Bill bill = billService.findByBillNumber(billNumber);
@@ -252,6 +258,7 @@ public class BillController {
     }
 
     @PostMapping("/{billNumber}/mark-paid")
+    @PreAuthorize("hasAuthority('" + Permission.BILL_MARK_PAID + "')")
     public String markPaid(@PathVariable String billNumber, RedirectAttributes redirectAttributes) {
         try {
             Bill bill = billService.findByBillNumber(billNumber);
@@ -264,6 +271,7 @@ public class BillController {
     }
 
     @PostMapping("/{billNumber}/payments")
+    @PreAuthorize("hasAuthority('" + Permission.BILL_MARK_PAID + "')")
     public String recordPayment(
             @PathVariable String billNumber,
             @RequestParam LocalDate paymentDate,
@@ -290,6 +298,7 @@ public class BillController {
     }
 
     @PostMapping("/{billNumber}/cancel")
+    @PreAuthorize("hasAuthority('" + Permission.BILL_EDIT + "')")
     public String cancel(@PathVariable String billNumber, RedirectAttributes redirectAttributes) {
         try {
             Bill bill = billService.findByBillNumber(billNumber);
@@ -302,6 +311,7 @@ public class BillController {
     }
 
     @PostMapping("/{billNumber}/delete")
+    @PreAuthorize("hasAuthority('" + Permission.BILL_EDIT + "')")
     public String delete(@PathVariable String billNumber, RedirectAttributes redirectAttributes) {
         try {
             Bill bill = billService.findByBillNumber(billNumber);
