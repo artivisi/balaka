@@ -9,13 +9,17 @@
     <h1 id="page-title">Detail Klien</h1>
 
     <section class="space-y-6" data-testid="client-detail">
+        <div th:if="${successMessage}" data-testid="flash-success"
+             class="p-4 rounded-lg bg-green-50 border border-green-200 text-sm font-medium text-green-800"
+             th:text="${successMessage}">Success</div>
+
         <!-- Header -->
         <div class="flex items-start justify-between">
             <div>
                 <h2 class="text-xl font-semibold text-gray-900" th:text="${client.name}">PT ABC</h2>
                 <p class="text-sm text-gray-500 font-mono" data-testid="client-code" th:text="${client.code}">CLT-001</p>
             </div>
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2" data-testid="client-status">
                 <span th:if="${client.active}" class="px-3 py-1 text-sm font-medium rounded-full bg-green-100 text-green-800">Aktif</span>
                 <span th:unless="${client.active}" class="px-3 py-1 text-sm font-medium rounded-full bg-gray-100 text-gray-600">Nonaktif</span>
             </div>

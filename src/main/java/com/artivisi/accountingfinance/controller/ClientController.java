@@ -43,6 +43,7 @@ import static com.artivisi.accountingfinance.controller.ViewConstants.*;
 public class ClientController {
 
     private static final String ATTR_CLIENT = "client";
+    private static final String ATTR_CLIENT_CODE = "clientCode";
     private static final String ATTR_SUCCESS_MESSAGE = "successMessage";
     private static final String REDIRECT_CLIENTS_PREFIX = "redirect:/clients/";
     private static final String VIEW_FORM = "clients/form";
@@ -223,6 +224,7 @@ public class ClientController {
     public String editForm(@PathVariable String code, Model model) {
         Client existing = clientService.findByCode(code);
         model.addAttribute(ATTR_CLIENT, toForm(existing));
+        model.addAttribute(ATTR_CLIENT_CODE, code);
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_CLIENTS);
         return VIEW_FORM;
     }
@@ -238,6 +240,7 @@ public class ClientController {
         if (bindingResult.hasErrors()) {
             Client existing = clientService.findByCode(code);
             form.setId(existing.getId());
+            model.addAttribute(ATTR_CLIENT_CODE, code);
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_CLIENTS);
             return VIEW_FORM;
         }
@@ -252,6 +255,7 @@ public class ClientController {
             bindingResult.rejectValue("code", "duplicate", e.getMessage());
             Client existing = clientService.findByCode(code);
             form.setId(existing.getId());
+            model.addAttribute(ATTR_CLIENT_CODE, code);
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_CLIENTS);
             return VIEW_FORM;
         }
