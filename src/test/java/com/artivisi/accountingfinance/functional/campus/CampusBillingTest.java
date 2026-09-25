@@ -1,140 +1,148 @@
 package com.artivisi.accountingfinance.functional.campus;
 
-import com.artivisi.accountingfinance.functional.page.ChartOfAccountsPage;
-import com.artivisi.accountingfinance.functional.page.JournalTemplateListPage;
-import com.artivisi.accountingfinance.ui.PlaywrightTestBase;
+import com.artivisi.accountingfinance.functional.page.IncomeStatementPage;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.DynamicTest;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestFactory;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.TestMethodOrder;
 import org.springframework.context.annotation.Import;
 
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Stream;
+
+import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 /**
- * Campus Industry - Student Billing Tests
- * Tests student billing functionality for tuition fees, enrollment fees, lab fees, and graduation fees.
- * Uses Page Object Pattern for maintainability.
+ * Campus student billing: each billing template (SPP, uang pangkal, praktikum, wisuda) is checked on its template
+ * page and posted through the transaction form once per billed student from campus/students.csv, at the fee of the
+ * student's program in campus/programs.csv. Postings are dated in {@link #YEAR}, a year no other campus class uses.
  */
 @DisplayName("Campus Industry - Student Billing")
 @Import(CampusTestDataInitializer.class)
-class CampusBillingTest extends PlaywrightTestBase {
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+class CampusBillingTest extends CampusTestBase {
 
-    // Page Objects
-    private ChartOfAccountsPage chartOfAccountsPage;
-    private JournalTemplateListPage templateListPage;
+    private static final int YEAR = 2081;
 
-    private void initPageObjects() {
-        String baseUrl = "http://localhost:" + port;
-        chartOfAccountsPage = new ChartOfAccountsPage(page, baseUrl);
-        templateListPage = new JournalTemplateListPage(page, baseUrl);
-    }
+    private final List<UUID> bills = new ArrayList<>();
 
     @Test
-    @DisplayName("Should display Chart of Accounts with campus-specific accounts")
-    void shouldDisplayChartOfAccounts() {
+    @Order(1)
+    @DisplayName("Should seed the student receivable and billing revenue accounts in the chart of accounts")
+    void shouldSeedBillingAccounts() {
         loginAsAdmin();
-        initPageObjects();
+        navigateTo("/accounts");
+        waitForPageLoad();
+        page.locator("#btn-expand-1").click();
+        page.locator("#btn-expand-1-1").click();
+        page.locator("#btn-expand-4").click();
+        page.locator("#btn-expand-4-1").click();
 
-        // Campus seed has education-specific accounts
-        chartOfAccountsPage.navigate()
-            .verifyPageTitle()
-            .verifyContentVisible()
-            .verifyTableVisible()
-            .verifyMinimumAccountCount(70)  // At least 70 accounts from seed
-            .verifyAccountExists("1.1.10")  // Piutang SPP Mahasiswa
-            .verifyAccountExists("4.1.01")  // Pendapatan SPP
-            .verifyAccountExists("5.1.01")  // Beban Gaji Dosen Tetap
-            .verifyAccountExists("5.3.01"); // Beban Beasiswa Prestasi
+        assertAccount("1.1.10", "Piutang SPP Mahasiswa");
+        assertAccount("1.1.11", "Piutang Uang Pangkal");
+        assertAccount("1.1.12", "Piutang Biaya Praktikum");
+        assertAccount("1.1.13", "Piutang Wisuda");
+        assertAccount("4.1.01", "Pendapatan SPP");
+        assertAccount("4.1.02", "Pendapatan Uang Pangkal");
+        assertAccount("4.1.03", "Pendapatan Biaya Praktikum");
+        assertAccount("4.1.04", "Pendapatan Wisuda");
 
         takeManualScreenshot("campus/accounts-list");
     }
 
     @Test
-    @DisplayName("Should display billing-related journal templates")
-    void shouldDisplayBillingTemplates() {
+    @Order(2)
+    @DisplayName("Should define each billing template as debit student receivable, credit billing revenue")
+    void shouldDefineBillingTemplates() {
         loginAsAdmin();
-        initPageObjects();
-
-        templateListPage.navigate()
-            .verifyPageTitle()
-            .verifyContentVisible();
-
-        // Verify billing templates exist
-        page.locator("text=Tagihan SPP Mahasiswa").isVisible();
-        page.locator("text=Tagihan Uang Pangkal").isVisible();
-        page.locator("text=Tagihan Biaya Praktikum").isVisible();
-        page.locator("text=Tagihan Wisuda").isVisible();
-
+        assertTemplateLines("Tagihan SPP Mahasiswa", "Pendapatan",
+                "1.1.10|Piutang SPP Mahasiswa|Debit|amount", "4.1.01|Pendapatan SPP|Kredit|amount");
         takeManualScreenshot("campus/billing-templates");
+        assertTemplateLines("Tagihan Uang Pangkal", "Pendapatan",
+                "1.1.11|Piutang Uang Pangkal|Debit|amount", "4.1.02|Pendapatan Uang Pangkal|Kredit|amount");
+        assertTemplateLines("Tagihan Biaya Praktikum", "Pendapatan",
+                "1.1.12|Piutang Biaya Praktikum|Debit|amount", "4.1.03|Pendapatan Biaya Praktikum|Kredit|amount");
+        assertTemplateLines("Tagihan Wisuda", "Pendapatan",
+                "1.1.13|Piutang Wisuda|Debit|amount", "4.1.04|Pendapatan Wisuda|Kredit|amount");
+    }
+
+    @TestFactory
+    @Order(3)
+    @DisplayName("Should bill each student SPP, lab fee, new-student enrollment fee and final-year graduation fee of their program")
+    Stream<DynamicTest> shouldBillStudents() {
+        List<DynamicTest> tests = new ArrayList<>();
+        for (Student s : students()) {
+            Program p = s.program();
+            tests.add(bill(s, "Tagihan SPP Mahasiswa", "SPP", LocalDate.of(YEAR, 8, 1), p.tuition(), "1.1.10", "4.1.01"));
+            tests.add(bill(s, "Tagihan Biaya Praktikum", "PRAK", LocalDate.of(YEAR, 8, 5), p.labFee(), "1.1.12", "4.1.03"));
+            if (s.semester() == 1) {
+                tests.add(bill(s, "Tagihan Uang Pangkal", "UP", LocalDate.of(YEAR, 7, 15), p.enrollmentFee(), "1.1.11", "4.1.02"));
+            }
+            if (s.semester() >= 5) {
+                tests.add(bill(s, "Tagihan Wisuda", "WIS", LocalDate.of(YEAR, 9, 1), p.graduationFee(), "1.1.13", "4.1.04"));
+            }
+        }
+        assertEquals(16, tests.size(), "6 SPP + 6 lab + 2 enrollment (semester 1) + 2 graduation (semester 5) bills");
+        return tests.stream();
     }
 
     @Test
-    @DisplayName("Should navigate to SPP billing form")
-    void shouldNavigateToSppBillingForm() {
-        loginAsAdmin();
-        initPageObjects();
-
-        // Navigate to templates page
-        templateListPage.navigate()
-            .verifyPageTitle()
-            .verifyContentVisible();
-
-        // Click on SPP billing template
-        page.locator("text=Tagihan SPP Mahasiswa").first().click();
-        page.waitForLoadState();
-
-        // Verify form loads
-        page.locator("#page-title").isVisible();
+    @Order(4)
+    @DisplayName("Should raise each student receivable by exactly the billed fees")
+    void shouldRaiseReceivables() {
+        assertEquals(16, bills.size(), "bills posted in order 3");
+        assertEquals(42_000_000L, balance("1.1.10", bills));
+        assertEquals(9_000_000L, balance("1.1.11", bills));
+        assertEquals(5_500_000L, balance("1.1.12", bills));
+        assertEquals(4_500_000L, balance("1.1.13", bills));
+        assertEquals(-42_000_000L, balance("4.1.01", bills));
+        assertEquals(-9_000_000L, balance("4.1.02", bills));
+        assertEquals(-5_500_000L, balance("4.1.03", bills));
+        assertEquals(-4_500_000L, balance("4.1.04", bills));
     }
 
     @Test
-    @DisplayName("Should navigate to enrollment fee billing form")
-    void shouldNavigateToEnrollmentFeeBillingForm() {
+    @Order(5)
+    @DisplayName("Should report the year's billing revenue per fee type on the income statement")
+    void shouldReportBillingRevenue() {
         loginAsAdmin();
-        initPageObjects();
+        new IncomeStatementPage(page, baseUrl()).navigate(YEAR + "-01-01", YEAR + "-12-31")
+                .verifyPageTitle();
 
-        templateListPage.navigate()
-            .verifyPageTitle()
-            .verifyContentVisible();
+        assertThat(page.locator(".revenue-row")).hasCount(4);
+        assertThat(reportRow("revenue-row", "Pendapatan SPP").locator(".revenue-balance")).hasText("42.000.000");
+        assertThat(reportRow("revenue-row", "Pendapatan Uang Pangkal").locator(".revenue-balance")).hasText("9.000.000");
+        assertThat(reportRow("revenue-row", "Pendapatan Biaya Praktikum").locator(".revenue-balance")).hasText("5.500.000");
+        assertThat(reportRow("revenue-row", "Pendapatan Wisuda").locator(".revenue-balance")).hasText("4.500.000");
+        assertThat(page.locator("#total-revenue")).hasText("61.000.000");
+        assertThat(page.locator(".expense-row")).hasCount(0);
+        assertThat(page.locator("#net-income")).hasText("61.000.000");
 
-        // Click on enrollment fee template
-        page.locator("text=Tagihan Uang Pangkal").first().click();
-        page.waitForLoadState();
-
-        // Verify form loads
-        page.locator("#page-title").isVisible();
+        takeManualScreenshot("campus/billing-income-statement");
     }
 
-    @Test
-    @DisplayName("Should navigate to lab fee billing form")
-    void shouldNavigateToLabFeeBillingForm() {
-        loginAsAdmin();
-        initPageObjects();
-
-        templateListPage.navigate()
-            .verifyPageTitle()
-            .verifyContentVisible();
-
-        // Click on lab fee template
-        page.locator("text=Tagihan Biaya Praktikum").first().click();
-        page.waitForLoadState();
-
-        // Verify form loads
-        page.locator("#page-title").isVisible();
+    private DynamicTest bill(Student s, String template, String prefix, LocalDate date, long amount,
+                             String receivable, String revenue) {
+        return DynamicTest.dynamicTest(template + " " + s.nim() + " " + s.name(), () -> {
+            loginAsAdmin();
+            bills.add(post(template, date, amount, template + " " + s.name() + " (" + s.nim() + ") " + s.program().name(),
+                    prefix + "-" + YEAR + "-" + s.nim() + "-" + runId,
+                    List.of(journal("DEBIT", receivable, amount), journal("CREDIT", revenue, amount))));
+        });
     }
 
-    @Test
-    @DisplayName("Should navigate to graduation fee billing form")
-    void shouldNavigateToGraduationFeeBillingForm() {
-        loginAsAdmin();
-        initPageObjects();
-
-        templateListPage.navigate()
-            .verifyPageTitle()
-            .verifyContentVisible();
-
-        // Click on graduation fee template
-        page.locator("text=Tagihan Wisuda").first().click();
-        page.waitForLoadState();
-
-        // Verify form loads
-        page.locator("#page-title").isVisible();
+    private void assertAccount(String code, String name) {
+        String id = code.replace('.', '-');
+        assertThat(page.locator("#account-code-" + id)).hasText(code);
+        assertThat(page.locator("#account-name-" + id)).hasText(name);
     }
 }

@@ -37,7 +37,7 @@ public class CampusTestDataInitializer {
             log.info("Campus seed imported: {} records in {}ms",
                 seedResult.totalRecords(), seedResult.durationMs());
 
-            // Step 2: Import campus test master data (Company Config, Fiscal Periods, Students, Programs, Employees)
+            // Step 2: Import campus test master data (Company Config, Fiscal Periods, Employees, July 2024 transactions)
             log.info("Importing campus test master data...");
             byte[] testDataZip = createZipFromTestData("src/test/resources/testdata/campus");
             DataImportService.ImportResult testResult = dataImportService.importAllData(testDataZip);
@@ -65,8 +65,6 @@ public class CampusTestDataInitializer {
             addTestFileToZip(zos, testDir, "employees.csv", "15_employees.csv");
             addTestFileToZip(zos, testDir, "financial-transactions.csv", "18_transactions.csv");
             addTestFileToZip(zos, testDir, "financial-journal-entries.csv", "20_journal_entries.csv");
-            addTestFileToZip(zos, testDir, "students.csv", "42_students.csv");
-            addTestFileToZip(zos, testDir, "programs.csv", "43_programs.csv");
         }
 
         return baos.toByteArray();
@@ -74,12 +72,12 @@ public class CampusTestDataInitializer {
 
     private void addTestFileToZip(ZipOutputStream zos, Path testDir, String sourceFile, String zipEntry) throws IOException {
         Path filePath = testDir.resolve(sourceFile);
-        if (Files.exists(filePath)) {
-            ZipEntry entry = new ZipEntry(zipEntry);
-            zos.putNextEntry(entry);
-            Files.copy(filePath, zos);
-            zos.closeEntry();
+        if (!Files.exists(filePath)) {
+            throw new IOException("Campus test data file not found: " + filePath);
         }
+        zos.putNextEntry(new ZipEntry(zipEntry));
+        Files.copy(filePath, zos);
+        zos.closeEntry();
     }
 
     private byte[] createZipFromDirectory(String dirPath) throws IOException {
