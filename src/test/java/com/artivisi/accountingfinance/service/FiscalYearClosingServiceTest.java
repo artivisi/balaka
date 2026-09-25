@@ -1,9 +1,15 @@
 package com.artivisi.accountingfinance.service;
 
 import com.artivisi.accountingfinance.TestcontainersConfiguration;
+import com.artivisi.accountingfinance.entity.ChartOfAccount;
 import com.artivisi.accountingfinance.entity.JournalEntry;
+import com.artivisi.accountingfinance.entity.Transaction;
+import com.artivisi.accountingfinance.enums.TransactionStatus;
 import com.artivisi.accountingfinance.repository.ChartOfAccountRepository;
 import com.artivisi.accountingfinance.repository.JournalEntryRepository;
+import com.artivisi.accountingfinance.repository.JournalTemplateRepository;
+import com.artivisi.accountingfinance.repository.TransactionRepository;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,370 +21,289 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 
 /**
- * Integration tests for FiscalYearClosingService.
- * Tests fiscal year closing preview and execution.
+ * Integration tests for FiscalYearClosingService. Every test posts its own journals into a year
+ * no other integration test uses ({@link #YEAR} profit, {@link #LOSS_YEAR} loss) and rolls back.
+ *
+ * Profit year: revenue 4.1.01 100M + 4.1.02 20M, expense 5.1.01 30M + 5.1.02 5M, net income 85M.
+ * Loss year: revenue 4.1.01 10M, expense 5.1.01 25M, net loss 15M.
  */
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
 @ActiveProfiles("test")
-@DisplayName("Fiscal Year Closing Service Integration Tests")
 @Transactional
+@WithMockUser(username = "admin")
+@DisplayName("Fiscal Year Closing Service Integration Tests")
 class FiscalYearClosingServiceTest {
 
-    @Autowired
-    private FiscalYearClosingService fiscalYearClosingService;
+    private static final int YEAR = 2068;
+    private static final int LOSS_YEAR = 2072;
+    private static final int EMPTY_YEAR = 2098;
+    private static final UUID TEMPLATE_ID = UUID.fromString("e0000000-0000-0000-0000-000000000001");
 
-    @Autowired
-    private JournalEntryRepository journalEntryRepository;
-
-    @Autowired
-    private ChartOfAccountRepository chartOfAccountRepository;
-
-    // Use a far-future year for testing to avoid conflicts
-    private static final int TEST_YEAR = 2099;
-
-    @Test
-    @DisplayName("Should check if closing entries exist")
-    void shouldCheckIfClosingEntriesExist() {
-        // Check for a year that definitely has no closing entries
-        boolean hasClosing = fiscalYearClosingService.hasClosingEntries(TEST_YEAR);
-        assertThat(hasClosing).isFalse();
-    }
+    @Autowired private FiscalYearClosingService fiscalYearClosingService;
+    @Autowired private ReportService reportService;
+    @Autowired private TransactionRepository transactionRepository;
+    @Autowired private JournalEntryRepository journalEntryRepository;
+    @Autowired private JournalTemplateRepository templateRepository;
+    @Autowired private ChartOfAccountRepository chartOfAccountRepository;
+    @Autowired private EntityManager entityManager;
 
     @Test
-    @DisplayName("Should get empty list for year without closing entries")
-    void shouldGetEmptyListForYearWithoutClosingEntries() {
-        List<JournalEntry> entries = fiscalYearClosingService.getClosingEntries(TEST_YEAR);
-        assertThat(entries).isEmpty();
-    }
+    @DisplayName("Preview closes each revenue and expense account into Laba Berjalan and moves net profit to Laba Ditahan")
+    void shouldPreviewProfitClosing() {
+        postProfitYear();
 
-    @Test
-    @DisplayName("Should preview closing for year")
-    void shouldPreviewClosingForYear() {
-        int currentYear = LocalDate.now().getYear();
-        FiscalYearClosingService.ClosingPreview preview = fiscalYearClosingService.previewClosing(currentYear);
+        FiscalYearClosingService.ClosingPreview preview = fiscalYearClosingService.previewClosing(YEAR);
 
-        assertThat(preview).isNotNull();
-        assertThat(preview.year()).isEqualTo(currentYear);
-        assertThat(preview.totalRevenue()).isNotNull();
-        assertThat(preview.totalExpense()).isNotNull();
-        assertThat(preview.netIncome()).isNotNull();
-        // Net income should equal revenue - expense
-        assertThat(preview.netIncome())
-                .isEqualByComparingTo(preview.totalRevenue().subtract(preview.totalExpense()));
-    }
-
-    @Test
-    @DisplayName("Should preview closing entries structure")
-    void shouldPreviewClosingEntriesStructure() {
-        int currentYear = LocalDate.now().getYear();
-        FiscalYearClosingService.ClosingPreview preview = fiscalYearClosingService.previewClosing(currentYear);
-
-        // If there's any income statement activity, there should be entries
-        if (preview.totalRevenue().compareTo(BigDecimal.ZERO) > 0 ||
-            preview.totalExpense().compareTo(BigDecimal.ZERO) > 0) {
-            assertThat(preview.entries()).isNotEmpty();
-
-            // Check first entry structure
-            FiscalYearClosingService.ClosingEntryPreview firstEntry = preview.entries().get(0);
-            assertThat(firstEntry.referenceNumber()).startsWith("CLOSING-");
-            assertThat(firstEntry.date()).isEqualTo(LocalDate.of(currentYear, 12, 31));
-            assertThat(firstEntry.lines()).isNotEmpty();
-        }
-    }
-
-    @Test
-    @DisplayName("Should have closing entry preview lines with account info")
-    void shouldHaveClosingEntryPreviewLinesWithAccountInfo() {
-        int currentYear = LocalDate.now().getYear();
-        FiscalYearClosingService.ClosingPreview preview = fiscalYearClosingService.previewClosing(currentYear);
-
-        for (FiscalYearClosingService.ClosingEntryPreview entry : preview.entries()) {
-            for (FiscalYearClosingService.ClosingLinePreview line : entry.lines()) {
-                assertThat(line.accountCode()).isNotEmpty();
-                assertThat(line.accountName()).isNotEmpty();
-                assertThat(line.debit()).isNotNull();
-                assertThat(line.credit()).isNotNull();
-                assertThat(line.memo()).isNotEmpty();
-
-                // Either debit or credit should be non-zero
-                assertThat(line.debit().compareTo(BigDecimal.ZERO) > 0 ||
-                          line.credit().compareTo(BigDecimal.ZERO) > 0).isTrue();
-            }
-        }
-    }
-
-    @Test
-    @WithMockUser(username = "admin")
-    @DisplayName("Should execute closing and create journal entries")
-    void shouldExecuteClosingAndCreateJournalEntries() {
-        // Verify required accounts exist
-        var labaBerjalan = chartOfAccountRepository.findByAccountCode("3.2.02");
-        var labaDitahan = chartOfAccountRepository.findByAccountCode("3.2.01");
-
-        if (labaBerjalan.isEmpty() || labaDitahan.isEmpty()) {
-            return; // Skip if required accounts not set up
-        }
-
-        // First check preview
-        FiscalYearClosingService.ClosingPreview preview = fiscalYearClosingService.previewClosing(TEST_YEAR);
-
-        // If no entries to close (no income/expense activity), skip
-        if (preview.entries().isEmpty()) {
-            return;
-        }
-
-        // Execute closing
-        List<JournalEntry> closingEntries = fiscalYearClosingService.executeClosing(TEST_YEAR);
-
-        assertThat(closingEntries).isNotEmpty();
-
-        // Verify entries have proper structure
-        for (JournalEntry entry : closingEntries) {
-            assertThat(entry.getJournalNumber()).isNotEmpty();
-            assertThat(entry.getAccount()).isNotNull();
-            assertThat(entry.getPostedAt()).isNotNull();
-        }
-
-        // Verify hasClosingEntries now returns true
-        assertThat(fiscalYearClosingService.hasClosingEntries(TEST_YEAR)).isTrue();
-    }
-
-    @Test
-    @WithMockUser(username = "admin")
-    @DisplayName("Should reject duplicate closing for same year")
-    void shouldRejectDuplicateClosingForSameYear() {
-        var labaBerjalan = chartOfAccountRepository.findByAccountCode("3.2.02");
-        var labaDitahan = chartOfAccountRepository.findByAccountCode("3.2.01");
-
-        if (labaBerjalan.isEmpty() || labaDitahan.isEmpty()) {
-            return;
-        }
-
-        FiscalYearClosingService.ClosingPreview preview = fiscalYearClosingService.previewClosing(TEST_YEAR);
-        if (preview.entries().isEmpty()) {
-            return;
-        }
-
-        // Execute first closing
-        fiscalYearClosingService.executeClosing(TEST_YEAR);
-
-        // Attempt second closing should fail
-        assertThatThrownBy(() -> fiscalYearClosingService.executeClosing(TEST_YEAR))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("sudah ada");
-    }
-
-    @Test
-    @WithMockUser(username = "admin")
-    @DisplayName("Should reverse closing entries")
-    void shouldReverseClosingEntries() {
-        var labaBerjalan = chartOfAccountRepository.findByAccountCode("3.2.02");
-        var labaDitahan = chartOfAccountRepository.findByAccountCode("3.2.01");
-
-        if (labaBerjalan.isEmpty() || labaDitahan.isEmpty()) {
-            return;
-        }
-
-        FiscalYearClosingService.ClosingPreview preview = fiscalYearClosingService.previewClosing(TEST_YEAR);
-        if (preview.entries().isEmpty()) {
-            return;
-        }
-
-        // Execute closing
-        fiscalYearClosingService.executeClosing(TEST_YEAR);
-
-        // Reverse
-        int reversedCount = fiscalYearClosingService.reverseClosing(TEST_YEAR, "Test reversal reason");
-
-        assertThat(reversedCount).isGreaterThan(0);
-
-        // After reversing, closing entries should be voided
-        List<JournalEntry> entries = fiscalYearClosingService.getClosingEntries(TEST_YEAR);
-        entries.forEach(entry -> assertThat(entry.getVoidedAt()).isNotNull());
-    }
-
-    @Test
-    @WithMockUser(username = "admin")
-    @DisplayName("Should reject reverse for year without closing")
-    void shouldRejectReverseForYearWithoutClosing() {
-        // Use a year that definitely has no closing
-        assertThatThrownBy(() -> fiscalYearClosingService.reverseClosing(1999, "Test reason"))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("Tidak ada jurnal penutup");
-    }
-
-    @Test
-    @DisplayName("Should show alreadyClosed flag in preview")
-    void shouldShowAlreadyClosedFlagInPreview() {
-        // For year without closing
-        FiscalYearClosingService.ClosingPreview preview = fiscalYearClosingService.previewClosing(TEST_YEAR);
+        assertThat(preview.year()).isEqualTo(YEAR);
+        assertThat(preview.totalRevenue()).isEqualByComparingTo("120000000");
+        assertThat(preview.totalExpense()).isEqualByComparingTo("35000000");
+        assertThat(preview.netIncome()).isEqualByComparingTo("85000000");
         assertThat(preview.alreadyClosed()).isFalse();
+        assertThat(preview.entries()).extracting(FiscalYearClosingService.ClosingEntryPreview::referenceNumber,
+                        FiscalYearClosingService.ClosingEntryPreview::date)
+                .containsExactly(
+                        tuple("CLOSING-" + YEAR + "-01", LocalDate.of(YEAR, 12, 31)),
+                        tuple("CLOSING-" + YEAR + "-02", LocalDate.of(YEAR, 12, 31)),
+                        tuple("CLOSING-" + YEAR + "-03", LocalDate.of(YEAR, 12, 31)));
+
+        assertLines(preview.entries().get(0).lines(),
+                line("4.1.01", "100000000", "0"),
+                line("4.1.02", "20000000", "0"),
+                line("3.2.02", "0", "120000000"));
+        assertLines(preview.entries().get(1).lines(),
+                line("5.1.01", "0", "30000000"),
+                line("5.1.02", "0", "5000000"),
+                line("3.2.02", "35000000", "0"));
+        assertLines(preview.entries().get(2).lines(),
+                line("3.2.02", "85000000", "0"),
+                line("3.2.01", "0", "85000000"));
+        assertThat(preview.entries().get(0).lines().getFirst().memo()).isEqualTo("Tutup Pendapatan Jasa Konsultasi");
+        assertThat(preview.entries().get(2).lines().getFirst().memo()).isEqualTo("Laba Bersih Tahun " + YEAR);
+
+        assertThat(journalEntryRepository.findByReferenceNumberLike("CLOSING-" + YEAR + "-%")).isEmpty();
     }
 
     @Test
-    @DisplayName("Should calculate balanced closing entries in preview")
-    void shouldCalculateBalancedClosingEntriesInPreview() {
-        int currentYear = LocalDate.now().getYear();
-        FiscalYearClosingService.ClosingPreview preview = fiscalYearClosingService.previewClosing(currentYear);
+    @DisplayName("Preview of a loss year debits Laba Ditahan with the net loss")
+    void shouldPreviewLossClosing() {
+        post(LOSS_YEAR, "1.1.02", "4.1.01", "10000000");
+        post(LOSS_YEAR, "5.1.01", "1.1.02", "25000000");
 
-        // Each entry should be balanced
-        for (FiscalYearClosingService.ClosingEntryPreview entry : preview.entries()) {
-            BigDecimal totalDebit = entry.lines().stream()
-                    .map(FiscalYearClosingService.ClosingLinePreview::debit)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
-            BigDecimal totalCredit = entry.lines().stream()
-                    .map(FiscalYearClosingService.ClosingLinePreview::credit)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+        FiscalYearClosingService.ClosingPreview preview = fiscalYearClosingService.previewClosing(LOSS_YEAR);
 
-            assertThat(totalDebit).isEqualByComparingTo(totalCredit);
-        }
+        assertThat(preview.netIncome()).isEqualByComparingTo("-15000000");
+        assertThat(preview.entries()).hasSize(3);
+        assertLines(preview.entries().get(2).lines(),
+                line("3.2.02", "0", "15000000"),
+                line("3.2.01", "15000000", "0"));
+        assertThat(preview.entries().get(2).lines().getFirst().memo()).isEqualTo("Rugi Bersih Tahun " + LOSS_YEAR);
     }
 
     @Test
-    @DisplayName("Should preview closing for past year")
-    void shouldPreviewClosingForPastYear() {
-        // Use last year
-        int lastYear = LocalDate.now().getYear() - 1;
-        FiscalYearClosingService.ClosingPreview preview = fiscalYearClosingService.previewClosing(lastYear);
+    @DisplayName("A year without revenue or expense previews and executes to nothing")
+    void shouldCloseEmptyYearToNothing() {
+        FiscalYearClosingService.ClosingPreview preview = fiscalYearClosingService.previewClosing(EMPTY_YEAR);
 
-        assertThat(preview).isNotNull();
-        assertThat(preview.year()).isEqualTo(lastYear);
-    }
-
-    @Test
-    @DisplayName("Should handle year with zero activity")
-    void shouldHandleYearWithZeroActivity() {
-        // Use far future year with no transactions
-        FiscalYearClosingService.ClosingPreview preview = fiscalYearClosingService.previewClosing(2098);
-
-        assertThat(preview).isNotNull();
         assertThat(preview.totalRevenue()).isEqualByComparingTo(BigDecimal.ZERO);
         assertThat(preview.totalExpense()).isEqualByComparingTo(BigDecimal.ZERO);
         assertThat(preview.netIncome()).isEqualByComparingTo(BigDecimal.ZERO);
-        // Should have no closing entries to create
         assertThat(preview.entries()).isEmpty();
-    }
 
-    // ==================== Additional Tests for Coverage ====================
-
-    @Test
-    @DisplayName("Should preview closing for 2024 with actual revenue and expense data")
-    void shouldPreviewClosingFor2024WithActualData() {
-        // V901 test data has 2024 revenue (52M) and expense (19M)
-        FiscalYearClosingService.ClosingPreview preview = fiscalYearClosingService.previewClosing(2024);
-
-        assertThat(preview).isNotNull();
-        assertThat(preview.year()).isEqualTo(2024);
-
-        // With V901 data, should have revenue and expense entries + retained earnings transfer
-        if (preview.totalRevenue().compareTo(BigDecimal.ZERO) > 0) {
-            // Should have revenue closing entry (CLOSING-2024-01)
-            assertThat(preview.entries().stream()
-                    .anyMatch(e -> e.referenceNumber().equals("CLOSING-2024-01"))).isTrue();
-        }
-
-        if (preview.totalExpense().compareTo(BigDecimal.ZERO) > 0) {
-            // Should have expense closing entry (CLOSING-2024-02)
-            assertThat(preview.entries().stream()
-                    .anyMatch(e -> e.referenceNumber().equals("CLOSING-2024-02"))).isTrue();
-        }
-
-        if (preview.netIncome().compareTo(BigDecimal.ZERO) != 0) {
-            // Should have retained earnings transfer (CLOSING-2024-03)
-            assertThat(preview.entries().stream()
-                    .anyMatch(e -> e.referenceNumber().equals("CLOSING-2024-03"))).isTrue();
-        }
+        assertThat(fiscalYearClosingService.executeClosing(EMPTY_YEAR)).isEmpty();
+        assertThat(fiscalYearClosingService.hasClosingEntries(EMPTY_YEAR)).isFalse();
+        assertThat(fiscalYearClosingService.getClosingEntries(EMPTY_YEAR)).isEmpty();
     }
 
     @Test
-    @DisplayName("Should have revenue closing lines with account codes from income statement")
-    void shouldHaveRevenueClosingLinesWithAccountCodes() {
-        FiscalYearClosingService.ClosingPreview preview = fiscalYearClosingService.previewClosing(2024);
+    @DisplayName("Executing closing posts three closing transactions that zero revenue/expense into retained earnings")
+    void shouldExecuteClosing() {
+        postProfitYear();
+        BigDecimal retainedBefore = balance("3.2.01", LocalDate.of(YEAR, 12, 31));
 
-        // Find the revenue closing entry
-        var revenueEntry = preview.entries().stream()
-                .filter(e -> e.referenceNumber().equals("CLOSING-2024-01"))
-                .findFirst();
+        List<JournalEntry> entries = fiscalYearClosingService.executeClosing(YEAR);
+        entityManager.flush();
+        entityManager.clear();
 
-        if (revenueEntry.isPresent()) {
-            var lines = revenueEntry.get().lines();
-            assertThat(lines).hasSizeGreaterThanOrEqualTo(2); // At least one revenue account + LABA_BERJALAN
+        assertThat(entries).hasSize(8);
+        List<Transaction> closing = closingTransactions(YEAR);
+        assertThat(closing).extracting(Transaction::getReferenceNumber, Transaction::getDescription)
+                .containsExactly(
+                        tuple("CLOSING-" + YEAR + "-01", "Tutup Pendapatan ke LABA_BERJALAN - Tahun " + YEAR),
+                        tuple("CLOSING-" + YEAR + "-02", "Tutup Beban ke LABA_BERJALAN - Tahun " + YEAR),
+                        tuple("CLOSING-" + YEAR + "-03", "Transfer Laba Berjalan ke LABA_DITAHAN - Tahun " + YEAR));
+        assertThat(closing).extracting(Transaction::getAmount).usingElementComparator(BigDecimal::compareTo)
+                .containsExactly(new BigDecimal("120000000"), new BigDecimal("35000000"), new BigDecimal("85000000"));
+        assertThat(closing).allSatisfy(tx -> {
+            assertThat(tx.getStatus()).isEqualTo(TransactionStatus.POSTED);
+            assertThat(tx.getClosingEntry()).isTrue();
+            assertThat(tx.getTransactionDate()).isEqualTo(LocalDate.of(YEAR, 12, 31));
+            assertThat(tx.getPostedBy()).isEqualTo("admin");
+            assertThat(tx.getTransactionNumber()).startsWith("FC-" + YEAR + "-");
+        });
 
-            // Last line should be LABA_BERJALAN credit
-            var lastLine = lines.get(lines.size() - 1);
-            assertThat(lastLine.accountCode()).isEqualTo("3.2.02");
-            assertThat(lastLine.credit()).isGreaterThan(BigDecimal.ZERO);
-            assertThat(lastLine.debit()).isEqualByComparingTo(BigDecimal.ZERO);
-        }
+        Map<String, BigDecimal> netByAccount = fiscalYearClosingService.getClosingEntries(YEAR).stream()
+                .collect(Collectors.groupingBy(e -> e.getAccount().getAccountCode(),
+                        Collectors.reducing(BigDecimal.ZERO, e -> e.getDebitAmount().subtract(e.getCreditAmount()),
+                                BigDecimal::add)));
+        assertThat(netByAccount.get("4.1.01")).isEqualByComparingTo("100000000");
+        assertThat(netByAccount.get("4.1.02")).isEqualByComparingTo("20000000");
+        assertThat(netByAccount.get("5.1.01")).isEqualByComparingTo("-30000000");
+        assertThat(netByAccount.get("5.1.02")).isEqualByComparingTo("-5000000");
+        assertThat(netByAccount.get("3.2.02")).isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(netByAccount.get("3.2.01")).isEqualByComparingTo("-85000000");
+
+        ReportService.IncomeStatementReport withClosing = reportService.generateIncomeStatement(
+                LocalDate.of(YEAR, 1, 1), LocalDate.of(YEAR, 12, 31));
+        assertThat(withClosing.totalRevenue()).isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(withClosing.totalExpense()).isEqualByComparingTo(BigDecimal.ZERO);
+        ReportService.IncomeStatementReport excludingClosing = reportService.generateIncomeStatementExcludingClosing(
+                LocalDate.of(YEAR, 1, 1), LocalDate.of(YEAR, 12, 31));
+        assertThat(excludingClosing.totalRevenue()).isEqualByComparingTo("120000000");
+        assertThat(excludingClosing.totalExpense()).isEqualByComparingTo("35000000");
+        assertThat(excludingClosing.netIncome()).isEqualByComparingTo("85000000");
+        assertThat(balance("3.2.01", LocalDate.of(YEAR, 12, 31)).subtract(retainedBefore))
+                .isEqualByComparingTo("85000000");
+
+        assertThat(fiscalYearClosingService.hasClosingEntries(YEAR)).isTrue();
+        assertThat(fiscalYearClosingService.previewClosing(YEAR).alreadyClosed()).isTrue();
     }
 
     @Test
-    @DisplayName("Should have expense closing lines with account codes from income statement")
-    void shouldHaveExpenseClosingLinesWithAccountCodes() {
-        FiscalYearClosingService.ClosingPreview preview = fiscalYearClosingService.previewClosing(2024);
+    @DisplayName("Closing the same year twice is rejected and leaves one set of closing transactions")
+    void shouldRejectDuplicateClosing() {
+        postProfitYear();
+        fiscalYearClosingService.executeClosing(YEAR);
 
-        // Find the expense closing entry
-        var expenseEntry = preview.entries().stream()
-                .filter(e -> e.referenceNumber().equals("CLOSING-2024-02"))
-                .findFirst();
-
-        if (expenseEntry.isPresent()) {
-            var lines = expenseEntry.get().lines();
-            assertThat(lines).hasSizeGreaterThanOrEqualTo(2); // At least one expense account + LABA_BERJALAN
-
-            // Last line should be LABA_BERJALAN debit
-            var lastLine = lines.get(lines.size() - 1);
-            assertThat(lastLine.accountCode()).isEqualTo("3.2.02");
-            assertThat(lastLine.debit()).isGreaterThan(BigDecimal.ZERO);
-            assertThat(lastLine.credit()).isEqualByComparingTo(BigDecimal.ZERO);
-        }
+        assertThatThrownBy(() -> fiscalYearClosingService.executeClosing(YEAR))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Jurnal penutup untuk tahun " + YEAR + " sudah ada. "
+                        + "Hapus jurnal penutup yang ada terlebih dahulu jika ingin membuat ulang.");
+        assertThat(closingTransactions(YEAR)).hasSize(3);
     }
 
     @Test
-    @DisplayName("Should have retained earnings lines for profit")
-    void shouldHaveRetainedEarningsLinesForProfit() {
-        FiscalYearClosingService.ClosingPreview preview = fiscalYearClosingService.previewClosing(2024);
+    @DisplayName("Reversing voids the closing transactions, restores the year's P&L and allows closing again")
+    void shouldReverseClosing() {
+        postProfitYear();
+        fiscalYearClosingService.executeClosing(YEAR);
 
-        // V901 data has revenue > expense, so net income > 0 (profit)
-        if (preview.netIncome().compareTo(BigDecimal.ZERO) > 0) {
-            var retainedEntry = preview.entries().stream()
-                    .filter(e -> e.referenceNumber().equals("CLOSING-2024-03"))
-                    .findFirst();
+        int reversed = fiscalYearClosingService.reverseClosing(YEAR, "Koreksi pendapatan");
+        entityManager.flush();
+        entityManager.clear();
 
-            assertThat(retainedEntry).isPresent();
-            var lines = retainedEntry.get().lines();
-            assertThat(lines).hasSize(2);
+        assertThat(reversed).isEqualTo(8);
+        assertThat(closingTransactions(YEAR)).hasSize(3).allSatisfy(tx -> {
+            assertThat(tx.getStatus()).isEqualTo(TransactionStatus.VOID);
+            assertThat(tx.getVoidedBy()).isEqualTo("admin");
+            assertThat(tx.getVoidNotes()).isEqualTo("Pembatalan Jurnal Penutup: Koreksi pendapatan");
+        });
+        assertThat(fiscalYearClosingService.getClosingEntries(YEAR)).hasSize(8).allSatisfy(e -> {
+            assertThat(e.getVoidedAt()).isNotNull();
+            assertThat(e.getVoidReason()).isEqualTo("Pembatalan Jurnal Penutup: Koreksi pendapatan");
+        });
+        assertThat(fiscalYearClosingService.hasClosingEntries(YEAR)).isFalse();
+        ReportService.IncomeStatementReport restored = reportService.generateIncomeStatement(
+                LocalDate.of(YEAR, 1, 1), LocalDate.of(YEAR, 12, 31));
+        assertThat(restored.totalRevenue()).isEqualByComparingTo("120000000");
+        assertThat(restored.netIncome()).isEqualByComparingTo("85000000");
 
-            // For profit: Debit LABA_BERJALAN, Credit LABA_DITAHAN
-            assertThat(lines.get(0).accountCode()).isEqualTo("3.2.02"); // LABA_BERJALAN
-            assertThat(lines.get(0).debit()).isGreaterThan(BigDecimal.ZERO);
-            assertThat(lines.get(1).accountCode()).isEqualTo("3.2.01"); // LABA_DITAHAN
-            assertThat(lines.get(1).credit()).isGreaterThan(BigDecimal.ZERO);
-        }
+        assertThat(fiscalYearClosingService.executeClosing(YEAR)).hasSize(8);
+        assertThat(closingTransactions(YEAR)).filteredOn(tx -> tx.getStatus() == TransactionStatus.POSTED).hasSize(3);
     }
 
-    // Note: Tests for executeClosing, reverseClosing, and alreadyClosed flag are skipped
-    // because FiscalYearClosingService.generateJournalNumber uses prefix "JV-YYYYMMDD-"
-    // (12 chars) but findMaxSequenceByPrefix SQL uses SUBSTRING(journal_number, 9, 4) which
-    // assumes 8-char prefix (JRN-YYYY). This causes "invalid input syntax for type integer"
-    // when existing JRN-format entries exist in the same database.
-
     @Test
-    @DisplayName("Should preview closing for 2023 with prior year data")
-    void shouldPreviewClosingFor2023WithPriorYearData() {
-        // V901 has Dec 2023 data: capital 50M and revenue 10M
-        FiscalYearClosingService.ClosingPreview preview = fiscalYearClosingService.previewClosing(2023);
+    @DisplayName("Reversing a year without closing entries is rejected")
+    void shouldRejectReverseWithoutClosing() {
+        assertThatThrownBy(() -> fiscalYearClosingService.reverseClosing(EMPTY_YEAR, "Test"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Tidak ada jurnal penutup untuk tahun " + EMPTY_YEAR);
+    }
 
-        assertThat(preview).isNotNull();
-        assertThat(preview.year()).isEqualTo(2023);
-        // Revenue should include at least the 10M from V901 Dec 2023
-        assertThat(preview.totalRevenue()).isGreaterThanOrEqualTo(BigDecimal.ZERO);
+    private record Line(String accountCode, BigDecimal debit, BigDecimal credit) {}
+
+    private static Line line(String accountCode, String debit, String credit) {
+        return new Line(accountCode, new BigDecimal(debit), new BigDecimal(credit));
+    }
+
+    private static void assertLines(List<FiscalYearClosingService.ClosingLinePreview> actual, Line... expected) {
+        assertThat(actual).hasSize(expected.length);
+        for (int i = 0; i < expected.length; i++) {
+            assertThat(actual.get(i).accountCode()).isEqualTo(expected[i].accountCode());
+            assertThat(actual.get(i).debit()).isEqualByComparingTo(expected[i].debit());
+            assertThat(actual.get(i).credit()).isEqualByComparingTo(expected[i].credit());
+        }
+        BigDecimal debit = actual.stream().map(FiscalYearClosingService.ClosingLinePreview::debit)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal credit = actual.stream().map(FiscalYearClosingService.ClosingLinePreview::credit)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        assertThat(debit).isEqualByComparingTo(credit);
+    }
+
+    private void postProfitYear() {
+        post(YEAR, "1.1.02", "4.1.01", "100000000");
+        post(YEAR, "1.1.02", "4.1.02", "20000000");
+        post(YEAR, "5.1.01", "1.1.02", "30000000");
+        post(YEAR, "5.1.02", "1.1.02", "5000000");
+    }
+
+    private void post(int year, String debitAccount, String creditAccount, String amount) {
+        String number = "FYC-" + UUID.randomUUID().toString().substring(0, 8);
+        Transaction tx = new Transaction();
+        tx.setTransactionNumber(number);
+        tx.setTransactionDate(LocalDate.of(year, 6, 15));
+        tx.setDescription("Uji penutupan " + number);
+        tx.setAmount(new BigDecimal(amount));
+        tx.setJournalTemplate(templateRepository.findById(TEMPLATE_ID)
+                .orElseThrow(() -> new IllegalStateException("Seeded template missing: " + TEMPLATE_ID)));
+        tx.setStatus(TransactionStatus.POSTED);
+        tx.setPostedAt(LocalDateTime.now());
+        tx.setPostedBy("admin");
+        tx.setCreatedBy("admin");
+        Transaction saved = transactionRepository.save(tx);
+        entry(saved, number + "-01", debitAccount, new BigDecimal(amount), BigDecimal.ZERO);
+        entry(saved, number + "-02", creditAccount, BigDecimal.ZERO, new BigDecimal(amount));
+    }
+
+    private void entry(Transaction tx, String journalNumber, String accountCode, BigDecimal debit, BigDecimal credit) {
+        JournalEntry entry = new JournalEntry();
+        entry.setJournalNumber(journalNumber);
+        entry.setTransaction(tx);
+        entry.setAccount(account(accountCode));
+        entry.setDebitAmount(debit);
+        entry.setCreditAmount(credit);
+        entry.setPostedAt(tx.getPostedAt());
+        entry.setCreatedBy("admin");
+        journalEntryRepository.save(entry);
+    }
+
+    private ChartOfAccount account(String code) {
+        return chartOfAccountRepository.findByAccountCode(code)
+                .orElseThrow(() -> new IllegalStateException("Seeded account missing: " + code));
+    }
+
+    private BigDecimal balance(String accountCode, LocalDate asOf) {
+        ChartOfAccount account = account(accountCode);
+        return journalEntryRepository.sumCreditByAccountAndDateRange(account.getId(), LocalDate.of(1900, 1, 1), asOf)
+                .subtract(journalEntryRepository.sumDebitByAccountAndDateRange(account.getId(), LocalDate.of(1900, 1, 1), asOf));
+    }
+
+    private List<Transaction> closingTransactions(int year) {
+        return fiscalYearClosingService.getClosingEntries(year).stream()
+                .map(JournalEntry::getTransaction)
+                .distinct()
+                .sorted(java.util.Comparator.comparing(Transaction::getReferenceNumber))
+                .toList();
     }
 }
