@@ -352,7 +352,7 @@ public class InventoryReportService {
 
         BigDecimal margin = revenue.subtract(cogs);
         BigDecimal marginPercent = revenue.compareTo(BigDecimal.ZERO) > 0
-                ? margin.multiply(BigDecimal.valueOf(100)).divide(revenue, 2, java.math.RoundingMode.HALF_UP)
+                ? margin.multiply(BigDecimal.valueOf(100)).divide(revenue, 4, java.math.RoundingMode.HALF_UP)
                 : BigDecimal.ZERO;
 
         return new ProfitabilityItem(
@@ -381,7 +381,7 @@ public class InventoryReportService {
         public BigDecimal getTotalMarginPercent() {
             if (totalRevenue.compareTo(BigDecimal.ZERO) > 0) {
                 return totalMargin.multiply(BigDecimal.valueOf(100))
-                        .divide(totalRevenue, 2, java.math.RoundingMode.HALF_UP);
+                        .divide(totalRevenue, 4, java.math.RoundingMode.HALF_UP);
             }
             return BigDecimal.ZERO;
         }

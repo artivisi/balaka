@@ -236,12 +236,12 @@ class InventoryReportServiceTest {
             var report = reportService.generateProfitabilityReport(JAN_1_2024, JAN_31_2024, null, PRODUCT_KUE_BOLU_ID);
 
             assertThat(report.items()).extracting(InventoryReportServiceTest::profitability)
-                    .containsExactly("PRD-TEST-003|Kue Bolu|Produk Jadi|pcs|10.0000|500000.0000|300000.00|200000.0000|40.00|1");
+                    .containsExactly("PRD-TEST-003|Kue Bolu|Produk Jadi|pcs|10.0000|500000.0000|300000.00|200000.0000|40.0000|1");
             assertThat(report.totalRevenue()).isEqualByComparingTo("500000");
             assertThat(report.totalCogs()).isEqualByComparingTo("300000");
             assertThat(report.totalMargin()).isEqualByComparingTo("200000");
             assertThat(report.totalQuantitySold()).isEqualByComparingTo("10");
-            assertThat(report.getTotalMarginPercent()).isEqualByComparingTo("40.00");
+            assertThat(report.getTotalMarginPercent()).isEqualByComparingTo("40.0000");
         }
 
         @Test
@@ -263,14 +263,14 @@ class InventoryReportServiceTest {
             var report = reportService.generateProfitabilityReport(DAY, DAY, f.category.getId(), null);
 
             assertThat(report.items()).extracting(InventoryReportServiceTest::profitability).containsExactly(
-                    f.fifo.getCode() + "|" + f.fifo.getName() + "|" + f.category.getName() + "|pcs|5.0000|65000.0000|36000.00|29000.0000|44.62|1",
-                    f.average.getCode() + "|" + f.average.getName() + "|" + f.category.getName() + "|kg|6.0000|90000.0000|66000.00|24000.0000|26.67|1",
+                    f.fifo.getCode() + "|" + f.fifo.getName() + "|" + f.category.getName() + "|pcs|5.0000|65000.0000|36000.00|29000.0000|44.6154|1",
+                    f.average.getCode() + "|" + f.average.getName() + "|" + f.category.getName() + "|kg|6.0000|90000.0000|66000.00|24000.0000|26.6667|1",
                     f.soldOut.getCode() + "|" + f.soldOut.getName() + "|" + f.category.getName() + "|kg|2.0000|0.0000|6000.00|-6000.0000|0|1");
             assertThat(report.totalRevenue()).isEqualByComparingTo("155000");
             assertThat(report.totalCogs()).isEqualByComparingTo("108000");
             assertThat(report.totalMargin()).isEqualByComparingTo("47000");
             assertThat(report.totalQuantitySold()).isEqualByComparingTo("13");
-            assertThat(report.getTotalMarginPercent()).isEqualByComparingTo("30.32");
+            assertThat(report.getTotalMarginPercent()).isEqualByComparingTo("30.3226");
         }
 
         @Test

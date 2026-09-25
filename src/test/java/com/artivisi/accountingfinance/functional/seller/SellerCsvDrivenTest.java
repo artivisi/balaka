@@ -1,241 +1,256 @@
 package com.artivisi.accountingfinance.functional.seller;
 
-import com.artivisi.accountingfinance.entity.CostingMethod;
-import com.artivisi.accountingfinance.entity.Product;
-import com.artivisi.accountingfinance.entity.ProductCategory;
-import com.artivisi.accountingfinance.functional.page.ClientListPage;
-import com.artivisi.accountingfinance.functional.page.InventoryStockPage;
-import com.artivisi.accountingfinance.functional.page.InventoryTransactionListPage;
-import com.artivisi.accountingfinance.functional.page.ProductCategoryListPage;
-import com.artivisi.accountingfinance.functional.page.ProductListPage;
-import com.artivisi.accountingfinance.functional.util.CsvLoader;
-import com.artivisi.accountingfinance.functional.util.ExpectedInventoryRow;
-import com.artivisi.accountingfinance.functional.util.InventoryTransactionRow;
-import com.artivisi.accountingfinance.repository.ProductCategoryRepository;
-import com.artivisi.accountingfinance.repository.ProductRepository;
 import com.artivisi.accountingfinance.ui.PlaywrightTestBase;
-import org.junit.jupiter.api.BeforeAll;
+import com.microsoft.playwright.Locator;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.DynamicTest;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.math.BigDecimal;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 /**
- * CSV-Driven Online Seller Tests
- * Loads test scenarios from CSV files and executes them as dynamic tests.
- * Uses Page Object Pattern with ID-based locators.
- *
- * Data from: src/test/resources/testdata/seller/
- * - transactions.csv: 9 inventory transactions
- * - expected-inventory.csv: 4 expected stock levels
+ * Online seller data loaded by SellerTestDataInitializer, verified row by row against its source CSVs by natural
+ * key: seed product categories and products (industry-seed/online-seller), test clients, and the imported POSTED
+ * financial transactions with their journal lines (capital, inventory purchases, Tokopedia/Shopee sales net of
+ * the marketplace admin fee with COGS, seller-paid shipping). Each record is checked in the database and on its
+ * list or detail page.
  */
 @DisplayName("Online Seller - CSV-Driven Tests")
 @Import(SellerTestDataInitializer.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class SellerCsvDrivenTest extends PlaywrightTestBase {
 
-    @Autowired
-    private ProductCategoryRepository categoryRepository;
+    private static final Path SEED_DIR = Path.of("industry-seed/online-seller/seed-data");
+    private static final Path TEST_DATA_DIR = Path.of("src/test/resources/testdata/seller");
+    private static final DateTimeFormatter DETAIL_DATE = DateTimeFormatter.ofPattern("d MMMM yyyy", Locale.of("id", "ID"));
 
     @Autowired
-    private ProductRepository productRepository;
+    private JdbcTemplate jdbcTemplate;
 
-    // Page Objects
-    private ProductListPage productListPage;
-    private ProductCategoryListPage categoryListPage;
-    private InventoryStockPage stockPage;
-    private InventoryTransactionListPage transactionListPage;
-    private ClientListPage clientListPage;
+    @TestFactory
+    @DisplayName("Should import each product category of the seed pack")
+    Stream<DynamicTest> shouldImportProductCategories() {
+        List<Map<String, String>> rows = readCsv(SEED_DIR.resolve("35_product_categories.csv"));
+        assertEquals(5, rows.size(), "35_product_categories.csv rows");
+        return rows.stream().map(row -> DynamicTest.dynamicTest("Category " + row.get("code"), () -> {
+            String code = row.get("code");
+            assertEquals(List.of(row.get("name") + "|" + row.get("description") + "|" + row.get("parent_code") + "|" + row.get("active")),
+                    jdbcTemplate.queryForList("""
+                            SELECT c.name || '|' || COALESCE(c.description, '') || '|' || COALESCE(p.code, '') || '|' || c.active
+                            FROM product_categories c LEFT JOIN product_categories p ON p.id = c.id_parent
+                            WHERE c.code = ?""", String.class, code));
 
-    private void initPageObjects() {
-        String baseUrl = "http://localhost:" + port;
-        productListPage = new ProductListPage(page, baseUrl);
-        categoryListPage = new ProductCategoryListPage(page, baseUrl);
-        stockPage = new InventoryStockPage(page, baseUrl);
-        transactionListPage = new InventoryTransactionListPage(page, baseUrl);
-        clientListPage = new ClientListPage(page, baseUrl);
-    }
-
-    @BeforeAll
-    void setupProductsAndCategories() {
-        // Create categories (check if exists first to avoid duplicates)
-        ProductCategory smartphone = categoryRepository.findByCode("PHONE")
-            .orElseGet(() -> {
-                ProductCategory cat = new ProductCategory();
-                cat.setCode("PHONE");
-                cat.setName("Smartphone");
-                cat.setActive(true);
-                return categoryRepository.save(cat);
-            });
-
-        ProductCategory accessories = categoryRepository.findByCode("ACC")
-            .orElseGet(() -> {
-                ProductCategory cat = new ProductCategory();
-                cat.setCode("ACC");
-                cat.setName("Accessories");
-                cat.setActive(true);
-                return categoryRepository.save(cat);
-            });
-
-        // Create products matching CSV transaction codes (check if exists first)
-        if (productRepository.findByCode("IP15PRO").isEmpty()) {
-            Product iphone = new Product();
-            iphone.setCode("IP15PRO");
-            iphone.setName("iPhone 15 Pro");
-            iphone.setDescription("Apple iPhone 15 Pro 256GB");
-            iphone.setUnit("pcs");
-            iphone.setCostingMethod(CostingMethod.FIFO);
-            iphone.setCategory(smartphone);
-            iphone.setSellingPrice(BigDecimal.valueOf(19000000));
-            iphone.setTrackInventory(true);
-            iphone.setActive(true);
-            productRepository.save(iphone);
-        }
-
-        if (productRepository.findByCode("SGS24").isEmpty()) {
-            Product samsung = new Product();
-            samsung.setCode("SGS24");
-            samsung.setName("Samsung Galaxy S24");
-            samsung.setDescription("Samsung Galaxy S24 Ultra 512GB");
-            samsung.setUnit("pcs");
-            samsung.setCostingMethod(CostingMethod.FIFO);
-            samsung.setCategory(smartphone);
-            samsung.setSellingPrice(BigDecimal.valueOf(14000000));
-            samsung.setTrackInventory(true);
-            samsung.setActive(true);
-            productRepository.save(samsung);
-        }
-
-        if (productRepository.findByCode("USBC").isEmpty()) {
-            Product usbCable = new Product();
-            usbCable.setCode("USBC");
-            usbCable.setName("USB Cable Type-C 1M");
-            usbCable.setDescription("USB Type-C cable 1 meter");
-            usbCable.setUnit("pcs");
-            usbCable.setCostingMethod(CostingMethod.WEIGHTED_AVERAGE);
-            usbCable.setCategory(accessories);
-            usbCable.setSellingPrice(BigDecimal.valueOf(50000));
-            usbCable.setTrackInventory(true);
-            usbCable.setActive(true);
-            productRepository.save(usbCable);
-        }
-
-        if (productRepository.findByCode("CASE").isEmpty()) {
-            Product phoneCase = new Product();
-            phoneCase.setCode("CASE");
-            phoneCase.setName("Phone Case Universal");
-            phoneCase.setDescription("Universal phone protective case");
-            phoneCase.setUnit("pcs");
-            phoneCase.setCostingMethod(CostingMethod.WEIGHTED_AVERAGE);
-            phoneCase.setCategory(accessories);
-            phoneCase.setSellingPrice(BigDecimal.valueOf(35000));
-            phoneCase.setTrackInventory(true);
-            phoneCase.setActive(true);
-            productRepository.save(phoneCase);
-        }
-    }
-
-    @Test
-    @DisplayName("Should load 9 inventory transactions from CSV")
-    void shouldLoadInventoryTransactionsCsv() {
-        List<InventoryTransactionRow> transactions = CsvLoader.loadInventoryTransactions("seller/transactions.csv");
-
-        // Verify CSV loads correctly with 9 transactions
-        assertEquals(9, transactions.size());
-        assertEquals("PURCHASE", transactions.get(0).transactionType());
-        assertEquals("IP15PRO", transactions.get(0).productCode());
-    }
-
-    @Test
-    @DisplayName("Should load 4 expected inventory rows from CSV")
-    void shouldLoadExpectedInventoryCsv() {
-        List<ExpectedInventoryRow> inventory = CsvLoader.loadExpectedInventory("seller/expected-inventory.csv");
-
-        // Verify CSV loads correctly with 4 products
-        assertEquals(4, inventory.size());
-        assertTrue(inventory.stream().anyMatch(r -> r.productCode().equals("IP15PRO")));
-        assertTrue(inventory.stream().anyMatch(r -> r.productCode().equals("SGS24")));
-        assertTrue(inventory.stream().anyMatch(r -> r.productCode().equals("USBC")));
-        assertTrue(inventory.stream().anyMatch(r -> r.productCode().equals("CASE")));
+            loginAsAdmin();
+            navigateTo("/products/categories?search=" + encode(code));
+            waitForPageLoad();
+            assertThat(page.getByTestId("category-name-" + code)).hasText(row.get("name"));
+            assertThat(page.getByTestId("category-parent-" + code)).hasText("-");
+            assertThat(page.getByTestId("category-status-" + code)).hasText("Aktif");
+        }));
     }
 
     @TestFactory
-    @DisplayName("Verify inventory transactions exist")
-    Stream<DynamicTest> verifyInventoryTransactionsFromCsv() {
-        List<InventoryTransactionRow> transactions = CsvLoader.loadInventoryTransactions("seller/transactions.csv");
+    @DisplayName("Should import each product of the seed pack with its category, costing method, price and accounts")
+    Stream<DynamicTest> shouldImportProducts() {
+        Map<String, String> categoryNames = readCsv(SEED_DIR.resolve("35_product_categories.csv")).stream()
+                .collect(Collectors.toMap(r -> r.get("code"), r -> r.get("name")));
+        List<Map<String, String>> rows = readCsv(SEED_DIR.resolve("36_products.csv"));
+        assertEquals(18, rows.size(), "36_products.csv rows");
+        return rows.stream().map(row -> DynamicTest.dynamicTest("Product " + row.get("code"), () -> {
+            String code = row.get("code");
+            assertEquals(List.of(String.join("|", row.get("name"), row.get("description"), row.get("unit"),
+                            row.get("category_code"), row.get("costing_method"), row.get("track_inventory"),
+                            plain(row.get("minimum_stock")), plain(row.get("selling_price")),
+                            row.get("inventory_account_code"), row.get("cogs_account_code"),
+                            row.get("sales_account_code"), row.get("active"))),
+                    jdbcTemplate.queryForList("""
+                            SELECT p.name, p.description, p.unit, c.code AS category, p.costing_method, p.track_inventory,
+                                   p.minimum_stock, p.selling_price, ia.account_code AS inv, ca.account_code AS cogs,
+                                   sa.account_code AS sales, p.active
+                            FROM products p
+                            JOIN product_categories c ON c.id = p.id_category
+                            JOIN chart_of_accounts ia ON ia.id = p.id_inventory_account
+                            JOIN chart_of_accounts ca ON ca.id = p.id_cogs_account
+                            JOIN chart_of_accounts sa ON sa.id = p.id_sales_account
+                            WHERE p.code = ?""", code).stream()
+                            .map(r -> String.join("|", (String) r.get("name"), (String) r.get("description"),
+                                    (String) r.get("unit"), (String) r.get("category"), (String) r.get("costing_method"),
+                                    String.valueOf(r.get("track_inventory")), plain((BigDecimal) r.get("minimum_stock")),
+                                    plain((BigDecimal) r.get("selling_price")), (String) r.get("inv"),
+                                    (String) r.get("cogs"), (String) r.get("sales"), String.valueOf(r.get("active"))))
+                            .toList());
 
-        return transactions.stream()
-            .map(tx -> DynamicTest.dynamicTest(
-                "Inv " + tx.sequence() + ": " + tx.transactionType() + " " + tx.productCode() + " x" + tx.quantity(),
-                () -> verifyInventoryTransaction(tx)
-            ));
+            loginAsAdmin();
+            navigateTo("/products?search=" + encode(code));
+            waitForPageLoad();
+            assertThat(page.getByTestId("product-name-" + code)).hasText(row.get("name"));
+            assertThat(page.getByTestId("product-category-" + code)).hasText(categoryNames.get(row.get("category_code")));
+            assertThat(page.getByTestId("product-unit-" + code)).hasText(row.get("unit"));
+            assertThat(page.getByTestId("product-price-" + code))
+                    .hasText(String.format(Locale.US, "%,d", new BigDecimal(row.get("selling_price")).longValueExact()));
+            assertThat(page.getByTestId("product-status-" + code)).hasText("Aktif");
+        }));
     }
 
-    private void verifyInventoryTransaction(InventoryTransactionRow tx) {
-        loginAsAdmin();
-        initPageObjects();
+    @TestFactory
+    @DisplayName("Should import each marketplace and supplier client")
+    Stream<DynamicTest> shouldImportClients() {
+        List<Map<String, String>> rows = readCsv(TEST_DATA_DIR.resolve("clients.csv"));
+        assertEquals(5, rows.size(), "clients.csv rows");
+        return rows.stream().map(row -> DynamicTest.dynamicTest("Client " + row.get("code"), () -> {
+            String code = row.get("code");
+            assertEquals(List.of(String.join("|", row.get("name"), row.get("contact_person"), row.get("email"),
+                            row.get("phone"), row.get("address"), row.get("npwp"), row.get("active"))),
+                    jdbcTemplate.queryForList("""
+                            SELECT name || '|' || contact_person || '|' || email || '|' || phone || '|' || address
+                                   || '|' || npwp || '|' || active
+                            FROM clients WHERE code = ?""", String.class, code));
 
-        transactionListPage.navigate()
-            .verifyPageTitle()
-            .verifyTableVisible();
+            loginAsAdmin();
+            navigateTo("/clients?search=" + encode(code));
+            waitForPageLoad();
+            Locator clientRow = page.getByTestId("client-row-" + code);
+            assertThat(page.getByTestId("client-name-" + code)).hasText(row.get("name"));
+            assertThat(clientRow.locator("td").nth(2)).hasText(row.get("contact_person"));
+            assertThat(clientRow.locator("td").nth(3)).hasText(row.get("email"));
+            assertThat(clientRow.locator("td").nth(4)).hasText("Aktif");
+        }));
+    }
 
-        if (tx.screenshot()) {
-            takeManualScreenshot("seller/inv-" + tx.sequence() + "-" + tx.transactionType().toLowerCase());
+    @TestFactory
+    @DisplayName("Should import each POSTED seller transaction with its template, amount and journal lines")
+    Stream<DynamicTest> shouldImportFinancialTransactions() {
+        List<Map<String, String>> transactions = readCsv(TEST_DATA_DIR.resolve("financial-transactions.csv"));
+        List<Map<String, String>> journalLines = readCsv(TEST_DATA_DIR.resolve("financial-journal-entries.csv"));
+        assertEquals(6, transactions.size(), "financial-transactions.csv rows");
+        assertEquals(18, journalLines.size(), "financial-journal-entries.csv rows");
+        Map<String, List<Map<String, String>>> linesByTransaction = new HashMap<>();
+        journalLines.forEach(l -> linesByTransaction.computeIfAbsent(l.get("transaction_number"), k -> new ArrayList<>()).add(l));
+        assertEquals(transactions.stream().map(t -> t.get("transaction_number")).sorted().toList(),
+                linesByTransaction.keySet().stream().sorted().toList(), "every transaction has journal lines");
+
+        return transactions.stream().map(row -> DynamicTest.dynamicTest("Transaction " + row.get("transaction_number"), () -> {
+            String number = row.get("transaction_number");
+            List<Map<String, String>> lines = linesByTransaction.get(number);
+            assertFalse(lines.isEmpty());
+
+            Map<String, Object> stored = jdbcTemplate.queryForMap("""
+                    SELECT t.id, t.transaction_date, jt.template_name, t.amount, t.description, t.reference_number,
+                           t.status, t.posted_by
+                    FROM transactions t JOIN journal_templates jt ON jt.id = t.id_journal_template
+                    WHERE t.transaction_number = ?""", number);
+            assertEquals(String.join("|", row.get("transaction_date"), row.get("template_name"), plain(row.get("amount")),
+                            row.get("description"), row.get("reference_number"), row.get("status"), row.get("posted_by")),
+                    String.join("|", stored.get("transaction_date").toString(), (String) stored.get("template_name"),
+                            plain((BigDecimal) stored.get("amount")), (String) stored.get("description"),
+                            (String) stored.get("reference_number"), (String) stored.get("status"),
+                            (String) stored.get("posted_by")));
+            UUID id = (UUID) stored.get("id");
+
+            assertEquals(lines.stream().map(l -> String.join("|", l.get("journal_number"), l.get("account_code"), plain(l.get("debit_amount")), plain(l.get("credit_amount"))))
+                            .sorted().toList(),
+                    jdbcTemplate.queryForList("""
+                            SELECT je.journal_number, coa.account_code, je.debit_amount, je.credit_amount
+                            FROM journal_entries je JOIN chart_of_accounts coa ON coa.id = je.id_account
+                            WHERE je.id_transaction = ?""", id).stream()
+                            .map(r -> String.join("|", (String) r.get("journal_number"), (String) r.get("account_code"), plain((BigDecimal) r.get("debit_amount")),
+                                    plain((BigDecimal) r.get("credit_amount"))))
+                            .sorted().toList());
+            BigDecimal debit = lines.stream().map(l -> new BigDecimal(l.get("debit_amount"))).reduce(BigDecimal.ZERO, BigDecimal::add);
+            BigDecimal credit = lines.stream().map(l -> new BigDecimal(l.get("credit_amount"))).reduce(BigDecimal.ZERO, BigDecimal::add);
+            assertEquals(0, debit.compareTo(credit), "journal of " + number + " is balanced");
+
+            loginAsAdmin();
+            navigateTo("/transactions/" + id);
+            waitForPageLoad();
+            assertThat(page.locator("#transaction-number")).hasText(number);
+            assertThat(page.getByTestId("status-posted")).hasText("Transaksi Berhasil Diposting");
+            assertThat(page.getByTestId("template-link")).hasText(row.get("template_name"));
+            assertThat(page.locator("p:text-is('Tanggal') + p"))
+                    .hasText(LocalDate.parse(row.get("transaction_date")).format(DETAIL_DATE));
+            assertThat(page.locator("p:text-is('No. Referensi') + p")).hasText(row.get("reference_number"));
+            assertEquals(lines.stream().map(l -> l.get("account_code") + "|" + rupiah(l.get("debit_amount")) + "|"
+                    + rupiah(l.get("credit_amount"))).sorted().toList(), journalRows());
+            assertThat(page.locator("#total-debit")).hasText(rupiah(debit.toPlainString()));
+            assertThat(page.locator("#total-credit")).hasText(rupiah(credit.toPlainString()));
+        }));
+    }
+
+    private List<String> journalRows() {
+        Locator rows = page.locator(".journal-entry-row");
+        List<String> result = new ArrayList<>();
+        for (int i = 0; i < rows.count(); i++) {
+            Locator cells = rows.nth(i).locator("> div");
+            result.add(page.locator("#entry-account-code-" + i).textContent().trim() + "|"
+                    + cells.nth(1).textContent().trim() + "|" + cells.nth(2).textContent().trim());
+        }
+        return result.stream().sorted().toList();
+    }
+
+    private static List<Map<String, String>> readCsv(Path file) {
+        try {
+            List<String> lines = Files.readAllLines(file, StandardCharsets.UTF_8);
+            String[] header = lines.getFirst().split(",", -1);
+            List<Map<String, String>> rows = new ArrayList<>();
+            for (String line : lines.subList(1, lines.size())) {
+                if (line.isBlank()) {
+                    continue;
+                }
+                String[] values = line.split(",", -1);
+                assertEquals(header.length, values.length, file + " column count: " + line);
+                Map<String, String> row = new HashMap<>();
+                for (int i = 0; i < header.length; i++) {
+                    row.put(header[i], values[i]);
+                }
+                rows.add(row);
+            }
+            return rows;
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
         }
     }
 
-    // NOTE: Inventory level verification removed from CSV-driven test
-    // Stock balances only exist after transactions are executed
-    // See SellerTransactionExecutionTest for actual inventory verification after transaction execution
-
-    @Test
-    @DisplayName("Verify 4 products exist")
-    void verifyProductsExist() {
-        loginAsAdmin();
-        initPageObjects();
-
-        // 4 products from @BeforeAll
-        productListPage.navigate()
-            .verifyPageTitle()
-            .verifyTableVisible()
-            .verifyMinimumProductCount(4)
-            .verifyProductExists("IP15PRO");
+    private static String plain(String value) {
+        return plain(new BigDecimal(value));
     }
 
-    @Test
-    @DisplayName("Verify 2 product categories exist")
-    void verifyProductCategoriesExist() {
-        loginAsAdmin();
-        initPageObjects();
-
-        // Categories from seed data (5) + @BeforeAll (2)
-        categoryListPage.navigate()
-            .verifyPageTitle()
-            .verifyTableVisible()
-            .verifyMinimumCategoryCount(2);
+    private static String plain(BigDecimal value) {
+        return value.stripTrailingZeros().toPlainString();
     }
 
-    @Test
-    @DisplayName("Verify 5 clients exist (suppliers + marketplaces)")
-    void verifyClientsExist() {
-        loginAsAdmin();
-        initPageObjects();
+    private static String rupiah(String value) {
+        BigDecimal amount = new BigDecimal(value);
+        if (amount.signum() == 0) {
+            return "-";
+        }
+        return "Rp " + String.format(Locale.US, "%,d", amount.longValueExact()).replace(',', '.');
+    }
 
-        // 5 clients: 2 suppliers (Erajaya, Samsung) + 3 marketplaces (Tokopedia, Shopee, Lazada)
-        clientListPage.navigate()
-            .verifyPageTitle()
-            .verifyTableVisible()
-            .verifyClientCount(5);
+    private static String encode(String value) {
+        return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 }

@@ -73,12 +73,12 @@ public class SellerTestDataInitializer {
     
     private void addTestFileToZip(ZipOutputStream zos, Path testDir, String sourceFile, String zipEntry) throws IOException {
         Path filePath = testDir.resolve(sourceFile);
-        if (Files.exists(filePath)) {
-            ZipEntry entry = new ZipEntry(zipEntry);
-            zos.putNextEntry(entry);
-            Files.copy(filePath, zos);
-            zos.closeEntry();
+        if (!Files.exists(filePath)) {
+            throw new IOException("Seller test data file not found: " + filePath);
         }
+        zos.putNextEntry(new ZipEntry(zipEntry));
+        Files.copy(filePath, zos);
+        zos.closeEntry();
     }
 
     private byte[] createZipFromDirectory(String dirPath) throws IOException {

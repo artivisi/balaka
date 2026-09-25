@@ -1,5 +1,5 @@
 productCode,productName,expectedQuantity,expectedAverageCost,costingMethod,notes
-IP15PRO,iPhone 15 Pro 256GB,5,15000000,FIFO,10 purchased - 5 sold
-SGS24,Samsung Galaxy S24 256GB,12,12000000,FIFO,20 purchased - 8 sold
+IP15PRO,iPhone 15 Pro,5,15000000,FIFO,10 purchased - 5 sold
+SGS24,Samsung Galaxy S24,12,12000000,FIFO,20 purchased - 8 sold
 USBC,USB Cable Type-C 1M,75,25000,WEIGHTED_AVERAGE,100 purchased - 30 sold + 5 adjustment
-CASE,Phone Case Universal,150,15000,WEIGHTED_AVERAGE,200 purchased - 50 sold
+CASE,Phone Case Silicone,150,15000,WEIGHTED_AVERAGE,200 purchased - 50 sold
