@@ -1,12 +1,14 @@
 package com.artivisi.accountingfinance.controller;
 
 import com.artivisi.accountingfinance.entity.DraftTransaction;
+import com.artivisi.accountingfinance.security.Permission;
 import com.artivisi.accountingfinance.service.DraftTransactionService;
 import com.artivisi.accountingfinance.service.JournalTemplateService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -76,6 +78,7 @@ public class DraftTransactionController {
     }
 
     @PostMapping("/{id}/approve")
+    @PreAuthorize("hasAuthority('" + Permission.DRAFT_APPROVE + "')")
     public String approve(
             @PathVariable UUID id,
             @RequestParam UUID templateId,
@@ -95,6 +98,7 @@ public class DraftTransactionController {
     }
 
     @PostMapping("/{id}/reject")
+    @PreAuthorize("hasAuthority('" + Permission.DRAFT_REJECT + "')")
     public String reject(
             @PathVariable UUID id,
             @RequestParam String reason,
@@ -111,6 +115,7 @@ public class DraftTransactionController {
 
     @DeleteMapping("/{id}")
     @ResponseBody
+    @PreAuthorize("hasAuthority('" + Permission.DRAFT_REJECT + "')")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         draftService.delete(id);
         return ResponseEntity.ok().build();
@@ -135,6 +140,7 @@ public class DraftTransactionController {
 
     @PostMapping("/api/{id}/approve")
     @ResponseBody
+    @PreAuthorize("hasAuthority('" + Permission.DRAFT_APPROVE + "')")
     public ResponseEntity<DraftTransaction> apiApprove(
             @PathVariable UUID id,
             @RequestBody Map<String, Object> body,
@@ -150,6 +156,7 @@ public class DraftTransactionController {
 
     @PostMapping("/api/{id}/reject")
     @ResponseBody
+    @PreAuthorize("hasAuthority('" + Permission.DRAFT_REJECT + "')")
     public ResponseEntity<DraftTransaction> apiReject(
             @PathVariable UUID id,
             @RequestBody Map<String, String> body,

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" lang="id">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security" lang="id">
 <head><title>draft table Fragment</title></head>
 <body>
 <div th:fragment="table" id="draft-table" class="flex-1 flex flex-col min-h-0">
@@ -86,7 +87,7 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                                 </svg>
                             </a>
-                            <button th:if="${draft.status.name() == 'PENDING'}"
+                            <button sec:authorize="hasAuthority('DRAFT_REJECT')" th:if="${draft.status.name() == 'PENDING'}"
                                     hx-delete th:hx-delete="@{/drafts/{id}(id=${draft.id})}"
                                     hx-target th:hx-target="${'#draft-row-' + draft.id}"
                                     hx-swap="outerHTML"

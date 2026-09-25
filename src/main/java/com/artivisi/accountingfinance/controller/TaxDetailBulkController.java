@@ -98,6 +98,7 @@ public class TaxDetailBulkController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAuthority('" + Permission.TAX_EXPORT + "') and hasAuthority('" + Permission.TRANSACTION_EDIT + "')")
     public String bulkSave(
             @RequestParam Map<String, String> params,
             RedirectAttributes redirectAttributes) {

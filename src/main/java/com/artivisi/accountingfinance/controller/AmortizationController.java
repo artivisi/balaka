@@ -7,6 +7,7 @@ import com.artivisi.accountingfinance.enums.AmortizationFrequency;
 import com.artivisi.accountingfinance.enums.ScheduleStatus;
 import com.artivisi.accountingfinance.enums.ScheduleType;
 import com.artivisi.accountingfinance.repository.ChartOfAccountRepository;
+import com.artivisi.accountingfinance.security.Permission;
 import com.artivisi.accountingfinance.service.AmortizationBatchService;
 import com.artivisi.accountingfinance.service.AmortizationEntryService;
 import com.artivisi.accountingfinance.service.AmortizationScheduleService;
@@ -15,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -82,6 +84,7 @@ public class AmortizationController {
     }
 
     @GetMapping("/new")
+    @PreAuthorize("hasAuthority('" + Permission.AMORTIZATION_CREATE + "')")
     public String create(Model model) {
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_AMORTIZATION);
         model.addAttribute("isEdit", false);
@@ -103,6 +106,7 @@ public class AmortizationController {
     }
 
     @GetMapping("/{id}/edit")
+    @PreAuthorize("hasAuthority('" + Permission.AMORTIZATION_EDIT + "')")
     public String edit(@PathVariable UUID id, Model model) {
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_AMORTIZATION);
         model.addAttribute("isEdit", true);
@@ -114,6 +118,7 @@ public class AmortizationController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAuthority('" + Permission.AMORTIZATION_CREATE + "')")
     public String create(
             @RequestParam String code,
             @RequestParam String name,
@@ -155,6 +160,7 @@ public class AmortizationController {
     }
 
     @PostMapping("/{id}")
+    @PreAuthorize("hasAuthority('" + Permission.AMORTIZATION_EDIT + "')")
     public String update(
             @PathVariable UUID id,
             @RequestParam String name,
@@ -175,6 +181,7 @@ public class AmortizationController {
     }
 
     @PostMapping("/{id}/cancel")
+    @PreAuthorize("hasAuthority('" + Permission.AMORTIZATION_EDIT + "')")
     public String cancel(@PathVariable UUID id, RedirectAttributes redirectAttributes) {
         scheduleService.cancel(id);
         redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Jadwal amortisasi berhasil dibatalkan");
@@ -182,6 +189,7 @@ public class AmortizationController {
     }
 
     @PostMapping("/{id}/delete")
+    @PreAuthorize("hasAuthority('" + Permission.AMORTIZATION_EDIT + "')")
     public String delete(@PathVariable UUID id, RedirectAttributes redirectAttributes) {
         scheduleService.delete(id);
         redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Jadwal amortisasi berhasil dihapus");
@@ -191,6 +199,7 @@ public class AmortizationController {
     // Entry operations
 
     @PostMapping("/{id}/entries/{entryId}/post")
+    @PreAuthorize("hasAuthority('" + Permission.AMORTIZATION_POST + "')")
     public String postEntry(
             @PathVariable UUID id,
             @PathVariable UUID entryId,
@@ -213,6 +222,7 @@ public class AmortizationController {
     }
 
     @PostMapping("/{id}/entries/{entryId}/skip")
+    @PreAuthorize("hasAuthority('" + Permission.AMORTIZATION_POST + "')")
     public String skipEntry(
             @PathVariable UUID id,
             @PathVariable UUID entryId,
@@ -235,6 +245,7 @@ public class AmortizationController {
     }
 
     @PostMapping("/{id}/entries/post-all")
+    @PreAuthorize("hasAuthority('" + Permission.AMORTIZATION_POST + "')")
     public String postAllEntries(
             @PathVariable UUID id,
             RedirectAttributes redirectAttributes) {
@@ -245,6 +256,7 @@ public class AmortizationController {
     }
 
     @PostMapping("/batch/process")
+    @PreAuthorize("hasAuthority('" + Permission.AMORTIZATION_POST + "')")
     public String processBatch(RedirectAttributes redirectAttributes) {
         AmortizationBatchService.BatchResult result = batchService.processAutoPostEntries(LocalDate.now());
 

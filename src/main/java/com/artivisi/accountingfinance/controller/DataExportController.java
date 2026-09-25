@@ -1,12 +1,14 @@
 package com.artivisi.accountingfinance.controller;
 
 import com.artivisi.accountingfinance.exception.DataExportException;
+import com.artivisi.accountingfinance.security.Permission;
 import com.artivisi.accountingfinance.service.DataExportService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,6 +25,7 @@ import static com.artivisi.accountingfinance.controller.ViewConstants.*;
 @RequestMapping("/settings/export")
 @RequiredArgsConstructor
 @Slf4j
+@PreAuthorize("hasAuthority('" + Permission.DATA_IMPORT + "')")
 public class DataExportController {
 
     private final DataExportService dataExportService;

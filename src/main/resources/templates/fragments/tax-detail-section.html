@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" lang="id">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security" lang="id">
 <head><title>Tax Detail Section Fragment</title></head>
 <body>
 
@@ -85,7 +86,7 @@
 
                 <!-- Action Buttons -->
                 <div class="flex items-center space-x-1 ml-2 flex-shrink-0">
-                    <button th:hx-get="@{/transactions/{tid}/tax-details/{did}/edit(tid=${transactionId}, did=${td.id})}"
+                    <button sec:authorize="hasAuthority('TAX_EXPORT') and hasAuthority('TRANSACTION_EDIT')" th:hx-get="@{/transactions/{tid}/tax-details/{did}/edit(tid=${transactionId}, did=${td.id})}"
                             hx-target="#tax-detail-container"
                             hx-swap="innerHTML"
                             class="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded transition-colors"
@@ -94,7 +95,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                         </svg>
                     </button>
-                    <button th:hx-delete="@{/transactions/{tid}/tax-details/{did}(tid=${transactionId}, did=${td.id})}"
+                    <button sec:authorize="hasAuthority('TAX_EXPORT') and hasAuthority('TRANSACTION_EDIT')" th:hx-delete="@{/transactions/{tid}/tax-details/{did}(tid=${transactionId}, did=${td.id})}"
                             hx-target="#tax-detail-container"
                             hx-swap="outerHTML"
                             hx-confirm="Hapus detail pajak ini?"
@@ -119,7 +120,7 @@
 
     <!-- Add Button -->
     <div class="mt-4">
-        <button th:hx-get="@{/transactions/{id}/tax-details/form(id=${transactionId})}"
+        <button sec:authorize="hasAuthority('TAX_EXPORT') and hasAuthority('TRANSACTION_EDIT')" th:hx-get="@{/transactions/{id}/tax-details/form(id=${transactionId})}"
                 hx-target="#tax-detail-container"
                 hx-swap="innerHTML"
                 data-testid="btn-add-tax-detail"

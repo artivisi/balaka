@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
       th:replace="~{layouts/main :: layout('Pengaturan Perusahaan', ~{::#page-title}, ~{::section}, ~{::script})}"
       lang="id">
 <head>
@@ -284,7 +285,7 @@
 
                 <!-- Actions -->
                 <div class="flex items-center justify-end gap-3 pt-4 border-t">
-                    <button type="submit" id="btn-save-company"
+                    <button sec:authorize="hasAuthority('SETTINGS_EDIT')" type="submit" id="btn-save-company"
                             class="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
                         Simpan Pengaturan
                     </button>
@@ -302,7 +303,7 @@
                         <img id="company-logo-preview" th:src="@{/settings/company/logo}"
                              alt="Company Logo"
                              class="h-16 w-auto object-contain border rounded p-1">
-                        <form id="form-delete-logo" th:action="@{/settings/company/logo/delete}" method="post" class="inline">
+                        <form sec:authorize="hasAuthority('SETTINGS_EDIT')" id="form-delete-logo" th:action="@{/settings/company/logo/delete}" method="post" class="inline">
                             <button id="btn-delete-logo" type="submit"
                                     class="text-sm text-red-600 hover:text-red-800">
                                 Hapus Logo
@@ -312,7 +313,7 @@
                 </div>
 
                 <!-- Upload Form -->
-                <form th:action="@{/settings/company/logo}" method="post" enctype="multipart/form-data" class="space-y-4">
+                <form sec:authorize="hasAuthority('SETTINGS_EDIT')" th:action="@{/settings/company/logo}" method="post" enctype="multipart/form-data" class="space-y-4">
                     <div>
                         <label for="logoFile" class="block text-sm font-medium text-gray-700 mb-1">Upload Logo Baru</label>
                         <input type="file" id="logoFile" name="logoFile"
@@ -343,7 +344,7 @@
                         <p class="text-sm text-gray-500">Hubungkan akun Telegram</p>
                     </div>
                 </a>
-                <a th:href="@{/settings/export}"
+                <a sec:authorize="hasAuthority('DATA_IMPORT')" th:href="@{/settings/export}"
                    class="flex items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                     <svg class="w-8 h-8 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
@@ -380,7 +381,7 @@
         <div class="bg-white rounded-lg shadow p-6">
             <div class="flex items-center justify-between mb-6">
                 <h2 class="text-lg font-semibold text-gray-900">Rekening Bank</h2>
-                <a th:href="@{/settings/bank-accounts/new}"
+                <a sec:authorize="hasAuthority('SETTINGS_EDIT')" th:href="@{/settings/bank-accounts/new}"
                    class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm">
                     + Tambah Rekening
                 </a>
@@ -420,17 +421,17 @@
                                 </span>
                             </td>
                             <td class="px-4 py-3 text-right space-x-2">
-                                <a th:href="@{/settings/bank-accounts/{id}/edit(id=${bank.id})}"
+                                <a sec:authorize="hasAuthority('SETTINGS_EDIT')" th:href="@{/settings/bank-accounts/{id}/edit(id=${bank.id})}"
                                    class="text-primary-600 hover:text-primary-900 text-sm">Edit</a>
-                                <form th:unless="${bank.isDefault}" th:action="@{/settings/bank-accounts/{id}/set-default(id=${bank.id})}"
+                                <form sec:authorize="hasAuthority('SETTINGS_EDIT')" th:unless="${bank.isDefault}" th:action="@{/settings/bank-accounts/{id}/set-default(id=${bank.id})}"
                                       method="post" class="inline">
                                     <button type="submit" class="text-green-600 hover:text-green-900 text-sm">Jadikan Utama</button>
                                 </form>
-                                <form th:if="${bank.active}" th:action="@{/settings/bank-accounts/{id}/deactivate(id=${bank.id})}"
+                                <form sec:authorize="hasAuthority('SETTINGS_EDIT')" th:if="${bank.active}" th:action="@{/settings/bank-accounts/{id}/deactivate(id=${bank.id})}"
                                       method="post" class="inline">
                                     <button type="submit" class="text-yellow-600 hover:text-yellow-900 text-sm">Nonaktifkan</button>
                                 </form>
-                                <form th:unless="${bank.active}" th:action="@{/settings/bank-accounts/{id}/activate(id=${bank.id})}"
+                                <form sec:authorize="hasAuthority('SETTINGS_EDIT')" th:unless="${bank.active}" th:action="@{/settings/bank-accounts/{id}/activate(id=${bank.id})}"
                                       method="post" class="inline">
                                     <button type="submit" class="text-green-600 hover:text-green-900 text-sm">Aktifkan</button>
                                 </form>

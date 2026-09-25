@@ -2,11 +2,13 @@ package com.artivisi.accountingfinance.controller;
 
 import com.artivisi.accountingfinance.entity.FiscalPeriod;
 import com.artivisi.accountingfinance.enums.FiscalPeriodStatus;
+import com.artivisi.accountingfinance.security.Permission;
 import com.artivisi.accountingfinance.service.FiscalPeriodService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -59,6 +61,7 @@ public class FiscalPeriodController {
     }
 
     @GetMapping("/new")
+    @PreAuthorize("hasAuthority('" + Permission.FISCAL_PERIOD_MANAGE + "')")
     public String newForm(Model model) {
         int currentYear = LocalDate.now().getYear();
         model.addAttribute("currentYear", currentYear);
@@ -67,6 +70,7 @@ public class FiscalPeriodController {
     }
 
     @PostMapping("/new")
+    @PreAuthorize("hasAuthority('" + Permission.FISCAL_PERIOD_MANAGE + "')")
     public String create(
             @RequestParam Integer year,
             @RequestParam Integer month,
@@ -83,6 +87,7 @@ public class FiscalPeriodController {
     }
 
     @PostMapping("/generate-year")
+    @PreAuthorize("hasAuthority('" + Permission.FISCAL_PERIOD_MANAGE + "')")
     public String generateYear(
             @RequestParam Integer year,
             RedirectAttributes redirectAttributes) {
@@ -116,6 +121,7 @@ public class FiscalPeriodController {
     }
 
     @PostMapping("/{id}/close-month")
+    @PreAuthorize("hasAuthority('" + Permission.FISCAL_PERIOD_MANAGE + "')")
     public String closeMonth(
             @PathVariable UUID id,
             @RequestParam(required = false) String notes,
@@ -131,6 +137,7 @@ public class FiscalPeriodController {
     }
 
     @PostMapping("/{id}/file-tax")
+    @PreAuthorize("hasAuthority('" + Permission.FISCAL_PERIOD_MANAGE + "')")
     public String fileTax(
             @PathVariable UUID id,
             @RequestParam(required = false) String notes,
@@ -146,6 +153,7 @@ public class FiscalPeriodController {
     }
 
     @PostMapping("/{id}/reopen")
+    @PreAuthorize("hasAuthority('" + Permission.FISCAL_PERIOD_MANAGE + "')")
     public String reopen(
             @PathVariable UUID id,
             @RequestParam(required = false) String reason,

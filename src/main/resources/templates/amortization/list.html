@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
       th:replace="~{layouts/main :: layout('Jadwal Amortisasi', ~{::#page-title}, ~{::section}, ~{})}"
       lang="id">
 <head>
@@ -88,7 +89,7 @@
                 <span th:if="${pendingCount > 0}" class="text-sm text-amber-600 font-medium">
                     [[${pendingCount}]] entry pending
                 </span>
-                <form th:action="@{/amortization/batch/process}" method="post" class="inline">
+                <form sec:authorize="hasAuthority('AMORTIZATION_POST')" th:action="@{/amortization/batch/process}" method="post" class="inline">
                     <button type="submit" class="px-4 py-2 bg-amber-500 text-white text-sm font-medium rounded-lg hover:bg-amber-600 transition-colors">
                         Proses Batch
                     </button>

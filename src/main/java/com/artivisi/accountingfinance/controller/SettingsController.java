@@ -11,6 +11,7 @@ import com.artivisi.accountingfinance.entity.User;
 import com.artivisi.accountingfinance.enums.AuditEventType;
 import com.artivisi.accountingfinance.repository.TelegramUserLinkRepository;
 import com.artivisi.accountingfinance.repository.UserRepository;
+import com.artivisi.accountingfinance.security.Permission;
 import com.artivisi.accountingfinance.service.ApiClientService;
 import com.artivisi.accountingfinance.service.ChartOfAccountService;
 import com.artivisi.accountingfinance.service.CompanyBankAccountService;
@@ -38,6 +39,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -378,6 +380,7 @@ public class SettingsController {
     }
 
     @GetMapping("/bank-accounts/new")
+    @PreAuthorize("hasAuthority('" + Permission.SETTINGS_EDIT + "')")
     public String newBankAccountForm(Model model) {
         model.addAttribute("bankAccount", new CompanyBankAccount());
         model.addAttribute(ATTR_GL_ACCOUNTS, chartOfAccountService.findTransactableAccounts());
@@ -419,6 +422,7 @@ public class SettingsController {
     }
 
     @GetMapping("/bank-accounts/{id}/edit")
+    @PreAuthorize("hasAuthority('" + Permission.SETTINGS_EDIT + "')")
     public String editBankAccountForm(@PathVariable UUID id, Model model) {
         CompanyBankAccount bankAccount = bankAccountService.findById(id);
         model.addAttribute("bankAccount", bankAccount);

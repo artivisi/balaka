@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
       th:replace="~{layouts/main :: layout('Detail Jadwal Amortisasi', ~{::#page-title}, ~{::section}, ~{::script})}"
       lang="id">
 <head>
@@ -94,19 +95,19 @@
                 </a>
             </div>
             <div class="flex items-center gap-2">
-                <a th:if="${schedule.active}"
+                <a sec:authorize="hasAuthority('AMORTIZATION_EDIT')" th:if="${schedule.active}"
                    th:href="@{/amortization/{id}/edit(id=${schedule.id})}"
                    class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
                     Edit
                 </a>
-                <form th:if="${schedule.active and #lists.size(entries.?[status.name() == 'PENDING']) > 0}"
+                <form sec:authorize="hasAuthority('AMORTIZATION_POST')" th:if="${schedule.active and #lists.size(entries.?[status.name() == 'PENDING']) > 0}"
                       th:action="@{/amortization/{id}/entries/post-all(id=${schedule.id})}"
                       method="post" class="inline">
                     <button type="submit" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
                         Posting Semua Pending
                     </button>
                 </form>
-                <form th:if="${schedule.active}" id="form-cancel"
+                <form sec:authorize="hasAuthority('AMORTIZATION_EDIT')" th:if="${schedule.active}" id="form-cancel"
                       th:action="@{/amortization/{id}/cancel(id=${schedule.id})}"
                       method="post" class="inline">
                     <button type="submit" class="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">

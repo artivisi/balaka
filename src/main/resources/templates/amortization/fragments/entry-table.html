@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" lang="id">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security" lang="id">
 <head><title>entry table Fragment</title></head>
 <body>
     <div th:fragment="table" id="entry-table">
@@ -39,7 +40,7 @@
                         <span th:if="${entry.journalEntryId == null}" class="text-gray-400 text-sm">-</span>
                     </td>
                     <td class="px-4 py-3 whitespace-nowrap text-center">
-                        <div th:if="${entry.pending and schedule.active}" class="flex items-center justify-center gap-2">
+                        <div sec:authorize="hasAuthority('AMORTIZATION_POST')" th:if="${entry.pending and schedule.active}" class="flex items-center justify-center gap-2">
                             <button type="button"
                                     th:attr="hx-post=@{/amortization/{scheduleId}/entries/{entryId}/post(scheduleId=${schedule.id}, entryId=${entry.id})}"
                                     hx-target="#entry-table"

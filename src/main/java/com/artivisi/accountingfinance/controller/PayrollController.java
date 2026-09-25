@@ -3,6 +3,7 @@ package com.artivisi.accountingfinance.controller;
 import com.artivisi.accountingfinance.entity.PayrollDetail;
 import com.artivisi.accountingfinance.entity.PayrollRun;
 import com.artivisi.accountingfinance.entity.PayrollStatus;
+import com.artivisi.accountingfinance.security.Permission;
 import com.artivisi.accountingfinance.service.PayrollReportService;
 import com.artivisi.accountingfinance.service.PayrollService;
 import jakarta.validation.Valid;
@@ -14,6 +15,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -76,6 +78,7 @@ public class PayrollController {
     }
 
     @GetMapping("/new")
+    @PreAuthorize("hasAuthority('" + Permission.PAYROLL_CREATE + "')")
     public String newPayrollForm(Model model) {
         model.addAttribute("payrollForm", new PayrollForm());
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_PAYROLL);
@@ -89,6 +92,7 @@ public class PayrollController {
     }
 
     @PostMapping("/create")
+    @PreAuthorize("hasAuthority('" + Permission.PAYROLL_CREATE + "')")
     public String createPayroll(
             @Valid @ModelAttribute PayrollForm form,
             BindingResult bindingResult,
@@ -145,6 +149,7 @@ public class PayrollController {
     }
 
     @PostMapping("/{id}/approve")
+    @PreAuthorize("hasAuthority('" + Permission.PAYROLL_APPROVE + "')")
     public String approve(
             @PathVariable UUID id,
             RedirectAttributes redirectAttributes
@@ -161,6 +166,7 @@ public class PayrollController {
     }
 
     @PostMapping("/{id}/cancel")
+    @PreAuthorize("hasAuthority('" + Permission.PAYROLL_CANCEL + "')")
     public String cancel(
             @PathVariable UUID id,
             @RequestParam(required = false) String reason,
@@ -178,6 +184,7 @@ public class PayrollController {
     }
 
     @PostMapping("/{id}/post")
+    @PreAuthorize("hasAuthority('" + Permission.PAYROLL_POST + "')")
     public String post(
             @PathVariable UUID id,
             RedirectAttributes redirectAttributes
@@ -194,6 +201,7 @@ public class PayrollController {
     }
 
     @PostMapping("/{id}/recalculate")
+    @PreAuthorize("hasAuthority('" + Permission.PAYROLL_CREATE + "')")
     public String recalculate(
             @PathVariable UUID id,
             @RequestParam BigDecimal baseSalary,
@@ -212,6 +220,7 @@ public class PayrollController {
     }
 
     @PostMapping("/{id}/delete")
+    @PreAuthorize("hasAuthority('" + Permission.PAYROLL_CREATE + "')")
     public String delete(
             @PathVariable UUID id,
             RedirectAttributes redirectAttributes

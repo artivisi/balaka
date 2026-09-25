@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
       th:replace="~{layouts/main :: layout('Penutupan Tahun Buku', ~{::#page-title}, ~{::section}, ~{::script})}"
       lang="id">
 <head>
@@ -125,7 +126,7 @@
             <!-- Action Buttons -->
             <div id="action-buttons" class="flex gap-4">
                 <div th:unless="${preview.alreadyClosed()}">
-                    <form id="form-execute" th:action="@{/reports/fiscal-closing/{year}/execute(year=${year})}" method="post">
+                    <form sec:authorize="hasAuthority('FISCAL_PERIOD_MANAGE')" id="form-execute" th:action="@{/reports/fiscal-closing/{year}/execute(year=${year})}" method="post">
                         <button id="btn-execute" type="submit"
                                 th:disabled="${#lists.isEmpty(preview.entries())}"
                                 class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed">
@@ -137,7 +138,7 @@
                     </form>
                 </div>
                 <div th:if="${preview.alreadyClosed()}">
-                    <button id="btn-reverse" type="button"
+                    <button sec:authorize="hasAuthority('FISCAL_PERIOD_MANAGE')" id="btn-reverse" type="button"
                             class="inline-flex items-center px-4 py-2 border border-red-300 shadow-sm text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50">
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
@@ -166,7 +167,7 @@
             <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
                 <div class="mt-3">
                     <h3 class="text-lg font-medium text-gray-900 mb-4">Batalkan Penutupan Tahun <span th:text="${year}">2024</span></h3>
-                    <form th:action="@{/reports/fiscal-closing/{year}/reverse(year=${year})}" method="post">
+                    <form sec:authorize="hasAuthority('FISCAL_PERIOD_MANAGE')" th:action="@{/reports/fiscal-closing/{year}/reverse(year=${year})}" method="post">
                         <div class="mb-4">
                             <label for="reason" class="block text-sm font-medium text-gray-700 mb-1">Alasan Pembatalan</label>
                             <textarea id="reason" name="reason" rows="3" required

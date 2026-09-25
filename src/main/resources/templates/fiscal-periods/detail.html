@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
       th:replace="~{layouts/main :: layout('Detail Periode Fiskal', ~{::#page-title}, ~{::section}, ~{::script})}"
       lang="id">
 <head>
@@ -112,7 +113,7 @@
             </a>
             <div class="flex items-center gap-2">
                 <!-- Close Month Button -->
-                <form th:if="${period.canCloseMonth()}" id="form-close-month"
+                <form sec:authorize="hasAuthority('FISCAL_PERIOD_MANAGE')" th:if="${period.canCloseMonth()}" id="form-close-month"
                       th:action="@{/fiscal-periods/{id}/close-month(id=${period.id})}"
                       method="post" class="inline">
                     <button type="submit"
@@ -123,7 +124,7 @@
                 </form>
 
                 <!-- File Tax Button -->
-                <form th:if="${period.canFileTax()}" id="form-file-tax"
+                <form sec:authorize="hasAuthority('FISCAL_PERIOD_MANAGE')" th:if="${period.canFileTax()}" id="form-file-tax"
                       th:action="@{/fiscal-periods/{id}/file-tax(id=${period.id})}"
                       method="post" class="inline">
                     <button type="submit"
@@ -134,7 +135,7 @@
                 </form>
 
                 <!-- Reopen Button -->
-                <form th:if="${period.canReopen()}" id="form-reopen"
+                <form sec:authorize="hasAuthority('FISCAL_PERIOD_MANAGE')" th:if="${period.canReopen()}" id="form-reopen"
                       th:action="@{/fiscal-periods/{id}/reopen(id=${period.id})}"
                       method="post" class="inline">
                     <button type="submit"

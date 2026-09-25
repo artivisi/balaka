@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
       th:replace="~{layouts/main :: layout(|Analisis: ${report.title}|, ~{::#page-title}, ~{::section}, ~{})}"
       lang="id">
 <head>
@@ -17,7 +18,7 @@
                 </svg>
                 Kembali ke Daftar
             </a>
-            <form th:action="@{/analysis-reports/{id}/delete(id=${report.id})}" method="post"
+            <form sec:authorize="hasAuthority('ANALYSIS_REPORT_DELETE')" th:action="@{/analysis-reports/{id}/delete(id=${report.id})}" method="post"
                   onsubmit="return confirm('Hapus laporan analisis ini?')">
                 <button type="submit" data-testid="btn-delete"
                         class="inline-flex items-center px-3 py-1.5 text-sm text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors">

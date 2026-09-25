@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" lang="id">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security" lang="id">
 <head><title>checklist Fragment</title></head>
 <body>
 <div th:fragment="checklist" id="checklist-container" class="bg-white rounded-lg shadow overflow-hidden">
@@ -68,7 +69,7 @@
                 <!-- Action Button -->
                 <div>
                     <div th:if="${!status.completed}">
-                        <button type="button"
+                        <button sec:authorize="hasAuthority('TAX_CALENDAR_MANAGE')" type="button"
                                 class="btn-mark-complete px-3 py-1.5 bg-primary-600 text-white text-sm rounded-lg hover:bg-primary-700 transition-colors"
                                 th:data-deadline-id="${status.deadline.id}"
                                 th:data-year="${status.year}"
@@ -77,7 +78,7 @@
                         </button>
                     </div>
                     <div th:if="${status.completed}">
-                        <form th:action="@{/tax-calendar/uncomplete/{id}(id=${status.completion.id})}" method="post"
+                        <form sec:authorize="hasAuthority('TAX_CALENDAR_MANAGE')" th:action="@{/tax-calendar/uncomplete/{id}(id=${status.completion.id})}" method="post"
                               class="form-uncomplete">
                             <input type="hidden" name="year" th:value="${status.year}">
                             <input type="hidden" name="month" th:value="${status.month}">

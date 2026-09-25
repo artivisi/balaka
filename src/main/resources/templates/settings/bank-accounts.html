@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
       th:replace="~{layouts/main :: layout('Rekening Bank', ~{::#page-title}, ~{::section}, ~{})}"
       lang="id">
 <head>
@@ -12,7 +13,7 @@
         <div class="bg-white rounded-lg shadow p-6">
             <div class="flex items-center justify-between mb-6">
                 <h2 class="text-lg font-semibold text-gray-900">Rekening Bank</h2>
-                <a th:href="@{/settings/bank-accounts/new}"
+                <a sec:authorize="hasAuthority('SETTINGS_EDIT')" th:href="@{/settings/bank-accounts/new}"
                    class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm">
                     + Tambah Rekening
                 </a>

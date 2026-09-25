@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
       th:replace="~{layouts/main :: layout('Periode Fiskal', ~{::#page-title}, ~{::section}, ~{})}"
       lang="id">
 <head>
@@ -60,7 +61,7 @@
 
             <div class="flex items-center gap-2">
                 <!-- Generate Year Button -->
-                <form th:action="@{/fiscal-periods/generate-year}" method="post" class="inline">
+                <form sec:authorize="hasAuthority('FISCAL_PERIOD_MANAGE')" th:action="@{/fiscal-periods/generate-year}" method="post" class="inline">
                     <div class="flex items-center gap-2">
                         <label for="generate-year-input" class="sr-only">Tahun yang akan digenerate</label>
                         <input type="number" id="generate-year-input" name="year" th:value="${#temporals.year(#temporals.createNow())}"
@@ -74,7 +75,7 @@
                     </div>
                 </form>
 
-                <a th:href="@{/fiscal-periods/new}"
+                <a sec:authorize="hasAuthority('FISCAL_PERIOD_MANAGE')" th:href="@{/fiscal-periods/new}"
                    id="btn-new-period"
                    class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

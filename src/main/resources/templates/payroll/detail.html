@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
       th:replace="~{layouts/main :: layout('Detail Payroll', ~{::#page-title}, ~{::section}, ~{::script})}"
       lang="id">
 <head>
@@ -31,7 +32,7 @@
             </div>
             <div class="flex space-x-2">
                 <!-- Approve Button -->
-                <form th:if="${payrollRun.isCalculated()}" th:action="@{/payroll/{id}/approve(id=${payrollRun.id})}" method="post">
+                <form sec:authorize="hasAuthority('PAYROLL_APPROVE')" th:if="${payrollRun.isCalculated()}" th:action="@{/payroll/{id}/approve(id=${payrollRun.id})}" method="post">
                     <button type="submit" id="btn-approve"
                             class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
                         Approve
@@ -39,7 +40,7 @@
                 </form>
 
                 <!-- Post Button -->
-                <form th:if="${payrollRun.canPost()}" id="form-post" th:action="@{/payroll/{id}/post(id=${payrollRun.id})}" method="post">
+                <form sec:authorize="hasAuthority('PAYROLL_POST')" th:if="${payrollRun.canPost()}" id="form-post" th:action="@{/payroll/{id}/post(id=${payrollRun.id})}" method="post">
                     <button type="submit" id="btn-post"
                             class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
                         Post ke Jurnal
@@ -47,7 +48,7 @@
                 </form>
 
                 <!-- Cancel Button -->
-                <form th:if="${payrollRun.canCancel()}" id="form-cancel" th:action="@{/payroll/{id}/cancel(id=${payrollRun.id})}" method="post">
+                <form sec:authorize="hasAuthority('PAYROLL_CANCEL')" th:if="${payrollRun.canCancel()}" id="form-cancel" th:action="@{/payroll/{id}/cancel(id=${payrollRun.id})}" method="post">
                     <button type="submit" id="btn-cancel"
                             class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
                         Batalkan
@@ -55,7 +56,7 @@
                 </form>
 
                 <!-- Delete Button (draft only) -->
-                <form th:if="${payrollRun.isDraft()}" id="form-delete" th:action="@{/payroll/{id}/delete(id=${payrollRun.id})}" method="post">
+                <form sec:authorize="hasAuthority('PAYROLL_CREATE')" th:if="${payrollRun.isDraft()}" id="form-delete" th:action="@{/payroll/{id}/delete(id=${payrollRun.id})}" method="post">
                     <button type="submit" id="btn-delete"
                             class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
                         Hapus

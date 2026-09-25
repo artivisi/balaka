@@ -1,10 +1,12 @@
 package com.artivisi.accountingfinance.controller;
 
+import com.artivisi.accountingfinance.security.Permission;
 import com.artivisi.accountingfinance.service.TaxDeadlineService;
 import com.artivisi.accountingfinance.service.TaxDeadlineService.MonthlyChecklistSummary;
 import com.artivisi.accountingfinance.service.TaxDeadlineService.TaxDeadlineStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -80,6 +82,7 @@ public class TaxCalendarController {
     }
 
     @PostMapping("/complete/{deadlineId}")
+    @PreAuthorize("hasAuthority('" + Permission.TAX_CALENDAR_MANAGE + "')")
     public String markAsCompleted(
             @PathVariable UUID deadlineId,
             @RequestParam Integer year,
@@ -100,6 +103,7 @@ public class TaxCalendarController {
     }
 
     @PostMapping("/uncomplete/{completionId}")
+    @PreAuthorize("hasAuthority('" + Permission.TAX_CALENDAR_MANAGE + "')")
     public String removeCompletion(
             @PathVariable UUID completionId,
             @RequestParam Integer year,

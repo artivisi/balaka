@@ -4,6 +4,7 @@ import com.artivisi.accountingfinance.entity.CompanyConfig;
 import com.artivisi.accountingfinance.entity.FiscalAdjustment;
 import com.artivisi.accountingfinance.enums.FiscalAdjustmentCategory;
 import com.artivisi.accountingfinance.enums.FiscalAdjustmentDirection;
+import com.artivisi.accountingfinance.security.Permission;
 import com.artivisi.accountingfinance.service.ClientService;
 import com.artivisi.accountingfinance.service.CompanyConfigService;
 import com.artivisi.accountingfinance.service.ProjectProfitabilityService;
@@ -19,6 +20,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -700,6 +702,7 @@ public class ReportController {
     }
 
     @PostMapping("/rekonsiliasi-fiskal/adjustments")
+    @PreAuthorize("hasAuthority('" + Permission.FISCAL_PERIOD_MANAGE + "')")
     public String addFiscalAdjustment(
             @RequestParam int year,
             @RequestParam String description,
@@ -724,6 +727,7 @@ public class ReportController {
     }
 
     @PostMapping("/rekonsiliasi-fiskal/adjustments/{id}/delete")
+    @PreAuthorize("hasAuthority('" + Permission.FISCAL_PERIOD_MANAGE + "')")
     public String deleteFiscalAdjustment(
             @PathVariable UUID id,
             @RequestParam int year,
@@ -942,6 +946,7 @@ public class ReportController {
     }
 
     @PostMapping("/fiscal-closing/{year}/execute")
+    @PreAuthorize("hasAuthority('" + Permission.FISCAL_PERIOD_MANAGE + "')")
     public String executeFiscalClosing(
             @PathVariable int year,
             RedirectAttributes redirectAttributes) {
@@ -956,6 +961,7 @@ public class ReportController {
     }
 
     @PostMapping("/fiscal-closing/{year}/reverse")
+    @PreAuthorize("hasAuthority('" + Permission.FISCAL_PERIOD_MANAGE + "')")
     public String reverseFiscalClosing(
             @PathVariable int year,
             @RequestParam String reason,

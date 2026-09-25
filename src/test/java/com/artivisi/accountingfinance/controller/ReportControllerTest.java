@@ -41,7 +41,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("test")
 @Transactional
 @WithMockUser(username = "admin", authorities = {"REPORT_VIEW", "REPORT_EXPORT", "TAX_REPORT_VIEW", "TAX_EXPORT",
-        "TRANSACTION_VIEW", "SETTINGS_VIEW"})
+        "TRANSACTION_VIEW", "SETTINGS_VIEW", "FISCAL_PERIOD_MANAGE"})
 @DisplayName("ReportController Integration Tests")
 class ReportControllerTest {
 

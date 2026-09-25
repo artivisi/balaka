@@ -49,6 +49,7 @@ public class TaxDetailController {
     }
 
     @GetMapping("/form")
+    @PreAuthorize("hasAuthority('" + Permission.TAX_EXPORT + "') and hasAuthority('" + Permission.TRANSACTION_EDIT + "')")
     public String showForm(@PathVariable UUID transactionId, Model model) {
         Transaction transaction = transactionService.findByIdWithJournalEntries(transactionId);
         List<TaxTransactionDetailService.TaxDetailSuggestion> suggestions =
@@ -62,6 +63,7 @@ public class TaxDetailController {
     }
 
     @GetMapping("/{detailId}/edit")
+    @PreAuthorize("hasAuthority('" + Permission.TAX_EXPORT + "') and hasAuthority('" + Permission.TRANSACTION_EDIT + "')")
     public String showEditForm(@PathVariable UUID transactionId,
                                @PathVariable UUID detailId,
                                Model model) {
@@ -74,6 +76,7 @@ public class TaxDetailController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAuthority('" + Permission.TAX_EXPORT + "') and hasAuthority('" + Permission.TRANSACTION_EDIT + "')")
     public String create(@PathVariable UUID transactionId,
                          TaxDetailFormData form,
                          Model model) {
@@ -97,6 +100,7 @@ public class TaxDetailController {
     }
 
     @PostMapping("/{detailId}")
+    @PreAuthorize("hasAuthority('" + Permission.TAX_EXPORT + "') and hasAuthority('" + Permission.TRANSACTION_EDIT + "')")
     public String update(@PathVariable UUID transactionId,
                          @PathVariable UUID detailId,
                          TaxDetailFormData form,
@@ -122,6 +126,7 @@ public class TaxDetailController {
     }
 
     @DeleteMapping("/{detailId}")
+    @PreAuthorize("hasAuthority('" + Permission.TAX_EXPORT + "') and hasAuthority('" + Permission.TRANSACTION_EDIT + "')")
     public String delete(@PathVariable UUID transactionId,
                          @PathVariable UUID detailId,
                          Model model) {

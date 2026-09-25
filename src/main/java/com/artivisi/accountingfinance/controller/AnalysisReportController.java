@@ -43,6 +43,7 @@ public class AnalysisReportController {
     }
 
     @PostMapping("/{id}/delete")
+    @PreAuthorize("hasAuthority('" + Permission.ANALYSIS_REPORT_DELETE + "')")
     public String delete(@PathVariable UUID id, Authentication authentication, RedirectAttributes redirectAttributes) {
         AnalysisReport report = analysisReportRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Laporan analisis tidak ditemukan: " + id));
