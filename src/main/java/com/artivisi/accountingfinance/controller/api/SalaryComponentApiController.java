@@ -30,7 +30,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/salary-components")
 @Tag(name = "Salary Components", description = "CRUD for salary component master data")
-@PreAuthorize("hasAuthority('SCOPE_tax-export:read')")
+@PreAuthorize("hasAuthority('SCOPE_tax-export:read') and hasAuthority('SALARY_COMPONENT_VIEW')")
 @RequiredArgsConstructor
 @Slf4j
 public class SalaryComponentApiController {
@@ -49,6 +49,7 @@ public class SalaryComponentApiController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAuthority('SCOPE_payroll:write') and hasAuthority('SALARY_COMPONENT_MANAGE')")
     @Operation(summary = "Create a salary component")
     @ApiResponse(responseCode = "201", description = "Component created")
     public ResponseEntity<SalaryComponentResponse> create(
@@ -63,6 +64,7 @@ public class SalaryComponentApiController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('SCOPE_payroll:write') and hasAuthority('SALARY_COMPONENT_MANAGE')")
     @Operation(summary = "Update a salary component")
     @ApiResponse(responseCode = "200", description = "Component updated")
     @ApiResponse(responseCode = "404", description = "Component not found")
@@ -79,6 +81,7 @@ public class SalaryComponentApiController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('SCOPE_payroll:write') and hasAuthority('SALARY_COMPONENT_MANAGE')")
     @Operation(summary = "Deactivate a salary component (soft delete)")
     @ApiResponse(responseCode = "204", description = "Component deactivated")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {

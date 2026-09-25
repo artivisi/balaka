@@ -133,7 +133,7 @@ public class BillApiController {
     }
 
     @PostMapping("/{id}/approve")
-    @PreAuthorize("hasAuthority('SCOPE_bills:approve')")
+    @PreAuthorize("hasAuthority('SCOPE_bills:approve') and hasAuthority('BILL_APPROVE')")
     public ResponseEntity<BillResponse> approveBill(@PathVariable UUID id) {
         String username = getCurrentUsername();
         log.info("API: Approve bill id={}, user={}", id, username);
@@ -143,7 +143,7 @@ public class BillApiController {
     }
 
     @PostMapping("/{id}/mark-paid")
-    @PreAuthorize("hasAuthority('SCOPE_bills:approve')")
+    @PreAuthorize("hasAuthority('SCOPE_bills:approve') and hasAuthority('BILL_MARK_PAID')")
     public ResponseEntity<BillResponse> markBillPaid(@PathVariable UUID id) {
         String username = getCurrentUsername();
         log.info("API: Mark bill paid id={}, user={}", id, username);

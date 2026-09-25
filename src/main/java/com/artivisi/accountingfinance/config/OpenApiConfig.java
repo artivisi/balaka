@@ -1,5 +1,6 @@
 package com.artivisi.accountingfinance.config;
 
+import com.artivisi.accountingfinance.security.ApiScope;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.models.OpenAPI;
@@ -16,6 +17,8 @@ import org.springframework.core.io.ClassPathResource;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -95,6 +98,7 @@ public class OpenApiConfig {
                 try (InputStream is = resource.getInputStream()) {
                     Map<String, Object> extensions = mapper.readValue(is,
                             new TypeReference<>() {});
+                    addScopes(extensions);
                     extensions.forEach(openApi::addExtension);
                     log.info("Loaded {} OpenAPI x- extensions", extensions.size());
                 }
@@ -103,5 +107,23 @@ public class OpenApiConfig {
                 throw new IllegalStateException("Cannot load openapi/extensions.json", e);
             }
         };
+    }
+
+    /**
+     * Scopes come from the {@link ApiScope} registry, not from extensions.json.
+     */
+    @SuppressWarnings("unchecked")
+    private void addScopes(Map<String, Object> extensions) {
+        Object auth = extensions.get("x-authentication");
+        if (!(auth instanceof Map<?, ?>)) {
+            throw new IllegalStateException("openapi/extensions.json lacks x-authentication object");
+        }
+        List<Map<String, Object>> scopes = Arrays.stream(ApiScope.values())
+                .map(s -> Map.<String, Object>of(
+                        "scope", s.scope(),
+                        "description", s.description(),
+                        "grantedWithPermissions", s.grantingPermissions().stream().sorted().toList()))
+                .toList();
+        ((Map<String, Object>) auth).put("scopes", scopes);
     }
 }

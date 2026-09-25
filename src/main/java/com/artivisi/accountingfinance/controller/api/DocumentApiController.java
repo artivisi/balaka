@@ -38,7 +38,7 @@ public class DocumentApiController {
     private final DocumentService documentService;
 
     @PostMapping("/api/transactions/{id}/documents")
-    @PreAuthorize("hasAuthority('SCOPE_transactions:post')")
+    @PreAuthorize("hasAuthority('SCOPE_transactions:post') and hasAnyAuthority('TRANSACTION_CREATE', 'TRANSACTION_EDIT')")
     public ResponseEntity<DocumentResponse> uploadDocument(
             @PathVariable UUID id,
             @RequestParam("file") MultipartFile file) throws IOException {
@@ -79,7 +79,7 @@ public class DocumentApiController {
     }
 
     @DeleteMapping("/api/documents/{docId}")
-    @PreAuthorize("hasAuthority('SCOPE_transactions:post')")
+    @PreAuthorize("hasAuthority('SCOPE_transactions:post') and hasAnyAuthority('TRANSACTION_EDIT', 'JOURNAL_EDIT', 'INVOICE_EDIT')")
     public ResponseEntity<Void> deleteDocument(@PathVariable UUID docId) throws IOException {
         String username = getCurrentUsername();
         log.info("API: Delete document - docId={}, user={}", docId, username);

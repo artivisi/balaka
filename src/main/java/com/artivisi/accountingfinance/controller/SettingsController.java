@@ -592,15 +592,12 @@ public class SettingsController {
     // ==================== API Client Management (client_credentials) ====================
 
     private static final String REDIRECT_SETTINGS_API_CLIENTS = "redirect:/settings/api-clients";
-    // Single-scope pattern; the list is split on commas first to keep matching linear
-    private static final java.util.regex.Pattern SCOPE_PATTERN =
-            java.util.regex.Pattern.compile("[a-z-]+:[a-z-]+");
-
     @GetMapping("/api-clients")
     @org.springframework.security.access.prepost.PreAuthorize("hasAuthority('" + com.artivisi.accountingfinance.security.Permission.SETTINGS_EDIT + "')")
     public String apiClients(Model model) {
         model.addAttribute("apiClients", apiClientService.findAll());
         model.addAttribute("users", userRepository.findAll());
+        model.addAttribute("availableScopes", com.artivisi.accountingfinance.security.ApiScope.values());
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_API_CLIENTS);
         return "settings/api-clients";
     }
@@ -618,10 +615,19 @@ public class SettingsController {
             redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, "Nama klien wajib diisi");
             return REDIRECT_SETTINGS_API_CLIENTS;
         }
-        if (scopes == null || scopes.isBlank() || !java.util.Arrays.stream(scopes.split(","))
-                .allMatch(sc -> SCOPE_PATTERN.matcher(sc.trim()).matches())) {
+        if (scopes == null || scopes.isBlank()) {
+            redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, "Scope wajib diisi");
+            return REDIRECT_SETTINGS_API_CLIENTS;
+        }
+        List<String> requestedScopes = java.util.Arrays.stream(scopes.split(","))
+                .map(String::trim)
+                .toList();
+        List<String> unknownScopes = requestedScopes.stream()
+                .filter(sc -> com.artivisi.accountingfinance.security.ApiScope.fromScope(sc).isEmpty())
+                .toList();
+        if (!unknownScopes.isEmpty()) {
             redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE,
-                    "Format scope tidak valid (contoh: transactions:post,accounts:read)");
+                    "Scope tidak dikenal: " + String.join(", ", unknownScopes));
             return REDIRECT_SETTINGS_API_CLIENTS;
         }
 
@@ -629,7 +635,7 @@ public class SettingsController {
                 .orElseThrow(() -> new EntityNotFoundException(ERR_USER_NOT_FOUND));
 
         ApiClientService.CreatedClient created =
-                apiClientService.create(name.trim(), scopes.trim(), serviceUser, authentication.getName());
+                apiClientService.create(name.trim(), String.join(",", requestedScopes), serviceUser, authentication.getName());
         securityAuditService.log(AuditEventType.SETTINGS_CHANGE,
                 "API client created: " + created.client().getClientId());
 

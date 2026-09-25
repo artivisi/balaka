@@ -55,8 +55,8 @@ public class DeviceToken {
     @Column(name = "client_id", nullable = false, length = 50)
     private String clientId;
 
-    @Size(max = 255)
-    @Column(name = "scopes", length = 255)
+    @Size(max = 2000)
+    @Column(name = "scopes", length = 2000)
     private String scopes;
 
     @Column(name = "last_used_at")

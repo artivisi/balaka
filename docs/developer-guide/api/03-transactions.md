@@ -1,6 +1,20 @@
 # Transactions API
 
-All transaction endpoints require `Authorization: Bearer <token>` with the `transactions:post` scope.
+All transaction endpoints require `Authorization: Bearer <token>` with the `transactions:post` scope,
+and the token user's role must hold the operation's permission (see [Authentication](01-authentication.md#scopes-and-authorization)):
+
+| Endpoint | Permission |
+|----------|------------|
+| `POST /api/transactions` (create and post) | `TRANSACTION_CREATE` and `TRANSACTION_POST` |
+| `POST /api/transactions/journal-entry` | `TRANSACTION_CREATE` |
+| `PUT /api/transactions/{id}` | `TRANSACTION_EDIT` |
+| `POST /api/transactions/{id}/post`, `POST /api/transactions/bulk-post` | `TRANSACTION_POST` |
+| `POST /api/transactions/{id}/void` | `TRANSACTION_VOID` |
+| `DELETE /api/transactions/{id}` | `TRANSACTION_DELETE` |
+| `DELETE /api/transactions/purge-voided` | `TRANSACTION_PURGE` |
+
+Draft endpoints (`/api/drafts`) use the `drafts:create`, `drafts:read` and `drafts:approve` scopes;
+`GET /api/drafts/templates` needs `templates:read` and `GET /api/drafts/accounts` needs `accounts:read`.
 
 Base URL: `/api/transactions`
 

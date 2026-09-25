@@ -163,25 +163,37 @@ Token ini berlaku 30 hari. AI akan menyimpannya untuk digunakan di request berik
 
 ### Scope yang Tersedia
 
-Token yang diterbitkan melalui Device Flow memiliki scope berikut:
+Token yang diterbitkan melalui Device Flow membawa semua scope berikut:
 
-| Scope | Hak Akses |
-|-------|-----------|
-| `drafts:create` | Membuat dan mengedit draft transaksi |
-| `drafts:approve` | Approve/reject draft |
-| `drafts:read` | Membaca draft |
-| `analysis:read` | Membaca laporan keuangan |
-| `analysis:write` | Mempublikasikan laporan analisis |
-| `transactions:post` | Posting, koreksi, dan hapus transaksi DRAFT |
-| `data:import` | Import data dari file ZIP |
-| `bills:read` | Membaca vendor bills |
-| `bills:create` | Membuat vendor bills |
-| `bills:approve` | Approve dan mark-paid vendor bills |
-| `bank-recon:read` | Membaca data rekonsiliasi bank |
-| `bank-recon:write` | Import statement, matching, complete reconciliation |
-| `tax-export:read` | Export data pajak dan membaca data karyawan/payroll |
+| Scope | Hak Akses | Berlaku bila role user memiliki salah satu |
+|-------|-----------|---------------------------------------------|
+| `drafts:read` | Membaca draft | `DRAFT_VIEW` |
+| `drafts:create` | Membuat dan mengedit draft transaksi | `TRANSACTION_CREATE` |
+| `drafts:approve` | Approve/reject draft | `DRAFT_APPROVE`, `DRAFT_REJECT` |
+| `analysis:read` | Membaca laporan keuangan | `REPORT_VIEW` |
+| `analysis:write` | Mempublikasikan laporan analisis | `ANALYSIS_REPORT_CREATE` |
+| `transactions:post` | Membuat, posting, koreksi, void, dan hapus transaksi; dokumen dan detail pajak transaksi | permission tulis `TRANSACTION_*` |
+| `templates:read` | Membaca template jurnal | `TEMPLATE_VIEW` |
+| `templates:write` | Membuat, mengubah, dan menghapus template jurnal | `TEMPLATE_CREATE`, `TEMPLATE_EDIT`, `TEMPLATE_DELETE` |
+| `data:import` | Import data dari file ZIP | `DATA_IMPORT` |
+| `bills:read` | Membaca vendor bills | `BILL_VIEW` |
+| `bills:create` | Membuat vendor bills | `BILL_CREATE` |
+| `bills:approve` | Approve dan mark-paid vendor bills | `BILL_APPROVE`, `BILL_MARK_PAID` |
+| `bank-recon:read` | Membaca data rekonsiliasi bank | `BANK_RECONCILIATION_VIEW` |
+| `bank-recon:write` | Parser config, import statement, matching, complete reconciliation | permission tulis `BANK_RECONCILIATION_*` |
+| `tax-export:read` | Export data pajak; membaca karyawan, komponen gaji, payroll, koreksi fiskal | `TAX_EXPORT` |
+| `tax-export:write` | Membuat, mengubah, dan menghapus koreksi fiskal dan kompensasi rugi | `FISCAL_PERIOD_MANAGE` |
+| `payroll:write` | Payroll run, jadwal payroll, karyawan, komponen gaji | `PAYROLL_CREATE`, `PAYROLL_APPROVE`, `PAYROLL_POST`, `EMPLOYEE_CREATE`, `EMPLOYEE_EDIT`, `SALARY_COMPONENT_MANAGE` |
+| `accounts:read` | Membaca bagan akun | `ACCOUNT_VIEW` |
+| `accounts:write` | Membuat, mengubah, dan menghapus akun | `ACCOUNT_CREATE`, `ACCOUNT_EDIT`, `ACCOUNT_DELETE` |
+| `assets:read` | Membaca aset tetap dan penyusutan | `ASSET_VIEW` |
+| `assets:write` | Registrasi, ubah, hapus aset; penyusutan | `ASSET_CREATE`, `ASSET_EDIT`, `ASSET_DELETE`, `ASSET_DEPRECIATE` |
+| `tax-filings:read` | Membaca register pelaporan pajak | `TAX_CALENDAR_VIEW` |
+| `tax-filings:write` | Mencatat pelaporan pajak dan dokumennya | `TAX_CALENDAR_MANAGE` |
 
-Tanpa scope yang sesuai, request akan ditolak dengan HTTP 403.
+Scope hanya berlaku selama role user pemilik token memiliki permission di kolom terakhir, dan setiap operasi tetap memerlukan permission yang sama dengan di aplikasi web (misalnya void memerlukan `TRANSACTION_VOID`). Perubahan role langsung berlaku untuk token yang sudah terbit; user yang dinonaktifkan tidak bisa lagi memakai tokennya (HTTP 401). Dengan demikian, token tidak pernah memberi akses melebihi hak user di aplikasi web.
+
+Tanpa scope atau permission yang sesuai, request akan ditolak dengan HTTP 403.
 
 ---
 
@@ -1486,7 +1498,7 @@ Setiap user dapat melihat dan mencabut device token miliknya di halaman **Perang
 | POST | `/api/device/code` | Request device code |
 | POST | `/api/device/token` | Poll for access token |
 
-### Draft Transaksi (scope: `drafts:*`, `transactions:post`)
+### Draft Transaksi (scope: `drafts:*`)
 
 | Method | Endpoint | Deskripsi |
 |--------|----------|-----------|
@@ -1498,7 +1510,7 @@ Setiap user dapat melihat dan mencabut device token miliknya di halaman **Perang
 | POST | `/api/drafts/{id}/approve` | Approve draft |
 | POST | `/api/drafts/{id}/reject` | Reject draft |
 
-### Template (scope: `drafts:read`, `drafts:create`)
+### Template (scope: `templates:read`, `templates:write`)
 
 | Method | Endpoint | Deskripsi |
 |--------|----------|-----------|
@@ -1580,7 +1592,7 @@ Setiap user dapat melihat dan mencabut device token miliknya di halaman **Perang
 | GET | `/api/bank-reconciliation/reconciliations/{id}/statement` | Statement data |
 | GET | `/api/bank-reconciliation/reconciliations/{id}/outstanding` | Outstanding items |
 
-### Komponen Gaji (scope: `tax-export:read`)
+### Komponen Gaji (scope: baca `tax-export:read`, tulis `payroll:write`)
 
 | Method | Endpoint | Deskripsi |
 |--------|----------|-----------|
@@ -1589,7 +1601,7 @@ Setiap user dapat melihat dan mencabut device token miliknya di halaman **Perang
 | PUT | `/api/salary-components/{id}` | Update komponen gaji |
 | DELETE | `/api/salary-components/{id}` | Nonaktifkan komponen gaji |
 
-### Karyawan (scope: `tax-export:read`)
+### Karyawan (scope: baca `tax-export:read`, tulis `payroll:write`)
 
 | Method | Endpoint | Deskripsi |
 |--------|----------|-----------|
@@ -1600,7 +1612,7 @@ Setiap user dapat melihat dan mencabut device token miliknya di halaman **Perang
 | POST | `/api/employees/{id}/salary-components` | Assign komponen gaji |
 | PUT | `/api/employees/{id}/salary-components/{componentId}` | Update assignment |
 
-### Payroll (scope: `tax-export:read`)
+### Payroll (scope: baca `tax-export:read`, tulis `payroll:write`)
 
 | Method | Endpoint | Deskripsi |
 |--------|----------|-----------|
@@ -1614,7 +1626,7 @@ Setiap user dapat melihat dan mencabut device token miliknya di halaman **Perang
 | GET | `/api/payroll/employees/{id}/1721-a1?year=YYYY` | Data 1721-A1 per karyawan |
 | GET | `/api/payroll/pph21/summary?year=YYYY` | Ringkasan PPh 21 |
 
-### Detail Pajak (scope: `tax-export:read`)
+### Detail Pajak (scope: `transactions:post`)
 
 | Method | Endpoint | Deskripsi |
 |--------|----------|-----------|
@@ -1625,7 +1637,7 @@ Setiap user dapat melihat dan mencabut device token miliknya di halaman **Perang
 | DELETE | `/api/transactions/{id}/tax-details/{detailId}` | Hapus tax detail |
 | POST | `/api/tax-details/bulk` | Bulk operations |
 
-### Dokumen (scope: `tax-export:read`)
+### Dokumen (scope: `transactions:post`)
 
 | Method | Endpoint | Deskripsi |
 |--------|----------|-----------|
@@ -1646,7 +1658,7 @@ Setiap user dapat melihat dan mencabut device token miliknya di halaman **Perang
 | GET | `/api/tax-export/rekonsiliasi-fiskal` | Rekonsiliasi fiskal |
 | GET | `/api/tax-export/pph-badan` | Perhitungan PPh Badan |
 
-### Koreksi Fiskal (scope: `tax-export:read`)
+### Koreksi Fiskal (scope: baca `tax-export:read`, tulis `tax-export:write`)
 
 | Method | Endpoint | Deskripsi |
 |--------|----------|-----------|
@@ -1687,7 +1699,7 @@ Authorization: Bearer {accessToken}
 | 400 | `MISSING_PARAMETER` | Parameter wajib tidak dikirim |
 | 400 | `INVALID_REQUEST` | Request tidak valid |
 | 401 | `unauthorized` | Token tidak valid atau expired |
-| 403 | -- | Scope tidak memadai |
+| 403 | -- | Scope tidak memadai atau role user tidak memiliki permission |
 | 404 | `NOT_FOUND` | Resource tidak ditemukan |
 | 409 | `CONFLICT` | State conflict (contoh: transaksi sudah POSTED) |
 | 429 | `RATE_LIMIT_EXCEEDED` | Terlalu banyak request |

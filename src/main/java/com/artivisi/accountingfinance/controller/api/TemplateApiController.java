@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -39,6 +40,7 @@ import java.util.UUID;
 @Tag(name = "Templates", description = "Journal template CRUD and metadata")
 @RequiredArgsConstructor
 @Slf4j
+@PreAuthorize("hasAuthority('SCOPE_templates:read')")
 public class TemplateApiController {
 
     private final JournalTemplateService journalTemplateService;
@@ -77,6 +79,7 @@ public class TemplateApiController {
      * POST /api/templates
      */
     @PostMapping
+    @PreAuthorize("hasAuthority('SCOPE_templates:write') and hasAuthority('TEMPLATE_CREATE')")
     public ResponseEntity<TemplateDto> createTemplate(@Valid @RequestBody CreateTemplateRequest request) {
         String username = getCurrentUsername();
         log.info("API: Create template by {}", username);
@@ -94,6 +97,7 @@ public class TemplateApiController {
      * PUT /api/templates/{id}
      */
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('SCOPE_templates:write') and hasAuthority('TEMPLATE_EDIT')")
     public ResponseEntity<TemplateDto> updateTemplate(
             @PathVariable UUID id,
             @Valid @RequestBody CreateTemplateRequest request) {
@@ -113,6 +117,7 @@ public class TemplateApiController {
      * DELETE /api/templates/{id}
      */
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('SCOPE_templates:write') and hasAuthority('TEMPLATE_DELETE')")
     public ResponseEntity<Void> deleteTemplate(@PathVariable UUID id) {
         String username = getCurrentUsername();
         log.info("API: Delete template {} by {}", id, username);

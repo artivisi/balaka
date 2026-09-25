@@ -2,7 +2,7 @@
 
 Register and manage depreciable fixed assets. Registered assets are picked up by the monthly depreciation scheduler, so purchases registered through this API get auto-generated depreciation entries (PENDING by default, posted automatically when `autoPost` is true).
 
-All endpoints require `Authorization: Bearer <token>`. Read endpoints need the `assets:read` scope; write endpoints need `assets:write`.
+All endpoints require `Authorization: Bearer <token>`. Read endpoints need the `assets:read` scope; write endpoints need `assets:write`. The token user's role must also hold the operation's permission: register `ASSET_CREATE`, update `ASSET_EDIT`, delete `ASSET_DELETE`, depreciation generate/post/skip/post-all `ASSET_DEPRECIATE` (see [Authentication](01-authentication.md#scopes-and-authorization)).
 
 Base URL: `/api/fixed-assets`
 

@@ -24,6 +24,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -48,6 +49,7 @@ import java.util.UUID;
 @Tag(name = "Bank Reconciliation", description = "Bank statement import, matching, and reconciliation")
 @RequiredArgsConstructor
 @Slf4j
+@PreAuthorize("hasAuthority('SCOPE_bank-recon:read')")
 public class BankReconciliationApiController {
 
     private final BankStatementParserConfigService parserConfigService;
@@ -68,6 +70,7 @@ public class BankReconciliationApiController {
     }
 
     @PostMapping("/parser-configs")
+    @PreAuthorize("hasAuthority('SCOPE_bank-recon:write') and hasAuthority('BANK_RECONCILIATION_CONFIG')")
     public ResponseEntity<ParserConfigDto> createParserConfig(@Valid @RequestBody CreateParserConfigRequest request) {
         BankStatementParserConfig config = new BankStatementParserConfig();
         config.setBankType(request.bankType());
@@ -94,6 +97,7 @@ public class BankReconciliationApiController {
     // ==================== Statements ====================
 
     @PostMapping("/statements/import")
+    @PreAuthorize("hasAuthority('SCOPE_bank-recon:write') and hasAuthority('BANK_RECONCILIATION_IMPORT')")
     public ResponseEntity<StatementDto> importStatement(
             @RequestParam("bankAccountId") UUID bankAccountId,
             @RequestParam("parserConfigId") UUID parserConfigId,
@@ -139,6 +143,7 @@ public class BankReconciliationApiController {
     // ==================== Reconciliations ====================
 
     @PostMapping("/reconciliations")
+    @PreAuthorize("hasAuthority('SCOPE_bank-recon:write') and hasAuthority('BANK_RECONCILIATION_MATCH')")
     public ResponseEntity<ReconciliationDto> createReconciliation(@Valid @RequestBody CreateReconciliationRequest request) {
         String username = getCurrentUsername();
         BankReconciliation recon = reconciliationService.create(request.bankStatementId(), request.notes(), username);
@@ -154,6 +159,7 @@ public class BankReconciliationApiController {
     }
 
     @PostMapping("/reconciliations/{id}/auto-match")
+    @PreAuthorize("hasAuthority('SCOPE_bank-recon:write') and hasAuthority('BANK_RECONCILIATION_MATCH')")
     public ResponseEntity<Map<String, Object>> autoMatch(@PathVariable UUID id) {
         String username = getCurrentUsername();
         int matchCount = reconciliationService.autoMatch(id, username);
@@ -161,6 +167,7 @@ public class BankReconciliationApiController {
     }
 
     @PostMapping("/reconciliations/{id}/match")
+    @PreAuthorize("hasAuthority('SCOPE_bank-recon:write') and hasAuthority('BANK_RECONCILIATION_MATCH')")
     public ResponseEntity<Void> manualMatch(@PathVariable UUID id, @Valid @RequestBody ManualMatchRequest request) {
         String username = getCurrentUsername();
         reconciliationService.manualMatch(id, request.statementItemId(), request.transactionId(), username);
@@ -168,6 +175,7 @@ public class BankReconciliationApiController {
     }
 
     @PostMapping("/reconciliations/{id}/mark-bank-only")
+    @PreAuthorize("hasAuthority('SCOPE_bank-recon:write') and hasAuthority('BANK_RECONCILIATION_MATCH')")
     public ResponseEntity<Void> markBankOnly(@PathVariable UUID id, @Valid @RequestBody MarkBankOnlyRequest request) {
         String username = getCurrentUsername();
         reconciliationService.markBankOnly(id, request.statementItemId(), request.notes(), username);
@@ -175,18 +183,21 @@ public class BankReconciliationApiController {
     }
 
     @PostMapping("/reconciliations/{id}/mark-book-only")
+    @PreAuthorize("hasAuthority('SCOPE_bank-recon:write') and hasAuthority('BANK_RECONCILIATION_MATCH')")
     public ResponseEntity<Void> markBookOnly(@PathVariable UUID id, @Valid @RequestBody MarkBookOnlyRequest request) {
         reconciliationService.markBookOnly(id, request.transactionId(), request.notes());
         return ResponseEntity.ok().build();
     }
 
     @DeleteMapping("/reconciliations/{id}/items/{itemId}")
+    @PreAuthorize("hasAuthority('SCOPE_bank-recon:write') and hasAuthority('BANK_RECONCILIATION_MATCH')")
     public ResponseEntity<Void> unmatch(@PathVariable UUID id, @PathVariable UUID itemId) {
         reconciliationService.unmatch(id, itemId);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/reconciliations/{id}/create-transaction")
+    @PreAuthorize("hasAuthority('SCOPE_bank-recon:write') and hasAuthority('BANK_RECONCILIATION_MATCH')")
     public ResponseEntity<Void> createTransaction(@PathVariable UUID id, @Valid @RequestBody CreateTransactionFromItemRequest request) {
         String username = getCurrentUsername();
         reconciliationService.createTransactionFromStatementItem(
@@ -195,6 +206,7 @@ public class BankReconciliationApiController {
     }
 
     @PostMapping("/reconciliations/{id}/complete")
+    @PreAuthorize("hasAuthority('SCOPE_bank-recon:write') and hasAuthority('BANK_RECONCILIATION_COMPLETE')")
     public ResponseEntity<Void> complete(@PathVariable UUID id) {
         String username = getCurrentUsername();
         reconciliationService.complete(id, username);

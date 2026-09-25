@@ -683,9 +683,10 @@ class JournalTemplateControllerFunctionalTest extends PlaywrightTestBase {
 
         Map<String, Object> body = templateJson(system.getTemplateName() + " API");
         assertEquals(409, page.request().put(baseUrl() + "/templates/api/" + system.getId(),
-                RequestOptions.create().setData(body)).status());
-        assertEquals(409, page.request().delete(baseUrl() + "/templates/api/" + system.getId()).status());
-        assertEquals(409, page.request().post(baseUrl() + "/templates/api/" + system.getId() + "/deactivate").status());
+                withCsrf(csrf).setData(body)).status());
+        assertEquals(409, page.request().delete(baseUrl() + "/templates/api/" + system.getId(), withCsrf(csrf)).status());
+        assertEquals(409, page.request().post(baseUrl() + "/templates/api/" + system.getId() + "/deactivate",
+                withCsrf(csrf)).status());
 
         JournalTemplate unchanged = reload(system.getId());
         assertEquals(system.getTemplateName(), unchanged.getTemplateName());
@@ -910,13 +911,14 @@ class JournalTemplateControllerFunctionalTest extends PlaywrightTestBase {
         assertEquals(403, postForm("/templates/" + template.getId() + "/tags/audit/delete",
                 FormData.create().set("_csrf", csrf)).status());
         assertEquals(403, page.request().post(baseUrl() + "/templates/api",
-                RequestOptions.create().setData(templateJson(name))).status());
+                withCsrf(csrf).setData(templateJson(name))).status());
         assertEquals(403, page.request().put(baseUrl() + "/templates/api/" + template.getId(),
-                RequestOptions.create().setData(templateJson(name))).status());
-        assertEquals(403, page.request().delete(baseUrl() + "/templates/api/" + template.getId()).status());
-        assertEquals(403, page.request().post(baseUrl() + "/templates/api/" + template.getId() + "/deactivate").status());
+                withCsrf(csrf).setData(templateJson(name))).status());
+        assertEquals(403, page.request().delete(baseUrl() + "/templates/api/" + template.getId(), withCsrf(csrf)).status());
+        assertEquals(403, page.request().post(baseUrl() + "/templates/api/" + template.getId() + "/deactivate",
+                withCsrf(csrf)).status());
         assertEquals(403, page.request().post(baseUrl() + "/templates/api/" + template.getId() + "/execute",
-                RequestOptions.create().setData(Map.of("transactionDate", "2030-06-15", "amount", 1000,
+                withCsrf(csrf).setData(Map.of("transactionDate", "2030-06-15", "amount", 1000,
                         "description", "Ilegal"))).status());
 
         assertFalse(templateRepository.existsByTemplateNameAndIsCurrentVersionTrue(name));
@@ -1000,6 +1002,10 @@ class JournalTemplateControllerFunctionalTest extends PlaywrightTestBase {
         page.locator("select[name='lines[" + index + "].accountId']").selectOption(new SelectOption().setLabel(label));
     }
 
+    private RequestOptions withCsrf(String csrf) {
+        return RequestOptions.create().setHeader("X-CSRF-TOKEN", csrf);
+    }
+
     private String csrf() {
         return page.locator("meta[name='_csrf']").getAttribute("content");
     }
@@ -1026,14 +1032,14 @@ class JournalTemplateControllerFunctionalTest extends PlaywrightTestBase {
 
     private JsonNode executeTemplate(UUID templateId, long amount) {
         APIResponse response = page.request().post(baseUrl() + "/templates/api/" + templateId + "/execute",
-                RequestOptions.create().setData(Map.of("transactionDate", "2030-06-15", "amount", amount,
+                withCsrf(csrf()).setData(Map.of("transactionDate", "2030-06-15", "amount", amount,
                         "description", "Eksekusi template " + templateId)));
         assertEquals(200, response.status(), response.text());
         return readJson(response);
     }
 
     private JsonNode postJson(String path, Map<String, Object> body) {
-        APIResponse response = page.request().post(baseUrl() + path, RequestOptions.create().setData(body));
+        APIResponse response = page.request().post(baseUrl() + path, withCsrf(csrf()).setData(body));
         assertEquals(200, response.status(), response.text());
         return readJson(response);
     }

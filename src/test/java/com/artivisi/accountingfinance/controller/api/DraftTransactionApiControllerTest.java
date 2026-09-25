@@ -39,7 +39,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import(TestcontainersConfiguration.class)
 @ActiveProfiles("test")
 @Transactional
-@WithMockUser(username = "testuser", roles = {"USER"})
+@WithMockUser(username = "testuser", authorities = {
+        "SCOPE_drafts:create", "SCOPE_drafts:read", "SCOPE_drafts:approve",
+        "SCOPE_templates:read", "SCOPE_accounts:read", "DRAFT_APPROVE", "DRAFT_REJECT"})
 @DisplayName("DraftTransactionApiController Integration Tests")
 class DraftTransactionApiControllerTest {
 

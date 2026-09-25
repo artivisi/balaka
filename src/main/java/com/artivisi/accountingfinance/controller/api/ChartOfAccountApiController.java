@@ -74,7 +74,7 @@ public class ChartOfAccountApiController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAuthority('SCOPE_accounts:write')")
+    @PreAuthorize("hasAuthority('SCOPE_accounts:write') and hasAuthority('ACCOUNT_CREATE')")
     @Operation(summary = "Create a new account")
     @ApiResponse(responseCode = "201", description = "Account created")
     public ResponseEntity<AccountResponse> create(
@@ -90,7 +90,7 @@ public class ChartOfAccountApiController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAuthority('SCOPE_accounts:write')")
+    @PreAuthorize("hasAuthority('SCOPE_accounts:write') and hasAuthority('ACCOUNT_EDIT')")
     @Operation(summary = "Update an account")
     @ApiResponse(responseCode = "200", description = "Account updated")
     @ApiResponse(responseCode = "404", description = "Account not found")
@@ -107,7 +107,7 @@ public class ChartOfAccountApiController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority('SCOPE_accounts:write')")
+    @PreAuthorize("hasAuthority('SCOPE_accounts:write') and hasAuthority('ACCOUNT_DELETE')")
     @Operation(summary = "Delete an account (soft delete)")
     @ApiResponse(responseCode = "204", description = "Account deleted")
     @ApiResponse(responseCode = "404", description = "Account not found")

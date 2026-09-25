@@ -5,6 +5,7 @@ import com.artivisi.accountingfinance.entity.DeviceToken;
 import com.artivisi.accountingfinance.entity.User;
 import com.artivisi.accountingfinance.repository.DeviceCodeRepository;
 import com.artivisi.accountingfinance.repository.DeviceTokenRepository;
+import com.artivisi.accountingfinance.security.ApiScope;
 import com.artivisi.accountingfinance.security.LogSanitizer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -129,7 +130,9 @@ public class DeviceAuthService {
     }
 
     /**
-     * Create access token for user.
+     * Create access token for user. The token carries every registered scope;
+     * BearerTokenAuthenticationFilter grants each one only while the user's
+     * current roles hold a permission the scope maps to.
      */
     public DeviceToken createAccessToken(User user, String clientId, String deviceName) {
         // BCrypt has a 72-byte limit, so we use 32 bytes which gives us 64 hex chars
@@ -141,7 +144,7 @@ public class DeviceAuthService {
         deviceToken.setTokenHash(tokenHash);
         deviceToken.setClientId(clientId);
         deviceToken.setDeviceName(deviceName);
-        deviceToken.setScopes("drafts:create,drafts:approve,drafts:read,analysis:read,analysis:write,transactions:post,data:import,bills:read,bills:create,bills:approve,tax-export:read,accounts:read,accounts:write,assets:read,assets:write,tax-filings:read,tax-filings:write");
+        deviceToken.setScopes(ApiScope.allScopesJoined());
         deviceToken.setExpiresAt(LocalDateTime.now().plusDays(tokenExpiryDays));
         deviceToken.setCreatedBy(user.getUsername());
 

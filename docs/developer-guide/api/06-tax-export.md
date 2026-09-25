@@ -2,6 +2,11 @@
 
 Endpoints for exporting tax data for SPT preparation. Supports both JSON and Excel (XLSX) output formats. All endpoints require `Authorization: Bearer <token>` with the `tax-export:read` scope.
 
+Fiscal adjustments (`/api/fiscal-adjustments`) and loss carryforwards
+(`/api/fiscal-adjustments/loss-carryforward`) are read with `tax-export:read`; creating, updating and
+deleting them needs `tax-export:write`, effective only when the token user holds `FISCAL_PERIOD_MANAGE`
+(see [Authentication](01-authentication.md#scopes-and-authorization)).
+
 Base URL: `/api/tax-export`
 
 ## Coretax Excel Exports

@@ -86,7 +86,7 @@ Content-Type: application/json
   "accessToken": "bk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx",
   "tokenType": "Bearer",
   "expiresIn": 2592000,
-  "scope": "drafts:create,drafts:approve,drafts:read,analysis:read,analysis:write,transactions:post,data:import,bills:read,bills:create,bills:approve,tax-export:read,accounts:read,accounts:write"
+  "scope": "drafts:read,drafts:create,drafts:approve,analysis:read,analysis:write,transactions:post,templates:read,templates:write,data:import,bills:read,bills:create,bills:approve,tax-export:read,tax-export:write,payroll:write,accounts:read,accounts:write,assets:read,assets:write,tax-filings:read,tax-filings:write,bank-recon:read,bank-recon:write"
 }
 ```
 
@@ -137,37 +137,69 @@ Response:
 }
 ```
 
-- Tokens are restricted to the client's registered scopes and expire after
+- Tokens are restricted to the client's registered scopes (intersected with the
+  service user's role permissions, see below) and expire after
   `app.api-client.token-expiry-minutes` (default 60). Cache the token and
   request a new one on expiry.
 - Postings authenticate as the client's configured service user (audit trail).
 - Errors follow RFC 6749: `401 {"error":"invalid_client"}` for unknown/inactive
   clients or wrong secrets, `400 {"error":"unsupported_grant_type"}` otherwise.
 
-## Scopes
+## Scopes and Authorization
 
-Tokens are issued with all available scopes. Each scope maps to a `SCOPE_` authority in Spring Security:
+A request is allowed only when **both** hold:
 
-| Scope | Grants access to |
-|-------|-----------------|
-| `drafts:create` | Create draft transactions |
-| `drafts:approve` | Approve/reject drafts |
-| `drafts:read` | Read draft transactions |
-| `analysis:read` | Financial reports, snapshots, trial balance, balance sheet, income statement, cash flow |
-| `analysis:write` | Publish AI analysis reports |
-| `transactions:post` | Create, update, post, void, delete transactions; free-form journal entries |
-| `data:import` | Import industry seed data |
-| `bills:read` | Read vendor bills |
-| `bills:create` | Create vendor bills |
-| `bills:approve` | Approve vendor bills |
-| `tax-export:read` | Tax reports, SPT data, payroll, employees, fiscal adjustments, salary components |
-| `accounts:read` | Read chart of accounts |
-| `accounts:write` | Create/update/delete chart of accounts |
+1. The token carries the scope the endpoint requires, and the token's user currently holds at
+   least one of the scope's granting permissions (below). Scopes whose permissions the user's
+   roles lack are not effective.
+2. The user's roles hold the specific permission of the operation, where a scope covers several
+   operations with different permissions (e.g. `transactions:post` covers create, post, void,
+   delete and purge; void needs `TRANSACTION_VOID`).
+
+Both checks use the user's roles **at request time**. Changing a user's roles changes what their
+existing tokens can do on the next request; deactivating the user makes their tokens return 401.
+The effective API permissions therefore never exceed what the same user can do in the web UI.
+
+Device-flow tokens carry every scope listed below. Client-credentials tokens carry the scopes chosen
+when the API client was registered, evaluated against the client's service user. Browser session
+cookies are not accepted on `/api/**` endpoints (403); a request with a `Bearer` header is
+authenticated by the token only, and an invalid token returns 401 even if a session cookie is sent.
+
+| Scope | Grants access to | Effective when the user holds any of |
+|-------|------------------|--------------------------------------|
+| `drafts:read` | Read draft transactions | `DRAFT_VIEW` |
+| `drafts:create` | Create drafts (direct, from receipt, from text), update drafts | `TRANSACTION_CREATE` |
+| `drafts:approve` | Approve (`DRAFT_APPROVE`) / reject (`DRAFT_REJECT`) drafts | `DRAFT_APPROVE`, `DRAFT_REJECT` |
+| `analysis:read` | Financial reports, snapshots, ledgers, transactions, analysis reports | `REPORT_VIEW` |
+| `analysis:write` | Publish AI analysis reports | `ANALYSIS_REPORT_CREATE` |
+| `transactions:post` | Create (`TRANSACTION_CREATE` + `TRANSACTION_POST` for direct posting), update (`TRANSACTION_EDIT`), post / bulk-post (`TRANSACTION_POST`), void (`TRANSACTION_VOID`), delete (`TRANSACTION_DELETE`), purge (`TRANSACTION_PURGE`); free-form journal entries (`TRANSACTION_CREATE`); transaction documents; tax details (`TAX_EXPORT`, writes also `TRANSACTION_EDIT`) | any `TRANSACTION_*` write permission |
+| `templates:read` | List/read journal templates (`/api/templates`, `/api/drafts/templates`) | `TEMPLATE_VIEW` |
+| `templates:write` | Create (`TEMPLATE_CREATE`), update (`TEMPLATE_EDIT`), delete (`TEMPLATE_DELETE`) templates | `TEMPLATE_CREATE`, `TEMPLATE_EDIT`, `TEMPLATE_DELETE` |
+| `data:import` | Import industry seed data | `DATA_IMPORT` |
+| `bills:read` | Read vendor bills | `BILL_VIEW` |
+| `bills:create` | Create vendor bills | `BILL_CREATE` |
+| `bills:approve` | Approve (`BILL_APPROVE`), mark paid (`BILL_MARK_PAID`) | `BILL_APPROVE`, `BILL_MARK_PAID` |
+| `tax-export:read` | Tax exports, SPT data; reads of payroll (`PAYROLL_VIEW`), employees (`EMPLOYEE_VIEW`), salary components (`SALARY_COMPONENT_VIEW`), fiscal adjustments | `TAX_EXPORT` |
+| `tax-export:write` | Create/update/delete fiscal adjustments and loss carryforwards | `FISCAL_PERIOD_MANAGE` |
+| `payroll:write` | Payroll runs: create/calculate/delete (`PAYROLL_CREATE`), approve (`PAYROLL_APPROVE`), post (`PAYROLL_POST`), schedule (`PAYROLL_CREATE` + `PAYROLL_APPROVE`); employees create (`EMPLOYEE_CREATE`) / update and salary assignments (`EMPLOYEE_EDIT`); salary components (`SALARY_COMPONENT_MANAGE`) | `PAYROLL_CREATE`, `PAYROLL_APPROVE`, `PAYROLL_POST`, `EMPLOYEE_CREATE`, `EMPLOYEE_EDIT`, `SALARY_COMPONENT_MANAGE` |
+| `accounts:read` | Read chart of accounts (`/api/accounts`, `/api/drafts/accounts`) | `ACCOUNT_VIEW` |
+| `accounts:write` | Create (`ACCOUNT_CREATE`), update (`ACCOUNT_EDIT`), delete (`ACCOUNT_DELETE`) accounts | `ACCOUNT_CREATE`, `ACCOUNT_EDIT`, `ACCOUNT_DELETE` |
+| `assets:read` | Read fixed assets, categories, depreciation entries | `ASSET_VIEW` |
+| `assets:write` | Register (`ASSET_CREATE`), update (`ASSET_EDIT`), delete (`ASSET_DELETE`) assets; generate/post/skip depreciation (`ASSET_DEPRECIATE`) | `ASSET_CREATE`, `ASSET_EDIT`, `ASSET_DELETE`, `ASSET_DEPRECIATE` |
+| `tax-filings:read` | Read the tax filing register and documents | `TAX_CALENDAR_VIEW` |
+| `tax-filings:write` | Register tax filings, attach documents | `TAX_CALENDAR_MANAGE` |
+| `bank-recon:read` | Read parser configs, statements, reconciliations | `BANK_RECONCILIATION_VIEW` |
+| `bank-recon:write` | Parser configs (`BANK_RECONCILIATION_CONFIG`), statement import (`BANK_RECONCILIATION_IMPORT`), matching / create transaction (`BANK_RECONCILIATION_MATCH`), complete (`BANK_RECONCILIATION_COMPLETE`) | any `BANK_RECONCILIATION_*` write permission |
+
+The same list, with the granting permissions, is published in the OpenAPI spec under
+`x-authentication.scopes` (`GET /v3/api-docs`).
+
+A 403 response means the token lacks the scope or the user's role lacks the permission.
 
 ## Token Properties
 
 - Validity: 30 days from issuance.
-- Storage: tokens are hashed (SHA-256) before storage. The plaintext token is returned only once during issuance.
+- Storage: tokens are hashed (BCrypt) before storage. The plaintext token is returned only once during issuance.
 - Revocation: tokens can be revoked from the web UI at `/settings/devices`.
 
 ## Token Management UI

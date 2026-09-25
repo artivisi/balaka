@@ -21,20 +21,7 @@
     ],
     "tokenUsage": "Set header: Authorization: Bearer <accessToken>",
     "tokenExpiry": "30 days",
-    "scopes": [
-      { "scope": "drafts:create", "description": "Create draft transactions from receipt/text" },
-      { "scope": "drafts:approve", "description": "Approve or reject draft transactions" },
-      { "scope": "drafts:read", "description": "Read draft transaction details" },
-      { "scope": "analysis:read", "description": "Read all financial analysis reports" },
-      { "scope": "analysis:write", "description": "Publish AI-generated analysis reports" },
-      { "scope": "transactions:post", "description": "Post, update, void, and purge transactions" },
-      { "scope": "data:import", "description": "Import bulk data via ZIP" },
-      { "scope": "tax-export:read", "description": "Export tax data (e-Faktur, e-Bupot, PPN/PPh reports), manage fiscal adjustments, employees, salary components, and payroll" },
-      { "scope": "assets:read", "description": "Read fixed assets and asset categories" },
-      { "scope": "assets:write", "description": "Register, update, and delete fixed assets" },
-      { "scope": "tax-filings:read", "description": "Read the tax filing register and its attached documents" },
-      { "scope": "tax-filings:write", "description": "Register tax filings and attach SPT/BPE/STP documents" }
-    ]
+    "authorization": "Device-flow tokens carry every scope listed in scopes. A scope is effective only while the token user's current roles hold one of its grantedWithPermissions; endpoints may additionally require the specific permission of the operation. client_credentials tokens carry the scopes chosen when the API client was registered, intersected the same way with the client's service user."
   },
   "x-workflows": [
     {
@@ -314,7 +301,7 @@
     "VALIDATION_ERROR": "400 - Request body validation failed",
     "MISSING_PARAMETER": "400 - Required query parameter missing",
     "UNAUTHORIZED": "401 - Missing or invalid Bearer token",
-    "FORBIDDEN": "403 - Token lacks required scope",
+    "FORBIDDEN": "403 - Token lacks required scope, or the token user's role lacks the required permission",
     "NOT_FOUND": "404 - Resource not found",
     "CONFLICT": "409 - Duplicate or state conflict",
     "INTERNAL_ERROR": "500 - Unexpected server error"

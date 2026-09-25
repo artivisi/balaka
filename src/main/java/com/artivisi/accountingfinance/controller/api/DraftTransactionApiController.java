@@ -20,6 +20,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -60,6 +61,7 @@ public class DraftTransactionApiController {
      * POST /api/drafts
      */
     @PostMapping
+    @PreAuthorize("hasAuthority('SCOPE_drafts:create')")
     public ResponseEntity<TransactionResponse> createDraft(@Valid @RequestBody CreateDraftRequest request) {
         String username = getCurrentUsername();
         log.info("API: Create draft directly - template={}, amount={}, user={}",
@@ -81,6 +83,7 @@ public class DraftTransactionApiController {
      * POST /api/drafts/from-receipt
      */
     @PostMapping("/from-receipt")
+    @PreAuthorize("hasAuthority('SCOPE_drafts:create')")
     public ResponseEntity<DraftResponse> createFromReceipt(@Valid @RequestBody CreateFromReceiptRequest request) {
         log.info("API: Create draft from receipt - merchant={}, source={}",
                 request.merchant(), request.source());
@@ -101,6 +104,7 @@ public class DraftTransactionApiController {
      * POST /api/drafts/from-text
      */
     @PostMapping("/from-text")
+    @PreAuthorize("hasAuthority('SCOPE_drafts:create')")
     public ResponseEntity<DraftResponse> createFromText(@Valid @RequestBody CreateFromTextRequest request) {
         log.info("API: Create draft from text - merchant={}, source={}",
                 request.merchant(), request.source());
@@ -121,6 +125,7 @@ public class DraftTransactionApiController {
      * GET /api/drafts/{id}
      */
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('SCOPE_drafts:read')")
     public ResponseEntity<DraftResponse> getDraft(@PathVariable UUID id) {
         log.info("API: Get draft {}", LogSanitizer.sanitize(id.toString()));
 
@@ -133,6 +138,7 @@ public class DraftTransactionApiController {
      * PATCH /api/drafts/{id}
      */
     @PatchMapping("/{id}")
+    @PreAuthorize("hasAuthority('SCOPE_drafts:create')")
     public ResponseEntity<DraftResponse> updateDraft(
             @PathVariable UUID id,
             @Valid @RequestBody UpdateDraftRequest request) {
@@ -148,6 +154,7 @@ public class DraftTransactionApiController {
      * POST /api/drafts/{id}/approve
      */
     @PostMapping("/{id}/approve")
+    @PreAuthorize("hasAuthority('SCOPE_drafts:approve') and hasAuthority('DRAFT_APPROVE')")
     public ResponseEntity<DraftResponse> approve(
             @PathVariable UUID id,
             @Valid @RequestBody ApproveDraftRequest request) {
@@ -170,6 +177,7 @@ public class DraftTransactionApiController {
      * POST /api/drafts/{id}/reject
      */
     @PostMapping("/{id}/reject")
+    @PreAuthorize("hasAuthority('SCOPE_drafts:approve') and hasAuthority('DRAFT_REJECT')")
     public ResponseEntity<DraftResponse> reject(
             @PathVariable UUID id,
             @RequestBody Map<String, String> body) {
@@ -196,6 +204,7 @@ public class DraftTransactionApiController {
      * GET /api/drafts/templates
      */
     @GetMapping("/templates")
+    @PreAuthorize("hasAuthority('SCOPE_templates:read')")
     public ResponseEntity<List<TemplateDto>> listTemplates() {
         log.info("API: List templates");
 
@@ -230,6 +239,7 @@ public class DraftTransactionApiController {
      * GET /api/accounts
      */
     @GetMapping("/accounts")
+    @PreAuthorize("hasAuthority('SCOPE_accounts:read')")
     public ResponseEntity<List<AccountDto>> listAccounts() {
         log.info("API: List accounts");
 

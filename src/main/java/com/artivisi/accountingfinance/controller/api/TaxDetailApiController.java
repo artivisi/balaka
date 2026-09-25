@@ -36,7 +36,7 @@ public class TaxDetailApiController {
     private final TaxTransactionDetailService taxDetailService;
 
     @GetMapping("/api/transactions/{id}/tax-details")
-    @PreAuthorize("hasAuthority('SCOPE_transactions:post')")
+    @PreAuthorize("hasAuthority('SCOPE_transactions:post') and hasAuthority('TAX_EXPORT')")
     public ResponseEntity<List<TaxDetailResponse>> listTaxDetails(@PathVariable UUID id) {
         List<TaxTransactionDetail> details = taxDetailService.findByTransactionId(id);
         List<TaxDetailResponse> responses = details.stream()
@@ -46,7 +46,7 @@ public class TaxDetailApiController {
     }
 
     @GetMapping("/api/transactions/{id}/tax-details/{detailId}")
-    @PreAuthorize("hasAuthority('SCOPE_transactions:post')")
+    @PreAuthorize("hasAuthority('SCOPE_transactions:post') and hasAuthority('TAX_EXPORT')")
     public ResponseEntity<TaxDetailResponse> getTaxDetail(
             @PathVariable UUID id,
             @PathVariable UUID detailId) {
@@ -58,7 +58,7 @@ public class TaxDetailApiController {
     }
 
     @PostMapping("/api/transactions/{id}/tax-details")
-    @PreAuthorize("hasAuthority('SCOPE_transactions:post')")
+    @PreAuthorize("hasAuthority('SCOPE_transactions:post') and hasAuthority('TAX_EXPORT') and hasAuthority('TRANSACTION_EDIT')")
     public ResponseEntity<TaxDetailResponse> createTaxDetail(
             @PathVariable UUID id,
             @Valid @RequestBody TaxDetailRequest request) {
@@ -74,7 +74,7 @@ public class TaxDetailApiController {
     }
 
     @PutMapping("/api/transactions/{id}/tax-details/{detailId}")
-    @PreAuthorize("hasAuthority('SCOPE_transactions:post')")
+    @PreAuthorize("hasAuthority('SCOPE_transactions:post') and hasAuthority('TAX_EXPORT') and hasAuthority('TRANSACTION_EDIT')")
     public ResponseEntity<TaxDetailResponse> updateTaxDetail(
             @PathVariable UUID id,
             @PathVariable UUID detailId,
@@ -91,7 +91,7 @@ public class TaxDetailApiController {
     }
 
     @DeleteMapping("/api/transactions/{id}/tax-details/{detailId}")
-    @PreAuthorize("hasAuthority('SCOPE_transactions:post')")
+    @PreAuthorize("hasAuthority('SCOPE_transactions:post') and hasAuthority('TAX_EXPORT') and hasAuthority('TRANSACTION_EDIT')")
     public ResponseEntity<Void> deleteTaxDetail(
             @PathVariable UUID id,
             @PathVariable UUID detailId) {
@@ -106,7 +106,7 @@ public class TaxDetailApiController {
     }
 
     @PostMapping("/api/tax-details/bulk")
-    @PreAuthorize("hasAuthority('SCOPE_transactions:post')")
+    @PreAuthorize("hasAuthority('SCOPE_transactions:post') and hasAuthority('TAX_EXPORT') and hasAuthority('TRANSACTION_EDIT')")
     public ResponseEntity<BulkTaxDetailResponse> bulkCreate(
             @Valid @RequestBody BulkTaxDetailRequest request) {
         String username = getCurrentUsername();

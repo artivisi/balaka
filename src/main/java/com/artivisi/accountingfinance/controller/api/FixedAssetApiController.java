@@ -109,7 +109,7 @@ public class FixedAssetApiController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAuthority('SCOPE_assets:write')")
+    @PreAuthorize("hasAuthority('SCOPE_assets:write') and hasAuthority('ASSET_CREATE')")
     @Operation(summary = "Register a fixed asset",
             description = "Exactly one acquisition source is required: fundingAccountId/fundingAccountCode "
                     + "(composes an acquisition DRAFT journal: Dr asset / Cr funding) or purchaseTransactionId "
@@ -139,7 +139,7 @@ public class FixedAssetApiController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAuthority('SCOPE_assets:write')")
+    @PreAuthorize("hasAuthority('SCOPE_assets:write') and hasAuthority('ASSET_EDIT')")
     @Operation(summary = "Update a fixed asset",
             description = "Assets with recorded depreciation only accept name, description, "
                     + "location, serialNumber, and notes changes. Funding/purchase linkage is immutable.")
@@ -160,7 +160,7 @@ public class FixedAssetApiController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority('SCOPE_assets:write')")
+    @PreAuthorize("hasAuthority('SCOPE_assets:write') and hasAuthority('ASSET_DELETE')")
     @Operation(summary = "Delete a fixed asset",
             description = "Only allowed for assets without depreciation history and without a purchase transaction.")
     @ApiResponse(responseCode = "204", description = "Asset deleted")
@@ -190,7 +190,7 @@ public class FixedAssetApiController {
     }
 
     @PostMapping("/depreciation/generate")
-    @PreAuthorize("hasAuthority('SCOPE_assets:write')")
+    @PreAuthorize("hasAuthority('SCOPE_assets:write') and hasAuthority('ASSET_DEPRECIATE')")
     @Operation(summary = "Generate depreciation entries",
             description = "With period (YYYY-MM): generates that month. Without period: catch-up "
                     + "generation of every owed month up to the previous month, so late-registered "
@@ -207,7 +207,7 @@ public class FixedAssetApiController {
     }
 
     @PostMapping("/depreciation/{entryId}/post")
-    @PreAuthorize("hasAuthority('SCOPE_assets:write')")
+    @PreAuthorize("hasAuthority('SCOPE_assets:write') and hasAuthority('ASSET_DEPRECIATE')")
     @Operation(summary = "Post a pending depreciation entry to the journal")
     @ApiResponse(responseCode = "200", description = "Entry posted")
     @ApiResponse(responseCode = "404", description = "Entry not found")
@@ -220,7 +220,7 @@ public class FixedAssetApiController {
     }
 
     @PostMapping("/depreciation/{entryId}/skip")
-    @PreAuthorize("hasAuthority('SCOPE_assets:write')")
+    @PreAuthorize("hasAuthority('SCOPE_assets:write') and hasAuthority('ASSET_DEPRECIATE')")
     @Operation(summary = "Skip a pending depreciation entry")
     @ApiResponse(responseCode = "204", description = "Entry skipped")
     @ApiResponse(responseCode = "404", description = "Entry not found")
@@ -232,7 +232,7 @@ public class FixedAssetApiController {
     }
 
     @PostMapping("/depreciation/post-all")
-    @PreAuthorize("hasAuthority('SCOPE_assets:write')")
+    @PreAuthorize("hasAuthority('SCOPE_assets:write') and hasAuthority('ASSET_DEPRECIATE')")
     @Operation(summary = "Post all pending depreciation entries up to a period")
     @ApiResponse(responseCode = "200", description = "Count of posted entries")
     public ResponseEntity<Map<String, Integer>> postAllDepreciation(

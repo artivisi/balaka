@@ -4,7 +4,7 @@ Register of tax records that belong to a **tax period** rather than to a journal
 
 Coretax paperwork splits in two. Transaction-linked documents — faktur pajak keluaran, bukti potong PPh 23, the kode billing for a setoran that was booked — already have a home on `POST /api/transactions/{id}/documents` and `POST /api/transactions/{id}/tax-details`. Period-linked documents have none: an SPT Masa PPN, its BPE, an STP, a surat teguran, or an SP2DK attaches to a masa pajak, and a masa has no journal entry to hang on. This API is that home.
 
-All endpoints require `Authorization: Bearer <token>`. Read endpoints need the `tax-filings:read` scope; write endpoints need `tax-filings:write`.
+All endpoints require `Authorization: Bearer <token>`. Read endpoints need the `tax-filings:read` scope (effective with `TAX_CALENDAR_VIEW`); write endpoints need `tax-filings:write` (effective with `TAX_CALENDAR_MANAGE`). See [Authentication](01-authentication.md#scopes-and-authorization).
 
 Base URL: `/api/tax-filings`
 

@@ -68,7 +68,7 @@
                     </div>
                     <div>
                         <label for="client-scopes" class="block text-sm font-medium text-gray-700 mb-1">Scopes</label>
-                        <input type="text" id="client-scopes" name="scopes" required maxlength="255"
+                        <input type="text" id="client-scopes" name="scopes" required maxlength="2000"
                                value="transactions:post"
                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
                     </div>
@@ -78,6 +78,16 @@
                                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
                             <option th:each="u : ${users}" th:value="${u.id}" th:text="${u.username}">user</option>
                         </select>
+                    </div>
+                    <div class="md:col-span-3 text-xs text-gray-500" id="available-scopes">
+                        <p class="mb-1">Scope dipisah koma. Scope hanya berlaku bila role user layanan memiliki salah satu permission yang tercantum.</p>
+                        <ul class="grid grid-cols-1 md:grid-cols-2 gap-x-4">
+                            <li th:each="s : ${availableScopes}" th:attr="data-scope=${s.scope()}">
+                                <code th:text="${s.scope()}">scope</code>
+                                &mdash; <span th:text="${s.description()}">description</span>
+                                <span class="text-gray-400" th:text="|(${#strings.listJoin(s.grantingPermissions(), ', ')})|">(permissions)</span>
+                            </li>
+                        </ul>
                     </div>
                     <div class="md:col-span-3">
                         <button type="submit" id="btn-create-api-client"

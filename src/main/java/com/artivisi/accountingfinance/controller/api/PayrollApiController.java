@@ -51,7 +51,7 @@ import java.util.UUID;
         + "PPh 21 uses TER method (PMK 168/2023) for Jan–Nov, December annual reconciliation (PP 58/2023). "
         + "Posting creates a journal entry using the 'Post Gaji Bulanan' template (loaded via industry seed data). "
         + "Summary and 1721-A1 endpoints only return data from POSTED payroll runs.")
-@PreAuthorize("hasAuthority('SCOPE_tax-export:read')")
+@PreAuthorize("hasAuthority('SCOPE_tax-export:read') and hasAuthority('PAYROLL_VIEW')")
 @RequiredArgsConstructor
 @Slf4j
 public class PayrollApiController {
@@ -93,6 +93,7 @@ public class PayrollApiController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAuthority('SCOPE_payroll:write') and hasAuthority('PAYROLL_CREATE')")
     @Operation(summary = "Create a new payroll run",
             description = "Creates a DRAFT payroll run for the given period. Only one run per period allowed.")
     @ApiResponse(responseCode = "201", description = "Payroll run created in DRAFT status")
@@ -126,6 +127,7 @@ public class PayrollApiController {
     }
 
     @PostMapping("/{id}/calculate")
+    @PreAuthorize("hasAuthority('SCOPE_payroll:write') and hasAuthority('PAYROLL_CREATE')")
     @Operation(summary = "Calculate PPh 21 for all employees in this run",
             description = "Requires DRAFT or CALCULATED status. Calculates BPJS and PPh 21 for all active employees. "
                     + "PPh 21 uses TER method (PMK 168/2023) for Jan–Nov: PPh 21 = gross × TER rate. "
@@ -146,6 +148,7 @@ public class PayrollApiController {
     }
 
     @PostMapping("/{id}/approve")
+    @PreAuthorize("hasAuthority('SCOPE_payroll:write') and hasAuthority('PAYROLL_APPROVE')")
     @Operation(summary = "Approve payroll run",
             description = "Requires CALCULATED status. Transitions to APPROVED, enabling posting.")
     @ApiResponse(responseCode = "200", description = "Payroll approved, status set to APPROVED")
@@ -160,6 +163,7 @@ public class PayrollApiController {
     }
 
     @PostMapping("/{id}/post")
+    @PreAuthorize("hasAuthority('SCOPE_payroll:write') and hasAuthority('PAYROLL_POST')")
     @Operation(summary = "Post payroll to accounting (create journal entry)",
             description = "Requires APPROVED status. Creates a journal entry using the payroll template "
                     + "(configured via app.payroll.template-id). "
@@ -181,6 +185,7 @@ public class PayrollApiController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('SCOPE_payroll:write') and hasAuthority('PAYROLL_CREATE')")
     @Operation(summary = "Delete a draft payroll run",
             description = "Only DRAFT status can be deleted.")
     @ApiResponse(responseCode = "204", description = "Payroll run deleted")
@@ -480,6 +485,7 @@ public class PayrollApiController {
     }
 
     @PostMapping("/schedule")
+    @PreAuthorize("hasAuthority('SCOPE_payroll:write') and hasAuthority('PAYROLL_CREATE') and hasAuthority('PAYROLL_APPROVE')")
     @Operation(summary = "Create or update payroll schedule",
             description = "Configures automated monthly payroll run creation. "
                     + "On the configured dayOfMonth, the scheduler creates a DRAFT payroll run, "
@@ -504,6 +510,7 @@ public class PayrollApiController {
     }
 
     @DeleteMapping("/schedule")
+    @PreAuthorize("hasAuthority('SCOPE_payroll:write') and hasAuthority('PAYROLL_CREATE') and hasAuthority('PAYROLL_APPROVE')")
     @Operation(summary = "Delete payroll schedule",
             description = "Disables automated payroll run creation by removing the schedule configuration.")
     @ApiResponse(responseCode = "204", description = "Schedule deleted")

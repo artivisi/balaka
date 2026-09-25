@@ -57,6 +57,7 @@ public class FiscalAdjustmentApiController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAuthority('SCOPE_tax-export:write')")
     @Operation(summary = "Create a fiscal adjustment")
     @ApiResponse(responseCode = "201", description = "Adjustment created")
     public ResponseEntity<FiscalAdjustmentResponse> create(
@@ -71,6 +72,7 @@ public class FiscalAdjustmentApiController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('SCOPE_tax-export:write')")
     @Operation(summary = "Update a fiscal adjustment")
     @ApiResponse(responseCode = "200", description = "Adjustment updated")
     @ApiResponse(responseCode = "404", description = "Adjustment not found")
@@ -100,6 +102,7 @@ public class FiscalAdjustmentApiController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('SCOPE_tax-export:write')")
     @Operation(summary = "Delete a fiscal adjustment")
     @ApiResponse(responseCode = "204", description = "Adjustment deleted")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
@@ -121,6 +124,7 @@ public class FiscalAdjustmentApiController {
     }
 
     @PostMapping("/loss-carryforward")
+    @PreAuthorize("hasAuthority('SCOPE_tax-export:write')")
     @Operation(summary = "Create a fiscal loss carryforward entry")
     @ApiResponse(responseCode = "201", description = "Loss carryforward created")
     public ResponseEntity<LossCarryforwardResponse> createLossCarryforward(
@@ -139,6 +143,7 @@ public class FiscalAdjustmentApiController {
     }
 
     @DeleteMapping("/loss-carryforward/{id}")
+    @PreAuthorize("hasAuthority('SCOPE_tax-export:write')")
     @Operation(summary = "Delete a fiscal loss carryforward entry")
     @ApiResponse(responseCode = "204", description = "Loss carryforward deleted")
     public ResponseEntity<Void> deleteLossCarryforward(@PathVariable UUID id) {

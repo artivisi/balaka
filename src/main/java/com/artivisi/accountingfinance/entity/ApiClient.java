@@ -54,8 +54,8 @@ public class ApiClient {
     private String name;
 
     @NotBlank(message = "Scope wajib diisi")
-    @Size(max = 255)
-    @Column(name = "scopes", nullable = false, length = 255)
+    @Size(max = 2000)
+    @Column(name = "scopes", nullable = false, length = 2000)
     private String scopes;
 
     /**

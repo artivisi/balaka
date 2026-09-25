@@ -20,6 +20,25 @@
             const csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
             evt.detail.headers[csrfHeader] = csrfToken;
         });
+        // Add the CSRF header to every same-origin state-changing fetch()
+        (function () {
+            const originalFetch = globalThis.fetch;
+            globalThis.fetch = function (input, init) {
+                const options = Object.assign({}, init);
+                const method = (options.method || (input instanceof Request ? input.method : 'GET')).toUpperCase();
+                const url = new URL(input instanceof Request ? input.url : input, globalThis.location.href);
+                if (!['GET', 'HEAD', 'OPTIONS'].includes(method) && url.origin === globalThis.location.origin) {
+                    const csrfToken = document.querySelector('meta[name="_csrf"]').content;
+                    const csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
+                    const headers = new Headers(options.headers || (input instanceof Request ? input.headers : undefined));
+                    if (!headers.has(csrfHeader)) {
+                        headers.set(csrfHeader, csrfToken);
+                    }
+                    options.headers = headers;
+                }
+                return originalFetch(input, options);
+            };
+        })();
     </script>
     <!-- Alpine.js CSP build v3.15.12 - includes expression parser for operators/ternary -->
     <!-- IMPORTANT: alpine-components.js must load BEFORE alpine-csp.js so the alpine:init

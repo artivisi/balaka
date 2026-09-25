@@ -1,6 +1,21 @@
 # Payroll API
 
-Payroll management, PPh 21 calculation, and 1721-A1 generation. All endpoints require `Authorization: Bearer <token>` with the `tax-export:read` scope.
+Payroll management, PPh 21 calculation, and 1721-A1 generation. All endpoints require `Authorization: Bearer <token>`.
+Read endpoints need the `tax-export:read` scope; write endpoints need `payroll:write`. The token user's
+role must also hold the permission (see [Authentication](01-authentication.md#scopes-and-authorization)):
+
+| Endpoint | Scope | Permission |
+|----------|-------|------------|
+| `GET /api/payroll/**` | `tax-export:read` | `PAYROLL_VIEW` |
+| `POST /api/payroll`, `POST /api/payroll/{id}/calculate`, `DELETE /api/payroll/{id}` | `payroll:write` | `PAYROLL_CREATE` |
+| `POST /api/payroll/{id}/approve` | `payroll:write` | `PAYROLL_APPROVE` |
+| `POST /api/payroll/{id}/post` | `payroll:write` | `PAYROLL_POST` |
+| `POST /api/payroll/schedule`, `DELETE /api/payroll/schedule` | `payroll:write` | `PAYROLL_CREATE` and `PAYROLL_APPROVE` |
+| `GET /api/employees/**` | `tax-export:read` | `EMPLOYEE_VIEW` |
+| `POST /api/employees` | `payroll:write` | `EMPLOYEE_CREATE` |
+| `PUT /api/employees/{id}`, `POST/PUT /api/employees/{id}/salary-components/**` | `payroll:write` | `EMPLOYEE_EDIT` |
+| `GET /api/salary-components` | `tax-export:read` | `SALARY_COMPONENT_VIEW` |
+| `POST/PUT/DELETE /api/salary-components/**` | `payroll:write` | `SALARY_COMPONENT_MANAGE` |
 
 Base URL: `/api/payroll`
 

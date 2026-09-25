@@ -2,20 +2,26 @@ package com.artivisi.accountingfinance.config;
 
 import com.artivisi.accountingfinance.security.BearerTokenAuthenticationFilter;
 import com.artivisi.accountingfinance.security.CspNonceHeaderWriter;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpHeaders;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 
 @Configuration
 @EnableWebSecurity
@@ -59,13 +65,17 @@ public class SecurityConfig {
 
                 auth.anyRequest().authenticated();
             })
-            // CSRF protection is disabled only for API endpoints which use token-based auth
-            // or webhook endpoints (Telegram). This is safe because:
-            // 1. API endpoints require Bearer token or webhook secret token authentication
-            // 2. Browser-based forms still have CSRF protection enabled
-            // Reviewed: This configuration is intentional for REST API compatibility
+            // CSRF is waived only for stateless requests that cannot ride on a session cookie:
+            // /api/** calls carrying a Bearer token (BearerTokenAuthenticationFilter authenticates
+            // them by token alone, ignoring any session), and the unauthenticated device-flow,
+            // client_credentials and Telegram webhook endpoints. Cookie-session requests to
+            // /api/** and to the web JSON endpoints under /*/api/** require the CSRF token.
             .csrf(csrf -> csrf
-                .ignoringRequestMatchers("/*/api/**", "/api/**")
+                .ignoringRequestMatchers(
+                    SecurityConfig::isBearerApiRequest,
+                    PathPatternRequestMatcher.withDefaults().matcher("/api/device/**"),
+                    PathPatternRequestMatcher.withDefaults().matcher("/api/oauth/token"),
+                    PathPatternRequestMatcher.withDefaults().matcher("/api/telegram/webhook"))
             )
             // Disable CORS processing - this is a same-origin web application
             // When CORS is disabled, Spring Security doesn't apply CORS filter
@@ -96,6 +106,20 @@ public class SecurityConfig {
                     },
                     request -> request.getRequestURI().startsWith("/api/")
                 )
+                // CsrfFilter runs before any /api request is authenticated: a POST without a Bearer
+                // token and without a session is unauthenticated (401), not forbidden.
+                .defaultAccessDeniedHandlerFor(
+                    (request, response, accessDeniedException) -> {
+                        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+                        boolean anonymous = auth == null || auth instanceof AnonymousAuthenticationToken;
+                        response.setStatus(anonymous ? HttpServletResponse.SC_UNAUTHORIZED : HttpServletResponse.SC_FORBIDDEN);
+                        response.setContentType("application/json");
+                        response.getWriter().write(anonymous
+                                ? "{\"error\":\"unauthorized\",\"message\":\"Authentication required\"}"
+                                : "{\"error\":\"forbidden\",\"message\":\"Access denied\"}");
+                    },
+                    request -> request.getRequestURI().startsWith("/api/")
+                )
             )
             // Security headers configuration
             .headers(headers -> headers
@@ -122,6 +146,13 @@ public class SecurityConfig {
             );
 
         return http.build();
+    }
+
+    private static boolean isBearerApiRequest(HttpServletRequest request) {
+        String authorization = request.getHeader(HttpHeaders.AUTHORIZATION);
+        return request.getRequestURI().startsWith("/api/")
+                && authorization != null
+                && authorization.startsWith("Bearer ");
     }
 
     @Bean

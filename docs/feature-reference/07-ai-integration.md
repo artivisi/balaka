@@ -35,21 +35,33 @@ Setelah pengguna otorisasi, AI mendapat access token yang berlaku 30 hari. Token
 
 ### Scope yang Tersedia
 
-| Scope | Hak Akses |
-|-------|-----------|
-| `drafts:create` | Membuat dan mengedit draft transaksi |
-| `drafts:approve` | Approve/reject draft |
-| `drafts:read` | Membaca draft |
-| `analysis:read` | Membaca laporan keuangan |
-| `analysis:write` | Mempublikasikan laporan analisis |
-| `transactions:post` | Posting, koreksi, dan hapus transaksi DRAFT |
-| `data:import` | Import data dari file ZIP |
-| `bills:read` | Membaca vendor bills |
-| `bills:create` | Membuat vendor bills |
-| `bills:approve` | Approve dan mark-paid vendor bills |
-| `bank-recon:read` | Membaca data rekonsiliasi bank |
-| `bank-recon:write` | Import statement, matching, complete reconciliation |
-| `tax-export:read` | Export data pajak dan membaca data karyawan/payroll |
+| Scope | Hak Akses | Berlaku bila role user memiliki salah satu |
+|-------|-----------|---------------------------------------------|
+| `drafts:read` | Membaca draft | `DRAFT_VIEW` |
+| `drafts:create` | Membuat dan mengedit draft transaksi | `TRANSACTION_CREATE` |
+| `drafts:approve` | Approve/reject draft | `DRAFT_APPROVE`, `DRAFT_REJECT` |
+| `analysis:read` | Membaca laporan keuangan | `REPORT_VIEW` |
+| `analysis:write` | Mempublikasikan laporan analisis | `ANALYSIS_REPORT_CREATE` |
+| `transactions:post` | Membuat, posting, koreksi, void, dan hapus transaksi; dokumen dan detail pajak transaksi | permission tulis `TRANSACTION_*` |
+| `templates:read` | Membaca template jurnal | `TEMPLATE_VIEW` |
+| `templates:write` | Membuat, mengubah, dan menghapus template jurnal | `TEMPLATE_CREATE`, `TEMPLATE_EDIT`, `TEMPLATE_DELETE` |
+| `data:import` | Import data dari file ZIP | `DATA_IMPORT` |
+| `bills:read` | Membaca vendor bills | `BILL_VIEW` |
+| `bills:create` | Membuat vendor bills | `BILL_CREATE` |
+| `bills:approve` | Approve dan mark-paid vendor bills | `BILL_APPROVE`, `BILL_MARK_PAID` |
+| `bank-recon:read` | Membaca data rekonsiliasi bank | `BANK_RECONCILIATION_VIEW` |
+| `bank-recon:write` | Parser config, import statement, matching, complete reconciliation | permission tulis `BANK_RECONCILIATION_*` |
+| `tax-export:read` | Export data pajak; membaca karyawan, komponen gaji, payroll, koreksi fiskal | `TAX_EXPORT` |
+| `tax-export:write` | Membuat, mengubah, dan menghapus koreksi fiskal dan kompensasi rugi | `FISCAL_PERIOD_MANAGE` |
+| `payroll:write` | Payroll run, jadwal payroll, karyawan, komponen gaji | `PAYROLL_CREATE`, `PAYROLL_APPROVE`, `PAYROLL_POST`, `EMPLOYEE_CREATE`, `EMPLOYEE_EDIT`, `SALARY_COMPONENT_MANAGE` |
+| `accounts:read` | Membaca bagan akun | `ACCOUNT_VIEW` |
+| `accounts:write` | Membuat, mengubah, dan menghapus akun | `ACCOUNT_CREATE`, `ACCOUNT_EDIT`, `ACCOUNT_DELETE` |
+| `assets:read` | Membaca aset tetap dan penyusutan | `ASSET_VIEW` |
+| `assets:write` | Registrasi, ubah, hapus aset; penyusutan | `ASSET_CREATE`, `ASSET_EDIT`, `ASSET_DELETE`, `ASSET_DEPRECIATE` |
+| `tax-filings:read` | Membaca register pelaporan pajak | `TAX_CALENDAR_VIEW` |
+| `tax-filings:write` | Mencatat pelaporan pajak dan dokumennya | `TAX_CALENDAR_MANAGE` |
+
+Scope hanya berlaku selama role user pemilik token memiliki permission di kolom terakhir, dan setiap operasi tetap memerlukan permission yang sama dengan di aplikasi web (misalnya void memerlukan `TRANSACTION_VOID`). Perubahan role langsung berlaku untuk token yang sudah terbit; user yang dinonaktifkan tidak bisa lagi memakai tokennya (HTTP 401). Dengan demikian, token tidak pernah memberi akses melebihi hak user di aplikasi web.
 
 ---
 

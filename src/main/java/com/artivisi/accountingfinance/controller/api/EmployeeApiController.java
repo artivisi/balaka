@@ -37,7 +37,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/employees")
 @Tag(name = "Employees", description = "Employee master data and salary component assignments")
-@PreAuthorize("hasAuthority('SCOPE_tax-export:read')")
+@PreAuthorize("hasAuthority('SCOPE_tax-export:read') and hasAuthority('EMPLOYEE_VIEW')")
 @RequiredArgsConstructor
 @Slf4j
 public class EmployeeApiController {
@@ -71,6 +71,7 @@ public class EmployeeApiController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAuthority('SCOPE_payroll:write') and hasAuthority('EMPLOYEE_CREATE')")
     @Operation(summary = "Create an employee")
     @ApiResponse(responseCode = "201", description = "Employee created")
     public ResponseEntity<EmployeeResponse> create(
@@ -95,6 +96,7 @@ public class EmployeeApiController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('SCOPE_payroll:write') and hasAuthority('EMPLOYEE_EDIT')")
     @Operation(summary = "Update employee master data")
     @ApiResponse(responseCode = "200", description = "Employee updated")
     @ApiResponse(responseCode = "404", description = "Employee not found")
@@ -111,6 +113,7 @@ public class EmployeeApiController {
     }
 
     @PostMapping("/{id}/salary-components")
+    @PreAuthorize("hasAuthority('SCOPE_payroll:write') and hasAuthority('EMPLOYEE_EDIT')")
     @Operation(summary = "Assign a salary component to an employee",
             description = "Same component can be assigned multiple times with non-overlapping date ranges. "
                     + "If endDate is null, the assignment is open-ended. "
@@ -135,6 +138,7 @@ public class EmployeeApiController {
     }
 
     @PutMapping("/{id}/salary-components/{componentId}")
+    @PreAuthorize("hasAuthority('SCOPE_payroll:write') and hasAuthority('EMPLOYEE_EDIT')")
     @Operation(summary = "Update a salary component assignment")
     @ApiResponse(responseCode = "200", description = "Assignment updated")
     public ResponseEntity<SalaryAssignmentResponse> updateComponent(

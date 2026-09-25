@@ -70,6 +70,7 @@ public class TransactionApiController {
      * POST /api/transactions
      */
     @PostMapping
+    @PreAuthorize("hasAuthority('SCOPE_transactions:post') and hasAuthority('TRANSACTION_CREATE') and hasAuthority('TRANSACTION_POST')")
     @Operation(summary = "Create and post a transaction directly",
                description = "Bypasses the draft workflow. Supports retry-safe posting via the "
                            + "Idempotency-Key header: a repeat request with the same key returns "
@@ -123,7 +124,7 @@ public class TransactionApiController {
      * POST /api/transactions/journal-entry
      */
     @PostMapping("/journal-entry")
-    @PreAuthorize("hasAuthority('SCOPE_transactions:post')")
+    @PreAuthorize("hasAuthority('SCOPE_transactions:post') and hasAuthority('TRANSACTION_CREATE')")
     @Operation(summary = "Create free-form journal entry (no template)",
                description = "Creates a DRAFT transaction with arbitrary debit/credit lines. "
                            + "No template required. Use for closing journals, adjusting entries, "
@@ -153,7 +154,7 @@ public class TransactionApiController {
      * PUT /api/transactions/{id}
      */
     @PutMapping("/{id}")
-    @PreAuthorize("hasAuthority('SCOPE_transactions:post')")
+    @PreAuthorize("hasAuthority('SCOPE_transactions:post') and hasAuthority('TRANSACTION_EDIT')")
     public ResponseEntity<TransactionResponse> updateTransaction(
             @PathVariable UUID id,
             @Valid @RequestBody UpdateTransactionRequest request) {
@@ -176,7 +177,7 @@ public class TransactionApiController {
      * DELETE /api/transactions/{id}
      */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority('SCOPE_transactions:post')")
+    @PreAuthorize("hasAuthority('SCOPE_transactions:post') and hasAuthority('TRANSACTION_DELETE')")
     public ResponseEntity<Void> deleteTransaction(@PathVariable UUID id) {
 
         String username = getCurrentUsername();
@@ -197,7 +198,7 @@ public class TransactionApiController {
      * POST /api/transactions/{id}/post
      */
     @PostMapping("/{id}/post")
-    @PreAuthorize("hasAuthority('SCOPE_transactions:post')")
+    @PreAuthorize("hasAuthority('SCOPE_transactions:post') and hasAuthority('TRANSACTION_POST')")
     public ResponseEntity<TransactionResponse> postTransaction(@PathVariable UUID id) {
 
         String username = getCurrentUsername();
@@ -219,7 +220,7 @@ public class TransactionApiController {
      * POST /api/transactions/{id}/void
      */
     @PostMapping("/{id}/void")
-    @PreAuthorize("hasAuthority('SCOPE_transactions:post')")
+    @PreAuthorize("hasAuthority('SCOPE_transactions:post') and hasAuthority('TRANSACTION_VOID')")
     public ResponseEntity<TransactionResponse> voidTransaction(
             @PathVariable UUID id,
             @Valid @RequestBody VoidTransactionDto request) {
@@ -271,7 +272,7 @@ public class TransactionApiController {
      * POST /api/transactions/bulk-post
      */
     @PostMapping("/bulk-post")
-    @PreAuthorize("hasAuthority('SCOPE_transactions:post')")
+    @PreAuthorize("hasAuthority('SCOPE_transactions:post') and hasAuthority('TRANSACTION_POST')")
     public ResponseEntity<BulkPostResponse> bulkPostTransactions(
             @Valid @RequestBody BulkPostRequest request) {
 
@@ -310,7 +311,7 @@ public class TransactionApiController {
      * DELETE /api/transactions/purge-voided?before=YYYY-MM-DD
      */
     @DeleteMapping("/purge-voided")
-    @PreAuthorize("hasAuthority('SCOPE_transactions:post')")
+    @PreAuthorize("hasAuthority('SCOPE_transactions:post') and hasAuthority('TRANSACTION_PURGE')")
     @Operation(summary = "Purge voided transactions",
                description = "Permanently deletes all VOID transactions and their journal entries. "
                            + "Returns purged transaction details as a backup. "
