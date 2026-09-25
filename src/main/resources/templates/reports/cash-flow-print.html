@@ -91,7 +91,7 @@
         <div class="header">
             <div class="company-info">
                 <img th:if="${company.companyLogoPath != null and !company.companyLogoPath.isEmpty()}"
-                     th:src="@{${company.companyLogoPath}}" alt="Logo" class="company-logo">
+                     th:src="@{/settings/company/logo}" alt="Logo" class="company-logo">
                 <img th:unless="${company.companyLogoPath != null and !company.companyLogoPath.isEmpty()}"
                      th:src="@{${theme.logoPath}}" alt="Logo" class="company-logo">
                 <div class="company-name" th:text="${company.companyName}">Nama Perusahaan</div>

@@ -6,12 +6,16 @@ import com.artivisi.accountingfinance.entity.Invoice;
 import com.artivisi.accountingfinance.entity.InvoiceLine;
 import com.artivisi.accountingfinance.entity.InvoicePayment;
 import com.artivisi.accountingfinance.entity.Project;
+import com.artivisi.accountingfinance.entity.User;
+import com.artivisi.accountingfinance.enums.Role;
 import com.artivisi.accountingfinance.enums.InvoiceStatus;
 import com.artivisi.accountingfinance.enums.PaymentMethod;
 import com.artivisi.accountingfinance.functional.service.ServiceTestDataInitializer;
+import com.artivisi.accountingfinance.repository.ChartOfAccountRepository;
 import com.artivisi.accountingfinance.repository.CompanyConfigRepository;
 import com.artivisi.accountingfinance.repository.InvoiceRepository;
 import com.artivisi.accountingfinance.repository.ProjectRepository;
+import com.artivisi.accountingfinance.repository.UserRepository;
 import com.artivisi.accountingfinance.service.ClientService;
 import com.artivisi.accountingfinance.service.InvoiceService;
 import com.artivisi.accountingfinance.ui.PlaywrightTestBase;
@@ -19,21 +23,27 @@ import com.artivisi.accountingfinance.util.AmountToWordsUtil;
 import com.microsoft.playwright.APIResponse;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
+import com.microsoft.playwright.options.FilePayload;
+import com.microsoft.playwright.options.FormData;
 import com.microsoft.playwright.options.RequestOptions;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -52,6 +62,9 @@ class InvoiceControllerFunctionalTest extends PlaywrightTestBase {
     // From src/test/resources/testdata/service/projects.csv
     private static final String PROJECT_CODE = "PRJ-2024-003";
 
+    private static final byte[] PNG = Base64.getDecoder().decode(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==");
+
     @Autowired
     private InvoiceRepository invoiceRepository;
 
@@ -67,16 +80,32 @@ class InvoiceControllerFunctionalTest extends PlaywrightTestBase {
     @Autowired
     private CompanyConfigRepository companyConfigRepository;
 
+    @Autowired
+    private ChartOfAccountRepository chartOfAccountRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    private CompanyConfigSnapshot companyConfigSnapshot;
     private Client client;
     private String csrfHeader;
     private String csrfToken;
 
     @BeforeEach
     void setupAndLogin() {
+        companyConfigSnapshot = CompanyConfigSnapshot.capture(companyConfigRepository);
         client = createClient();
         loginAsAdmin();
         csrfHeader = page.locator("meta[name='_csrf_header']").getAttribute("content");
         csrfToken = page.locator("meta[name='_csrf']").getAttribute("content");
+    }
+
+    @AfterEach
+    void restoreCompanyConfig() {
+        companyConfigSnapshot.restore(companyConfigRepository, chartOfAccountRepository);
     }
 
     // ==================== List ====================
@@ -341,6 +370,7 @@ class InvoiceControllerFunctionalTest extends PlaywrightTestBase {
     @Test
     @DisplayName("Should render print view with company, client, lines and total including PPN")
     void shouldDisplayPrintPreview() {
+        uploadLogo();
         Project project = seededProject();
         InvoiceLine line = new InvoiceLine();
         line.setDescription("Workshop transformasi digital");
@@ -388,9 +418,56 @@ class InvoiceControllerFunctionalTest extends PlaywrightTestBase {
         assertThat(page.locator(".notes-content")).hasText("Transfer ke rekening perusahaan");
         assertThat(page.locator(".signature-name")).hasText(company.getSigningOfficerName());
         assertThat(page.locator("a.btn-back")).hasAttribute("href", "/invoices/" + invoice.getInvoiceNumber());
+        assertLogoRendered();
+    }
+
+    @Test
+    @DisplayName("Should show the uploaded company logo on the invoice print for a user without settings access")
+    void shouldShowLogoOnPrintForAuditor() {
+        uploadLogo();
+        Invoice invoice = createInvoice(LocalDate.now(), seededProject());
+
+        context.clearCookies();
+        login(createUser(Role.AUDITOR).getUsername(), "password");
+        navigateTo("/invoices/" + invoice.getInvoiceNumber() + "/print");
+        waitForPageLoad();
+
+        assertThat(page.locator(".invoice-number")).hasText(invoice.getInvoiceNumber());
+        assertLogoRendered();
     }
 
     // ==================== helpers ====================
+
+    private void uploadLogo() {
+        APIResponse upload = page.request().post(baseUrl() + "/settings/company/logo", RequestOptions.create()
+                .setHeader(csrfHeader, csrfToken)
+                .setMultipart(FormData.create().set("logoFile", new FilePayload("logo.png", "image/png", PNG))));
+        assertEquals(200, upload.status());
+        assertNotNull(companyConfigRepository.findFirst().orElseThrow().getCompanyLogoPath(), "logo upload not stored");
+    }
+
+    private void assertLogoRendered() {
+        Locator logo = page.locator("img.company-logo");
+        assertThat(logo).hasCount(1);
+        assertThat(logo).hasAttribute("src", "/settings/company/logo");
+        APIResponse image = page.request().get(baseUrl() + logo.getAttribute("src"));
+        assertEquals(200, image.status());
+        assertEquals("image/png", image.headers().get("content-type"));
+        assertArrayEquals(PNG, image.body());
+        assertEquals(Boolean.TRUE, logo.evaluate("img => img.complete && img.naturalWidth > 0"));
+    }
+
+    private User createUser(Role role) {
+        String id = shortId();
+        User user = new User();
+        user.setUsername("inv-" + role.name().toLowerCase() + "-" + id);
+        user.setPassword(passwordEncoder.encode("password"));
+        user.setFullName("Pengguna Invoice " + id);
+        user.setEmail("inv-" + id + "@example.com");
+        user.setActive(true);
+        user.addRole(role, "system");
+        return userRepository.save(user);
+    }
 
     private Locator rows() {
         return page.locator("[data-testid='invoice-table'] tbody tr:has(a)");

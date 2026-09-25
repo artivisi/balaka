@@ -457,7 +457,7 @@
         <div class="invoice-header">
             <div class="company-info">
                 <img th:if="${company.companyLogoPath != null and !company.companyLogoPath.isEmpty()}"
-                     th:src="@{${company.companyLogoPath}}"
+                     th:src="@{/settings/company/logo}"
                      alt="Logo" class="company-logo">
                 <img th:unless="${company.companyLogoPath != null and !company.companyLogoPath.isEmpty()}"
                      th:src="@{${theme.logoPath}}"
