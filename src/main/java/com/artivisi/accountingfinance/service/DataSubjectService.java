@@ -40,8 +40,9 @@ public class DataSubjectService {
     /**
      * Export all personal data for a data subject (employee).
      * Implements GDPR Art. 15 (Right to Access) and Art. 20 (Data Portability).
+     * Not read-only: the DSAR audit record is written in this transaction.
      */
-    @Transactional(readOnly = true)
+    @Transactional
     public Map<String, Object> exportPersonalData(UUID employeeId) {
         Employee employee = employeeRepository.findById(employeeId)
                 .orElseThrow(() -> new IllegalArgumentException(ERR_EMPLOYEE_NOT_FOUND + employeeId));

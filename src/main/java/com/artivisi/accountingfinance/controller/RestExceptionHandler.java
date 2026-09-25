@@ -15,6 +15,7 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.apache.catalina.connector.ClientAbortException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.core.annotation.Order;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -176,6 +177,18 @@ public class RestExceptionHandler {
                         HttpStatus.CONFLICT.value(),
                         "Concurrent Update Detected",
                         "Data telah diubah oleh pengguna lain. Silakan refresh halaman dan coba lagi.",
+                        LocalDateTime.now()
+                ));
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ErrorResponse> handleMaxUploadSizeExceeded(MaxUploadSizeExceededException ex) {
+        log.warn("Upload rejected: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONTENT_TOO_LARGE)
+                .body(new ErrorResponse(
+                        HttpStatus.CONTENT_TOO_LARGE.value(),
+                        "Content Too Large",
+                        "Ukuran file melebihi batas maksimum 10MB.",
                         LocalDateTime.now()
                 ));
     }

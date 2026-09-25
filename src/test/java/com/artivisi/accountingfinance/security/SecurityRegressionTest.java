@@ -1,19 +1,53 @@
 package com.artivisi.accountingfinance.security;
 
+import com.artivisi.accountingfinance.entity.Employee;
+import com.artivisi.accountingfinance.entity.PayrollDetail;
+import com.artivisi.accountingfinance.entity.PayrollRun;
+import com.artivisi.accountingfinance.entity.PayrollStatus;
+import com.artivisi.accountingfinance.entity.SecurityAuditLog;
+import com.artivisi.accountingfinance.entity.User;
+import com.artivisi.accountingfinance.enums.AuditEventType;
+import com.artivisi.accountingfinance.enums.Role;
+import com.artivisi.accountingfinance.repository.ChartOfAccountRepository;
+import com.artivisi.accountingfinance.repository.DocumentRepository;
+import com.artivisi.accountingfinance.repository.EmployeeRepository;
+import com.artivisi.accountingfinance.repository.PayrollDetailRepository;
+import com.artivisi.accountingfinance.repository.PayrollRunRepository;
+import com.artivisi.accountingfinance.repository.SecurityAuditLogRepository;
+import com.artivisi.accountingfinance.repository.UserRepository;
+import com.artivisi.accountingfinance.service.DeviceAuthService;
 import com.artivisi.accountingfinance.ui.PlaywrightTestBase;
+import com.microsoft.playwright.APIRequest;
+import com.microsoft.playwright.APIRequestContext;
 import com.microsoft.playwright.APIResponse;
-import com.microsoft.playwright.Locator;
+import com.microsoft.playwright.BrowserContext;
+import com.microsoft.playwright.Page;
 import com.microsoft.playwright.Response;
+import com.microsoft.playwright.options.Cookie;
+import com.microsoft.playwright.options.FilePayload;
+import com.microsoft.playwright.options.FormData;
 import com.microsoft.playwright.options.RequestOptions;
+import com.microsoft.playwright.options.SameSiteAttribute;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -21,49 +55,118 @@ import static org.junit.jupiter.api.Assertions.*;
  *
  * Tests security controls using Playwright against a running Spring Boot app.
  * These tests verify that security vulnerabilities identified in the audit
- * are properly mitigated.
+ * are properly mitigated. Every check executes unconditionally: a missing
+ * page element or precondition fails the test.
  *
  * Run with: ./mvnw test -Dtest=SecurityRegressionTest
  *
- * Uses @ActiveProfiles("test") to load V800-V912 integration test data.
+ * Uses @ActiveProfiles("test") to load V800-V912 integration test data; the fixed
+ * ids below come from those migrations. Users, employees and payroll the tests
+ * need beyond that are created by the tests themselves.
  */
 @DisplayName("Security Regression Tests")
 @ActiveProfiles("test")
 class SecurityRegressionTest extends PlaywrightTestBase {
 
+    // V904
+    private static final String DRAFT_TRANSACTION_ID = "a0000000-0000-0000-0000-000000000001";
+    private static final String POSTED_TRANSACTION_ID = "a0000000-0000-0000-0000-000000000002";
+    private static final String VOIDED_TRANSACTION_ID = "a0000000-0000-0000-0000-000000000003";
+    // V800
+    private static final String TEMPLATE_ID = "e0000000-0000-0000-0000-000000000001";
+    private static final String CASH_ACCOUNT_CODE = "1.1.01";
+    private static final String REVENUE_ACCOUNT_CODE = "4.1.01";
+    // V908
+    private static final String OTHER_EMPLOYEE_CODE = "EMP002";
+    // Reserved for this class
+    private static final String PAYROLL_PERIOD = "2066-01";
+
+    private static final String PASSWORD = "Rahasia#2066x";
+    private static final SecureRandom RANDOM = new SecureRandom();
+
+    @Autowired private UserRepository userRepository;
+    @Autowired private EmployeeRepository employeeRepository;
+    @Autowired private PayrollRunRepository payrollRunRepository;
+    @Autowired private PayrollDetailRepository payrollDetailRepository;
+    @Autowired private DocumentRepository documentRepository;
+    @Autowired private ChartOfAccountRepository accountRepository;
+    @Autowired private SecurityAuditLogRepository securityAuditLogRepository;
+    @Autowired private DeviceAuthService deviceAuthService;
+    @Autowired private PasswordEncoder passwordEncoder;
+    @Autowired private JdbcTemplate jdbcTemplate;
+
+    private String clientIp;
+
     @BeforeEach
     void setUp() {
-        // Start fresh for each test
+        // RateLimitFilter counts logins per client IP; each test gets its own address so the
+        // login-heavy tests below cannot exhaust a budget shared with the rest of the class.
+        clientIp = randomIp();
+        context.setExtraHTTPHeaders(Map.of("X-Forwarded-For", clientIp));
     }
 
-    /**
-     * Helper method to detect if access is blocked.
-     * Checks for 403 error page by looking for:
-     * - The access-denied-page ID in the 403.html template
-     * - URL containing /error or /403
-     * - Page content indicating access denied
-     * - Redirect to login page
-     */
-    private boolean isAccessBlocked() {
-        String currentUrl = page.url();
-        String content = page.content().toLowerCase();
+    private void assertForbidden(String path) {
+        Response response = page.navigate(baseUrl() + path);
+        assertEquals(403, response.status(), "Expected 403 for " + path + ", got " + response.status());
+        assertThat(page.locator("#access-denied-page")).isVisible();
+    }
 
-        // Check for the 403 page ID
-        boolean has403Page = page.locator("#access-denied-page").count() > 0;
+    private String csrfToken() {
+        String token = page.locator("meta[name='_csrf']").getAttribute("content");
+        assertNotNull(token, "CSRF meta tag missing on " + page.url());
+        return token;
+    }
 
-        // Check for error URL patterns
-        boolean isErrorUrl = currentUrl.contains("/error") ||
-                             currentUrl.contains("/403");
+    private RequestOptions withCsrf() {
+        return RequestOptions.create().setHeader("X-CSRF-TOKEN", csrfToken());
+    }
 
-        // Check for access denied messages
-        boolean hasAccessDeniedMessage = content.contains("akses ditolak") ||
-                                         content.contains("access denied") ||
-                                         content.contains("forbidden");
+    private User createUser(Role role) {
+        String id = uid();
+        User user = new User();
+        user.setUsername("secreg-" + role.name().toLowerCase() + "-" + id);
+        user.setPassword(passwordEncoder.encode(PASSWORD));
+        user.setFullName("Pengguna " + id);
+        user.setEmail("secreg-" + id + "@example.com");
+        user.setActive(true);
+        user.addRole(role, "system");
+        return userRepository.save(user);
+    }
 
-        // Check for redirect to login
-        boolean isRedirectedToLogin = currentUrl.contains("/login");
+    private void submitLogin(String username, String password) {
+        navigateTo("/login");
+        waitForPageLoad();
+        page.fill("input[name='username']", username);
+        page.fill("input[name='password']", password);
+        page.click("button[type='submit']");
+        waitForPageLoad();
+    }
 
-        return has403Page || isErrorUrl || hasAccessDeniedMessage || isRedirectedToLogin;
+    private Cookie sessionCookie() {
+        return context.cookies().stream()
+                .filter(c -> c.name.equals("JSESSIONID"))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("JSESSIONID cookie missing, cookies: " + context.cookies()));
+    }
+
+    private int transactionCountByDescription(String description) {
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM transactions WHERE description = ?", Integer.class, description);
+        assertNotNull(count);
+        return count;
+    }
+
+    private String transactionField(String id, String column) {
+        return jdbcTemplate.queryForObject("SELECT " + column + " FROM transactions WHERE id = ?::uuid",
+                String.class, id);
+    }
+
+    private static String randomIp() {
+        return "10.99." + RANDOM.nextInt(256) + "." + RANDOM.nextInt(256);
+    }
+
+    private static String uid() {
+        return UUID.randomUUID().toString().replace("-", "").substring(0, 10);
     }
 
     @Nested
@@ -73,70 +176,75 @@ class SecurityRegressionTest extends PlaywrightTestBase {
         @Test
         @DisplayName("Should reject invalid credentials")
         void shouldRejectInvalidCredentials() {
-            navigateTo("/login");
-            waitForPageLoad();
+            User user = createUser(Role.STAFF);
 
-            page.fill("input[name='username']", "admin");
-            page.fill("input[name='password']", "wrongpassword");
-            page.click("button[type='submit']");
+            submitLogin(user.getUsername(), PASSWORD + "salah");
 
-            // Should stay on login page with error
-            assertTrue(page.url().contains("/login"));
-            assertTrue(page.locator(".alert-danger, .text-red, [class*='error']").isVisible() ||
-                       page.url().contains("error"));
+            assertEquals(baseUrl() + "/login?error", page.url());
+            assertThat(page.locator("text=Username atau password salah")).isVisible();
+            navigateTo("/dashboard");
+            assertEquals(baseUrl() + "/login", page.url());
         }
 
         @Test
-        @DisplayName("Should protect against brute force with rate limiting")
+        @DisplayName("Should lock the account after 5 failed logins, rejecting even the correct password")
         void shouldProtectAgainstBruteForce() {
-            // Attempt multiple failed logins
-            for (int i = 0; i < 6; i++) {
-                navigateTo("/login");
-                waitForPageLoad();
-                page.fill("input[name='username']", "admin");
-                page.fill("input[name='password']", "wrong" + i);
-                page.click("button[type='submit']");
+            User user = createUser(Role.STAFF);
+            LocalDateTime before = LocalDateTime.now().minusSeconds(1);
+
+            for (int i = 0; i < 5; i++) {
+                submitLogin(user.getUsername(), "salah-" + i);
+                assertEquals(baseUrl() + "/login?error", page.url());
             }
+            assertTrue(loginAttemptService.isBlocked(user.getUsername()), "Account not locked after 5 failures");
 
-            // After multiple failures, should see lockout message or rate limit
-            navigateTo("/login");
-            waitForPageLoad();
+            submitLogin(user.getUsername(), PASSWORD);
+            assertEquals(baseUrl() + "/login?error", page.url(), "Locked account accepted the correct password");
+            assertTrue(securityAuditLogRepository.findByUsernameAndEventTypeAndTimestampAfter(
+                            user.getUsername(), AuditEventType.LOGIN_FAILURE, before).stream()
+                    .anyMatch(l -> "Account locked - login blocked".equals(l.getDetails())));
 
-            // Verify login page is still accessible (lockout shows on login page)
-            assertTrue(page.url().contains("/login"),
-                    "Should remain on login page after multiple failed attempts");
+            loginAttemptService.resetAllAttempts();
+            submitLogin(user.getUsername(), PASSWORD);
+            assertEquals(baseUrl() + "/dashboard", page.url());
         }
 
         @Test
         @DisplayName("Should redirect to login when accessing protected page without auth")
         void shouldRedirectToLoginForProtectedPages() {
-            // Clear any existing session
             context.clearCookies();
 
-            navigateTo("/dashboard");
-            waitForPageLoad();
-
-            assertTrue(page.url().contains("/login"),
-                    "Should redirect to login page, but was: " + page.url());
+            for (String path : List.of("/dashboard", "/users", "/transactions", "/settings/export")) {
+                navigateTo(path);
+                assertEquals(baseUrl() + "/login", page.url(), "Unauthenticated access to " + path);
+            }
         }
 
         @Test
         @DisplayName("Should invalidate session on logout")
         void shouldInvalidateSessionOnLogout() {
             loginAsAdmin();
-            navigateTo("/dashboard");
-            waitForPageLoad();
-            assertTrue(page.url().contains("/dashboard"));
+            Cookie session = sessionCookie();
 
-            // Logout
-            page.click("a[href='/logout'], button:has-text('Logout'), form[action='/logout'] button");
+            page.locator("form[action='/logout'] button[title='Logout']").first().click();
             waitForPageLoad();
+            assertEquals(baseUrl() + "/login?logout", page.url());
+            assertThat(page.locator("text=Anda telah berhasil logout")).isVisible();
 
-            // Try to access protected page
             navigateTo("/dashboard");
-            waitForPageLoad();
-            assertTrue(page.url().contains("/login"),
-                    "Should redirect to login after logout");
+            assertEquals(baseUrl() + "/login", page.url());
+
+            // Replaying the old session id from another browser must not be authenticated
+            BrowserContext replay = browser.newContext();
+            try {
+                replay.addCookies(List.of(new Cookie(session.name, session.value)
+                        .setDomain(session.domain).setPath(session.path)));
+                Page replayPage = replay.newPage();
+                replayPage.navigate(baseUrl() + "/dashboard");
+                assertEquals(baseUrl() + "/login", replayPage.url());
+            } finally {
+                replay.close();
+            }
         }
     }
 
@@ -145,51 +253,59 @@ class SecurityRegressionTest extends PlaywrightTestBase {
     class CsrfProtectionTests {
 
         @Test
-        @DisplayName("Should include CSRF token in forms")
+        @DisplayName("Should include CSRF token in every POST form")
         void shouldIncludeCsrfTokenInForms() {
             loginAsAdmin();
-            navigateTo("/accounts");
+            navigateTo("/accounts/new");
             waitForPageLoad();
 
-            // Check for CSRF meta tag or hidden input
-            boolean hasCsrfMeta = page.locator("meta[name='_csrf']").count() > 0;
-            boolean hasCsrfInput = page.locator("input[name='_csrf']").count() > 0;
-
-            assertTrue(hasCsrfMeta || hasCsrfInput,
-                    "Page should contain CSRF token in meta tag or hidden input");
+            String token = csrfToken();
+            assertFalse(token.isBlank());
+            int postForms = page.locator("form[method='post']").count();
+            assertTrue(postForms >= 2, "Expected the account form and the logout forms, got " + postForms);
+            assertEquals(postForms, page.locator("form[method='post'] input[name='_csrf']").count(),
+                    "Every POST form must carry the _csrf field");
+            assertEquals(token, page.locator("form[action='/accounts/new'] input[name='_csrf']").getAttribute("value"));
         }
 
         @Test
-        @DisplayName("Should include CSRF header configuration for HTMX")
+        @DisplayName("Should expose the CSRF header name for HTMX and accept it on POST")
         void shouldConfigureCsrfForHtmx() {
             loginAsAdmin();
             navigateTo("/dashboard");
             waitForPageLoad();
 
-            // Check for CSRF header meta tag
-            Locator csrfHeaderMeta = page.locator("meta[name='_csrf_header']");
-            assertTrue(csrfHeaderMeta.count() > 0,
-                    "Should have CSRF header meta tag for HTMX integration");
+            assertEquals("X-CSRF-TOKEN", page.locator("meta[name='_csrf_header']").getAttribute("content"));
+
+            // Header-only token (as HTMX sends it) is accepted: the invalid form is re-rendered, not 403
+            APIResponse response = page.request().post(baseUrl() + "/accounts/new", withCsrf()
+                    .setForm(FormData.create().set("accountCode", "").set("accountName", "")));
+            assertEquals(200, response.status());
+            assertTrue(response.text().contains("Kode akun harus diisi"));
         }
 
         @Test
         @DisplayName("Should reject POST request without CSRF token")
         void shouldRejectPostWithoutCsrfToken() {
             loginAsAdmin();
+            navigateTo("/accounts/new");
+            waitForPageLoad();
+            String code = "9.9." + RANDOM.nextInt(100_000);
+            FormData form = FormData.create()
+                    .set("accountCode", code)
+                    .set("accountName", "CSRF " + code)
+                    .set("accountType", "ASSET")
+                    .set("normalBalance", "DEBIT");
 
-            // Make a POST request without CSRF token using Playwright's request API
-            var apiContext = page.context().request();
-            var response = apiContext.post(baseUrl() + "/accounts",
-                    RequestOptions.create()
-                            .setHeader("Content-Type", "application/x-www-form-urlencoded")
-                            .setData("code=TEST&name=Test&type=ASSET"));
+            APIResponse rejected = page.request().post(baseUrl() + "/accounts/new",
+                    RequestOptions.create().setForm(form).setMaxRedirects(0));
+            assertEquals(403, rejected.status());
+            assertTrue(accountRepository.findByAccountCode(code).isEmpty(), "Account created without CSRF token");
 
-            // Should be rejected - either 403 (CSRF) or 4xx/5xx (request rejected for other reasons)
-            // The key requirement is that the request is NOT successfully processed (not 2xx)
-            int status = response.status();
-            assertTrue(status >= 400,
-                    "POST without CSRF token should be rejected (got " + status + ", expected >= 400). " +
-                    "200 would indicate CSRF protection is bypassed.");
+            APIResponse accepted = page.request().post(baseUrl() + "/accounts/new",
+                    withCsrf().setForm(form).setMaxRedirects(0));
+            assertEquals(302, accepted.status(), accepted.text());
+            assertTrue(accountRepository.findByAccountCode(code).isPresent());
         }
     }
 
@@ -198,59 +314,66 @@ class SecurityRegressionTest extends PlaywrightTestBase {
     class XssPreventionTests {
 
         private static final List<String> XSS_PAYLOADS = List.of(
-                "<script>alert('XSS')</script>",
-                "<img src=x onerror=alert('XSS')>",
-                "<svg onload=alert('XSS')>",
-                "javascript:alert('XSS')",
-                "<body onload=alert('XSS')>",
-                "'><script>alert('XSS')</script>",
-                "\"><script>alert('XSS')</script>"
+                "<script>window.__xss=1</script>",
+                "<img src=x id=xss-probe onerror=window.__xss=1>",
+                "<svg id=xss-probe onload=window.__xss=1>",
+                "\"><img src=x id=xss-probe>",
+                "'><img src=x id=xss-probe>",
+                "javascript:window.__xss=1"
         );
 
         @Test
-        @DisplayName("Should escape XSS payloads in search inputs")
+        @DisplayName("Should render search input echoed back as text, not markup")
         void shouldEscapeXssInSearch() {
             loginAsAdmin();
+            AtomicBoolean dialog = new AtomicBoolean();
+            page.onDialog(d -> {
+                dialog.set(true);
+                d.dismiss();
+            });
 
             for (String payload : XSS_PAYLOADS) {
-                navigateTo("/accounts");
+                navigateTo("/users");
+                waitForPageLoad();
+                page.locator("#search-user").fill(payload);
+                page.locator("#btn-search").click();
                 waitForPageLoad();
 
-                Locator searchInput = page.locator("input[type='search'], input[name='search'], input[placeholder*='Cari']");
-                if (searchInput.count() > 0) {
-                    searchInput.first().fill(payload);
-                    page.keyboard().press("Enter");
-                    waitForPageLoad();
-
-                    // The payload should be escaped, not executed
-                    String content = page.content();
-                    assertFalse(content.contains("<script>alert"),
-                            "XSS payload should be escaped: " + payload);
-                }
+                assertThat(page.locator("#search-user")).hasValue(payload);
+                assertThat(page.locator("#xss-probe")).hasCount(0);
+                assertEquals(Boolean.TRUE, page.evaluate("() => window.__xss === undefined"), "Executed: " + payload);
             }
+            assertFalse(dialog.get());
         }
 
         @Test
         @DisplayName("Should escape user input in displayed content")
         void shouldEscapeUserInputInDisplay() {
             loginAsAdmin();
+            String username = "xss-" + uid();
+            String fullName = "<img src=x id=xss-probe onerror=window.__xss=1>";
 
-            // Navigate to a form that displays user input
-            navigateTo("/clients/create");
+            navigateTo("/users/new");
             waitForPageLoad();
+            page.locator("#username").fill(username);
+            page.locator("#password").fill(PASSWORD);
+            page.locator("#fullName").fill(fullName);
+            page.locator("input[name='selectedRoles'][value='STAFF']").check();
+            page.locator("#btn-save").click();
+            waitForPageLoad();
+            User created = userRepository.findByUsername(username).orElseThrow();
+            assertEquals(fullName, created.getFullName());
 
-            String xssPayload = "<script>alert('XSS')</script>";
+            navigateTo("/users?search=" + username);
+            waitForPageLoad();
+            assertThat(page.locator("#user-" + created.getId())).containsText(fullName);
+            assertThat(page.locator("#xss-probe")).hasCount(0);
 
-            // Fill form with XSS payload
-            Locator nameInput = page.locator("input[name='name'], input[name='clientName']");
-            if (nameInput.count() > 0) {
-                nameInput.first().fill(xssPayload);
-
-                // Check that the input value is properly handled
-                String inputValue = nameInput.first().inputValue();
-                // The value in the input should be the literal text, not executed
-                assertEquals(xssPayload, inputValue);
-            }
+            navigateTo("/users/" + created.getId());
+            waitForPageLoad();
+            assertThat(page.locator("#page-title")).hasText(fullName);
+            assertThat(page.locator("#xss-probe")).hasCount(0);
+            assertEquals(Boolean.TRUE, page.evaluate("() => window.__xss === undefined"));
         }
     }
 
@@ -262,61 +385,42 @@ class SecurityRegressionTest extends PlaywrightTestBase {
         @DisplayName("Should include X-Content-Type-Options header")
         void shouldIncludeXContentTypeOptions() {
             Response response = page.navigate(baseUrl() + "/login");
-
-            Map<String, String> headers = response.headers();
-            String xContentTypeOptions = headers.get("x-content-type-options");
-            assertEquals("nosniff", xContentTypeOptions,
-                    "X-Content-Type-Options should be 'nosniff'");
+            assertEquals("nosniff", response.headers().get("x-content-type-options"));
         }
 
         @Test
         @DisplayName("Should include X-Frame-Options header")
         void shouldIncludeXFrameOptions() {
             Response response = page.navigate(baseUrl() + "/login");
-
-            Map<String, String> headers = response.headers();
-            String xFrameOptions = headers.get("x-frame-options");
-            assertNotNull(xFrameOptions, "X-Frame-Options header should be present");
-            assertTrue(xFrameOptions.equals("DENY") || xFrameOptions.equals("SAMEORIGIN"),
-                    "X-Frame-Options should be DENY or SAMEORIGIN, was: " + xFrameOptions);
+            assertEquals("DENY", response.headers().get("x-frame-options"));
         }
 
         @Test
-        @DisplayName("Should include Content-Security-Policy header")
+        @DisplayName("Should include Content-Security-Policy header with a per-response nonce")
         void shouldIncludeContentSecurityPolicy() {
-            Response response = page.navigate(baseUrl() + "/login");
+            String first = page.navigate(baseUrl() + "/login").headers().get("content-security-policy");
+            String second = page.navigate(baseUrl() + "/login").headers().get("content-security-policy");
 
-            Map<String, String> headers = response.headers();
-            String csp = headers.get("content-security-policy");
-            assertNotNull(csp, "Content-Security-Policy header should be present");
-            assertTrue(csp.contains("default-src"),
-                    "CSP should contain default-src directive");
+            assertNotNull(first, "Content-Security-Policy header missing");
+            assertTrue(first.startsWith("default-src 'self'; script-src 'self' 'nonce-"), first);
+            assertTrue(first.contains("frame-ancestors 'none'"), first);
+            assertTrue(first.contains("form-action 'self'"), first);
+            assertFalse(first.contains("'unsafe-inline'") || first.contains("'unsafe-eval'"), first);
+            assertNotEquals(first, second, "CSP nonce must differ per response");
         }
 
         @Test
         @DisplayName("Should include Referrer-Policy header")
         void shouldIncludeReferrerPolicy() {
             Response response = page.navigate(baseUrl() + "/login");
-
-            Map<String, String> headers = response.headers();
-            String referrerPolicy = headers.get("referrer-policy");
-            assertNotNull(referrerPolicy, "Referrer-Policy header should be present");
+            assertEquals("strict-origin-when-cross-origin", response.headers().get("referrer-policy"));
         }
 
         @Test
-        @DisplayName("Should include X-XSS-Protection header if present")
+        @DisplayName("Should disable the legacy XSS auditor via X-XSS-Protection: 0")
         void shouldIncludeXssProtection() {
             Response response = page.navigate(baseUrl() + "/login");
-
-            Map<String, String> headers = response.headers();
-            String xssProtection = headers.get("x-xss-protection");
-            // X-XSS-Protection is deprecated in modern browsers (CSP replaces it)
-            // If present, verify it's configured correctly; if absent, that's acceptable
-            if (xssProtection != null && !xssProtection.isEmpty()) {
-                assertTrue(xssProtection.contains("1") || xssProtection.equals("0"),
-                        "X-XSS-Protection should be '1; mode=block' or '0', was: " + xssProtection);
-            }
-            // Note: Modern security relies on CSP rather than X-XSS-Protection
+            assertEquals("0", response.headers().get("x-xss-protection"));
         }
     }
 
@@ -325,30 +429,13 @@ class SecurityRegressionTest extends PlaywrightTestBase {
     class SessionSecurityTests {
 
         @Test
-        @DisplayName("Should use secure session cookies")
+        @DisplayName("Should use HttpOnly SameSite=Strict session cookies")
         void shouldUseSecureSessionCookies() {
             loginAsAdmin();
 
-            var cookies = context.cookies();
-            var sessionCookie = cookies.stream()
-                    .filter(c -> c.name.contains("SESSION") || c.name.equals("JSESSIONID"))
-                    .findFirst();
-
-            assertTrue(sessionCookie.isPresent(), "Session cookie should exist");
-
-            // Check httpOnly flag - prevents JavaScript access to cookie
-            assertTrue(sessionCookie.get().httpOnly,
-                    "Session cookie should have httpOnly flag");
-
-            // Check sameSite flag - prevents CSRF attacks
-            // SameSite can be "Strict", "Lax", or "None"
-            var sameSite = sessionCookie.get().sameSite;
-            assertNotNull(sameSite, "Session cookie should have sameSite attribute");
-            assertTrue(sameSite.toString().equals("STRICT") || sameSite.toString().equals("LAX"),
-                    "Session cookie sameSite should be Strict or Lax, was: " + sameSite);
-
-            // Note: secure flag only applies when using HTTPS
-            // In test environment (HTTP), secure flag may not be set
+            Cookie session = sessionCookie();
+            assertTrue(session.httpOnly, "Session cookie must be HttpOnly");
+            assertEquals(SameSiteAttribute.STRICT, session.sameSite);
         }
 
         @Test
@@ -356,29 +443,11 @@ class SecurityRegressionTest extends PlaywrightTestBase {
         void shouldRegenerateSessionAfterLogin() {
             navigateTo("/login");
             waitForPageLoad();
+            String before = sessionCookie().value;
 
-            // Get session before login
-            var cookiesBefore = context.cookies();
-            var sessionBefore = cookiesBefore.stream()
-                    .filter(c -> c.name.contains("SESSION") || c.name.equals("JSESSIONID"))
-                    .findFirst()
-                    .map(c -> c.value)
-                    .orElse("");
-
-            // Login
             loginAsAdmin();
 
-            // Get session after login
-            var cookiesAfter = context.cookies();
-            var sessionAfter = cookiesAfter.stream()
-                    .filter(c -> c.name.contains("SESSION") || c.name.equals("JSESSIONID"))
-                    .findFirst()
-                    .map(c -> c.value)
-                    .orElse("");
-
-            // Session ID should change after login (session fixation protection)
-            assertNotEquals(sessionBefore, sessionAfter,
-                    "Session ID should be regenerated after login");
+            assertNotEquals(before, sessionCookie().value, "Session ID must be regenerated after login");
         }
     }
 
@@ -390,17 +459,14 @@ class SecurityRegressionTest extends PlaywrightTestBase {
         @DisplayName("Admin should have access to user management")
         void adminShouldAccessUserManagement() {
             loginAsAdmin();
+            User admin = userRepository.findByUsername("admin").orElseThrow();
 
             navigateTo("/users");
             waitForPageLoad();
 
-            // Admin should see user management page
-            assertFalse(page.url().contains("/error") || page.url().contains("/403"),
-                    "Admin should have access to user management");
-            assertTrue(page.locator("#page-title").count() > 0,
-                    "Page should contain user management content");
+            assertThat(page.locator("#page-title")).hasText("Kelola Pengguna");
+            assertThat(page.locator("#user-" + admin.getId())).containsText("Administrator");
 
-            // Take screenshot for user manual
             takeManualScreenshot("users-list");
         }
 
@@ -408,170 +474,147 @@ class SecurityRegressionTest extends PlaywrightTestBase {
         @DisplayName("SECURITY: Staff should NOT have access to user management")
         void staffShouldNotAccessUserManagement() {
             login("staff", "admin");
-
-            navigateTo("/users");
-            waitForPageLoad();
-
-            // SECURITY REQUIREMENT: Staff role does not have USER_VIEW permission
-            // Staff should be blocked from accessing /users endpoint
-            // Expected: 403 Forbidden, error page, or access denied message
-            boolean isBlocked = isAccessBlocked();
-
-            assertTrue(isBlocked,
-                    "SECURITY VULNERABILITY: Staff can access /users without USER_VIEW permission. " +
-                    "Fix: Ensure @PreAuthorize on UserController properly denies access. " +
-                    "Current URL: " + page.url());
+            assertForbidden("/users");
+            assertForbidden("/users/new");
         }
 
         @Test
         @DisplayName("SECURITY: Employee should NOT have access to payroll")
         void employeeShouldNotAccessPayroll() {
             login("employee", "admin");
-
-            navigateTo("/payroll");
-            waitForPageLoad();
-
-            // SECURITY REQUIREMENT: Employee role does not have PAYROLL_VIEW permission
-            // Employee should be blocked from accessing /payroll endpoint
-            // Expected: 403 Forbidden or redirect to error page
-            boolean isBlocked = isAccessBlocked();
-
-            assertTrue(isBlocked,
-                    "SECURITY VULNERABILITY: Employee can access /payroll without PAYROLL_VIEW permission. " +
-                    "Fix: Ensure @PreAuthorize on PayrollController properly denies access. " +
-                    "Current URL: " + page.url());
+            assertForbidden("/payroll");
+            assertForbidden("/payroll/new");
         }
 
         @Test
         @DisplayName("SECURITY: Auditor should NOT be able to create transactions")
         void auditorShouldNotCreateTransactions() {
             login("auditor", "admin");
+            assertForbidden("/transactions/new");
 
-            navigateTo("/transactions/new");
-            waitForPageLoad();
-
-            // SECURITY REQUIREMENT: Auditor role does not have TRANSACTION_CREATE permission
-            // Auditor should be blocked from accessing /transactions/new
-            // Expected: 403 Forbidden or redirect to error page
-            boolean isBlocked = isAccessBlocked();
-
-            assertTrue(isBlocked,
-                    "SECURITY VULNERABILITY: Auditor can access /transactions/new without TRANSACTION_CREATE permission. " +
-                    "Fix: Ensure @PreAuthorize on TransactionController.newTransaction() properly denies access. " +
-                    "Current URL: " + page.url());
+            navigateTo("/transactions/" + DRAFT_TRANSACTION_ID);
+            String description = "Auditor " + uid();
+            APIResponse response = page.request().post(baseUrl() + "/transactions/api", withCsrf()
+                    .setData(Map.of("transactionDate", LocalDate.now().toString(), "templateId", TEMPLATE_ID,
+                            "amount", 1000, "description", description)));
+            assertEquals(403, response.status());
+            assertEquals(0, transactionCountByDescription(description));
         }
 
         @Test
         @DisplayName("SECURITY: Staff should NOT see POST transaction button")
         void staffShouldNotPostTransaction() {
-            login("staff", "admin");
+            loginAsAdmin();
+            navigateTo("/transactions/" + DRAFT_TRANSACTION_ID);
+            waitForPageLoad();
+            assertThat(page.locator("[data-testid='status-draft']")).isVisible();
+            assertThat(page.locator("#btn-post")).isVisible();
 
-            navigateTo("/transactions/a0000000-0000-0000-0000-000000000001");
+            login("staff", "admin");
+            navigateTo("/transactions/" + DRAFT_TRANSACTION_ID);
             waitForPageLoad();
 
-            // SECURITY REQUIREMENT: Staff role does not have TRANSACTION_POST permission
-            // The "Posting" button should be hidden via sec:authorize in template
-            boolean hasPostButton = page.locator("button:has-text('Posting'), a:has-text('Posting')").count() > 0;
+            assertThat(page.locator("#transaction-number")).hasText("TRX-TEST-0001");
+            assertThat(page.locator("[data-testid='status-draft']")).isVisible();
+            assertThat(page.locator("#btn-post")).hasCount(0);
+            assertThat(page.locator("#btn-delete")).hasCount(0);
+            assertThat(page.locator("a[href='/transactions/" + DRAFT_TRANSACTION_ID + "/edit']")).hasCount(0);
 
-            assertFalse(hasPostButton,
-                    "SECURITY VULNERABILITY: Staff can see Posting button without TRANSACTION_POST permission. " +
-                    "Fix: Ensure sec:authorize=\"hasAuthority('TRANSACTION_POST')\" on button in template.");
+            APIResponse post = page.request().post(baseUrl() + "/transactions/api/" + DRAFT_TRANSACTION_ID + "/post",
+                    withCsrf());
+            assertEquals(403, post.status());
+            assertEquals("DRAFT", transactionField(DRAFT_TRANSACTION_ID, "status"));
         }
 
         @Test
         @DisplayName("SECURITY: Employee should NOT access dashboard")
         void employeeShouldNotAccessDashboard() {
             login("employee", "admin");
-
-            navigateTo("/dashboard");
-            waitForPageLoad();
-
-            // SECURITY REQUIREMENT: Employee role does not have DASHBOARD_VIEW permission
-            // Employee should be blocked or redirected to self-service
-            // Expected: 403 Forbidden, error page, or redirect to /self-service
-            boolean isBlocked = isAccessBlocked() || page.url().contains("/self-service");
-
-            assertTrue(isBlocked,
-                    "SECURITY VULNERABILITY: Employee can access /dashboard without DASHBOARD_VIEW permission. " +
-                    "Fix: Ensure @PreAuthorize on DashboardController properly denies access. " +
-                    "Current URL: " + page.url());
+            assertForbidden("/dashboard");
         }
 
         @Test
         @DisplayName("SECURITY: Employee should NOT access other employee's profile")
         void employeeShouldNotAccessOtherEmployeeProfile() {
+            Employee other = employeeRepository.findByEmployeeId(OTHER_EMPLOYEE_CODE)
+                    .orElseThrow(() -> new IllegalStateException("Seeded employee missing: " + OTHER_EMPLOYEE_CODE));
             login("employee", "admin");
 
-            // Employee user ID from V912: b0000000-0000-0000-0000-000000000002
-            // Try to access another employee's data (staff user)
-            String otherUserId = "b0000000-0000-0000-0000-000000000001"; // staff user
-
-            navigateTo("/employees/" + otherUserId);
-            waitForPageLoad();
-
-            // IDOR VULNERABILITY: Employee should only access their own profile
-            // Expected: 403 Forbidden or redirect to own profile
-            boolean isBlocked = isAccessBlocked() ||
-                               page.url().contains("/self-service") ||
-                               !page.url().contains(otherUserId);
-
-            assertTrue(isBlocked,
-                    "IDOR VULNERABILITY: Employee can access other employee's profile. " +
-                    "Fix: Add ownership check in EmployeeController. Current URL: " + page.url());
+            assertForbidden("/employees/" + OTHER_EMPLOYEE_CODE);
+            assertFalse(page.content().contains(other.getName()));
+            assertForbidden("/employees/" + OTHER_EMPLOYEE_CODE + "/edit");
+            assertForbidden("/settings/data-subjects/" + other.getId());
         }
 
         @Test
         @DisplayName("SECURITY: Employee accessing payslips with other userId should see own data only")
         void employeeShouldNotAccessOtherUserPayslips() {
-            login("employee", "admin");
+            User ownUser = createUser(Role.EMPLOYEE);
+            User otherUser = createUser(Role.EMPLOYEE);
+            Employee own = createEmployee(ownUser);
+            Employee other = createEmployee(otherUser);
+            PayrollDetail ownPayslip = addPayslip(own, "6000000");
+            PayrollDetail otherPayslip = addPayslip(other, "9500000");
+            login(ownUser.getUsername(), PASSWORD);
 
-            // Try to access payslips with another user's ID in URL
-            String adminUserId = "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11";
-
-            navigateTo("/self-service/payslips?userId=" + adminUserId);
+            navigateTo("/self-service/payslips?year=2066&userId=" + otherUser.getId() + "&employeeId=" + other.getId());
             waitForPageLoad();
 
-            // SECURITY CHECK: The userId parameter should be IGNORED by the controller
-            // The controller should always use the authenticated user's ID
-            // Expected behavior: page loads normally, showing ONLY the employee's own payslips
-            // The URL may still contain the userId param, but it's not used server-side
+            assertThat(page.locator("main")).containsText(own.getName());
+            assertThat(page.locator("main")).not().containsText(other.getName());
+            assertThat(page.locator("main tbody tr")).hasCount(1);
+            assertThat(page.locator("main tbody tr td").nth(1)).hasText("6,000,000");
 
-            // Page should load without access denied (the param is simply ignored)
-            // But should NOT show admin's data - only employee's own data
-            // If the page shows "Employee User" (the logged-in user's name), that's correct
-            // If it shows admin data or payslips for wrong employee, that's a vulnerability
-
-            boolean pageLoaded = page.url().contains("/self-service/payslips");
-            boolean noError = !isAccessBlocked();
-
-            // The controller is secure if:
-            // 1. The page loads without error (param is ignored)
-            // 2. The page doesn't show access denied (which would mean param was processed but denied)
-            // If userId param was actually used, the test data setup would need the employee
-            // to have no payslips matching admin's ID. The current impl ignores userId entirely.
-
-            assertTrue(pageLoaded && noError,
-                    "Controller should ignore userId parameter and show authenticated user's data. " +
-                    "Current URL: " + page.url());
+            assertEquals(200, page.request().get(baseUrl() + "/self-service/payslips/" + ownPayslip.getId() + "/pdf").status());
+            assertEquals(404, page.request().get(baseUrl() + "/self-service/payslips/" + otherPayslip.getId() + "/pdf").status());
         }
 
         @Test
-        @DisplayName("SECURITY: Staff should NOT modify other user's transactions")
+        @DisplayName("SECURITY: Staff should NOT modify transactions")
         void staffShouldNotModifyOtherUserTransactions() {
             login("staff", "admin");
+            String description = transactionField(DRAFT_TRANSACTION_ID, "description");
 
-            // Try to access edit page for a transaction (staff can view but not edit)
-            String transactionId = "a0000000-0000-0000-0000-000000000001"; // draft transaction
+            assertForbidden("/transactions/" + DRAFT_TRANSACTION_ID + "/edit");
 
-            navigateTo("/transactions/" + transactionId + "/edit");
-            waitForPageLoad();
+            navigateTo("/transactions/" + DRAFT_TRANSACTION_ID);
+            APIResponse update = page.request().put(baseUrl() + "/transactions/api/" + DRAFT_TRANSACTION_ID, withCsrf()
+                    .setData(Map.of("transactionDate", LocalDate.now().toString(), "templateId", TEMPLATE_ID,
+                            "amount", 1, "description", "Diubah staff")));
+            assertEquals(403, update.status());
+            APIResponse delete = page.request().delete(baseUrl() + "/transactions/api/" + DRAFT_TRANSACTION_ID, withCsrf());
+            assertEquals(403, delete.status());
+            assertEquals(description, transactionField(DRAFT_TRANSACTION_ID, "description"));
+            assertEquals("DRAFT", transactionField(DRAFT_TRANSACTION_ID, "status"));
+        }
 
-            // Staff doesn't have TRANSACTION_EDIT permission
-            boolean isBlocked = isAccessBlocked() || !page.url().contains("/edit");
+        private Employee createEmployee(User user) {
+            String marker = uid();
+            Employee employee = new Employee();
+            employee.setEmployeeId("SR-" + marker);
+            employee.setName("Karyawan " + marker);
+            employee.setHireDate(LocalDate.of(2045, 1, 2));
+            employee.setUser(user);
+            return employeeRepository.save(employee);
+        }
 
-            assertTrue(isBlocked,
-                    "IDOR/AUTHZ VULNERABILITY: Staff can access transaction edit page. " +
-                    "Fix: @PreAuthorize TRANSACTION_EDIT on edit methods. Current URL: " + page.url());
+        private PayrollDetail addPayslip(Employee employee, String gross) {
+            PayrollRun run = payrollRunRepository.findByPayrollPeriod(PAYROLL_PERIOD).orElseGet(() -> {
+                PayrollRun created = new PayrollRun();
+                created.setPayrollPeriod(PAYROLL_PERIOD);
+                created.setPeriodStart(LocalDate.of(2066, 1, 1));
+                created.setPeriodEnd(LocalDate.of(2066, 1, 31));
+                created.setStatus(PayrollStatus.POSTED);
+                created.setPostedAt(LocalDateTime.now());
+                return payrollRunRepository.save(created);
+            });
+            PayrollDetail detail = new PayrollDetail();
+            detail.setPayrollRun(run);
+            detail.setEmployee(employee);
+            detail.setBaseSalary(new BigDecimal(gross));
+            detail.setGrossSalary(new BigDecimal(gross));
+            detail.setNetPay(new BigDecimal(gross));
+            return payrollDetailRepository.save(detail);
         }
     }
 
@@ -580,28 +623,31 @@ class SecurityRegressionTest extends PlaywrightTestBase {
     class InputValidationTests {
 
         @Test
-        @DisplayName("Should validate required fields")
+        @DisplayName("Should validate required fields server-side")
         void shouldValidateRequiredFields() {
             loginAsAdmin();
+            long accounts = accountRepository.count();
             navigateTo("/accounts/new");
             waitForPageLoad();
 
-            // Try to submit empty form
+            // Bypass the browser's required-attribute check so the server validation is exercised
+            page.locator("form[action='/accounts/new']").evaluate("f => f.noValidate = true");
             page.click("#btn-simpan");
             waitForPageLoad();
 
-            // Should show validation errors or stay on form
-            boolean hasValidationError = page.locator("#validation-errors").count() > 0
-                    || page.url().contains("/new");
-
-            assertTrue(hasValidationError, "Should show validation errors for empty required fields");
+            assertEquals(baseUrl() + "/accounts/new", page.url());
+            assertThat(page.locator("#validation-errors")).isVisible();
+            assertThat(page.locator("#validation-errors")).containsText("Kode akun harus diisi");
+            assertThat(page.locator("#validation-errors")).containsText("Nama akun harus diisi");
+            assertThat(page.locator("#validation-errors")).containsText("Tipe akun harus diisi untuk akun tanpa induk");
+            assertEquals(accounts, accountRepository.count());
         }
 
         @Test
-        @DisplayName("Should reject SQL injection attempts in inputs")
+        @DisplayName("Should treat SQL injection attempts in search as literal text")
         void shouldRejectSqlInjection() {
             loginAsAdmin();
-
+            long users = userRepository.count();
             List<String> sqlPayloads = List.of(
                     "' OR '1'='1",
                     "'; DROP TABLE users; --",
@@ -610,77 +656,56 @@ class SecurityRegressionTest extends PlaywrightTestBase {
             );
 
             for (String payload : sqlPayloads) {
-                navigateTo("/accounts");
+                navigateTo("/users?search=" + java.net.URLEncoder.encode(payload, StandardCharsets.UTF_8));
                 waitForPageLoad();
 
-                Locator searchInput = page.locator("input[type='search'], input[name='search']");
-                if (searchInput.count() > 0) {
-                    searchInput.first().fill(payload);
-                    page.keyboard().press("Enter");
-                    waitForPageLoad();
-
-                    // Should not cause database error or expose data
-                    String content = page.content().toLowerCase();
-                    assertFalse(content.contains("sql") && content.contains("error"),
-                            "SQL injection should not cause SQL error: " + payload);
-                    assertFalse(content.contains("exception"),
-                            "SQL injection should not expose exception: " + payload);
-                }
+                assertThat(page.locator("#page-title")).hasText("Kelola Pengguna");
+                assertThat(page.locator("tbody")).containsText("Tidak ada pengguna ditemukan");
+                String content = page.content().toLowerCase();
+                assertFalse(content.contains("sqlexception") || content.contains("psqlexception")
+                        || content.contains("syntax error"), "SQL error exposed for: " + payload);
             }
+
+            assertEquals(users, userRepository.count());
+            navigateTo("/users?search=admin");
+            waitForPageLoad();
+            assertThat(page.locator("#user-" + userRepository.findByUsername("admin").orElseThrow().getId())).isVisible();
         }
 
         @Test
-        @DisplayName("SECURITY: Should escape template injection in user input")
+        @DisplayName("SECURITY: Should render template expressions in user data literally")
         void shouldEscapeTemplateInjection() {
             loginAsAdmin();
-
-            // Template injection payloads for Thymeleaf/FreeMarker/other template engines
             List<String> templatePayloads = List.of(
-                    "${7*7}",                           // Thymeleaf expression
-                    "[[${7*7}]]",                       // Thymeleaf inline expression
-                    "__${7*7}__",                       // Thymeleaf preprocessor
-                    "#{7*7}",                           // SpEL expression
-                    "*{7*7}",                           // Thymeleaf selection expression
-                    "@{/malicious}",                    // Thymeleaf URL expression
-                    "~{::script}",                      // Thymeleaf fragment expression
-                    "${T(java.lang.Runtime).getRuntime().exec('id')}", // SpEL RCE attempt
-                    "{{7*7}}",                          // Mustache/Handlebars expression
-                    "<#assign ex=\"freemarker.template.utility.Execute\"?new()>${ex(\"id\")}" // FreeMarker
+                    "${7*7}",
+                    "[[${7*7}]]",
+                    "__${7*7}__::.x",
+                    "#{7*7}",
+                    "*{7*7}",
+                    "@{/malicious}",
+                    "~{::script}",
+                    "${T(java.lang.Runtime).getRuntime().exec('id')}",
+                    "{{7*7}}",
+                    "<#assign ex=\"freemarker.template.utility.Execute\"?new()>${ex(\"id\")}"
             );
 
             for (String payload : templatePayloads) {
-                navigateTo("/accounts");
+                User user = new User();
+                user.setUsername("ssti-" + uid());
+                user.setPassword(passwordEncoder.encode(PASSWORD));
+                user.setFullName(payload);
+                user.setActive(true);
+                user.addRole(Role.STAFF, "system");
+                user = userRepository.save(user);
+
+                Response response = page.navigate(baseUrl() + "/users/" + user.getId());
+                assertEquals(200, response.status(), "Payload broke rendering: " + payload);
+                assertThat(page.locator("#page-title")).hasText(payload);
+
+                navigateTo("/users?search=" + java.net.URLEncoder.encode(payload, StandardCharsets.UTF_8));
                 waitForPageLoad();
-
-                Locator searchInput = page.locator("input[type='search'], input[name='search']");
-                if (searchInput.count() > 0) {
-                    searchInput.first().fill(payload);
-                    page.keyboard().press("Enter");
-                    waitForPageLoad();
-
-                    String content = page.content();
-
-                    // Check that template expressions are NOT evaluated
-                    // If payload ${7*7} is evaluated, it would show "49"
-                    // If properly escaped, it shows the literal text or empty
-
-                    // Should NOT show evaluated result of 7*7
-                    boolean expressionEvaluated = content.contains(">49<") ||
-                                                  content.matches(".*\\b49\\b.*") &&
-                                                  !content.contains(payload);
-
-                    // Should NOT expose template engine errors
-                    boolean hasTemplateError = content.toLowerCase().contains("thymeleaf") ||
-                                              content.toLowerCase().contains("freemarker") ||
-                                              content.toLowerCase().contains("templateexception") ||
-                                              content.toLowerCase().contains("spel") ||
-                                              content.toLowerCase().contains("expressionparser");
-
-                    assertFalse(expressionEvaluated,
-                            "SSTI VULNERABILITY: Template expression was evaluated: " + payload);
-                    assertFalse(hasTemplateError,
-                            "SSTI VULNERABILITY: Template error exposed for payload: " + payload);
-                }
+                assertThat(page.locator("#search-user")).hasValue(payload);
+                assertThat(page.locator("#user-" + user.getId())).containsText(payload);
             }
         }
     }
@@ -689,38 +714,36 @@ class SecurityRegressionTest extends PlaywrightTestBase {
     @DisplayName("Error Handling")
     class ErrorHandlingTests {
 
-        @Test
-        @DisplayName("Should not expose stack traces in error pages")
-        void shouldNotExposeStackTraces() {
-            loginAsAdmin();
-
-            // Access non-existent page
-            navigateTo("/nonexistent-page-12345");
-            waitForPageLoad();
-
-            String content = page.content().toLowerCase();
-
-            assertFalse(content.contains("stacktrace"), "Should not expose stack trace");
-            assertFalse(content.contains("exception"), "Should not expose exception details");
-            assertFalse(content.contains("at com.artivisi"), "Should not expose package names in error");
+        private void assertNoInternals(String content) {
+            String lower = content.toLowerCase();
+            assertFalse(lower.contains("stacktrace") || lower.contains("exception"), "Exception details exposed");
+            assertFalse(lower.contains("at com.artivisi") || lower.contains("com.artivisi."), "Package names exposed");
+            assertFalse(lower.contains("hibernate") || lower.contains("jdbc") || lower.contains("postgresql"),
+                    "Persistence details exposed");
         }
 
         @Test
-        @DisplayName("Should show generic error messages")
+        @DisplayName("Should show a generic 404 page for unknown paths")
+        void shouldNotExposeStackTraces() {
+            loginAsAdmin();
+
+            Response response = page.navigate(baseUrl() + "/nonexistent-page-12345");
+
+            assertEquals(404, response.status());
+            assertThat(page.locator("#error-404-page")).isVisible();
+            assertNoInternals(page.content());
+        }
+
+        @Test
+        @DisplayName("Should show generic error messages for malformed ids")
         void shouldShowGenericErrorMessages() {
             loginAsAdmin();
 
-            // Trigger an error condition
-            navigateTo("/accounts/nonexistent-uuid-12345");
-            waitForPageLoad();
+            Response response = page.navigate(baseUrl() + "/accounts/nonexistent-uuid-12345/edit");
 
-            String content = page.content().toLowerCase();
-
-            // Should show user-friendly error, not technical details
-            assertFalse(content.contains("nullpointerexception"),
-                    "Should not expose NullPointerException");
-            assertFalse(content.contains("hibernate"),
-                    "Should not expose Hibernate details");
+            assertEquals(400, response.status());
+            assertNoInternals(page.content());
+            assertFalse(page.content().contains("nonexistent-uuid-12345"), "Request value echoed in error");
         }
 
         @Test
@@ -728,49 +751,27 @@ class SecurityRegressionTest extends PlaywrightTestBase {
         void shouldNotExposeDatabaseQueryInError() {
             loginAsAdmin();
 
-            // Try to trigger a database-related error with invalid input
-            navigateTo("/accounts?search=' OR 1=1 --");
-            waitForPageLoad();
+            Response response = page.navigate(baseUrl() + "/users?search="
+                    + java.net.URLEncoder.encode("' OR 1=1 --", StandardCharsets.UTF_8) + "&page=-1");
 
+            assertEquals(400, response.status());
             String content = page.content().toLowerCase();
-
-            // Should NOT expose SQL/database details
-            assertFalse(content.contains("select "),
-                    "Should not expose SELECT query in error");
-            assertFalse(content.contains("from ") && content.contains("where "),
-                    "Should not expose SQL clauses in error");
-            assertFalse(content.contains("postgresql") || content.contains("psql"),
-                    "Should not expose database type in error");
-            assertFalse(content.contains("jdbc"),
-                    "Should not expose JDBC in error");
-            assertFalse(content.contains("syntax error"),
-                    "Should not expose SQL syntax error");
+            assertFalse(content.contains("select ") || content.contains(" where "), "SQL exposed");
+            assertNoInternals(content);
         }
 
         @Test
-        @DisplayName("Should not expose file paths in error")
+        @DisplayName("Should reject path traversal URLs without exposing file paths")
         void shouldNotExposeFilePathsInError() {
             loginAsAdmin();
 
-            // Try to access a path traversal URL
-            navigateTo("/documents/../../../etc/passwd");
-            waitForPageLoad();
+            APIResponse response = page.request().get(baseUrl() + "/documents/%2e%2e/%2e%2e/%2e%2e/etc/passwd");
 
-            String content = page.content().toLowerCase();
-
-            // Should NOT expose file system paths
-            assertFalse(content.contains("/etc/"),
-                    "Should not expose /etc/ path in error");
-            assertFalse(content.contains("/var/"),
-                    "Should not expose /var/ path in error");
-            assertFalse(content.contains("/home/"),
-                    "Should not expose /home/ path in error");
-            assertFalse(content.contains("/users/"),
-                    "Should not expose /users/ path in error");
-            assertFalse(content.contains("c:\\") || content.contains("c:/"),
-                    "Should not expose Windows path in error");
-            assertFalse(content.contains("filenotfound") && content.contains("/"),
-                    "Should not expose file not found with path");
+            assertEquals(404, response.status());
+            String content = response.text().toLowerCase();
+            assertFalse(content.contains("root:"), "File content served");
+            assertFalse(content.contains("/etc/") || content.contains("/var/") || content.contains("/home/")
+                    || content.contains("/users/"), "File system path exposed");
         }
     }
 
@@ -778,116 +779,58 @@ class SecurityRegressionTest extends PlaywrightTestBase {
     @DisplayName("File Upload Security")
     class FileUploadSecurityTests {
 
-        // Test transaction ID from V904 migration (draft transaction with no documents)
-        private static final String TEST_TRANSACTION_ID = "a0000000-0000-0000-0000-000000000001";
+        private static final String TEST_TRANSACTION_ID = DRAFT_TRANSACTION_ID;
+        private static final byte[] PDF = ("%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF")
+                .getBytes(StandardCharsets.US_ASCII);
+
+        private APIResponse upload(String filename, String contentType, byte[] content) {
+            navigateTo("/transactions/" + TEST_TRANSACTION_ID);
+            waitForPageLoad();
+            return page.request().post(baseUrl() + "/documents/transaction/" + TEST_TRANSACTION_ID, withCsrf()
+                    .setMultipart(FormData.create().set("file", new FilePayload(filename, contentType, content))));
+        }
+
+        private void assertRejected(APIResponse response, String escapedMessage, String filename) {
+            assertEquals(200, response.status(), response.text());
+            String body = response.text();
+            assertTrue(body.contains("data-testid=\"document-upload-error\""), body);
+            assertTrue(body.contains(escapedMessage), "Expected '" + escapedMessage + "' in: " + body);
+            assertNotStored(filename);
+        }
+
+        private void assertNotStored(String filename) {
+            assertTrue(documentRepository.findByTransactionIdOrderByCreatedAtDesc(UUID.fromString(TEST_TRANSACTION_ID))
+                            .stream().noneMatch(d -> filename.equals(d.getOriginalFilename())),
+                    "Rejected file was stored: " + filename);
+        }
 
         @Test
         @DisplayName("SECURITY: Should reject path traversal filename in upload")
         void shouldRejectPathTraversalFilename() {
             loginAsAdmin();
+            String filename = "../../../etc/passwd-" + uid() + ".pdf";
 
-            // Get CSRF token first
-            navigateTo("/transactions/" + TEST_TRANSACTION_ID);
-            waitForPageLoad();
-
-            String csrfToken = extractCsrfToken();
-
-            // Create multipart request with path traversal filename using raw HTTP
-            // Using page.request() to make authenticated request with session cookie
-            String boundary = "----WebKitFormBoundary" + System.currentTimeMillis();
-            String maliciousFilename = "../../../etc/passwd";
-            byte[] pdfContent = new byte[]{0x25, 0x50, 0x44, 0x46}; // PDF magic bytes
-
-            String multipartBody = buildMultipartBody(boundary, maliciousFilename, "application/pdf", pdfContent, csrfToken);
-
-            APIResponse response = page.request().post(
-                    baseUrl() + "/documents/transaction/" + TEST_TRANSACTION_ID,
-                    RequestOptions.create()
-                            .setHeader("Content-Type", "multipart/form-data; boundary=" + boundary)
-                            .setData(multipartBody)
-            );
-
-            // Response should indicate error (either in status or body)
-            String responseBody = response.text().toLowerCase();
-            boolean isRejected = response.status() >= 400 ||
-                                 responseBody.contains("invalid filename") ||
-                                 responseBody.contains("gagal") ||
-                                 responseBody.contains("error");
-
-            assertTrue(isRejected,
-                    "SECURITY VULNERABILITY: Path traversal filename accepted. " +
-                    "Fix: DocumentStorageService.validateFile should reject filenames containing '..' " +
-                    "Response status: " + response.status());
+            assertRejected(upload(filename, "application/pdf", PDF), "Invalid filename: " + filename, filename);
         }
 
         @Test
         @DisplayName("SECURITY: Should reject executable file upload")
         void shouldRejectExecutableFile() {
             loginAsAdmin();
+            String filename = "malware-" + uid() + ".exe";
 
-            navigateTo("/transactions/" + TEST_TRANSACTION_ID);
-            waitForPageLoad();
-
-            String csrfToken = extractCsrfToken();
-
-            String boundary = "----WebKitFormBoundary" + System.currentTimeMillis();
-            // EXE magic bytes (MZ header)
-            byte[] exeContent = new byte[]{0x4D, 0x5A, 0x00, 0x00};
-
-            String multipartBody = buildMultipartBody(boundary, "malware.exe", "application/x-msdownload", exeContent, csrfToken);
-
-            APIResponse response = page.request().post(
-                    baseUrl() + "/documents/transaction/" + TEST_TRANSACTION_ID,
-                    RequestOptions.create()
-                            .setHeader("Content-Type", "multipart/form-data; boundary=" + boundary)
-                            .setData(multipartBody)
-            );
-
-            String responseBody = response.text().toLowerCase();
-            boolean isRejected = response.status() >= 400 ||
-                                 responseBody.contains("not allowed") ||
-                                 responseBody.contains("tidak diizinkan") ||
-                                 responseBody.contains("gagal");
-
-            assertTrue(isRejected,
-                    "SECURITY VULNERABILITY: Executable file accepted. " +
-                    "Fix: DocumentStorageService should reject application/x-msdownload content type. " +
-                    "Response: " + response.status());
+            assertRejected(upload(filename, "application/x-msdownload", new byte[] {0x4D, 0x5A, 0x00, 0x00}),
+                    "File type &#39;application/x-msdownload&#39; is not allowed", filename);
         }
 
         @Test
         @DisplayName("SECURITY: Should reject content-type spoofing (EXE disguised as PDF)")
         void shouldRejectContentTypeSpoofing() {
             loginAsAdmin();
+            String filename = "document-" + uid() + ".pdf";
 
-            navigateTo("/transactions/" + TEST_TRANSACTION_ID);
-            waitForPageLoad();
-
-            String csrfToken = extractCsrfToken();
-
-            String boundary = "----WebKitFormBoundary" + System.currentTimeMillis();
-            // EXE magic bytes but claiming to be PDF
-            byte[] exeContent = new byte[]{0x4D, 0x5A, 0x00, 0x00};
-
-            String multipartBody = buildMultipartBody(boundary, "document.pdf", "application/pdf", exeContent, csrfToken);
-
-            APIResponse response = page.request().post(
-                    baseUrl() + "/documents/transaction/" + TEST_TRANSACTION_ID,
-                    RequestOptions.create()
-                            .setHeader("Content-Type", "multipart/form-data; boundary=" + boundary)
-                            .setData(multipartBody)
-            );
-
-            String responseBody = response.text().toLowerCase();
-            boolean isRejected = response.status() >= 400 ||
-                                 responseBody.contains("spoofing") ||
-                                 responseBody.contains("content") ||
-                                 responseBody.contains("gagal");
-
-            assertTrue(isRejected,
-                    "SECURITY VULNERABILITY: Content-type spoofing accepted. " +
-                    "EXE file with PDF extension should be rejected by magic byte validation. " +
-                    "Response: " + response.status());
+            assertRejected(upload(filename, "application/pdf", new byte[] {0x4D, 0x5A, 0x00, 0x00}),
+                    "File content does not match declared type. Possible content-type spoofing detected.", filename);
         }
 
         @Test
@@ -895,145 +838,52 @@ class SecurityRegressionTest extends PlaywrightTestBase {
         void shouldRejectEmptyFilename() {
             loginAsAdmin();
 
-            navigateTo("/transactions/" + TEST_TRANSACTION_ID);
-            waitForPageLoad();
-
-            String csrfToken = extractCsrfToken();
-
-            String boundary = "----WebKitFormBoundary" + System.currentTimeMillis();
-            byte[] pdfContent = new byte[]{0x25, 0x50, 0x44, 0x46};
-
-            // Empty filename
-            String multipartBody = buildMultipartBody(boundary, "", "application/pdf", pdfContent, csrfToken);
-
-            APIResponse response = page.request().post(
-                    baseUrl() + "/documents/transaction/" + TEST_TRANSACTION_ID,
-                    RequestOptions.create()
-                            .setHeader("Content-Type", "multipart/form-data; boundary=" + boundary)
-                            .setData(multipartBody)
-            );
-
-            String responseBody = response.text().toLowerCase();
-            boolean isRejected = response.status() >= 400 ||
-                                 responseBody.contains("invalid") ||
-                                 responseBody.contains("filename") ||
-                                 responseBody.contains("gagal") ||
-                                 responseBody.contains("empty");
-
-            assertTrue(isRejected,
-                    "SECURITY VULNERABILITY: Empty filename accepted. " +
-                    "Fix: DocumentStorageService should reject null/empty filenames. " +
-                    "Response: " + response.status());
+            assertRejected(upload("", "application/pdf", PDF), "Invalid filename: ", "");
         }
 
         @Test
         @DisplayName("Should accept valid PDF upload")
         void shouldAcceptValidPdfUpload() {
             loginAsAdmin();
+            String filename = "valid-" + uid() + ".pdf";
 
-            navigateTo("/transactions/" + TEST_TRANSACTION_ID);
-            waitForPageLoad();
+            APIResponse response = upload(filename, "application/pdf", PDF);
 
-            String csrfToken = extractCsrfToken();
+            assertEquals(200, response.status());
+            assertTrue(response.text().contains("Dokumen berhasil diunggah"), response.text());
+            assertTrue(documentRepository.findByTransactionIdOrderByCreatedAtDesc(UUID.fromString(TEST_TRANSACTION_ID))
+                    .stream().anyMatch(d -> filename.equals(d.getOriginalFilename())
+                            && d.getFileSize() == PDF.length));
+        }
 
-            String boundary = "----WebKitFormBoundary" + System.currentTimeMillis();
-            // Valid PDF magic bytes
-            byte[] pdfContent = new byte[]{0x25, 0x50, 0x44, 0x46, 0x2D, 0x31, 0x2E, 0x34};
+        @Test
+        @DisplayName("Should accept a PDF larger than 1MB and within the 10MB document limit")
+        void shouldAcceptPdfWithinConfiguredLimit() {
+            loginAsAdmin();
+            String filename = "large-" + uid() + ".pdf";
+            byte[] content = new byte[2 * 1024 * 1024];
+            System.arraycopy(PDF, 0, content, 0, PDF.length);
 
-            String multipartBody = buildMultipartBody(boundary, "valid-document.pdf", "application/pdf", pdfContent, csrfToken);
+            APIResponse response = upload(filename, "application/pdf", content);
 
-            APIResponse response = page.request().post(
-                    baseUrl() + "/documents/transaction/" + TEST_TRANSACTION_ID,
-                    RequestOptions.create()
-                            .setHeader("Content-Type", "multipart/form-data; boundary=" + boundary)
-                            .setData(multipartBody)
-            );
-
-            String responseBody = response.text().toLowerCase();
-            boolean isAccepted = response.status() == 200 ||
-                                 responseBody.contains("berhasil") ||
-                                 responseBody.contains("success");
-
-            assertTrue(isAccepted,
-                    "Valid PDF should be accepted. Response status: " + response.status());
+            assertEquals(200, response.status());
+            assertTrue(response.text().contains("Dokumen berhasil diunggah"), response.text());
+            assertTrue(documentRepository.findByTransactionIdOrderByCreatedAtDesc(UUID.fromString(TEST_TRANSACTION_ID))
+                    .stream().anyMatch(d -> filename.equals(d.getOriginalFilename())));
         }
 
         @Test
         @DisplayName("SECURITY: Should reject oversized file upload (>10MB)")
         void shouldRejectOversizedFile() {
             loginAsAdmin();
+            String filename = "oversized-" + uid() + ".pdf";
+            byte[] content = new byte[11 * 1024 * 1024];
+            System.arraycopy(PDF, 0, content, 0, PDF.length);
 
-            navigateTo("/transactions/" + TEST_TRANSACTION_ID);
-            waitForPageLoad();
+            APIResponse response = upload(filename, "application/pdf", content);
 
-            String csrfToken = extractCsrfToken();
-
-            String boundary = "----WebKitFormBoundary" + System.currentTimeMillis();
-            // Create content larger than 10MB (10 * 1024 * 1024 + 1 bytes)
-            // For test efficiency, we'll send a smaller but still large payload
-            // and verify the server has size limits configured
-            byte[] largeContent = new byte[11 * 1024 * 1024]; // 11MB
-            // Fill with PDF magic bytes at start
-            largeContent[0] = 0x25; // %
-            largeContent[1] = 0x50; // P
-            largeContent[2] = 0x44; // D
-            largeContent[3] = 0x46; // F
-
-            String multipartBody = buildMultipartBody(boundary, "large-file.pdf", "application/pdf", largeContent, csrfToken);
-
-            APIResponse response = page.request().post(
-                    baseUrl() + "/documents/transaction/" + TEST_TRANSACTION_ID,
-                    RequestOptions.create()
-                            .setHeader("Content-Type", "multipart/form-data; boundary=" + boundary)
-                            .setData(multipartBody)
-            );
-
-            String responseBody = response.text().toLowerCase();
-            // Should be rejected with 413 (Payload Too Large) or 400 (Bad Request)
-            boolean isRejected = response.status() == 413 ||
-                                 response.status() == 400 ||
-                                 response.status() >= 500 || // Server may error on large payload
-                                 responseBody.contains("too large") ||
-                                 responseBody.contains("size") ||
-                                 responseBody.contains("exceeded") ||
-                                 responseBody.contains("terlalu besar") ||
-                                 responseBody.contains("maksimum");
-
-            assertTrue(isRejected,
-                    "SECURITY VULNERABILITY: Oversized file (>10MB) accepted. " +
-                    "Fix: Configure spring.servlet.multipart.max-file-size=10MB. " +
-                    "Response status: " + response.status());
-        }
-
-        private String extractCsrfToken() {
-            // Extract CSRF token from meta tag or form
-            String csrfToken = "";
-            if (page.locator("meta[name='_csrf']").count() > 0) {
-                csrfToken = page.locator("meta[name='_csrf']").getAttribute("content");
-            } else if (page.locator("input[name='_csrf']").count() > 0) {
-                csrfToken = page.locator("input[name='_csrf']").first().getAttribute("value");
-            }
-            return csrfToken != null ? csrfToken : "";
-        }
-
-        private String buildMultipartBody(String boundary, String filename, String contentType, byte[] content, String csrfToken) {
-            StringBuilder sb = new StringBuilder();
-
-            // CSRF token field
-            if (!csrfToken.isEmpty()) {
-                sb.append("--").append(boundary).append("\r\n");
-                sb.append("Content-Disposition: form-data; name=\"_csrf\"\r\n\r\n");
-                sb.append(csrfToken).append("\r\n");
-            }
-
-            // File field
-            sb.append("--").append(boundary).append("\r\n");
-            sb.append("Content-Disposition: form-data; name=\"file\"; filename=\"").append(filename).append("\"\r\n");
-            sb.append("Content-Type: ").append(contentType).append("\r\n\r\n");
-            sb.append(new String(content, java.nio.charset.StandardCharsets.ISO_8859_1));
-            sb.append("\r\n--").append(boundary).append("--\r\n");
-
-            return sb.toString();
+            assertEquals(413, response.status());
+            assertNotStored(filename);
         }
     }
 
@@ -1041,150 +891,122 @@ class SecurityRegressionTest extends PlaywrightTestBase {
     @DisplayName("Business Logic Security")
     class BusinessLogicSecurityTests {
 
-        // Test data IDs from V904 migration
-        private static final String DRAFT_TRANSACTION_ID = "a0000000-0000-0000-0000-000000000001";
-        private static final String POSTED_TRANSACTION_ID = "a0000000-0000-0000-0000-000000000002";
-        private static final String VOIDED_TRANSACTION_ID = "a0000000-0000-0000-0000-000000000003";
+        private Map<String, Object> transactionBody(String description, Object amount) {
+            return Map.of("transactionDate", LocalDate.now().toString(), "templateId", TEMPLATE_ID,
+                    "amount", amount, "description", description);
+        }
 
         @Test
-        @DisplayName("Should not allow editing posted transaction via direct URL")
+        @DisplayName("Should not allow editing posted transaction via direct URL or API")
         void shouldNotAllowEditingPostedTransaction() {
             loginAsAdmin();
+            String description = transactionField(POSTED_TRANSACTION_ID, "description");
 
-            // Try to access edit page for posted transaction
             navigateTo("/transactions/" + POSTED_TRANSACTION_ID + "/edit");
             waitForPageLoad();
+            assertEquals(baseUrl() + "/transactions/" + POSTED_TRANSACTION_ID, page.url());
+            assertThat(page.locator("[data-testid='status-posted']")).isVisible();
 
-            // Should redirect away from edit page or show error
-            // Posted transactions should not be editable
-            String currentUrl = page.url();
-            boolean isOnEditPage = currentUrl.contains("/edit");
-            boolean hasError = page.locator(".alert-danger, .alert-warning, [class*='error']").count() > 0;
-
-            assertTrue(!isOnEditPage || hasError,
-                    "Posted transaction should not be editable, was redirected to: " + currentUrl);
+            APIResponse update = page.request().put(baseUrl() + "/transactions/api/" + POSTED_TRANSACTION_ID,
+                    withCsrf().setData(transactionBody("Diubah setelah posting", 1)));
+            assertEquals(409, update.status());
+            assertEquals(description, transactionField(POSTED_TRANSACTION_ID, "description"));
+            assertEquals("POSTED", transactionField(POSTED_TRANSACTION_ID, "status"));
         }
 
         @Test
-        @DisplayName("Should not allow editing voided transaction via direct URL")
+        @DisplayName("Should not allow editing voided transaction via direct URL or API")
         void shouldNotAllowEditingVoidedTransaction() {
             loginAsAdmin();
+            String description = transactionField(VOIDED_TRANSACTION_ID, "description");
 
-            // Try to access edit page for voided transaction
             navigateTo("/transactions/" + VOIDED_TRANSACTION_ID + "/edit");
             waitForPageLoad();
+            assertEquals(baseUrl() + "/transactions/" + VOIDED_TRANSACTION_ID, page.url());
+            assertThat(page.locator("[data-testid='status-void']")).isVisible();
 
-            // Should redirect away from edit page or show error
-            String currentUrl = page.url();
-            boolean isOnEditPage = currentUrl.contains("/edit");
-            boolean hasError = page.locator(".alert-danger, .alert-warning, [class*='error']").count() > 0;
-
-            assertTrue(!isOnEditPage || hasError,
-                    "Voided transaction should not be editable, was redirected to: " + currentUrl);
+            APIResponse update = page.request().put(baseUrl() + "/transactions/api/" + VOIDED_TRANSACTION_ID,
+                    withCsrf().setData(transactionBody("Diubah setelah void", 1)));
+            assertEquals(409, update.status());
+            assertEquals(description, transactionField(VOIDED_TRANSACTION_ID, "description"));
         }
 
         @Test
-        @DisplayName("Should not display delete button for posted transaction")
+        @DisplayName("Should offer only void, not delete, for posted transaction")
         void shouldNotDisplayDeleteButtonForPostedTransaction() {
             loginAsAdmin();
 
             navigateTo("/transactions/" + POSTED_TRANSACTION_ID);
             waitForPageLoad();
 
-            // Posted transactions should only have void option, not delete
-            boolean hasDeleteButton = page.locator("button:has-text('Hapus'), a:has-text('Hapus'), [data-action='delete']").count() > 0;
+            assertThat(page.locator("#transaction-number")).hasText("TRX-TEST-0002");
+            assertThat(page.locator("a[href='/transactions/" + POSTED_TRANSACTION_ID + "/void']")).isVisible();
+            assertThat(page.locator("#btn-delete")).hasCount(0);
+            assertThat(page.locator("#btn-post")).hasCount(0);
 
-            assertFalse(hasDeleteButton,
-                    "Posted transaction should not have delete button - only void is allowed");
+            APIResponse delete = page.request().delete(baseUrl() + "/transactions/api/" + POSTED_TRANSACTION_ID, withCsrf());
+            assertEquals(409, delete.status());
+            assertEquals("POSTED", transactionField(POSTED_TRANSACTION_ID, "status"));
         }
 
         @Test
         @DisplayName("Should not allow voiding an already voided transaction")
         void shouldNotAllowVoidingVoidedTransaction() {
             loginAsAdmin();
+            String voidReason = transactionField(VOIDED_TRANSACTION_ID, "void_reason");
 
-            // Try to access void page for already voided transaction
             navigateTo("/transactions/" + VOIDED_TRANSACTION_ID + "/void");
             waitForPageLoad();
+            assertEquals(baseUrl() + "/transactions/" + VOIDED_TRANSACTION_ID, page.url());
 
-            // Should redirect away or show error
-            String currentUrl = page.url();
-            boolean isOnVoidPage = currentUrl.contains("/void");
-            boolean hasError = page.locator(".alert-danger, .alert-warning, [class*='error']").count() > 0;
-
-            assertTrue(!isOnVoidPage || hasError,
-                    "Already voided transaction should not be voidable again, was at: " + currentUrl);
+            APIResponse response = page.request().post(baseUrl() + "/transactions/api/" + VOIDED_TRANSACTION_ID + "/void",
+                    withCsrf().setData(Map.of("reason", "OTHER", "notes", "void ulang")));
+            assertEquals(409, response.status(), response.text());
+            assertEquals("VOID", transactionField(VOIDED_TRANSACTION_ID, "status"));
+            assertEquals(voidReason, transactionField(VOIDED_TRANSACTION_ID, "void_reason"));
         }
 
         @Test
         @DisplayName("Should reject negative amounts in transaction via API")
         void shouldRejectNegativeAmounts() {
             loginAsAdmin();
+            navigateTo("/transactions/" + DRAFT_TRANSACTION_ID);
+            String description = "Negatif " + uid();
 
-            // Use API to test negative amount validation
-            // This bypasses the UI template selection requirement
-            var apiContext = page.context().request();
-            var response = apiContext.post(baseUrl() + "/transactions/api/validate",
-                    RequestOptions.create()
-                            .setHeader("Content-Type", "application/json")
-                            .setData("{\"amount\": -1000, \"description\": \"Test negative\"}"));
+            APIResponse response = page.request().post(baseUrl() + "/transactions/api",
+                    withCsrf().setData(transactionBody(description, -1000)));
 
-            // Either rejected with 400 Bad Request or validation error message
-            int status = response.status();
-            String body = response.text().toLowerCase();
-
-            boolean isRejected = status >= 400 ||
-                                body.contains("error") ||
-                                body.contains("invalid") ||
-                                body.contains("positif") ||
-                                body.contains("negative");
-
-            // If API doesn't exist, check UI validation by navigating to draft transaction
-            if (status == 404) {
-                // Navigate to existing draft transaction to test amount validation
-                navigateTo("/transactions/" + DRAFT_TRANSACTION_ID + "/edit");
-                waitForPageLoad();
-
-                // Check if page has min validation attribute on amount fields
-                String content = page.content();
-                boolean hasMinValidation = content.contains("min=\"0\"") ||
-                                          content.contains("min='0'") ||
-                                          content.contains("pattern=") ||
-                                          content.contains("validation");
-                isRejected = hasMinValidation;
-            }
-
-            assertTrue(isRejected,
-                    "Negative amounts should be validated/rejected");
+            assertEquals(400, response.status());
+            assertTrue(response.text().contains("Amount must be non-negative"), response.text());
+            assertEquals(0, transactionCountByDescription(description));
         }
 
         @Test
-        @DisplayName("Should validate journal entry balance")
+        @DisplayName("Should reject unbalanced journal entry and accept a balanced one")
         void shouldRejectUnbalancedJournalEntry() {
             loginAsAdmin();
-
-            // Check TransactionService for balance validation
-            // Navigate to posted transaction to see balanced entries
-            navigateTo("/transactions/" + POSTED_TRANSACTION_ID);
+            navigateTo("/transactions/journal-entry/new");
             waitForPageLoad();
+            String cash = accountRepository.findByAccountCode(CASH_ACCOUNT_CODE).orElseThrow().getId().toString();
+            String revenue = accountRepository.findByAccountCode(REVENUE_ACCOUNT_CODE).orElseThrow().getId().toString();
+            String unbalanced = "Tidak seimbang " + uid();
+            String balanced = "Seimbang " + uid();
 
-            String content = page.content().toLowerCase();
+            APIResponse rejected = page.request().post(baseUrl() + "/transactions/journal-entry", withCsrf()
+                    .setData(Map.of("transactionDate", LocalDate.now().toString(), "description", unbalanced,
+                            "lines", List.of(
+                                    Map.of("accountId", cash, "debit", 1000000, "credit", 0),
+                                    Map.of("accountId", revenue, "debit", 0, "credit", 900000)))));
+            assertEquals(400, rejected.status(), rejected.text());
+            assertEquals(0, transactionCountByDescription(unbalanced));
 
-            // Look for balance indicators in the journal entries section
-            // The page should have debit and credit columns showing the journal is balanced
-            boolean hasDebitCredit = content.contains("debit") && content.contains("kredit");
-            boolean hasDebitCreditEnglish = content.contains("debit") && content.contains("credit");
-
-            // Also check for balance-related keywords
-            boolean hasBalanceIndicator = content.contains("jurnal") ||
-                                         content.contains("entry") ||
-                                         content.contains("saldo") ||
-                                         content.contains("seimbang");
-
-            // The existence of debit/credit columns implies balance validation exists
-            assertTrue(hasDebitCredit || hasDebitCreditEnglish || hasBalanceIndicator,
-                    "Transaction detail should show debit/credit columns indicating balance validation exists. " +
-                    "Content preview: " + content.substring(0, Math.min(500, content.length())));
+            APIResponse accepted = page.request().post(baseUrl() + "/transactions/journal-entry", withCsrf()
+                    .setData(Map.of("transactionDate", LocalDate.now().toString(), "description", balanced,
+                            "lines", List.of(
+                                    Map.of("accountId", cash, "debit", 1000000, "credit", 0),
+                                    Map.of("accountId", revenue, "debit", 0, "credit", 1000000)))));
+            assertEquals(200, accepted.status(), accepted.text());
+            assertEquals(1, transactionCountByDescription(balanced));
         }
     }
 
@@ -1195,91 +1017,52 @@ class SecurityRegressionTest extends PlaywrightTestBase {
         @Test
         @DisplayName("Should log failed login attempts with IP")
         void shouldLogFailedLoginWithIp() {
-            // Clear any existing session
             context.clearCookies();
+            String username = "nonexistent-" + uid();
+            LocalDateTime before = LocalDateTime.now().minusSeconds(1);
 
-            navigateTo("/login");
-            waitForPageLoad();
+            submitLogin(username, "wrongpassword");
 
-            page.fill("input[name='username']", "nonexistent_user");
-            page.fill("input[name='password']", "wrongpassword");
-            page.click("button[type='submit']");
-
-            // This test verifies the login attempt flow completes
-            // The actual log verification is done in LogSanitizerTest
-            // Here we verify the login attempt is processed properly
-            assertTrue(page.url().contains("/login") ||
-                      page.content().toLowerCase().contains("error") ||
-                      page.content().toLowerCase().contains("invalid"),
-                    "Failed login should be processed and show error");
-
-            // Security audit logging should capture:
-            // - IP address from request headers (X-Forwarded-For or RemoteAddr)
-            // - Username attempted
-            // - Timestamp
-            // - Failure reason
-            // Verification is done via SecurityAuditLog entity tests
+            assertEquals(baseUrl() + "/login?error", page.url());
+            List<SecurityAuditLog> logs = securityAuditLogRepository.findByUsernameAndEventTypeAndTimestampAfter(
+                    username, AuditEventType.LOGIN_FAILURE, before);
+            assertEquals(1, logs.size(), "Expected one LOGIN_FAILURE record for " + username);
+            assertEquals(clientIp, logs.getFirst().getIpAddress());
+            assertFalse(logs.getFirst().getSuccess());
+            assertEquals("Failed attempt 1 of 5", logs.getFirst().getDetails());
         }
 
         @Test
         @DisplayName("Should log successful login")
         void shouldLogSuccessfulLogin() {
-            // Clear any existing session
-            context.clearCookies();
+            User user = createUser(Role.STAFF);
+            LocalDateTime before = LocalDateTime.now().minusSeconds(1);
 
-            // Perform successful login
-            loginAsAdmin();
+            login(user.getUsername(), PASSWORD);
 
-            // Verify login succeeded
-            String currentUrl = page.url();
-            boolean loggedIn = currentUrl.contains("/dashboard") ||
-                              currentUrl.contains("/accounts") ||
-                              !currentUrl.contains("/login");
-
-            assertTrue(loggedIn,
-                    "Successful login should redirect away from login page");
-
-            // Security audit logging should capture:
-            // - IP address
-            // - Username
-            // - Timestamp
-            // - Session ID (for correlation)
+            List<SecurityAuditLog> logs = securityAuditLogRepository.findByUsernameAndEventTypeAndTimestampAfter(
+                    user.getUsername(), AuditEventType.LOGIN_SUCCESS, before);
+            assertEquals(1, logs.size());
+            assertEquals(clientIp, logs.getFirst().getIpAddress());
+            assertTrue(logs.getFirst().getSuccess());
         }
 
         @Test
         @DisplayName("Should log data export operations")
         void shouldLogDataExportOperations() {
             loginAsAdmin();
-
-            // Navigate to reports/exports
-            navigateTo("/reports");
+            navigateTo("/settings/export");
             waitForPageLoad();
+            LocalDateTime before = LocalDateTime.now().minusSeconds(1);
 
-            // Check if export functionality exists
-            boolean hasExportButton = page.locator("a:has-text('Export'), button:has-text('Export'), " +
-                                                   "a:has-text('Download'), button:has-text('Download'), " +
-                                                   "a:has-text('Unduh'), button:has-text('Unduh')").count() > 0;
+            APIResponse response = page.request().post(baseUrl() + "/settings/export/download", withCsrf());
+            assertEquals(200, response.status());
 
-            if (hasExportButton) {
-                // Export functionality exists - audit logging should capture exports
-                // This test documents the expected behavior
-                assertTrue(true, "Export functionality found - audit logging should be in place");
-            } else {
-                // No export on this page, try another report page
-                navigateTo("/reports/general-ledger");
-                waitForPageLoad();
-
-                // The test passes if we successfully navigate - logging is verified separately
-                assertTrue(page.url().contains("/reports") || page.url().contains("/error"),
-                        "Should be able to navigate to reports page");
-            }
-
-            // Audit logging for exports should capture:
-            // - User performing export
-            // - Report type
-            // - Date range
-            // - IP address
-            // - Timestamp
+            List<SecurityAuditLog> logs = securityAuditLogRepository.findByUsernameAndEventTypeAndTimestampAfter(
+                    "admin", AuditEventType.DATA_EXPORT, before);
+            assertEquals(1, logs.size());
+            assertEquals(clientIp, logs.getFirst().getIpAddress());
+            assertTrue(logs.getFirst().getDetails().startsWith("Full data export: export-"), logs.getFirst().getDetails());
         }
     }
 
@@ -1288,81 +1071,23 @@ class SecurityRegressionTest extends PlaywrightTestBase {
     class RateLimitingTests {
 
         @Test
-        @DisplayName("Should rate limit rapid login attempts")
-        void shouldRateLimitRapidLoginAttempts() {
-            // Clear any existing session
-            context.clearCookies();
-
-            // Make rapid login attempts
-            int failedAttempts = 0;
-            int rateLimitedCount = 0;
-
-            for (int i = 0; i < 10; i++) {
-                navigateTo("/login");
-                waitForPageLoad();
-
-                page.fill("input[name='username']", "testuser" + i);
-                page.fill("input[name='password']", "wrongpassword" + i);
-                page.click("button[type='submit']");
-
-                String content = page.content().toLowerCase();
-                String currentUrl = page.url();
-
-                // Check for rate limiting indicators
-                boolean isRateLimited = content.contains("too many") ||
-                                       content.contains("rate limit") ||
-                                       content.contains("locked") ||
-                                       content.contains("terkunci") ||
-                                       content.contains("tunggu") ||
-                                       content.contains("coba lagi");
-
-                if (isRateLimited) {
-                    rateLimitedCount++;
-                } else if (currentUrl.contains("error")) {
-                    failedAttempts++;
-                }
-            }
-
-            // Either rate limiting kicked in, or at least login attempts failed
-            // (the specific implementation may vary - lockout, delay, or message)
-            boolean hasProtection = rateLimitedCount > 0 || failedAttempts > 0;
-
-            assertTrue(hasProtection,
-                    "Rapid login attempts should trigger rate limiting or lockout protection");
-        }
-
-        @Test
-        @DisplayName("Should rate limit bulk API requests")
+        @DisplayName("Should rate limit bulk API requests per client IP")
         void shouldRateLimitBulkApiRequests() {
-            loginAsAdmin();
-
-            // Make rapid API requests
-            var apiContext = page.context().request();
-            int successCount = 0;
-            int rateLimitedCount = 0;
-
-            for (int i = 0; i < 50; i++) {
-                var response = apiContext.get(baseUrl() + "/accounts");
-
-                if (response.status() == 429) {
-                    rateLimitedCount++;
-                } else if (response.status() == 200) {
-                    successCount++;
+            User admin = userRepository.findByUsername("admin").orElseThrow();
+            String token = deviceAuthService.createServiceToken(admin, "secreg-" + uid(), "secreg",
+                    "templates:read", 60).getTokenHash();
+            APIRequestContext api = playwright.request().newContext(new APIRequest.NewContextOptions()
+                    .setBaseURL(baseUrl())
+                    .setExtraHTTPHeaders(Map.of("X-Forwarded-For", randomIp(), "Authorization", "Bearer " + token)));
+            try {
+                for (int i = 1; i <= 100; i++) {
+                    assertEquals(200, api.get("/api/templates").status(), "API request " + i);
                 }
-            }
-
-            // Either all requests succeeded (no rate limit implemented - acceptable for internal app)
-            // or rate limiting kicked in
-            // This test documents the behavior - rate limiting is optional for internal apps
-            boolean hasNormalBehavior = successCount > 0 || rateLimitedCount > 0;
-
-            assertTrue(hasNormalBehavior,
-                    "Bulk requests should either succeed or be rate limited");
-
-            // If rate limiting is implemented, verify it works
-            if (rateLimitedCount > 0) {
-                assertTrue(rateLimitedCount > successCount / 2,
-                        "Rate limiting should be effective after initial burst");
+                APIResponse limited = api.get("/api/templates");
+                assertEquals(429, limited.status());
+                assertEquals("60", limited.headers().get("retry-after"));
+            } finally {
+                api.dispose();
             }
         }
     }
@@ -1371,96 +1096,79 @@ class SecurityRegressionTest extends PlaywrightTestBase {
     @DisplayName("Data Protection")
     class DataProtectionTests {
 
+        private static final String NIK = "3175012345678901";
+        private static final String NPWP = "09.876.543.2-109.000";
+        private static final String BANK_ACCOUNT = "7788990011";
+        private static final String BPJS = "0001122334455";
+
+        private Employee createEmployeeWithPii() {
+            String marker = uid();
+            Employee employee = new Employee();
+            employee.setEmployeeId("DP-" + marker);
+            employee.setName("Karyawan PII " + marker);
+            employee.setEmail("pii-" + marker + "@example.com");
+            employee.setPhone("081377778888");
+            employee.setNikKtp(NIK);
+            employee.setNpwp(NPWP);
+            employee.setBankName("BCA");
+            employee.setBankAccountNumber(BANK_ACCOUNT);
+            employee.setBpjsKesehatanNumber(BPJS);
+            employee.setHireDate(LocalDate.of(2045, 1, 2));
+            return employeeRepository.save(employee);
+        }
+
         @Test
-        @DisplayName("Should mask bank account numbers in employee list")
+        @DisplayName("Should not show full identity or bank numbers in employee list")
         void shouldMaskBankAccountInEmployeeList() {
+            Employee employee = createEmployeeWithPii();
             loginAsAdmin();
 
-            navigateTo("/employees");
+            navigateTo("/employees?search=" + employee.getEmployeeId());
             waitForPageLoad();
 
+            assertThat(page.locator("main")).containsText(employee.getName());
             String content = page.content();
-
-            // Bank accounts should be masked (showing only last 4 digits)
-            // Full bank account numbers should NOT appear in page source
-            // Pattern: 10+ digit numbers that look like bank accounts
-            boolean hasFullBankAccount = content.matches(".*\\b\\d{10,}\\b.*") &&
-                                         !content.contains("****");
-
-            // If there are employees with bank accounts, they should be masked
-            if (page.locator("table tbody tr").count() > 0) {
-                // Check that masked format is used (e.g., ****1234)
-                boolean hasMaskedFormat = content.contains("****") ||
-                                          content.contains("•••") ||
-                                          content.contains("***");
-
-                assertTrue(hasMaskedFormat || !hasFullBankAccount,
-                        "Bank account numbers should be masked in employee list");
+            for (String pii : List.of(NIK, NPWP, BANK_ACCOUNT, BPJS)) {
+                assertFalse(content.contains(pii), "Unmasked value in employee list: " + pii);
             }
         }
 
         @Test
-        @DisplayName("Should not include sensitive data in URL parameters")
+        @DisplayName("Should not include credentials in URLs")
         void shouldNotHaveSensitiveDataInUrl() {
+            navigateTo("/login");
+            waitForPageLoad();
+            assertEquals("post", page.locator("form:has(input[name='password'])").getAttribute("method"));
+
+            User user = createUser(Role.STAFF);
+            submitLogin(user.getUsername(), PASSWORD + "salah");
+            assertEquals(baseUrl() + "/login?error", page.url());
+            submitLogin(user.getUsername(), PASSWORD);
+            assertEquals(baseUrl() + "/dashboard", page.url());
+
             loginAsAdmin();
-
-            // Navigate through various pages and check URLs
-            String[] pagesToCheck = {
-                "/employees",
-                "/payroll",
-                "/users",
-                "/settings"
-            };
-
-            for (String pagePath : pagesToCheck) {
-                navigateTo(pagePath);
-                waitForPageLoad();
-
-                String currentUrl = page.url();
-
-                // URL should not contain sensitive patterns
-                assertFalse(currentUrl.matches(".*password=.*"),
-                        "URL should not contain password parameter: " + currentUrl);
-                assertFalse(currentUrl.matches(".*token=(?!csrf).*"),
-                        "URL should not contain token parameter (except csrf): " + currentUrl);
-                assertFalse(currentUrl.matches(".*secret=.*"),
-                        "URL should not contain secret parameter: " + currentUrl);
-                assertFalse(currentUrl.matches(".*\\b\\d{16}\\b.*"),
-                        "URL should not contain credit card-like numbers: " + currentUrl);
-            }
+            navigateTo("/users/" + user.getId() + "/change-password");
+            waitForPageLoad();
+            assertEquals("post", page.locator("form:has(#newPassword)").getAttribute("method"));
         }
 
         @Test
-        @DisplayName("Should mask NPWP/NIK in employee detail")
+        @DisplayName("Should mask NPWP, NIK, bank account and BPJS numbers in employee detail")
         void shouldMaskNpwpNikInEmployeeDetail() {
+            Employee employee = createEmployeeWithPii();
             loginAsAdmin();
 
-            navigateTo("/employees");
+            navigateTo("/employees/" + employee.getEmployeeId());
             waitForPageLoad();
 
-            // Click on first employee if available
-            var employeeLinks = page.locator("table tbody tr a");
-            if (employeeLinks.count() > 0) {
-                employeeLinks.first().click();
-                waitForPageLoad();
-
-                String content = page.content();
-
-                // NPWP format: XX.XXX.XXX.X-XXX.XXX (15 digits with dots/dashes)
-                // NIK format: 16 digits
-                // These should be masked, not fully visible
-
-                // Check for full NPWP pattern (should not exist unmasked)
-                boolean hasFullNpwp = content.matches(".*\\d{2}\\.\\d{3}\\.\\d{3}\\.\\d-\\d{3}\\.\\d{3}.*");
-
-                // Check for full NIK (16 consecutive digits)
-                boolean hasFullNik = content.matches(".*\\b\\d{16}\\b.*");
-
-                // Either they're masked or not present at all
-                boolean properlyProtected = !hasFullNpwp && !hasFullNik;
-
-                assertTrue(properlyProtected,
-                        "NPWP and NIK should be masked in employee detail page");
+            assertThat(page.locator("main")).containsText(employee.getName());
+            assertThat(page.locator("main")).containsText(DataMaskingUtil.maskNik(NIK));
+            assertThat(page.locator("main")).containsText(DataMaskingUtil.maskNpwp(NPWP));
+            assertThat(page.locator("main")).containsText(DataMaskingUtil.maskBankAccount(BANK_ACCOUNT));
+            assertThat(page.locator("main")).containsText(DataMaskingUtil.maskBpjsNumber(BPJS));
+            String content = page.content();
+            for (String pii : List.of(NIK, NPWP, BANK_ACCOUNT, BPJS)) {
+                assertFalse(content.contains(pii), "Unmasked value in employee detail: " + pii);
             }
         }
     }
@@ -1473,14 +1181,10 @@ class SecurityRegressionTest extends PlaywrightTestBase {
         @DisplayName("Should capture user form screenshot")
         void shouldCaptureUserForm() {
             loginAsAdmin();
-
             navigateTo("/users/new");
             waitForPageLoad();
 
-            // Verify form loads
-            assertTrue(page.locator("#page-title").count() > 0);
-
-            // Take screenshot for user manual
+            assertThat(page.locator("#page-title")).hasText("Pengguna Baru");
             takeManualScreenshot("users-form");
         }
 
@@ -1488,14 +1192,10 @@ class SecurityRegressionTest extends PlaywrightTestBase {
         @DisplayName("Should capture audit logs screenshot")
         void shouldCaptureAuditLogs() {
             loginAsAdmin();
-
             navigateTo("/settings/audit-logs");
             waitForPageLoad();
 
-            // Verify page loads
-            assertTrue(page.locator("#page-title").count() > 0);
-
-            // Take screenshot for user manual
+            assertThat(page.locator("#page-title")).hasText("Security Audit Log");
             takeManualScreenshot("settings-audit-logs");
         }
 
@@ -1503,15 +1203,10 @@ class SecurityRegressionTest extends PlaywrightTestBase {
         @DisplayName("Should capture data subjects screenshot")
         void shouldCaptureDataSubjects() {
             loginAsAdmin();
-
             navigateTo("/settings/data-subjects");
             waitForPageLoad();
 
-            // Verify page loads
-            assertTrue(page.locator("#page-title").count() > 0 ||
-                      page.locator("h1").count() > 0);
-
-            // Take screenshot for user manual
+            assertThat(page.locator("#page-title")).hasText("Hak Subjek Data (GDPR/UU PDP)");
             takeManualScreenshot("settings-data-subjects");
         }
 
@@ -1519,15 +1214,10 @@ class SecurityRegressionTest extends PlaywrightTestBase {
         @DisplayName("Should capture privacy settings screenshot")
         void shouldCapturePrivacySettings() {
             loginAsAdmin();
-
             navigateTo("/settings/privacy");
             waitForPageLoad();
 
-            // Verify page loads
-            assertTrue(page.locator("#page-title").count() > 0 ||
-                      page.locator("h1").count() > 0);
-
-            // Take screenshot for user manual
+            assertThat(page.locator("#page-title")).hasText("Kebijakan Privasi");
             takeManualScreenshot("settings-privacy");
         }
     }

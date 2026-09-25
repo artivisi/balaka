@@ -68,7 +68,7 @@ public class DataSubjectController {
 
         model.addAttribute("employees", employees);
         model.addAttribute("search", search);
-        model.addAttribute(ATTR_CURRENT_PAGE, PAGE_SETTINGS);
+        model.addAttribute(ATTR_CURRENT_PAGE, PAGE_DATA_SUBJECTS);
 
         if ("true".equals(hxRequest)) {
             return "settings/data-subjects/fragments/employee-table :: table";
@@ -89,7 +89,7 @@ public class DataSubjectController {
 
         model.addAttribute(ATTR_EMPLOYEE, employee);
         model.addAttribute("retentionStatus", retentionStatus);
-        model.addAttribute(ATTR_CURRENT_PAGE, PAGE_SETTINGS);
+        model.addAttribute(ATTR_CURRENT_PAGE, PAGE_DATA_SUBJECTS);
 
         return "settings/data-subjects/detail";
     }
@@ -107,7 +107,7 @@ public class DataSubjectController {
 
         model.addAttribute(ATTR_EMPLOYEE, employee);
         model.addAttribute("exportedData", exportedData);
-        model.addAttribute(ATTR_CURRENT_PAGE, PAGE_SETTINGS);
+        model.addAttribute(ATTR_CURRENT_PAGE, PAGE_DATA_SUBJECTS);
 
         return "settings/data-subjects/export";
     }
@@ -125,7 +125,7 @@ public class DataSubjectController {
 
         model.addAttribute(ATTR_EMPLOYEE, employee);
         model.addAttribute("retentionStatus", retentionStatus);
-        model.addAttribute(ATTR_CURRENT_PAGE, PAGE_SETTINGS);
+        model.addAttribute(ATTR_CURRENT_PAGE, PAGE_DATA_SUBJECTS);
 
         return "settings/data-subjects/anonymize";
     }

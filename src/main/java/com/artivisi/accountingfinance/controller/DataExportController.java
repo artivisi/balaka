@@ -1,8 +1,10 @@
 package com.artivisi.accountingfinance.controller;
 
+import com.artivisi.accountingfinance.enums.AuditEventType;
 import com.artivisi.accountingfinance.exception.DataExportException;
 import com.artivisi.accountingfinance.security.Permission;
 import com.artivisi.accountingfinance.service.DataExportService;
+import com.artivisi.accountingfinance.service.SecurityAuditService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
@@ -29,6 +31,7 @@ import static com.artivisi.accountingfinance.controller.ViewConstants.*;
 public class DataExportController {
 
     private final DataExportService dataExportService;
+    private final SecurityAuditService securityAuditService;
 
     @GetMapping
     public String exportPage(Model model) {
@@ -44,6 +47,8 @@ public class DataExportController {
             byte[] zipData = dataExportService.exportAllData();
 
             String filename = "export-" + LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE) + ".zip";
+            securityAuditService.log(AuditEventType.DATA_EXPORT,
+                    "Full data export: " + filename + " (" + zipData.length + " bytes)");
 
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")

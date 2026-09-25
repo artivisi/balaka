@@ -189,7 +189,7 @@ public class DocumentStorageService {
         }
 
         String filename = file.getOriginalFilename();
-        if (filename == null || filename.contains("..")) {
+        if (filename == null || filename.isBlank() || filename.contains("..")) {
             throw new IllegalArgumentException("Invalid filename: " + filename);
         }
 

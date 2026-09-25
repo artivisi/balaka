@@ -32,6 +32,7 @@ public final class ViewConstants {
     public static final String PAGE_EMPLOYEES = "employees";
     public static final String PAGE_PAYROLL = "payroll";
     public static final String PAGE_SETTINGS = "settings";
+    public static final String PAGE_DATA_SUBJECTS = "data-subjects";
     public static final String PAGE_PRODUCTS = "products";
     public static final String PAGE_INVENTORY = "inventory";
     public static final String PAGE_CLIENTS = "clients";

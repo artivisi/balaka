@@ -2,6 +2,7 @@ package com.artivisi.accountingfinance.config;
 
 import com.artivisi.accountingfinance.security.BearerTokenAuthenticationFilter;
 import com.artivisi.accountingfinance.security.CspNonceHeaderWriter;
+import com.artivisi.accountingfinance.service.SecurityAuditService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
@@ -9,6 +10,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -19,6 +21,8 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.AuthenticationFailureHandler;
+import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
@@ -39,7 +43,8 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http,
             UserDetailsService userDetailsService,
-            BearerTokenAuthenticationFilter bearerTokenAuthenticationFilter) throws Exception {
+            BearerTokenAuthenticationFilter bearerTokenAuthenticationFilter,
+            SecurityAuditService securityAuditService) throws Exception {
         http
             .userDetailsService(userDetailsService)
             // Add Bearer token authentication filter before username/password filter
@@ -84,6 +89,7 @@ public class SecurityConfig {
             .formLogin(form -> form
                 .loginPage("/login")
                 .defaultSuccessUrl("/dashboard", false)
+                .failureHandler(loginFailureHandler(securityAuditService))
                 .permitAll()
             )
             .rememberMe(remember -> remember
@@ -146,6 +152,22 @@ public class SecurityConfig {
             );
 
         return http.build();
+    }
+
+    /**
+     * A login refused because LoginAttemptService locked the account fails with LockedException
+     * (wrapped in InternalAuthenticationServiceException by DaoAuthenticationProvider). The
+     * HttpSecurity-local ProviderManager rethrows it without publishing an authentication event,
+     * so the blocked attempt is audited here.
+     */
+    private static AuthenticationFailureHandler loginFailureHandler(SecurityAuditService securityAuditService) {
+        SimpleUrlAuthenticationFailureHandler delegate = new SimpleUrlAuthenticationFailureHandler("/login?error");
+        return (request, response, exception) -> {
+            if (exception instanceof LockedException || exception.getCause() instanceof LockedException) {
+                securityAuditService.logLogin(request.getParameter("username"), false, "Account locked - login blocked");
+            }
+            delegate.onAuthenticationFailure(request, response, exception);
+        };
     }
 
     private static boolean isBearerApiRequest(HttpServletRequest request) {

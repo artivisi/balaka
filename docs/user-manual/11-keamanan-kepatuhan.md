@@ -78,7 +78,7 @@ Buka menu **Pengaturan** > **Audit Log**.
 
 ### Data Subject Management
 
-Buka menu **Pengaturan** > **Data Subjects**.
+Buka menu **Pengaturan** > **Subjek Data**.
 
 ![Data Subjects](screenshots/settings-data-subjects.png)
 

@@ -54,27 +54,27 @@
                         <p class="text-2xl font-bold text-gray-900" th:text="${statistics.transactionCount}">0</p>
                         <p class="text-sm text-gray-600">Transaksi</p>
                     </div>
-                    <div class="bg-gray-50 rounded-lg p-4">
+                    <div id="stat-client" class="bg-gray-50 rounded-lg p-4">
                         <p class="text-2xl font-bold text-gray-900" th:text="${statistics.clientCount}">0</p>
                         <p class="text-sm text-gray-600">Klien</p>
                     </div>
-                    <div class="bg-gray-50 rounded-lg p-4">
+                    <div id="stat-project" class="bg-gray-50 rounded-lg p-4">
                         <p class="text-2xl font-bold text-gray-900" th:text="${statistics.projectCount}">0</p>
                         <p class="text-sm text-gray-600">Proyek</p>
                     </div>
-                    <div class="bg-gray-50 rounded-lg p-4">
+                    <div id="stat-invoice" class="bg-gray-50 rounded-lg p-4">
                         <p class="text-2xl font-bold text-gray-900" th:text="${statistics.invoiceCount}">0</p>
                         <p class="text-sm text-gray-600">Invoice</p>
                     </div>
-                    <div class="bg-gray-50 rounded-lg p-4">
+                    <div id="stat-employee" class="bg-gray-50 rounded-lg p-4">
                         <p class="text-2xl font-bold text-gray-900" th:text="${statistics.employeeCount}">0</p>
                         <p class="text-sm text-gray-600">Karyawan</p>
                     </div>
-                    <div class="bg-gray-50 rounded-lg p-4">
+                    <div id="stat-payroll" class="bg-gray-50 rounded-lg p-4">
                         <p class="text-2xl font-bold text-gray-900" th:text="${statistics.payrollRunCount}">0</p>
                         <p class="text-sm text-gray-600">Payroll</p>
                     </div>
-                    <div class="bg-gray-50 rounded-lg p-4">
+                    <div id="stat-document" class="bg-gray-50 rounded-lg p-4">
                         <p class="text-2xl font-bold text-gray-900" th:text="${statistics.documentCount}">0</p>
                         <p class="text-sm text-gray-600">Dokumen</p>
                     </div>
@@ -85,78 +85,78 @@
             <div class="bg-white rounded-lg shadow p-6">
                 <h2 class="text-lg font-semibold text-gray-900 mb-4">Isi File Ekspor</h2>
 
-                <ul class="space-y-2 text-sm text-gray-600">
+                <ul id="export-file-list" class="space-y-2 text-sm text-gray-600">
                     <li class="flex items-center">
                         <svg class="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                         </svg>
-                        <span><strong>chart-of-accounts.csv</strong> - Daftar akun (COA)</span>
+                        <span><strong>02_chart_of_accounts.csv</strong> - Daftar akun (COA)</span>
                     </li>
                     <li class="flex items-center">
                         <svg class="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                         </svg>
-                        <span><strong>journal-entries.csv</strong> - Semua jurnal termasuk yang void</span>
+                        <span><strong>20_journal_entries.csv</strong> - Semua jurnal termasuk yang void</span>
                     </li>
                     <li class="flex items-center">
                         <svg class="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                         </svg>
-                        <span><strong>transactions.csv</strong> - Semua transaksi</span>
+                        <span><strong>18_transactions.csv</strong> - Semua transaksi</span>
                     </li>
                     <li class="flex items-center">
                         <svg class="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                         </svg>
-                        <span><strong>clients.csv</strong> - Data klien</span>
+                        <span><strong>07_clients.csv</strong> - Data klien</span>
                     </li>
                     <li class="flex items-center">
                         <svg class="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                         </svg>
-                        <span><strong>projects.csv</strong> - Data proyek</span>
+                        <span><strong>08_projects.csv</strong> - Data proyek</span>
                     </li>
                     <li class="flex items-center">
                         <svg class="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                         </svg>
-                        <span><strong>invoices.csv</strong> - Semua invoice</span>
+                        <span><strong>17_invoices.csv</strong> - Semua invoice</span>
                     </li>
                     <li class="flex items-center">
                         <svg class="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                         </svg>
-                        <span><strong>employees.csv</strong> - Data karyawan</span>
+                        <span><strong>15_employees.csv</strong> - Data karyawan</span>
                     </li>
                     <li class="flex items-center">
                         <svg class="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                         </svg>
-                        <span><strong>payroll-runs.csv</strong> - Riwayat payroll</span>
+                        <span><strong>21_payroll_runs.csv</strong> - Riwayat payroll</span>
                     </li>
                     <li class="flex items-center">
                         <svg class="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                         </svg>
-                        <span><strong>payroll-details.csv</strong> - Detail slip gaji</span>
+                        <span><strong>22_payroll_details.csv</strong> - Detail slip gaji</span>
                     </li>
                     <li class="flex items-center">
                         <svg class="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                         </svg>
-                        <span><strong>audit-logs.csv</strong> - Log aktivitas</span>
+                        <span><strong>32_audit_logs.csv</strong> - Log aktivitas</span>
                     </li>
                     <li class="flex items-center">
                         <svg class="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                         </svg>
-                        <span><strong>documents/</strong> - File dokumen lampiran</span>
+                        <span><strong>documents/index.csv</strong> - File dokumen lampiran</span>
                     </li>
                     <li class="flex items-center">
                         <svg class="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                         </svg>
-                        <span><strong>manifest.json</strong> - Metadata ekspor</span>
+                        <span><strong>MANIFEST.md</strong> - Metadata ekspor</span>
                     </li>
                 </ul>
             </div>
