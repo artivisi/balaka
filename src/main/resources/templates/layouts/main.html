@@ -228,10 +228,10 @@
                             <a sec:authorize="hasAuthority('INVENTORY_VIEW')" id="nav-stock" th:href="@{/inventory/stock}"
                                th:classappend="${#strings.equals(currentPage, 'stock')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
                                class="flex items-center px-3 py-2 rounded-lg transition-colors">Stok Barang</a>
-                            <a sec:authorize="hasAuthority('BOM_VIEW')" id="nav-bom" th:href="@{/bom}"
+                            <a sec:authorize="hasAuthority('INVENTORY_VIEW')" id="nav-bom" th:href="@{/inventory/bom}"
                                th:classappend="${#strings.equals(currentPage, 'bom')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
                                class="flex items-center px-3 py-2 rounded-lg transition-colors">Bill of Materials</a>
-                            <a sec:authorize="hasAuthority('PRODUCTION_VIEW')" id="nav-production" th:href="@{/production}"
+                            <a sec:authorize="hasAuthority('INVENTORY_VIEW')" id="nav-production" th:href="@{/inventory/production}"
                                th:classappend="${#strings.equals(currentPage, 'production')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
                                class="flex items-center px-3 py-2 rounded-lg transition-colors">Produksi</a>
                         </div>
@@ -519,9 +519,9 @@
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Transaksi Stok</a>
                             <a sec:authorize="hasAuthority('INVENTORY_VIEW')" th:href="@{/inventory/stock}"
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Stok Barang</a>
-                            <a sec:authorize="hasAuthority('BOM_VIEW')" th:href="@{/bom}"
+                            <a sec:authorize="hasAuthority('INVENTORY_VIEW')" th:href="@{/inventory/bom}"
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Bill of Materials</a>
-                            <a sec:authorize="hasAuthority('PRODUCTION_VIEW')" th:href="@{/production}"
+                            <a sec:authorize="hasAuthority('INVENTORY_VIEW')" th:href="@{/inventory/production}"
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Produksi</a>
                         </div>
                     </details>

@@ -4,10 +4,12 @@ import com.artivisi.accountingfinance.dto.ProductOptionDto;
 import com.artivisi.accountingfinance.entity.BillOfMaterial;
 import com.artivisi.accountingfinance.entity.BillOfMaterialLine;
 import com.artivisi.accountingfinance.entity.Product;
+import com.artivisi.accountingfinance.security.Permission;
 import com.artivisi.accountingfinance.service.BillOfMaterialService;
 import com.artivisi.accountingfinance.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,6 +17,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.math.BigDecimal;
@@ -24,6 +27,7 @@ import java.util.UUID;
 
 @Controller
 @RequestMapping("/inventory/bom")
+@PreAuthorize("hasAuthority('" + Permission.INVENTORY_VIEW + "')")
 @RequiredArgsConstructor
 @Slf4j
 public class BillOfMaterialController {
@@ -44,6 +48,7 @@ public class BillOfMaterialController {
     }
 
     @GetMapping("/create")
+    @PreAuthorize("hasAuthority('" + Permission.PRODUCT_CREATE + "')")
     public String createForm(Model model) {
         model.addAttribute("bom", new BillOfMaterial());
         model.addAttribute("products", getProductOptions());
@@ -57,6 +62,7 @@ public class BillOfMaterialController {
     }
 
     @GetMapping("/{id}/edit")
+    @PreAuthorize("hasAuthority('" + Permission.PRODUCT_EDIT + "')")
     public String editForm(@PathVariable UUID id, Model model, RedirectAttributes redirectAttributes) {
         return bomService.findByIdWithLines(id)
                 .map(bom -> {
@@ -84,6 +90,7 @@ public class BillOfMaterialController {
     }
 
     @PostMapping("/save")
+    @PreAuthorize("#id == null ? hasAuthority('" + Permission.PRODUCT_CREATE + "') : hasAuthority('" + Permission.PRODUCT_EDIT + "')")
     public String save(
             @RequestParam(required = false) UUID id,
             @RequestParam String code,
@@ -94,9 +101,11 @@ public class BillOfMaterialController {
             @RequestParam(required = false, defaultValue = "false") Boolean active,
             @RequestParam(name = "componentId[]", required = false) List<UUID> componentIds,
             @RequestParam(name = "componentQty[]", required = false) List<BigDecimal> componentQtys,
-            @RequestParam(name = "componentNotes[]", required = false) List<String> componentNotes,
+            WebRequest webRequest,
             RedirectAttributes redirectAttributes
     ) {
+        // Read raw values: a single-valued List<String> @RequestParam is split on commas by the conversion service.
+        String[] componentNotes = webRequest.getParameterValues("componentNotes[]");
         try {
             BillOfMaterial bom = new BillOfMaterial();
             bom.setCode(code);
@@ -121,7 +130,7 @@ public class BillOfMaterialController {
                     component.setId(componentIds.get(i));
                     line.setComponent(component);
                     line.setQuantity(componentQtys.get(i));
-                    line.setNotes(componentNotes != null && i < componentNotes.size() ? componentNotes.get(i) : null);
+                    line.setNotes(componentNotes != null && i < componentNotes.length ? componentNotes[i] : null);
                     line.setLineOrder(i);
                     lines.add(line);
                 }
@@ -145,6 +154,7 @@ public class BillOfMaterialController {
     }
 
     @PostMapping("/{id}/delete")
+    @PreAuthorize("hasAuthority('" + Permission.PRODUCT_DELETE + "')")
     public String delete(@PathVariable UUID id, RedirectAttributes redirectAttributes) {
         try {
             bomService.delete(id);

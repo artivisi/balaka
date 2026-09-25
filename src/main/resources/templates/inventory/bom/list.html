@@ -11,10 +11,10 @@
     <section class="h-full flex flex-col overflow-y-auto">
         <div class="max-w-6xl">
             <!-- Alerts -->
-            <div th:if="${success}" class="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded">
+            <div th:if="${success}" data-testid="flash-success" class="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded">
                 <span th:text="${success}"></span>
             </div>
-            <div th:if="${error}" class="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+            <div th:if="${error}" data-testid="flash-error" class="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
                 <span th:text="${error}"></span>
             </div>
 
@@ -26,7 +26,7 @@
                            class="rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm w-64">
                     <button type="submit" class="px-4 py-2 bg-primary-600 text-white rounded-md text-sm hover:bg-primary-700">Cari</button>
                 </form>
-                <a th:href="@{/inventory/bom/create}"
+                <a sec:authorize="hasAuthority('PRODUCT_CREATE')" th:href="@{/inventory/bom/create}"
                    class="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
@@ -54,14 +54,14 @@
                                 <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900" th:text="${bom.code}" th:data-testid="'bom-code-' + ${bom.code}">BOM-001</td>
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900" th:text="${bom.name}" th:data-testid="'bom-name-' + ${bom.code}">Resep Produk A</td>
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500" th:text="${bom.product.name}" th:data-testid="'bom-product-' + ${bom.code}">Produk A</td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-right" th:text="${#numbers.formatDecimal(bom.outputQuantity, 0, 'COMMA', 2, 'POINT')} + ' ' + ${bom.product.unit}" th:data-testid="'bom-output-' + ${bom.code}">1 pcs</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-right" th:text="${#numbers.formatDecimal(bom.outputQuantity, 1, 'COMMA', 2, 'POINT')} + ' ' + ${bom.product.unit}" th:data-testid="'bom-output-' + ${bom.code}">1 pcs</td>
                                 <td class="px-4 py-3 whitespace-nowrap text-center">
                                     <span th:if="${bom.active}" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Aktif</span>
                                     <span th:unless="${bom.active}" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">Nonaktif</span>
                                 </td>
                                 <td class="px-4 py-3 whitespace-nowrap text-center text-sm">
                                     <a th:href="@{/inventory/bom/{id}(id=${bom.id})}" th:data-testid="'bom-detail-link-' + ${bom.code}" class="text-primary-600 hover:text-primary-900 mr-3">Detail</a>
-                                    <a th:if="${bom.active}" th:href="@{/inventory/bom/{id}/edit(id=${bom.id})}" class="text-yellow-600 hover:text-yellow-900">Edit</a>
+                                    <a sec:authorize="hasAuthority('PRODUCT_EDIT')" th:if="${bom.active}" th:href="@{/inventory/bom/{id}/edit(id=${bom.id})}" class="text-yellow-600 hover:text-yellow-900">Edit</a>
                                 </td>
                             </tr>
                             <tr th:if="${#lists.isEmpty(boms)}">

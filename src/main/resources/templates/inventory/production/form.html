@@ -11,7 +11,7 @@
     <section class="h-full flex flex-col overflow-y-auto">
         <div class="max-w-2xl">
             <!-- Alerts -->
-            <div th:if="${error}" class="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+            <div th:if="${error}" data-testid="flash-error" class="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
                 <span th:text="${error}"></span>
             </div>
 

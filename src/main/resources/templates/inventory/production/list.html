@@ -11,10 +11,10 @@
     <section class="h-full flex flex-col overflow-y-auto">
         <div class="max-w-6xl">
             <!-- Alerts -->
-            <div th:if="${success}" class="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded">
+            <div th:if="${success}" data-testid="flash-success" class="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded">
                 <span th:text="${success}"></span>
             </div>
-            <div th:if="${error}" class="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+            <div th:if="${error}" data-testid="flash-error" class="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
                 <span th:text="${error}"></span>
             </div>
 
@@ -28,7 +28,7 @@
                     </select>
                     <button type="submit" class="px-4 py-2 bg-primary-600 text-white rounded-md text-sm hover:bg-primary-700">Filter</button>
                 </form>
-                <a th:href="@{/inventory/production/create}"
+                <a sec:authorize="hasAuthority('INVENTORY_ADJUST')" th:href="@{/inventory/production/create}"
                    class="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
@@ -60,7 +60,7 @@
                                     <div th:text="${order.billOfMaterial.code}">BOM-001</div>
                                     <div class="text-xs text-gray-500" th:text="${order.billOfMaterial.product.name}">Produk A</div>
                                 </td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-right" th:text="${#numbers.formatDecimal(order.quantity, 0, 'COMMA', 2, 'POINT')} + ' ' + ${order.billOfMaterial.product.unit}" th:data-testid="'order-quantity-' + ${order.orderNumber}">10 pcs</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-right" th:text="${#numbers.formatDecimal(order.quantity, 1, 'COMMA', 2, 'POINT')} + ' ' + ${order.billOfMaterial.product.unit}" th:data-testid="'order-quantity-' + ${order.orderNumber}">10 pcs</td>
                                 <td class="px-4 py-3 whitespace-nowrap text-center">
                                     <span th:switch="${order.status.name()}">
                                         <span th:case="'DRAFT'" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">Draft</span>
@@ -70,7 +70,7 @@
                                     </span>
                                 </td>
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-right">
-                                    <span th:if="${order.status.name() == 'COMPLETED'}" th:text="'Rp ' + ${#numbers.formatDecimal(order.totalComponentCost, 0, 'COMMA', 0, 'POINT')}">Rp 1.000.000</span>
+                                    <span th:if="${order.status.name() == 'COMPLETED'}" th:text="'Rp ' + ${#numbers.formatDecimal(order.totalComponentCost, 1, 'COMMA', 0, 'POINT')}">Rp 1.000.000</span>
                                     <span th:unless="${order.status.name() == 'COMPLETED'}" class="text-gray-400">-</span>
                                 </td>
                                 <td class="px-4 py-3 whitespace-nowrap text-center text-sm">

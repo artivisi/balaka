@@ -3,11 +3,13 @@ package com.artivisi.accountingfinance.controller;
 import com.artivisi.accountingfinance.entity.BillOfMaterial;
 import com.artivisi.accountingfinance.entity.ProductionOrder;
 import com.artivisi.accountingfinance.entity.ProductionOrderStatus;
+import com.artivisi.accountingfinance.security.Permission;
 import com.artivisi.accountingfinance.service.BillOfMaterialService;
 import com.artivisi.accountingfinance.service.ProductionOrderService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,10 +21,12 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Locale;
 import java.util.UUID;
 
 @Controller
 @RequestMapping("/inventory/production")
+@PreAuthorize("hasAuthority('" + Permission.INVENTORY_VIEW + "')")
 @RequiredArgsConstructor
 @Slf4j
 public class ProductionOrderController {
@@ -34,6 +38,7 @@ public class ProductionOrderController {
     private static final String REDIRECT_PRODUCTION_DETAIL = "redirect:/inventory/production/";
     private static final String MSG_ORDER_NOT_FOUND = "Production order tidak ditemukan";
     private static final String MSG_PRODUCTION_ORDER = "Production order ";
+    private static final String HAS_ADJUST = "hasAuthority('" + Permission.INVENTORY_ADJUST + "')";
 
     private final ProductionOrderService orderService;
     private final BillOfMaterialService bomService;
@@ -51,6 +56,7 @@ public class ProductionOrderController {
     }
 
     @GetMapping("/create")
+    @PreAuthorize(HAS_ADJUST)
     public String createForm(Model model) {
         model.addAttribute(ATTR_ORDER, new ProductionOrder());
         model.addAttribute("boms", bomService.findAll());
@@ -58,6 +64,7 @@ public class ProductionOrderController {
     }
 
     @GetMapping("/{id}/edit")
+    @PreAuthorize(HAS_ADJUST)
     public String editForm(@PathVariable UUID id, Model model, RedirectAttributes redirectAttributes) {
         return orderService.findById(id)
                 .map(order -> {
@@ -89,6 +96,7 @@ public class ProductionOrderController {
     }
 
     @PostMapping("/save")
+    @PreAuthorize(HAS_ADJUST)
     public String save(
             @RequestParam(required = false) UUID id,
             @RequestParam UUID bomId,
@@ -125,6 +133,7 @@ public class ProductionOrderController {
     }
 
     @PostMapping("/{id}/start")
+    @PreAuthorize(HAS_ADJUST)
     public String start(@PathVariable UUID id, RedirectAttributes redirectAttributes) {
         try {
             ProductionOrder order = orderService.start(id);
@@ -137,11 +146,12 @@ public class ProductionOrderController {
     }
 
     @PostMapping("/{id}/complete")
+    @PreAuthorize(HAS_ADJUST)
     public String complete(@PathVariable UUID id, RedirectAttributes redirectAttributes) {
         try {
             ProductionOrder order = orderService.complete(id);
             redirectAttributes.addFlashAttribute(ATTR_SUCCESS,
-                    String.format("Production order %s selesai. Total biaya: Rp %,.0f, Harga pokok per unit: Rp %,.2f",
+                    String.format(Locale.US, "Production order %s selesai. Total biaya: Rp %,.0f, Harga pokok per unit: Rp %,.2f",
                             order.getOrderNumber(), order.getTotalComponentCost(), order.getUnitCost()));
         } catch (Exception e) {
             log.error("Error completing production order", e);
@@ -151,6 +161,7 @@ public class ProductionOrderController {
     }
 
     @PostMapping("/{id}/cancel")
+    @PreAuthorize(HAS_ADJUST)
     public String cancel(@PathVariable UUID id, RedirectAttributes redirectAttributes) {
         try {
             ProductionOrder order = orderService.cancel(id);
@@ -163,6 +174,7 @@ public class ProductionOrderController {
     }
 
     @PostMapping("/{id}/delete")
+    @PreAuthorize(HAS_ADJUST)
     public String delete(@PathVariable UUID id, RedirectAttributes redirectAttributes) {
         try {
             orderService.delete(id);
