@@ -3,6 +3,7 @@ package com.artivisi.accountingfinance.functional;
 import com.artivisi.accountingfinance.entity.User;
 import com.artivisi.accountingfinance.enums.Role;
 import com.artivisi.accountingfinance.repository.ChartOfAccountRepository;
+import com.artivisi.accountingfinance.repository.JournalTemplateRepository;
 import com.artivisi.accountingfinance.repository.UserRepository;
 import com.artivisi.accountingfinance.ui.PlaywrightTestBase;
 import org.junit.jupiter.api.BeforeEach;
@@ -12,19 +13,24 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.TestPropertySource;
 
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Functional tests for the first-run setup wizard.
- *
- * Each test starts with an empty users table (the Flyway-seeded admin is wiped
- * via TRUNCATE...CASCADE in @BeforeEach). The Spring context is dirtied so this
- * destructive setup does not bleed into other test classes.
+ * Functional tests for the first-run setup wizard, which is only reachable while the users
+ * table is empty. Each test truncates users (CASCADE) and loads a seed pack; neither can be
+ * restored row-for-row, so the state is confined instead of snapshotted:
+ * - the test.context property gives this class a Spring context cache key no other class has,
+ *   so its PostgreSQL container is never handed to another class;
+ * - AFTER_CLASS dirtying closes that context (and its container) once the class finishes.
+ * Test classes run sequentially in one fork, so nothing else can observe the empty-users or
+ * re-seeded state.
  */
 @DisplayName("First-Run Setup Wizard")
+@TestPropertySource(properties = "test.context=setup-wizard")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class SetupWizardTest extends PlaywrightTestBase {
 
@@ -33,6 +39,9 @@ class SetupWizardTest extends PlaywrightTestBase {
 
     @Autowired
     private ChartOfAccountRepository chartOfAccountRepository;
+
+    @Autowired
+    private JournalTemplateRepository journalTemplateRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -85,10 +94,10 @@ class SetupWizardTest extends PlaywrightTestBase {
         assertThat(u.getPassword()).isNotEqualTo("wizardpass123");
         assertThat(passwordEncoder.matches("wizardpass123", u.getPassword())).isTrue();
 
-        // Seed pack must have populated chart of accounts.
-        assertThat(chartOfAccountRepository.count())
-                .as("it-service seed pack should have loaded chart of accounts")
-                .isGreaterThan(0);
+        // it-service seed pack loaded: its accounts and its own templates exist
+        assertThat(chartOfAccountRepository.findByAccountCode("1.1.02")).isPresent();
+        assertThat(journalTemplateRepository.findByTemplateNameAndIsCurrentVersionTrue("Pendapatan Jasa Konsultasi"))
+                .as("it-service template must be loaded").isPresent();
 
         // Total users should be exactly one — the wizard admin.
         assertThat(userRepository.count()).isEqualTo(1);
@@ -105,8 +114,11 @@ class SetupWizardTest extends PlaywrightTestBase {
         page.click("button#btn-setup");
         page.waitForURL("**/login**");
 
+        assertThat(journalTemplateRepository.findByTemplateNameAndIsCurrentVersionTrue("Pembelian Bahan Baku - Tunai"))
+                .as("coffee-shop template must be loaded").isPresent();
+
         login("loginadmin", "loginpass123");
-        assertThat(page.url()).contains("/dashboard");
+        assertThat(page.url()).endsWith("/dashboard");
     }
 
     @Test
@@ -122,12 +134,15 @@ class SetupWizardTest extends PlaywrightTestBase {
         page.waitForURL("**/login**");
 
         assertThat(userRepository.count()).isEqualTo(1);
+        assertThat(journalTemplateRepository.findByTemplateNameAndIsCurrentVersionTrue("Penjualan Shopee"))
+                .as("online-seller template must be loaded").isPresent();
 
         // Re-visiting /setup should now redirect to /login (not show the wizard form).
         page.navigate(baseUrl() + "/setup");
         page.waitForURL("**/login**");
         assertThat(page.url()).contains("/login");
         assertThat(page.locator("input[name='username']").isVisible()).isTrue();
+        assertThat(userRepository.findByUsername("firstadmin")).isPresent();
         assertThat(page.locator("select[name='industryPack']").count())
                 .as("wizard form must not be present")
                 .isZero();

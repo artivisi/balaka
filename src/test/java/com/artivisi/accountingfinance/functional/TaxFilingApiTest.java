@@ -2,8 +2,6 @@ package com.artivisi.accountingfinance.functional;
 
 import com.artivisi.accountingfinance.functional.service.ServiceTestDataInitializer;
 import com.artivisi.accountingfinance.repository.ChartOfAccountRepository;
-import com.artivisi.accountingfinance.repository.TaxDocumentRepository;
-import com.artivisi.accountingfinance.repository.TaxFilingRepository;
 import com.artivisi.accountingfinance.ui.PlaywrightTestBase;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -42,18 +40,17 @@ import static org.awaitility.Awaitility.await;
 @Import(ServiceTestDataInitializer.class)
 class TaxFilingApiTest extends PlaywrightTestBase {
 
-    /** Test year kept clear of the seed packs so period keys never collide. */
+    /**
+     * Years reserved for this class. Filings are never deleted afterwards, so every test
+     * uses a (taxType, period) key no other test registers.
+     */
     private static final int TEST_YEAR = 2039;
+    private static final int ANNUAL_FILING_YEAR = 2040;
+    private static final int OUT_OF_RANGE_ANNUAL_YEAR = 2042;
 
     private APIRequestContext apiContext;
     private ObjectMapper objectMapper;
     private String accessToken;
-
-    @Autowired
-    private TaxFilingRepository taxFilingRepository;
-
-    @Autowired
-    private TaxDocumentRepository taxDocumentRepository;
 
     @Autowired
     private ChartOfAccountRepository chartOfAccountRepository;
@@ -74,12 +71,6 @@ class TaxFilingApiTest extends PlaywrightTestBase {
         if (apiContext != null) {
             apiContext.dispose();
         }
-        // Filings registered by this class hold an FK to their payment transaction,
-        // which would block later tests that wipe transactions
-        List<com.artivisi.accountingfinance.entity.TaxFiling> filings =
-                taxFilingRepository.findByFilters(null, TEST_YEAR);
-        filings.forEach(f -> taxDocumentRepository.deleteAll(taxDocumentRepository.findByFilingId(f.getId())));
-        taxFilingRepository.deleteAll(filings);
     }
 
     @Test
@@ -147,9 +138,9 @@ class TaxFilingApiTest extends PlaywrightTestBase {
     @Test
     @DisplayName("Annual PPh Badan filing uses a YYYY period")
     void annualFiling() throws Exception {
-        Map<String, Object> request = filingRequest("PPH_BADAN", String.valueOf(TEST_YEAR), "FILED");
-        request.put("filedDate", (TEST_YEAR + 1) + "-04-28");
-        request.put("bpeNumber", "BPE-BADAN-" + TEST_YEAR);
+        Map<String, Object> request = filingRequest("PPH_BADAN", String.valueOf(ANNUAL_FILING_YEAR), "FILED");
+        request.put("filedDate", (ANNUAL_FILING_YEAR + 1) + "-04-28");
+        request.put("bpeNumber", "BPE-BADAN-" + ANNUAL_FILING_YEAR);
 
         APIResponse response = post("/api/tax-filings", request);
         assertThat(response.status())
@@ -157,8 +148,11 @@ class TaxFilingApiTest extends PlaywrightTestBase {
                 .isEqualTo(201);
 
         JsonNode filing = parse(response).get("filing");
-        assertThat(filing.get("period").asText()).isEqualTo(String.valueOf(TEST_YEAR));
+        assertThat(filing.get("period").asText()).isEqualTo(String.valueOf(ANNUAL_FILING_YEAR));
         assertThat(filing.get("taxType").asText()).isEqualTo("PPH_BADAN");
+        assertThat(filing.get("bpeNumber").asText()).isEqualTo("BPE-BADAN-" + ANNUAL_FILING_YEAR);
+        assertThat(findByField(parse(get("/api/tax-filings?taxType=PPH_BADAN&year=" + ANNUAL_FILING_YEAR)),
+                "id", filing.get("id").asText())).isNotNull();
     }
 
     @Test
@@ -167,6 +161,7 @@ class TaxFilingApiTest extends PlaywrightTestBase {
         APIResponse response = post("/api/tax-filings",
                 filingRequest("PPN", String.valueOf(TEST_YEAR), "FILED"));
         assertThat(response.status()).isEqualTo(400);
+        assertNotRegistered("PPN", String.valueOf(TEST_YEAR));
     }
 
     @Test
@@ -175,6 +170,7 @@ class TaxFilingApiTest extends PlaywrightTestBase {
         APIResponse response = post("/api/tax-filings",
                 filingRequest("PPH_BADAN", TEST_YEAR + "-04", "FILED"));
         assertThat(response.status()).isEqualTo(400);
+        assertNotRegistered("PPH_BADAN", TEST_YEAR + "-04");
     }
 
     @Test
@@ -194,6 +190,7 @@ class TaxFilingApiTest extends PlaywrightTestBase {
 
         APIResponse response = post("/api/tax-filings", request);
         assertThat(response.status()).isEqualTo(400);
+        assertNotRegistered("PPN", TEST_YEAR + "-07");
     }
 
     @Test
@@ -205,6 +202,7 @@ class TaxFilingApiTest extends PlaywrightTestBase {
 
         APIResponse response = post("/api/tax-filings", request);
         assertThat(response.status()).isEqualTo(400);
+        assertNotRegistered("PPN", TEST_YEAR + "-08");
     }
 
     @Test
@@ -262,6 +260,7 @@ class TaxFilingApiTest extends PlaywrightTestBase {
         request.put("lebihBayar", 300000);
 
         assertThat(post("/api/tax-filings", request).status()).isEqualTo(400);
+        assertNotRegistered("PPN", TEST_YEAR + "-10");
     }
 
     @Test
@@ -301,6 +300,7 @@ class TaxFilingApiTest extends PlaywrightTestBase {
         request.put("paymentTransactionId", "00000000-0000-0000-0000-000000000000");
 
         assertThat(post("/api/tax-filings", request).status()).isEqualTo(404);
+        assertNotRegistered("PPN", TEST_YEAR + "-09");
     }
 
     @Test
@@ -449,19 +449,26 @@ class TaxFilingApiTest extends PlaywrightTestBase {
     @Test
     @DisplayName("tax-summary excludes an annual filing whose year does not overlap the range")
     void taxSummaryExcludesAnnualFilingOutsideRange() throws Exception {
-        Map<String, Object> annual = filingRequest("PPH_BADAN", String.valueOf(TEST_YEAR), "FILED");
+        Map<String, Object> annual = filingRequest("PPH_BADAN", String.valueOf(OUT_OF_RANGE_ANNUAL_YEAR), "FILED");
         assertThat(post("/api/tax-filings", annual).status()).isEqualTo(201);
 
-        APIResponse response = get("/api/analysis/tax-summary?startDate=" + (TEST_YEAR - 1)
-                + "-01-01&endDate=" + (TEST_YEAR - 1) + "-12-31");
+        APIResponse response = get("/api/analysis/tax-summary?startDate=" + (OUT_OF_RANGE_ANNUAL_YEAR - 1)
+                + "-01-01&endDate=" + (OUT_OF_RANGE_ANNUAL_YEAR - 1) + "-12-31");
         assertThat(response.status()).isEqualTo(200);
 
-        assertThat(findByField(parse(response).get("data").get("filings"), "period", String.valueOf(TEST_YEAR)))
-                .as("A filing for " + TEST_YEAR + " must not appear in the " + (TEST_YEAR - 1) + " summary")
+        assertThat(findByField(parse(response).get("data").get("filings"), "period", String.valueOf(OUT_OF_RANGE_ANNUAL_YEAR)))
+                .as("A filing for " + OUT_OF_RANGE_ANNUAL_YEAR + " must not appear in the " + (OUT_OF_RANGE_ANNUAL_YEAR - 1) + " summary")
                 .isNull();
     }
 
     // ==================== HELPERS ====================
+
+    private void assertNotRegistered(String taxType, String period) throws Exception {
+        String year = period.substring(0, 4);
+        assertThat(findByField(parse(get("/api/tax-filings?taxType=" + taxType + "&year=" + year)), "period", period))
+                .as(taxType + " " + period + " must not have been registered")
+                .isNull();
+    }
 
     private Map<String, Object> filingRequest(String taxType, String period, String status) {
         Map<String, Object> request = new HashMap<>();
