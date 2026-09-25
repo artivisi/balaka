@@ -7,6 +7,7 @@ import com.artivisi.accountingfinance.entity.Transaction;
 import com.artivisi.accountingfinance.enums.AmortizationEntryStatus;
 import com.artivisi.accountingfinance.enums.ScheduleType;
 import com.artivisi.accountingfinance.repository.AmortizationEntryRepository;
+import com.artivisi.accountingfinance.repository.JournalEntryRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -16,7 +17,10 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +30,7 @@ public class AmortizationEntryService {
     private final AmortizationEntryRepository entryRepository;
     private final AmortizationScheduleService scheduleService;
     private final JournalEntryService journalEntryService;
+    private final JournalEntryRepository journalEntryRepository;
 
     public AmortizationEntry findById(UUID id) {
         return entryRepository.findById(id)
@@ -34,6 +39,24 @@ public class AmortizationEntryService {
 
     public List<AmortizationEntry> findByScheduleId(UUID scheduleId) {
         return entryRepository.findByScheduleIdOrderByPeriodNumberAsc(scheduleId);
+    }
+
+    public Map<UUID, UUID> findTransactionIdsByEntryId(List<AmortizationEntry> entries) {
+        Map<String, UUID> entryIdByJournalNumber = entries.stream()
+                .filter(e -> e.getJournalNumber() != null)
+                .collect(Collectors.toMap(AmortizationEntry::getJournalNumber, AmortizationEntry::getId));
+        Map<UUID, UUID> transactionIdByEntryId = journalEntryRepository
+                .findByJournalNumberIn(entryIdByJournalNumber.keySet()).stream()
+                .collect(Collectors.toMap(
+                        je -> Objects.requireNonNull(entryIdByJournalNumber.get(je.getJournalNumber())),
+                        je -> je.getTransaction().getId()));
+        if (transactionIdByEntryId.size() != entryIdByJournalNumber.size()) {
+            throw new IllegalStateException("Journal entry not found for amortization journal numbers: "
+                    + entryIdByJournalNumber.keySet().stream()
+                            .filter(n -> !transactionIdByEntryId.containsKey(entryIdByJournalNumber.get(n)))
+                            .toList());
+        }
+        return transactionIdByEntryId;
     }
 
     public List<AmortizationEntry> findPendingByScheduleId(UUID scheduleId) {

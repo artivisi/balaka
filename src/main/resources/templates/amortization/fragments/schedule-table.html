@@ -71,8 +71,8 @@
             </div>
             <div class="flex gap-2">
                 <a th:if="${schedules.hasPrevious()}"
-                   th:href="@{/amortization(page=${schedules.number - 1}, status=${selectedStatus}, type=${selectedType}, search=${searchQuery})}"
-                   hx-get th:hx-get="@{/amortization(page=${schedules.number - 1}, status=${selectedStatus}, type=${selectedType}, search=${searchQuery})}"
+                   th:href="@{/amortization(page=${schedules.number - 1}, size=${schedules.size}, status=${selectedStatus}, type=${selectedType}, search=${searchQuery})}"
+                   hx-get th:hx-get="@{/amortization(page=${schedules.number - 1}, size=${schedules.size}, status=${selectedStatus}, type=${selectedType}, search=${searchQuery})}"
                    hx-target="#schedule-table"
                    hx-swap="outerHTML"
                    hx-push-url="true"
@@ -80,8 +80,8 @@
                     Sebelumnya
                 </a>
                 <a th:if="${schedules.hasNext()}"
-                   th:href="@{/amortization(page=${schedules.number + 1}, status=${selectedStatus}, type=${selectedType}, search=${searchQuery})}"
-                   hx-get th:hx-get="@{/amortization(page=${schedules.number + 1}, status=${selectedStatus}, type=${selectedType}, search=${searchQuery})}"
+                   th:href="@{/amortization(page=${schedules.number + 1}, size=${schedules.size}, status=${selectedStatus}, type=${selectedType}, search=${searchQuery})}"
+                   hx-get th:hx-get="@{/amortization(page=${schedules.number + 1}, size=${schedules.size}, status=${selectedStatus}, type=${selectedType}, search=${searchQuery})}"
                    hx-target="#schedule-table"
                    hx-swap="outerHTML"
                    hx-push-url="true"

@@ -4,6 +4,9 @@
 <head><title>entry table Fragment</title></head>
 <body>
     <div th:fragment="table" id="entry-table">
+        <div th:if="${entryErrorMessage}" data-testid="entry-error"
+             class="m-4 p-4 rounded-lg bg-red-50 border border-red-200 text-sm font-medium text-red-800"
+             th:text="${entryErrorMessage}">Error</div>
         <table class="min-w-full divide-y divide-gray-200" data-testid="entry-table">
             <thead class="bg-gray-50">
                 <tr>
@@ -32,12 +35,12 @@
                               th:text="${entry.status.indonesianName}">Pending</span>
                     </td>
                     <td class="px-4 py-3 whitespace-nowrap text-center">
-                        <a th:if="${entry.journalEntryId != null}"
-                           th:href="@{/journals/{journalNumber}(journalNumber=${entry.journalNumber})}"
+                        <a th:if="${entry.journalNumber != null}"
+                           th:href="@{/transactions/{id}(id=${transactionIds[entry.id]})}"
                            class="text-primary-600 hover:text-primary-900 text-sm">
                             Lihat
                         </a>
-                        <span th:if="${entry.journalEntryId == null}" class="text-gray-400 text-sm">-</span>
+                        <span th:if="${entry.journalNumber == null}" class="text-gray-400 text-sm">-</span>
                     </td>
                     <td class="px-4 py-3 whitespace-nowrap text-center">
                         <div sec:authorize="hasAuthority('AMORTIZATION_POST')" th:if="${entry.pending and schedule.active}" class="flex items-center justify-center gap-2">

@@ -41,6 +41,10 @@ import static com.artivisi.accountingfinance.controller.ViewConstants.*;
 public class AmortizationController {
 
     private static final String ATTR_SUCCESS_MESSAGE = "successMessage";
+    private static final String ATTR_ERROR_MESSAGE = "errorMessage";
+    private static final String ATTR_ENTRY_ERROR_MESSAGE = "entryErrorMessage";
+    private static final String VIEW_FORM = "amortization/form";
+    private static final String VIEW_ENTRY_TABLE = "amortization/fragments/entry-table :: table";
     private static final String REDIRECT_AMORTIZATION_PREFIX = "redirect:/amortization/";
     private static final String ATTR_TYPES = "types";
     private static final String ATTR_SCHEDULE = "schedule";
@@ -86,35 +90,23 @@ public class AmortizationController {
     @GetMapping("/new")
     @PreAuthorize("hasAuthority('" + Permission.AMORTIZATION_CREATE + "')")
     public String create(Model model) {
-        model.addAttribute(ATTR_CURRENT_PAGE, PAGE_AMORTIZATION);
-        model.addAttribute("isEdit", false);
-        model.addAttribute(ATTR_TYPES, ScheduleType.values());
-        model.addAttribute("frequencies", AmortizationFrequency.values());
-        model.addAttribute("accounts", chartOfAccountRepository.findByActiveOrderByAccountCodeAsc(true));
-        return "amortization/form";
+        populateFormModel(model, false);
+        return VIEW_FORM;
     }
 
     @GetMapping("/{id}")
     public String detail(@PathVariable UUID id, Model model) {
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_AMORTIZATION);
-        AmortizationSchedule schedule = scheduleService.findById(id);
-        List<AmortizationEntry> entries = entryService.findByScheduleId(id);
-
-        model.addAttribute(ATTR_SCHEDULE, schedule);
-        model.addAttribute(ATTR_ENTRIES, entries);
+        populateEntryModel(model, id);
         return "amortization/detail";
     }
 
     @GetMapping("/{id}/edit")
     @PreAuthorize("hasAuthority('" + Permission.AMORTIZATION_EDIT + "')")
     public String edit(@PathVariable UUID id, Model model) {
-        model.addAttribute(ATTR_CURRENT_PAGE, PAGE_AMORTIZATION);
-        model.addAttribute("isEdit", true);
+        populateFormModel(model, true);
         model.addAttribute(ATTR_SCHEDULE, scheduleService.findById(id));
-        model.addAttribute(ATTR_TYPES, ScheduleType.values());
-        model.addAttribute("frequencies", AmortizationFrequency.values());
-        model.addAttribute("accounts", chartOfAccountRepository.findByActiveOrderByAccountCodeAsc(true));
-        return "amortization/form";
+        return VIEW_FORM;
     }
 
     @PostMapping
@@ -132,6 +124,7 @@ public class AmortizationController {
             @RequestParam String frequency,
             @RequestParam(defaultValue = "false") boolean autoPost,
             @RequestParam(defaultValue = "1") Integer postDay,
+            Model model,
             RedirectAttributes redirectAttributes) {
 
         AmortizationSchedule schedule = new AmortizationSchedule();
@@ -154,9 +147,16 @@ public class AmortizationController {
         schedule.setSourceAccount(sourceAccount);
         schedule.setTargetAccount(targetAccount);
 
-        AmortizationSchedule saved = scheduleService.create(schedule);
-        redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Jadwal amortisasi berhasil dibuat");
-        return REDIRECT_AMORTIZATION_PREFIX + saved.getId();
+        try {
+            AmortizationSchedule saved = scheduleService.create(schedule);
+            redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Jadwal amortisasi berhasil dibuat");
+            return REDIRECT_AMORTIZATION_PREFIX + saved.getId();
+        } catch (IllegalArgumentException e) {
+            populateFormModel(model, false);
+            model.addAttribute(ATTR_SCHEDULE, schedule);
+            model.addAttribute(ATTR_ERROR_MESSAGE, e.getMessage());
+            return VIEW_FORM;
+        }
     }
 
     @PostMapping("/{id}")
@@ -175,23 +175,36 @@ public class AmortizationController {
         schedule.setAutoPost(autoPost);
         schedule.setPostDay(postDay);
 
-        scheduleService.update(id, schedule);
-        redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Jadwal amortisasi berhasil diperbarui");
+        try {
+            scheduleService.update(id, schedule);
+            redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Jadwal amortisasi berhasil diperbarui");
+        } catch (IllegalStateException e) {
+            redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, e.getMessage());
+        }
         return REDIRECT_AMORTIZATION_PREFIX + id;
     }
 
     @PostMapping("/{id}/cancel")
     @PreAuthorize("hasAuthority('" + Permission.AMORTIZATION_EDIT + "')")
     public String cancel(@PathVariable UUID id, RedirectAttributes redirectAttributes) {
-        scheduleService.cancel(id);
-        redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Jadwal amortisasi berhasil dibatalkan");
+        try {
+            scheduleService.cancel(id);
+            redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Jadwal amortisasi berhasil dibatalkan");
+        } catch (IllegalStateException e) {
+            redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, e.getMessage());
+        }
         return REDIRECT_AMORTIZATION_PREFIX + id;
     }
 
     @PostMapping("/{id}/delete")
     @PreAuthorize("hasAuthority('" + Permission.AMORTIZATION_EDIT + "')")
     public String delete(@PathVariable UUID id, RedirectAttributes redirectAttributes) {
-        scheduleService.delete(id);
+        try {
+            scheduleService.delete(id);
+        } catch (IllegalStateException e) {
+            redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, e.getMessage());
+            return REDIRECT_AMORTIZATION_PREFIX + id;
+        }
         redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Jadwal amortisasi berhasil dihapus");
         return "redirect:/amortization";
     }
@@ -207,17 +220,21 @@ public class AmortizationController {
             Model model,
             RedirectAttributes redirectAttributes) {
 
-        entryService.postEntry(entryId);
-
-        if ("true".equals(hxRequest)) {
-            AmortizationSchedule schedule = scheduleService.findById(id);
-            List<AmortizationEntry> entries = entryService.findByScheduleId(id);
-            model.addAttribute(ATTR_SCHEDULE, schedule);
-            model.addAttribute(ATTR_ENTRIES, entries);
-            return "amortization/fragments/entry-table :: table";
+        String error = null;
+        try {
+            entryService.postEntry(entryId);
+        } catch (IllegalStateException e) {
+            error = e.getMessage();
         }
 
-        redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Entry berhasil diposting");
+        if ("true".equals(hxRequest)) {
+            populateEntryModel(model, id);
+            model.addAttribute(ATTR_ENTRY_ERROR_MESSAGE, error);
+            return VIEW_ENTRY_TABLE;
+        }
+
+        redirectAttributes.addFlashAttribute(error == null ? ATTR_SUCCESS_MESSAGE : ATTR_ERROR_MESSAGE,
+                error == null ? "Entry berhasil diposting" : error);
         return REDIRECT_AMORTIZATION_PREFIX + id;
     }
 
@@ -230,17 +247,21 @@ public class AmortizationController {
             Model model,
             RedirectAttributes redirectAttributes) {
 
-        entryService.skipEntry(entryId);
-
-        if ("true".equals(hxRequest)) {
-            AmortizationSchedule schedule = scheduleService.findById(id);
-            List<AmortizationEntry> entries = entryService.findByScheduleId(id);
-            model.addAttribute(ATTR_SCHEDULE, schedule);
-            model.addAttribute(ATTR_ENTRIES, entries);
-            return "amortization/fragments/entry-table :: table";
+        String error = null;
+        try {
+            entryService.skipEntry(entryId);
+        } catch (IllegalStateException e) {
+            error = e.getMessage();
         }
 
-        redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Entry berhasil dilewati");
+        if ("true".equals(hxRequest)) {
+            populateEntryModel(model, id);
+            model.addAttribute(ATTR_ENTRY_ERROR_MESSAGE, error);
+            return VIEW_ENTRY_TABLE;
+        }
+
+        redirectAttributes.addFlashAttribute(error == null ? ATTR_SUCCESS_MESSAGE : ATTR_ERROR_MESSAGE,
+                error == null ? "Entry berhasil dilewati" : error);
         return REDIRECT_AMORTIZATION_PREFIX + id;
     }
 
@@ -250,8 +271,12 @@ public class AmortizationController {
             @PathVariable UUID id,
             RedirectAttributes redirectAttributes) {
 
-        entryService.postAllPending(id);
-        redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Semua entry pending berhasil diposting");
+        try {
+            entryService.postAllPending(id);
+            redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Semua entry pending berhasil diposting");
+        } catch (IllegalStateException e) {
+            redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, e.getMessage());
+        }
         return REDIRECT_AMORTIZATION_PREFIX + id;
     }
 
@@ -268,5 +293,20 @@ public class AmortizationController {
                     String.format("Batch selesai: %d entry berhasil diproses", result.successCount()));
         }
         return "redirect:/amortization";
+    }
+
+    private void populateFormModel(Model model, boolean isEdit) {
+        model.addAttribute(ATTR_CURRENT_PAGE, PAGE_AMORTIZATION);
+        model.addAttribute("isEdit", isEdit);
+        model.addAttribute(ATTR_TYPES, ScheduleType.values());
+        model.addAttribute("frequencies", AmortizationFrequency.values());
+        model.addAttribute("accounts", chartOfAccountRepository.findByActiveOrderByAccountCodeAsc(true));
+    }
+
+    private void populateEntryModel(Model model, UUID scheduleId) {
+        List<AmortizationEntry> entries = entryService.findByScheduleId(scheduleId);
+        model.addAttribute(ATTR_SCHEDULE, scheduleService.findById(scheduleId));
+        model.addAttribute(ATTR_ENTRIES, entries);
+        model.addAttribute("transactionIds", entryService.findTransactionIdsByEntryId(entries));
     }
 }

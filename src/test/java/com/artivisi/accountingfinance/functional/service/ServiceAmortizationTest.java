@@ -1,23 +1,43 @@
 package com.artivisi.accountingfinance.functional.service;
 
+import com.artivisi.accountingfinance.entity.AmortizationEntry;
+import com.artivisi.accountingfinance.entity.AmortizationSchedule;
+import com.artivisi.accountingfinance.entity.ChartOfAccount;
+import com.artivisi.accountingfinance.entity.Transaction;
+import com.artivisi.accountingfinance.enums.AmortizationEntryStatus;
+import com.artivisi.accountingfinance.enums.AmortizationFrequency;
+import com.artivisi.accountingfinance.enums.ScheduleStatus;
+import com.artivisi.accountingfinance.enums.ScheduleType;
+import com.artivisi.accountingfinance.repository.AmortizationEntryRepository;
 import com.artivisi.accountingfinance.repository.AmortizationScheduleRepository;
 import com.artivisi.accountingfinance.repository.ChartOfAccountRepository;
+import com.artivisi.accountingfinance.repository.JournalEntryRepository;
+import com.artivisi.accountingfinance.service.AmortizationScheduleService;
 import com.artivisi.accountingfinance.ui.PlaywrightTestBase;
+import com.microsoft.playwright.Locator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.UUID;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Amortization Functional Tests.
- * Tests the amortization workflow: create schedule, view entries, post, skip, cancel.
- * Covers AmortizationController, AmortizationScheduleService, AmortizationEntryService.
+ * Amortization workflow for the IT service company: quarterly deferred-revenue schedule created through
+ * the form, journal direction for intangible-asset and accrued-revenue schedules, and the list's pending
+ * counter. Create/edit/post/skip/cancel/delete/filter/batch details are in AmortizationControllerFunctionalTest.
+ *
+ * Schedules are created by the test with unique codes and 2047 dates.
  */
 @DisplayName("Service Industry - Amortization")
 @Import(ServiceTestDataInitializer.class)
@@ -27,7 +47,19 @@ class ServiceAmortizationTest extends PlaywrightTestBase {
     private AmortizationScheduleRepository scheduleRepository;
 
     @Autowired
+    private AmortizationEntryRepository entryRepository;
+
+    @Autowired
+    private AmortizationScheduleService scheduleService;
+
+    @Autowired
     private ChartOfAccountRepository chartOfAccountRepository;
+
+    @Autowired
+    private JournalEntryRepository journalEntryRepository;
+
+    @Autowired
+    private PlatformTransactionManager transactionManager;
 
     @BeforeEach
     void setup() {
@@ -35,319 +67,176 @@ class ServiceAmortizationTest extends PlaywrightTestBase {
     }
 
     @Test
-    @DisplayName("Should display amortization list page")
-    void shouldDisplayAmortizationList() {
-        navigateTo("/amortization");
-        waitForPageLoad();
+    @DisplayName("Quarterly deferred-revenue schedule caps the last quarter at the end date and posts revenue recognition")
+    void shouldCreateQuarterlyUnearnedRevenueScheduleAndPostRecognition() {
+        String code = code();
+        String name = "Kontrak Maintenance " + code;
 
-        // Verify page loads
-        assertThat(page.locator("#page-title, h1").first()).containsText("Amortisasi");
-    }
-
-    @Test
-    @DisplayName("Should display new amortization form")
-    void shouldDisplayNewAmortizationForm() {
         navigateTo("/amortization/new");
         waitForPageLoad();
-
-        // Verify form loads with required fields
-        assertThat(page.locator("input[name='code']")).isVisible();
-        assertThat(page.locator("input[name='name']")).isVisible();
-        assertThat(page.locator("select[name='scheduleType']")).isVisible();
-        assertThat(page.locator("select[name='sourceAccountId']")).isVisible();
-        assertThat(page.locator("select[name='targetAccountId']")).isVisible();
-        assertThat(page.locator("input[name='totalAmount']")).isVisible();
-        assertThat(page.locator("input[name='startDate']")).isVisible();
-        assertThat(page.locator("input[name='endDate']")).isVisible();
-        assertThat(page.locator("select[name='frequency']")).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should create new amortization schedule")
-    void shouldCreateAmortizationSchedule() {
-        navigateTo("/amortization/new");
+        page.locator("input[name='code']").fill(code);
+        page.locator("input[name='name']").fill(name);
+        page.locator("select[name='scheduleType']").selectOption(ScheduleType.UNEARNED_REVENUE.name());
+        page.locator("select[name='sourceAccountId']").selectOption(account("2.1.04").getId().toString());
+        page.locator("select[name='targetAccountId']").selectOption(account("4.1.02").getId().toString());
+        page.locator("input[name='totalAmount']").fill("1000000");
+        page.locator("input[name='startDate']").fill("2047-01-01");
+        page.locator("input[name='endDate']").fill("2047-11-30");
+        page.locator("select[name='frequency']").selectOption(AmortizationFrequency.QUARTERLY.name());
+        page.locator("#btn-simpan").click();
         waitForPageLoad();
 
-        // Verify form page loads
-        assertThat(page.locator("body")).isVisible();
+        AmortizationSchedule schedule = schedule(code);
+        assertThat(page).hasURL(baseUrl() + "/amortization/" + schedule.getId());
+        assertThat(page.getByTestId("amortization-detail")).containsText("Pendapatan Diterima Dimuka");
+        assertThat(page.getByTestId("amortization-detail")).containsText("Triwulanan");
+        assertThat(page.getByTestId("amortization-detail")).containsText("0/4");
 
-        // Try to fill basic form fields if visible
-        var codeInput = page.locator("input[name='code']").first();
-        if (codeInput.isVisible()) {
-            String uniqueCode = "AMORT-" + System.currentTimeMillis();
-            codeInput.fill(uniqueCode);
+        assertThat(schedule.getFrequency()).isEqualTo(AmortizationFrequency.QUARTERLY);
+        assertThat(schedule.getTotalPeriods()).isEqualTo(4);
+        assertThat(schedule.getPeriodAmount()).isEqualByComparingTo("250000");
+        List<AmortizationEntry> entries = entries(schedule);
+        assertThat(entries).extracting(AmortizationEntry::getPeriodStart).containsExactly(
+                LocalDate.of(2047, 1, 1), LocalDate.of(2047, 4, 1), LocalDate.of(2047, 7, 1), LocalDate.of(2047, 10, 1));
+        assertThat(entries).extracting(AmortizationEntry::getPeriodEnd).containsExactly(
+                LocalDate.of(2047, 3, 31), LocalDate.of(2047, 6, 30), LocalDate.of(2047, 9, 30), LocalDate.of(2047, 11, 30));
+        assertThat(entries).extracting(e -> e.getAmount().setScale(2, RoundingMode.UNNECESSARY).toPlainString())
+                .containsExactly("250000.00", "250000.00", "250000.00", "250000.00");
 
-            var nameInput = page.locator("input[name='name']").first();
-            if (nameInput.isVisible()) {
-                nameInput.fill("Test Amortisasi");
-            }
+        entryRow(entries.get(3)).locator("button:has-text('Posting')").click();
+        assertThat(entryRow(entries.get(3))).containsText("Terposting");
 
-            // Submit form if all basic fields filled
-            var submitBtn = page.locator("#btn-simpan");
-            if (submitBtn.isVisible()) {
-                submitBtn.click();
-                waitForPageLoad();
-            }
-        }
-
-        // Verify page still accessible (not redirected to login)
-        assertThat(page).hasURL(java.util.regex.Pattern.compile(".*\\/amortization.*"));
+        AmortizationEntry posted = entryRepository.findById(entries.get(3).getId()).orElseThrow();
+        Posting journal = posting(posted);
+        assertThat(journal.date()).isEqualTo(LocalDate.of(2047, 11, 30));
+        assertThat(journal.reference()).isEqualTo(code + "-4");
+        assertThat(journal.description()).startsWith("Pengakuan Pendapatan Diterima Dimuka - " + name);
+        assertThat(journal.lines()).containsExactly("2.1.04 D250000.00 C0.00", "4.1.02 D0.00 C250000.00");
+        assertThat(schedule(code).getRemainingAmount()).isEqualByComparingTo("750000");
     }
 
     @Test
-    @DisplayName("Should display amortization schedule detail")
-    void shouldDisplayAmortizationDetail() {
-        var schedule = scheduleRepository.findAll().stream().findFirst();
+    @DisplayName("Intangible-asset schedule posts debit amortization expense, credit accumulated amortization")
+    void shouldPostIntangibleAssetAmortizationAsExpense() {
+        AmortizationSchedule schedule = createSchedule("Lisensi Software", ScheduleType.INTANGIBLE_ASSET,
+                "1.2.02", "5.1.09", "900000", LocalDate.of(2047, 1, 1), LocalDate.of(2047, 3, 31));
 
-        if (schedule.isPresent()) {
-            navigateTo("/amortization/" + schedule.get().getId());
-            waitForPageLoad();
+        postAll(schedule);
 
-            // Verify detail page loads
-            assertThat(page.locator("#page-title, h1").first()).isVisible();
-
-            // Verify schedule info is displayed
-            assertThat(page.locator("body")).containsText(schedule.get().getName());
-        }
+        List<AmortizationEntry> entries = entries(schedule);
+        assertThat(entries).extracting(AmortizationEntry::getStatus).containsOnly(AmortizationEntryStatus.POSTED);
+        Posting first = posting(entries.getFirst());
+        assertThat(first.description()).startsWith("Amortisasi Aset Tak Berwujud - " + schedule.getName());
+        assertThat(first.lines()).containsExactly("5.1.09 D300000.00 C0.00", "1.2.02 D0.00 C300000.00");
+        assertThat(schedule(schedule.getCode()).getStatus()).isEqualTo(ScheduleStatus.COMPLETED);
     }
 
     @Test
-    @DisplayName("Should edit amortization schedule")
-    void shouldEditAmortizationSchedule() {
-        var schedule = scheduleRepository.findAll().stream()
-                .filter(s -> s.getStatus().name().equals("ACTIVE"))
-                .findFirst();
+    @DisplayName("Accrued-revenue schedule posts debit receivable, credit revenue")
+    void shouldPostAccruedRevenueAsReceivable() {
+        AmortizationSchedule schedule = createSchedule("Retainer Akrual", ScheduleType.ACCRUED_REVENUE,
+                "1.1.10", "4.1.03", "1000000", LocalDate.of(2047, 1, 1), LocalDate.of(2047, 3, 31));
 
-        if (schedule.isPresent()) {
-            navigateTo("/amortization/" + schedule.get().getId() + "/edit");
-            waitForPageLoad();
+        postAll(schedule);
 
-            // Verify edit form loads
-            assertThat(page.locator("input[name='name']")).isVisible();
-
-            // Update name
-            page.fill("input[name='name']", schedule.get().getName() + " (Updated)");
-            page.locator("#btn-simpan").click();
-            waitForPageLoad();
-
-            // Verify still on amortization page (not redirected to login)
-            assertThat(page).hasURL(java.util.regex.Pattern.compile(".*\\/amortization.*"));
-        }
+        List<AmortizationEntry> entries = entries(schedule);
+        Posting last = posting(entries.getLast());
+        assertThat(last.description()).startsWith("Pengakuan Pendapatan Akrual - " + schedule.getName());
+        assertThat(last.date()).isEqualTo(LocalDate.of(2047, 3, 31));
+        assertThat(last.lines()).containsExactly("1.1.10 D333333.34 C0.00", "4.1.03 D0.00 C333333.34");
+        assertThat(posting(entries.getFirst()).lines())
+                .containsExactly("1.1.10 D333333.33 C0.00", "4.1.03 D0.00 C333333.33");
     }
 
     @Test
-    @DisplayName("Should post single amortization entry")
-    void shouldPostSingleEntry() {
-        var schedule = scheduleRepository.findAll().stream()
-                .filter(s -> s.getStatus().name().equals("ACTIVE"))
-                .findFirst();
+    @DisplayName("List shows the new schedule's row and raises the pending-entry counter by its period count")
+    void shouldListScheduleAndCountItsPendingEntries() {
+        long pendingBefore = entryRepository.countPendingEntries();
+        AmortizationSchedule schedule = createSchedule("Asuransi Kantor", ScheduleType.PREPAID_EXPENSE,
+                "1.1.15", "5.1.05", "12000000", LocalDate.of(2047, 1, 1), LocalDate.of(2047, 12, 31));
 
-        if (schedule.isPresent()) {
-            navigateTo("/amortization/" + schedule.get().getId());
-            waitForPageLoad();
-
-            // Find post button for pending entry
-            var postBtn = page.locator("form[action*='/entries/'][action*='/post'] button[type='submit']").first();
-            if (postBtn.isVisible()) {
-                postBtn.click();
-                waitForPageLoad();
-
-                // Verify still on amortization page (not redirected to login)
-                assertThat(page).hasURL(java.util.regex.Pattern.compile(".*\\/amortization.*"));
-            }
-        }
-    }
-
-    @Test
-    @DisplayName("Should skip amortization entry")
-    void shouldSkipEntry() {
-        var schedule = scheduleRepository.findAll().stream()
-                .filter(s -> s.getStatus().name().equals("ACTIVE"))
-                .findFirst();
-
-        if (schedule.isPresent()) {
-            navigateTo("/amortization/" + schedule.get().getId());
-            waitForPageLoad();
-
-            // Find skip button for pending entry
-            var skipBtn = page.locator("form[action*='/entries/'][action*='/skip'] button[type='submit']").first();
-            if (skipBtn.isVisible()) {
-                skipBtn.click();
-                waitForPageLoad();
-
-                // Verify still on amortization page (not redirected to login)
-                assertThat(page).hasURL(java.util.regex.Pattern.compile(".*\\/amortization.*"));
-            }
-        }
-    }
-
-    @Test
-    @DisplayName("Should post all pending entries")
-    void shouldPostAllPendingEntries() {
-        var schedule = scheduleRepository.findAll().stream()
-                .filter(s -> s.getStatus().name().equals("ACTIVE"))
-                .findFirst();
-
-        if (schedule.isPresent()) {
-            navigateTo("/amortization/" + schedule.get().getId());
-            waitForPageLoad();
-
-            // Find post all button
-            var postAllBtn = page.locator("form[action*='post-all'] button[type='submit']").first();
-            if (postAllBtn.isVisible()) {
-                postAllBtn.click();
-                waitForPageLoad();
-
-                // Verify still on amortization page (not redirected to login)
-                assertThat(page).hasURL(java.util.regex.Pattern.compile(".*\\/amortization.*"));
-            }
-        }
-    }
-
-    @Test
-    @DisplayName("Should cancel amortization schedule")
-    void shouldCancelSchedule() {
-        // First create a schedule to cancel
-        navigateTo("/amortization/new");
+        navigateTo("/amortization?search=" + schedule.getCode());
         waitForPageLoad();
 
-        var prepaidAccount = chartOfAccountRepository.findByAccountCode("1.2.01");
-        var expenseAccount = chartOfAccountRepository.findByAccountCode("5.1.07");
+        assertThat(page.locator("#page-title")).hasText("Jadwal Amortisasi");
+        assertThat(page.getByTestId("amortization-list"))
+                .containsText((pendingBefore + 12) + " entry pending");
+        Locator row = page.locator("[data-testid='schedule-table'] tbody tr[data-id='" + schedule.getId() + "']");
+        assertThat(row).containsText(schedule.getCode());
+        assertThat(row).containsText(schedule.getName());
+        assertThat(row).containsText("Beban Dibayar Dimuka");
+        assertThat(row).containsText("12,000,000");
+        assertThat(row).containsText("0/12");
+        assertThat(row).containsText("Aktif");
 
-        if (prepaidAccount.isEmpty() || expenseAccount.isEmpty()) {
-            return;
-        }
-
-        String uniqueCode = "CANCEL-" + System.currentTimeMillis();
-        page.fill("input[name='code']", uniqueCode);
-        page.fill("input[name='name']", "Schedule to Cancel");
-        page.selectOption("select[name='scheduleType']", "PREPAID_EXPENSE");
-        page.selectOption("select[name='sourceAccountId']", prepaidAccount.get().getId().toString());
-        page.selectOption("select[name='targetAccountId']", expenseAccount.get().getId().toString());
-        page.fill("input[name='totalAmount']", "12000000");
-
-        LocalDate startDate = LocalDate.now().plusMonths(6).withDayOfMonth(1);
-        LocalDate endDate = startDate.plusMonths(12).minusDays(1);
-        page.fill("input[name='startDate']", startDate.format(DateTimeFormatter.ISO_LOCAL_DATE));
-        page.fill("input[name='endDate']", endDate.format(DateTimeFormatter.ISO_LOCAL_DATE));
-        page.selectOption("select[name='frequency']", "MONTHLY");
-
-        page.click("button[type='submit']");
+        row.locator("a:has-text('Detail')").click();
         waitForPageLoad();
-
-        // Now cancel it
-        var cancelBtn = page.locator("button:has-text('Batalkan'), form[action*='cancel'] button[type='submit']").first();
-        if (cancelBtn.isVisible()) {
-            cancelBtn.click();
-            waitForPageLoad();
-
-            // Verify success
-            assertThat(page.locator(".alert-success, [data-testid='success-message']").first()).isVisible();
-        }
+        assertThat(page).hasURL(baseUrl() + "/amortization/" + schedule.getId());
+        assertThat(page.getByTestId("amortization-detail")).containsText(schedule.getName());
+        assertThat(page.getByTestId("amortization-detail")).containsText("Rp 1,000,000");
     }
 
-    @Test
-    @DisplayName("Should delete amortization schedule")
-    void shouldDeleteSchedule() {
-        // First create a schedule to delete
-        navigateTo("/amortization/new");
-        waitForPageLoad();
-
-        var prepaidAccount = chartOfAccountRepository.findByAccountCode("1.2.01");
-        var expenseAccount = chartOfAccountRepository.findByAccountCode("5.1.07");
-
-        if (prepaidAccount.isEmpty() || expenseAccount.isEmpty()) {
-            return;
-        }
-
-        String uniqueCode = "DELETE-" + System.currentTimeMillis();
-        page.fill("input[name='code']", uniqueCode);
-        page.fill("input[name='name']", "Schedule to Delete");
-        page.selectOption("select[name='scheduleType']", "PREPAID_EXPENSE");
-        page.selectOption("select[name='sourceAccountId']", prepaidAccount.get().getId().toString());
-        page.selectOption("select[name='targetAccountId']", expenseAccount.get().getId().toString());
-        page.fill("input[name='totalAmount']", "6000000");
-
-        LocalDate startDate = LocalDate.now().plusMonths(12).withDayOfMonth(1);
-        LocalDate endDate = startDate.plusMonths(6).minusDays(1);
-        page.fill("input[name='startDate']", startDate.format(DateTimeFormatter.ISO_LOCAL_DATE));
-        page.fill("input[name='endDate']", endDate.format(DateTimeFormatter.ISO_LOCAL_DATE));
-        page.selectOption("select[name='frequency']", "MONTHLY");
-
-        page.click("button[type='submit']");
-        waitForPageLoad();
-
-        // Now delete it
-        var deleteBtn = page.locator("button:has-text('Hapus'), form[action*='delete'] button[type='submit']").first();
-        if (deleteBtn.isVisible()) {
-            deleteBtn.click();
-            waitForPageLoad();
-
-            // Verify redirected to list
-            assertThat(page).hasURL(java.util.regex.Pattern.compile(".*/amortization$"));
-        }
+    private record Posting(LocalDate date, String reference, String description, List<String> lines) {
     }
 
-    @Test
-    @DisplayName("Should filter amortization list by status")
-    void shouldFilterByStatus() {
-        navigateTo("/amortization");
+    private void postAll(AmortizationSchedule schedule) {
+        navigateTo("/amortization/" + schedule.getId());
         waitForPageLoad();
-
-        var statusSelect = page.locator("select[name='status']").first();
-        if (statusSelect.isVisible()) {
-            statusSelect.selectOption("ACTIVE");
-            waitForPageLoad();
-
-            // Verify filter applied
-            assertThat(page).hasURL(java.util.regex.Pattern.compile(".*status=ACTIVE.*"));
-        }
+        page.locator("form[action='/amortization/" + schedule.getId() + "/entries/post-all'] button").click();
+        waitForPageLoad();
+        assertThat(page.getByTestId("flash-success")).hasText("Semua entry pending berhasil diposting");
     }
 
-    @Test
-    @DisplayName("Should filter amortization list by type")
-    void shouldFilterByType() {
-        navigateTo("/amortization");
-        waitForPageLoad();
-
-        var typeSelect = page.locator("select[name='type']").first();
-        if (typeSelect.isVisible()) {
-            typeSelect.selectOption("PREPAID_EXPENSE");
-            waitForPageLoad();
-
-            // Verify filter applied
-            assertThat(page).hasURL(java.util.regex.Pattern.compile(".*type=PREPAID_EXPENSE.*"));
-        }
+    private Posting posting(AmortizationEntry entry) {
+        assertThat(entry.getJournalEntryId()).as("journal of period " + entry.getPeriodNumber()).isNotNull();
+        return new TransactionTemplate(transactionManager).execute(status -> {
+            Transaction tx = journalEntryRepository.findById(entry.getJournalEntryId()).orElseThrow().getTransaction();
+            List<String> lines = journalEntryRepository.findByTransactionIdOrderByJournalNumberAsc(tx.getId()).stream()
+                    .map(l -> l.getAccount().getAccountCode()
+                            + " D" + l.getDebitAmount().setScale(2, RoundingMode.UNNECESSARY).toPlainString()
+                            + " C" + l.getCreditAmount().setScale(2, RoundingMode.UNNECESSARY).toPlainString())
+                    .toList();
+            return new Posting(tx.getTransactionDate(), tx.getReferenceNumber(), tx.getDescription(), lines);
+        });
     }
 
-    @Test
-    @DisplayName("Should process batch auto-post entries")
-    void shouldProcessBatchAutoPost() {
-        navigateTo("/amortization");
-        waitForPageLoad();
-
-        // Find batch process button
-        var batchBtn = page.locator("form[action*='batch/process'] button[type='submit'], button:has-text('Proses Batch')").first();
-        if (batchBtn.isVisible()) {
-            batchBtn.click();
-            waitForPageLoad();
-
-            // Verify page reloads (batch processed)
-            assertThat(page.locator("#page-title, h1").first()).isVisible();
-        } else {
-            // Batch button not available - just verify page loads
-            assertThat(page.locator("#page-title, h1").first()).isVisible();
-        }
+    private AmortizationSchedule createSchedule(String name, ScheduleType type, String source, String target,
+                                                String amount, LocalDate start, LocalDate end) {
+        String code = code();
+        AmortizationSchedule schedule = new AmortizationSchedule();
+        schedule.setCode(code);
+        schedule.setName(name + " " + code);
+        schedule.setScheduleType(type);
+        schedule.setSourceAccount(account(source));
+        schedule.setTargetAccount(account(target));
+        schedule.setTotalAmount(new BigDecimal(amount));
+        schedule.setStartDate(start);
+        schedule.setEndDate(end);
+        schedule.setFrequency(AmortizationFrequency.MONTHLY);
+        schedule.setAutoPost(false);
+        schedule.setPostDay(1);
+        return scheduleService.create(schedule);
     }
 
-    @Test
-    @DisplayName("Should display pending entries count")
-    void shouldDisplayPendingEntriesCount() {
-        navigateTo("/amortization");
-        waitForPageLoad();
+    private Locator entryRow(AmortizationEntry entry) {
+        return page.locator("[data-testid='entry-table'] tbody tr[data-id='" + entry.getId() + "']");
+    }
 
-        // Verify pending count is displayed somewhere
-        // This is typically shown as a badge or counter
-        assertThat(page.locator("body")).isVisible(); // Basic assertion to ensure page loaded
+    private AmortizationSchedule schedule(String code) {
+        return scheduleRepository.findByCode(code)
+                .orElseThrow(() -> new IllegalStateException("Amortization schedule missing: " + code));
+    }
+
+    private List<AmortizationEntry> entries(AmortizationSchedule schedule) {
+        return entryRepository.findByScheduleIdOrderByPeriodNumberAsc(schedule.getId());
+    }
+
+    private ChartOfAccount account(String code) {
+        return chartOfAccountRepository.findByAccountCode(code)
+                .orElseThrow(() -> new IllegalStateException("Seeded account missing: " + code));
+    }
+
+    private static String code() {
+        return "AMT47-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
     }
 }

@@ -9,6 +9,9 @@
     <h1 id="page-title" th:text="${isEdit} ? 'Edit Jadwal Amortisasi' : 'Jadwal Amortisasi Baru'">Jadwal Amortisasi</h1>
 
     <section class="max-w-3xl" data-testid="amortization-form">
+        <div th:if="${errorMessage}" data-testid="flash-error"
+             class="mb-4 p-4 rounded-lg bg-red-50 border border-red-200 text-sm font-medium text-red-800"
+             th:text="${errorMessage}">Error</div>
         <form th:action="${isEdit} ? @{/amortization/{id}(id=${schedule.id})} : @{/amortization}"
               method="post" class="bg-white rounded-lg shadow p-6 space-y-6">
 

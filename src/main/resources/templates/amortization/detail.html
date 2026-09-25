@@ -10,6 +10,12 @@
     <h1 id="page-title">Detail Jadwal Amortisasi</h1>
 
     <section class="space-y-6" data-testid="amortization-detail">
+        <div th:if="${successMessage}" data-testid="flash-success"
+             class="p-4 rounded-lg bg-green-50 border border-green-200 text-sm font-medium text-green-800"
+             th:text="${successMessage}">Success</div>
+        <div th:if="${errorMessage}" data-testid="flash-error"
+             class="p-4 rounded-lg bg-red-50 border border-red-200 text-sm font-medium text-red-800"
+             th:text="${errorMessage}">Error</div>
         <!-- Header -->
         <div class="flex items-start justify-between">
             <div>
@@ -114,6 +120,13 @@
                         Batalkan
                     </button>
                 </form>
+                <form sec:authorize="hasAuthority('AMORTIZATION_EDIT')" th:if="${schedule.completedPeriods == 0}" id="form-delete"
+                      th:action="@{/amortization/{id}/delete(id=${schedule.id})}"
+                      method="post" class="inline">
+                    <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+                        Hapus
+                    </button>
+                </form>
             </div>
         </div>
 
@@ -128,6 +141,11 @@
         <script th:inline="javascript" th:attr="nonce=${cspNonce}">
             document.getElementById('form-cancel')?.addEventListener('submit', function(e) {
                 if (!confirm('Batalkan jadwal ini?')) {
+                    e.preventDefault();
+                }
+            });
+            document.getElementById('form-delete')?.addEventListener('submit', function(e) {
+                if (!confirm('Hapus jadwal ini beserta seluruh entry-nya?')) {
                     e.preventDefault();
                 }
             });

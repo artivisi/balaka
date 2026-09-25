@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -18,6 +19,8 @@ import java.util.UUID;
 public interface JournalEntryRepository extends JpaRepository<JournalEntry, UUID> {
 
     Optional<JournalEntry> findByJournalNumber(String journalNumber);
+
+    List<JournalEntry> findByJournalNumberIn(Collection<String> journalNumbers);
 
     List<JournalEntry> findByTransactionIdOrderByJournalNumberAsc(UUID transactionId);
 
