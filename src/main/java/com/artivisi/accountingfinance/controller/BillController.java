@@ -3,12 +3,12 @@ package com.artivisi.accountingfinance.controller;
 import com.artivisi.accountingfinance.entity.Bill;
 import com.artivisi.accountingfinance.entity.BillLine;
 import com.artivisi.accountingfinance.entity.BillPayment;
-import com.artivisi.accountingfinance.entity.ChartOfAccount;
 import com.artivisi.accountingfinance.entity.Vendor;
 import com.artivisi.accountingfinance.enums.BillStatus;
 import com.artivisi.accountingfinance.enums.PaymentMethod;
 import com.artivisi.accountingfinance.security.Permission;
 import com.artivisi.accountingfinance.service.BillService;
+import com.artivisi.accountingfinance.service.ChartOfAccountService;
 import com.artivisi.accountingfinance.service.VendorService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -31,6 +31,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.math.BigDecimal;
@@ -51,10 +52,13 @@ public class BillController {
     private static final String ATTR_BILL = "bill";
     private static final String ATTR_SUCCESS_MESSAGE = "successMessage";
     private static final String ATTR_ERROR_MESSAGE = "errorMessage";
+    private static final String ATTR_BILL_NUMBER_PATH = "billNumberPath";
     private static final String VIEW_FORM = "bills/form";
+    private static final String PARAM_LINE_DESCRIPTION = "lineDescription";
 
     private final BillService billService;
     private final VendorService vendorService;
+    private final ChartOfAccountService chartOfAccountService;
 
     @Getter
     @Setter
@@ -152,7 +156,7 @@ public class BillController {
     public String create(
             @Valid @ModelAttribute(ATTR_BILL) BillForm form,
             BindingResult bindingResult,
-            @RequestParam(value = "lineDescription", required = false) List<String> descriptions,
+            WebRequest webRequest,
             @RequestParam(value = "lineQuantity", required = false) List<BigDecimal> quantities,
             @RequestParam(value = "lineUnitPrice", required = false) List<BigDecimal> unitPrices,
             @RequestParam(value = "lineTaxRate", required = false) List<BigDecimal> taxRates,
@@ -160,19 +164,24 @@ public class BillController {
             Model model,
             RedirectAttributes redirectAttributes) {
 
+        List<BillLine> lines = buildLines(webRequest.getParameterValues(PARAM_LINE_DESCRIPTION),
+                quantities, unitPrices, taxRates, expenseAccountIds);
+        validateVendorAndLines(form, lines, bindingResult);
+
         if (bindingResult.hasErrors()) {
+            form.setLines(lines);
             populateFormModel(model);
             return VIEW_FORM;
         }
 
         try {
             Bill bill = toEntity(form);
-            List<BillLine> lines = buildLines(descriptions, quantities, unitPrices, taxRates, expenseAccountIds);
             Bill saved = billService.create(bill, lines);
             redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Tagihan berhasil dibuat");
             return REDIRECT_BILLS + saved.getBillNumber();
         } catch (IllegalArgumentException e) {
             bindingResult.rejectValue("billNumber", "duplicate", e.getMessage());
+            form.setLines(lines);
             populateFormModel(model);
             return VIEW_FORM;
         }
@@ -199,6 +208,7 @@ public class BillController {
         }
 
         model.addAttribute(ATTR_BILL, bill);
+        model.addAttribute(ATTR_BILL_NUMBER_PATH, billNumber);
         populateFormModel(model);
         return VIEW_FORM;
     }
@@ -209,7 +219,7 @@ public class BillController {
             @PathVariable String billNumber,
             @Valid @ModelAttribute(ATTR_BILL) BillForm form,
             BindingResult bindingResult,
-            @RequestParam(value = "lineDescription", required = false) List<String> descriptions,
+            WebRequest webRequest,
             @RequestParam(value = "lineQuantity", required = false) List<BigDecimal> quantities,
             @RequestParam(value = "lineUnitPrice", required = false) List<BigDecimal> unitPrices,
             @RequestParam(value = "lineTaxRate", required = false) List<BigDecimal> taxRates,
@@ -217,9 +227,18 @@ public class BillController {
             Model model,
             RedirectAttributes redirectAttributes) {
 
+        List<BillLine> lines = buildLines(webRequest.getParameterValues(PARAM_LINE_DESCRIPTION),
+                quantities, unitPrices, taxRates, expenseAccountIds);
+        validateVendorAndLines(form, lines, bindingResult);
+        if (form.getBillNumber() == null || form.getBillNumber().isBlank()) {
+            bindingResult.rejectValue("billNumber", "required", "Nomor tagihan wajib diisi");
+        }
+
         if (bindingResult.hasErrors()) {
             Bill existing = billService.findByBillNumber(billNumber);
             form.setId(existing.getId());
+            form.setLines(lines);
+            model.addAttribute(ATTR_BILL_NUMBER_PATH, billNumber);
             populateFormModel(model);
             return VIEW_FORM;
         }
@@ -227,7 +246,6 @@ public class BillController {
         try {
             Bill existing = billService.findByBillNumber(billNumber);
             Bill bill = toEntity(form);
-            List<BillLine> lines = buildLines(descriptions, quantities, unitPrices, taxRates, expenseAccountIds);
             billService.update(existing.getId(), bill, lines);
             redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Tagihan berhasil diperbarui");
             return REDIRECT_BILLS + form.getBillNumber();
@@ -239,6 +257,8 @@ public class BillController {
             }
             Bill existing = billService.findByBillNumber(billNumber);
             form.setId(existing.getId());
+            form.setLines(lines);
+            model.addAttribute(ATTR_BILL_NUMBER_PATH, billNumber);
             populateFormModel(model);
             return VIEW_FORM;
         }
@@ -344,20 +364,29 @@ public class BillController {
         }
     }
 
+    private static void validateVendorAndLines(BillForm form, List<BillLine> lines, BindingResult bindingResult) {
+        if (form.getVendor() == null || form.getVendor().getId() == null) {
+            bindingResult.rejectValue("vendorLabel", "required", "Vendor wajib diisi");
+        }
+        if (lines.isEmpty()) {
+            bindingResult.reject("lines", "Minimal satu item tagihan wajib diisi");
+        }
+    }
+
     private List<BillLine> buildLines(
-            List<String> descriptions,
+            String[] descriptions,
             List<BigDecimal> quantities,
             List<BigDecimal> unitPrices,
             List<BigDecimal> taxRates,
             List<UUID> expenseAccountIds) {
 
         List<BillLine> lines = new ArrayList<>();
-        if (descriptions == null || descriptions.isEmpty()) {
+        if (descriptions == null) {
             return lines;
         }
 
-        for (int i = 0; i < descriptions.size(); i++) {
-            String desc = descriptions.get(i);
+        for (int i = 0; i < descriptions.length; i++) {
+            String desc = descriptions[i];
             if (desc == null || desc.isBlank()) continue;
 
             BillLine line = new BillLine();
@@ -383,9 +412,7 @@ public class BillController {
     private void setExpenseAccount(BillLine line, List<UUID> expenseAccountIds, int index) {
         UUID accountId = getListValue(expenseAccountIds, index, null);
         if (accountId != null) {
-            ChartOfAccount account = new ChartOfAccount();
-            account.setId(accountId);
-            line.setExpenseAccount(account);
+            line.setExpenseAccount(chartOfAccountService.findById(accountId));
         }
     }
 }
