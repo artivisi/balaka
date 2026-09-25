@@ -95,8 +95,8 @@
                             <td class="px-6 py-4 text-right">
                                 <div class="flex items-center justify-end">
                                     <div class="w-16 bg-gray-200 rounded-full h-2 mr-2">
-                                        <style th:inline="text" th:attr="nonce=${cspNonce}">#client-revenue-[[${itemStat.index}]] { width: [[${item.revenuePercentage}]]%; }</style>
-                                        <div th:id="'client-revenue-' + ${itemStat.index}" class="bg-primary-600 h-2 rounded-full"></div>
+                                        <style th:inline="text" th:attr="nonce=${cspNonce}">#client-revenue-[[${stat.index}]] { width: [[${item.revenuePercentage}]]%; }</style>
+                                        <div th:id="'client-revenue-' + ${stat.index}" class="bg-primary-600 h-2 rounded-full"></div>
                                     </div>
                                     <span class="text-sm text-gray-500" th:text="${item.revenuePercentage + '%'}">0%</span>
                                 </div>
