@@ -86,6 +86,13 @@ public class EmployeeService {
     }
 
     @Transactional
+    public Employee updateWithUserLink(UUID id, Employee updatedEmployee) {
+        Employee saved = update(id, updatedEmployee);
+        saved.setUser(updatedEmployee.getUser());
+        return employeeRepository.save(saved);
+    }
+
+    @Transactional
     public void deactivate(UUID id) {
         Employee employee = findById(id);
         employee.setActive(false);

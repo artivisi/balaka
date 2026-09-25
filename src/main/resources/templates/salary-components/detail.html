@@ -9,6 +9,13 @@
     <h1 id="page-title">Detail Komponen Gaji</h1>
 
     <section class="space-y-6 max-w-2xl" data-testid="component-detail">
+        <div th:if="${successMessage}" data-testid="flash-success"
+             class="p-4 rounded-lg bg-green-50 border border-green-200 text-sm font-medium text-green-800"
+             th:text="${successMessage}">Success</div>
+        <div th:if="${errorMessage}" data-testid="flash-error"
+             class="p-4 rounded-lg bg-red-50 border border-red-200 text-sm font-medium text-red-800"
+             th:text="${errorMessage}">Error</div>
+
         <!-- Header -->
         <div class="flex items-start justify-between">
             <div>
@@ -61,11 +68,11 @@
                 </div>
                 <div th:if="${component.isPercentage}">
                     <p class="text-gray-500">Persentase Default</p>
-                    <p class="font-medium" data-testid="default-rate" th:text="${component.defaultRate != null ? #numbers.formatDecimal(component.defaultRate, 0, 'COMMA', 2, 'POINT') + '%' : '-'}">4.00%</p>
+                    <p class="font-medium" data-testid="default-rate" th:text="${component.defaultRate != null ? #numbers.formatDecimal(component.defaultRate, 1, 'COMMA', 2, 'POINT') + '%' : '-'}">4.00%</p>
                 </div>
                 <div th:unless="${component.isPercentage}">
                     <p class="text-gray-500">Nilai Default</p>
-                    <p class="font-medium" data-testid="default-amount" th:text="${component.defaultAmount != null ? 'Rp ' + #numbers.formatDecimal(component.defaultAmount, 0, 'COMMA', 0, 'POINT') : '-'}">Rp 5.000.000</p>
+                    <p class="font-medium" data-testid="default-amount" th:text="${component.defaultAmount != null ? 'Rp ' + #numbers.formatDecimal(component.defaultAmount, 1, 'COMMA', 0, 'POINT') : '-'}">Rp 5.000.000</p>
                 </div>
                 <div>
                     <p class="text-gray-500">Urutan Tampil</p>
@@ -113,7 +120,7 @@
             <a th:href="@{/salary-components}" class="px-4 py-2 text-gray-600 hover:text-gray-900">
                 &larr; Kembali ke Daftar
             </a>
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2" sec:authorize="hasAuthority('SALARY_COMPONENT_MANAGE')">
                 <a th:unless="${component.isSystem}"
                    th:href="@{/salary-components/{id}/edit(id=${component.id})}"
                    class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">

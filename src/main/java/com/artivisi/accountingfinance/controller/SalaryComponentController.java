@@ -3,6 +3,7 @@ package com.artivisi.accountingfinance.controller;
 import com.artivisi.accountingfinance.entity.SalaryComponent;
 import com.artivisi.accountingfinance.util.FormUtils;
 import com.artivisi.accountingfinance.entity.SalaryComponentType;
+import com.artivisi.accountingfinance.security.Permission;
 import com.artivisi.accountingfinance.service.SalaryComponentService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -15,8 +16,10 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.util.StringUtils;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -35,7 +38,7 @@ import static com.artivisi.accountingfinance.controller.ViewConstants.*;
 @Controller
 @RequestMapping("/salary-components")
 @RequiredArgsConstructor
-@org.springframework.security.access.prepost.PreAuthorize("hasAuthority('" + com.artivisi.accountingfinance.security.Permission.SALARY_COMPONENT_VIEW + "')")
+@PreAuthorize("hasAuthority('" + Permission.SALARY_COMPONENT_VIEW + "')")
 public class SalaryComponentController {
 
     private static final String ATTR_COMPONENT = "component";
@@ -43,6 +46,7 @@ public class SalaryComponentController {
     private static final String ATTR_SUCCESS_MESSAGE = "successMessage";
     private static final String REDIRECT_SALARY_COMPONENTS = "redirect:/salary-components";
     private static final String VIEW_FORM = "salary-components/form";
+    private static final String HAS_MANAGE = "hasAuthority('" + Permission.SALARY_COMPONENT_MANAGE + "')";
 
     private final SalaryComponentService salaryComponentService;
 
@@ -105,6 +109,7 @@ public class SalaryComponentController {
     }
 
     @GetMapping("/new")
+    @PreAuthorize(HAS_MANAGE)
     public String newForm(Model model) {
         SalaryComponentForm form = new SalaryComponentForm();
         form.setComponentType(SalaryComponentType.EARNING);
@@ -118,6 +123,7 @@ public class SalaryComponentController {
     }
 
     @PostMapping("/new")
+    @PreAuthorize(HAS_MANAGE)
     public String create(
             @Valid @ModelAttribute("component") SalaryComponentForm form,
             BindingResult bindingResult,
@@ -131,9 +137,10 @@ public class SalaryComponentController {
 
         try {
             SalaryComponent component = new SalaryComponent();
-            BeanUtils.copyProperties(form, component, "id", "isPercentage", "isTaxable");
+            BeanUtils.copyProperties(form, component, "id", "isPercentage", "isTaxable", "bpjsCategory");
             component.setIsPercentage(FormUtils.checkboxValue(form.getIsPercentage()));
             component.setIsTaxable(FormUtils.checkboxValue(form.getIsTaxable()));
+            component.setBpjsCategory(StringUtils.hasText(form.getBpjsCategory()) ? form.getBpjsCategory() : null);
             SalaryComponent saved = salaryComponentService.create(component);
             redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Komponen gaji berhasil ditambahkan");
             return REDIRECT_SALARY_COMPONENTS + "/" + saved.getId();
@@ -157,6 +164,7 @@ public class SalaryComponentController {
     }
 
     @GetMapping("/{id}/edit")
+    @PreAuthorize(HAS_MANAGE)
     public String editForm(@PathVariable UUID id, Model model) {
         SalaryComponent component = salaryComponentService.findById(id);
 
@@ -169,6 +177,7 @@ public class SalaryComponentController {
     }
 
     @PostMapping("/{id}")
+    @PreAuthorize(HAS_MANAGE)
     public String update(
             @PathVariable UUID id,
             @Valid @ModelAttribute("component") SalaryComponentForm form,
@@ -184,9 +193,10 @@ public class SalaryComponentController {
 
         try {
             SalaryComponent component = new SalaryComponent();
-            BeanUtils.copyProperties(form, component, "id", "isPercentage", "isTaxable");
+            BeanUtils.copyProperties(form, component, "id", "isPercentage", "isTaxable", "bpjsCategory");
             component.setIsPercentage(FormUtils.checkboxValue(form.getIsPercentage()));
             component.setIsTaxable(FormUtils.checkboxValue(form.getIsTaxable()));
+            component.setBpjsCategory(StringUtils.hasText(form.getBpjsCategory()) ? form.getBpjsCategory() : null);
             salaryComponentService.update(id, component);
             redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Komponen gaji berhasil diperbarui");
             return REDIRECT_SALARY_COMPONENTS + "/" + id;
@@ -203,6 +213,7 @@ public class SalaryComponentController {
     }
 
     @PostMapping("/{id}/deactivate")
+    @PreAuthorize(HAS_MANAGE)
     public String deactivate(
             @PathVariable UUID id,
             RedirectAttributes redirectAttributes) {
@@ -217,6 +228,7 @@ public class SalaryComponentController {
     }
 
     @PostMapping("/{id}/activate")
+    @PreAuthorize(HAS_MANAGE)
     public String activate(
             @PathVariable UUID id,
             RedirectAttributes redirectAttributes) {

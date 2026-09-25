@@ -21,6 +21,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -46,6 +47,7 @@ import static com.artivisi.accountingfinance.controller.ViewConstants.*;
 public class EmployeeController {
 
     private static final String ATTR_EMPLOYEE = "employee";
+    private static final String ATTR_EDIT_EMPLOYEE_ID = "editEmployeeId";
     private static final String ATTR_EMPLOYMENT_STATUSES = "employmentStatuses";
     private static final String ATTR_SUCCESS_MESSAGE = "successMessage";
     private static final String REDIRECT_EMPLOYEES = "redirect:/employees";
@@ -91,8 +93,10 @@ public class EmployeeController {
         private PtkpStatus ptkpStatus;
 
         @NotNull(message = "Tanggal mulai kerja wajib diisi")
+        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
         private LocalDate hireDate;
 
+        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
         private LocalDate resignDate;
 
         @NotNull(message = "Tipe kepegawaian wajib diisi")
@@ -181,10 +185,7 @@ public class EmployeeController {
         form.setPtkpStatus(PtkpStatus.TK_0);
 
         model.addAttribute(ATTR_EMPLOYEE, form);
-        model.addAttribute("ptkpStatuses", PtkpStatus.values());
-        model.addAttribute("employmentTypes", EmploymentType.values());
-        model.addAttribute(ATTR_EMPLOYMENT_STATUSES, EmploymentStatus.values());
-        model.addAttribute(ATTR_CURRENT_PAGE, PAGE_EMPLOYEES);
+        addFormAttributes(model);
         return VIEW_FORM;
     }
 
@@ -232,6 +233,7 @@ public class EmployeeController {
     public String editForm(@PathVariable String employeeId, Model model) {
         Employee employee = employeeService.findByEmployeeId(employeeId);
         model.addAttribute(ATTR_EMPLOYEE, toForm(employee));
+        model.addAttribute(ATTR_EDIT_EMPLOYEE_ID, employeeId);
         addFormAttributes(model);
         return VIEW_FORM;
     }
@@ -248,6 +250,7 @@ public class EmployeeController {
         if (bindingResult.hasErrors()) {
             Employee existing = employeeService.findByEmployeeId(employeeId);
             form.setId(existing.getId());
+            model.addAttribute(ATTR_EDIT_EMPLOYEE_ID, employeeId);
             addFormAttributes(model);
             return VIEW_FORM;
         }
@@ -255,7 +258,7 @@ public class EmployeeController {
         try {
             Employee existing = employeeService.findByEmployeeId(employeeId);
             Employee employee = toEntity(form);
-            employeeService.update(existing.getId(), employee);
+            employeeService.updateWithUserLink(existing.getId(), employee);
             redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Karyawan berhasil diperbarui");
             return REDIRECT_EMPLOYEES + "/" + form.getEmployeeId();
         } catch (IllegalArgumentException e) {
@@ -268,6 +271,7 @@ public class EmployeeController {
             }
             Employee existing = employeeService.findByEmployeeId(employeeId);
             form.setId(existing.getId());
+            model.addAttribute(ATTR_EDIT_EMPLOYEE_ID, employeeId);
             addFormAttributes(model);
             return VIEW_FORM;
         }

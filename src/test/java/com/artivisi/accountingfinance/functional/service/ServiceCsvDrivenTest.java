@@ -1,7 +1,10 @@
 package com.artivisi.accountingfinance.functional.service;
 
+import com.artivisi.accountingfinance.entity.EmploymentStatus;
+import com.artivisi.accountingfinance.entity.EmploymentType;
 import com.artivisi.accountingfinance.entity.PayrollRun;
 import com.artivisi.accountingfinance.entity.PayrollStatus;
+import com.artivisi.accountingfinance.entity.PtkpStatus;
 import com.artivisi.accountingfinance.functional.util.CsvLoader;
 import com.artivisi.accountingfinance.functional.util.TransactionRow;
 import com.artivisi.accountingfinance.repository.PayrollRunRepository;
@@ -17,6 +20,8 @@ import org.springframework.context.annotation.Import;
 import java.math.BigDecimal;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -160,8 +165,29 @@ class ServiceCsvDrivenTest extends PlaywrightTestBase {
                 Locator row = page.locator("#employee-table tbody tr:has(span.font-mono:text-is('"
                     + e.get("employee_id") + "'))");
                 assertThat(row).hasCount(1);
-                assertThat(row.locator("td").nth(1)).containsText(e.get("name"));
-                assertThat(row.locator("td").nth(1)).containsText(e.get("email"));
+                Locator cells = row.locator("td");
+                assertThat(cells.nth(1).locator("div.font-medium")).hasText(e.get("name"));
+                assertThat(cells.nth(1).locator("div.text-gray-500")).hasText(e.get("email"));
+                assertThat(cells.nth(2)).hasText(e.get("job_title"));
+                assertThat(cells.nth(3)).hasText(e.get("department"));
+                PtkpStatus ptkp = PtkpStatus.valueOf(e.get("ptkp_status"));
+                assertThat(cells.nth(4)).hasText(ptkp.getCode());
+                assertThat(cells.nth(5)).hasText(EmploymentStatus.valueOf(e.get("employment_status")).getDisplayName());
+
+                cells.nth(6).locator("a:text-is('Lihat')").click();
+                waitForPageLoad();
+                assertThat(employeeInfo("Tanggal Bergabung")).hasText(LocalDate.parse(e.get("hire_date"))
+                    .format(DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.forLanguageTag("id-ID"))));
+                assertThat(employeeInfo("Tipe Kepegawaian"))
+                    .hasText(EmploymentType.valueOf(e.get("employment_type")).getDisplayName());
+                assertThat(employeeInfo("Status PTKP")).hasText(ptkp.getDisplayName());
+                assertThat(employeeInfo("NIK KTP")).hasText(mask(e.get("nik_ktp"), 4, 4));
+                assertThat(employeeInfo("NPWP")).hasText(mask(e.get("npwp"), 4, 3));
+                assertThat(employeeInfo("Bank")).hasText(e.get("bank_name"));
+                assertThat(employeeInfo("Nomor Rekening")).hasText(mask(e.get("bank_account"), 3, 3));
+                assertThat(employeeInfo("BPJS Kesehatan")).hasText(mask(e.get("bpjs_kesehatan_number"), 3, 3));
+                assertThat(employeeInfo("BPJS Ketenagakerjaan"))
+                    .hasText(mask(e.get("bpjs_ketenagakerjaan_number"), 3, 3));
             }));
     }
 
@@ -190,6 +216,15 @@ class ServiceCsvDrivenTest extends PlaywrightTestBase {
 
     private Locator infoValue(String label) {
         return page.locator("[data-testid='client-detail'] div:has(> p.text-gray-500:text-is('" + label + "')) > p.font-medium");
+    }
+
+    private Locator employeeInfo(String label) {
+        return page.locator("[data-testid='employee-detail'] div:has(> p.text-gray-500:text-is('" + label + "')) > p.font-medium");
+    }
+
+    private static String mask(String value, int showFirst, int showLast) {
+        return value.substring(0, showFirst) + "*".repeat(value.length() - showFirst - showLast)
+            + value.substring(value.length() - showLast);
     }
 
     private Locator journalLine(String accountCode) {

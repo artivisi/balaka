@@ -35,8 +35,8 @@
                               th:text="${component.componentType.displayName}">Pendapatan</span>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        <span th:if="${component.isPercentage}" th:text="${#numbers.formatDecimal(component.defaultRate, 0, 'COMMA', 2, 'POINT') + '%'}">4.00%</span>
-                        <span th:unless="${component.isPercentage}" th:text="${component.defaultAmount != null ? 'Rp ' + #numbers.formatDecimal(component.defaultAmount, 0, 'COMMA', 0, 'POINT') : '-'}">Rp 5.000.000</span>
+                        <span th:if="${component.isPercentage}" th:text="${#numbers.formatDecimal(component.defaultRate, 1, 'COMMA', 2, 'POINT') + '%'}">4.00%</span>
+                        <span th:unless="${component.isPercentage}" th:text="${component.defaultAmount != null ? 'Rp ' + #numbers.formatDecimal(component.defaultAmount, 1, 'COMMA', 0, 'POINT') : '-'}">Rp 5.000.000</span>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
                         <span th:if="${component.active}" class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">Aktif</span>

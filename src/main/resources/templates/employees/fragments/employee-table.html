@@ -64,10 +64,10 @@
                 </div>
                 <div class="flex gap-2">
                     <a th:if="${employees.hasPrevious()}"
-                       th:href="@{/employees(page=${employees.number - 1}, search=${search}, status=${status?.name()}, active=${active})}"
+                       th:href="@{/employees(page=${employees.number - 1}, size=${employees.size}, search=${search}, status=${status?.name()}, active=${active})}"
                        class="px-3 py-1 border rounded text-sm hover:bg-gray-50">Sebelumnya</a>
                     <a th:if="${employees.hasNext()}"
-                       th:href="@{/employees(page=${employees.number + 1}, search=${search}, status=${status?.name()}, active=${active})}"
+                       th:href="@{/employees(page=${employees.number + 1}, size=${employees.size}, search=${search}, status=${status?.name()}, active=${active})}"
                        class="px-3 py-1 border rounded text-sm hover:bg-gray-50">Selanjutnya</a>
                 </div>
             </div>
