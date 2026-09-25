@@ -90,6 +90,7 @@
                         </button>
                         <!-- Edit Button (Draft only) -->
                         <a th:if="${transaction.status.name() == 'DRAFT'}"
+                           sec:authorize="hasAuthority('TRANSACTION_EDIT')"
                            th:href="@{/transactions/{id}/edit(id=${transaction.id})}"
                            class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-primary-700 bg-primary-50 border border-primary-200 rounded-lg hover:bg-primary-100 transition-colors">
                             <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -110,6 +111,7 @@
                         </button>
                         <!-- Delete Button (Draft only) -->
                         <button th:if="${transaction.status.name() == 'DRAFT'}"
+                                sec:authorize="hasAuthority('TRANSACTION_DELETE')"
                                 id="btn-delete"
                                 th:data-id="${transaction.id}"
                                 class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors">
@@ -120,6 +122,7 @@
                         </button>
                         <!-- Void Button (Posted only) -->
                         <a th:if="${transaction.status.name() == 'POSTED'}"
+                           sec:authorize="hasAuthority('TRANSACTION_VOID')"
                            th:href="@{/transactions/{id}/void(id=${transaction.id})}"
                            class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors">
                             <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">

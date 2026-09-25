@@ -18,7 +18,7 @@ public interface DraftTransactionRepository extends JpaRepository<DraftTransacti
 
     List<DraftTransaction> findByStatus(DraftTransaction.Status status);
 
-    Page<DraftTransaction> findByStatus(DraftTransaction.Status status, Pageable pageable);
+    Page<DraftTransaction> findByStatusOrderByCreatedAtDesc(DraftTransaction.Status status, Pageable pageable);
 
     List<DraftTransaction> findByCreatedBy(String createdBy);
 

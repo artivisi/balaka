@@ -126,7 +126,7 @@
             </div>
             <div>
                 <nav class="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
-                    <a th:href="@{/drafts(page=${page.number - 1}, status=${selectedStatus})}"
+                    <a th:href="@{/drafts(page=${page.number - 1}, size=${page.size}, status=${selectedStatus})}"
                        th:classappend="${!page.hasPrevious()} ? 'pointer-events-none opacity-50'"
                        class="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
                         <span class="sr-only">Previous</span>
@@ -134,7 +134,7 @@
                             <path fill-rule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clip-rule="evenodd"/>
                         </svg>
                     </a>
-                    <a th:href="@{/drafts(page=${page.number + 1}, status=${selectedStatus})}"
+                    <a th:href="@{/drafts(page=${page.number + 1}, size=${page.size}, status=${selectedStatus})}"
                        th:classappend="${!page.hasNext()} ? 'pointer-events-none opacity-50'"
                        class="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
                         <span class="sr-only">Next</span>

@@ -77,28 +77,6 @@ public class JournalEntryController {
         return "journals/list";
     }
 
-    /**
-     * Account-specific ledger view.
-     */
-    @GetMapping("/ledger/{accountId}")
-    public String accountLedger(
-            @PathVariable UUID accountId,
-            @RequestParam(required = false) LocalDate startDate,
-            @RequestParam(required = false) LocalDate endDate,
-            Model model) {
-        model.addAttribute(ATTR_CURRENT_PAGE, PAGE_JOURNALS);
-        model.addAttribute("account", chartOfAccountService.findById(accountId));
-
-        LocalDate start = startDate != null ? startDate : LocalDate.now().withDayOfMonth(1);
-        LocalDate end = endDate != null ? endDate : LocalDate.now();
-
-        model.addAttribute("startDate", start);
-        model.addAttribute("endDate", end);
-        model.addAttribute("ledgerData", journalEntryService.getGeneralLedger(accountId, start, end));
-
-        return "journals/ledger";
-    }
-
     // REST API Endpoints for ledger data
 
     @GetMapping("/api")

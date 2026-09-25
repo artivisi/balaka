@@ -149,6 +149,9 @@ public class ChartOfAccountsController {
                        @RequestParam(required = false) UUID parentId,
                        Model model,
                        RedirectAttributes redirectAttributes) {
+        if (parentId == null && form.getAccountType() == null) {
+            bindingResult.rejectValue("accountType", "required", "Tipe akun harus diisi untuk akun tanpa induk");
+        }
         if (bindingResult.hasErrors()) {
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_ACCOUNTS);
             model.addAttribute(ATTR_ACCOUNT_TYPES, AccountType.values());
@@ -205,6 +208,13 @@ public class ChartOfAccountsController {
         boolean hasChildren = !existing.getChildren().isEmpty();
         boolean hasParent = existing.getParent() != null;
 
+        // The type select is disabled for accounts with children, so the browser does not submit it
+        if (hasChildren) {
+            form.setAccountType(existing.getAccountType());
+        }
+        if (!hasParent && form.getAccountType() == null) {
+            bindingResult.rejectValue("accountType", "required", "Tipe akun harus diisi untuk akun tanpa induk");
+        }
         if (bindingResult.hasErrors()) {
             form.setId(id);
             if (hasParent) {

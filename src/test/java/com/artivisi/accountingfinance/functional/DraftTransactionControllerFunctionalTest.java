@@ -1,10 +1,19 @@
 package com.artivisi.accountingfinance.functional;
 
 import com.artivisi.accountingfinance.entity.DraftTransaction;
+import com.artivisi.accountingfinance.entity.JournalTemplate;
+import com.artivisi.accountingfinance.entity.Transaction;
+import com.artivisi.accountingfinance.enums.TransactionStatus;
 import com.artivisi.accountingfinance.functional.service.ServiceTestDataInitializer;
 import com.artivisi.accountingfinance.repository.DraftTransactionRepository;
 import com.artivisi.accountingfinance.repository.JournalTemplateRepository;
+import com.artivisi.accountingfinance.repository.TransactionRepository;
 import com.artivisi.accountingfinance.ui.PlaywrightTestBase;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.microsoft.playwright.APIResponse;
+import com.microsoft.playwright.options.FormData;
+import com.microsoft.playwright.options.RequestOptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -13,330 +22,270 @@ import org.springframework.context.annotation.Import;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.regex.Pattern;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Functional tests for DraftTransactionController.
- * Tests draft transaction list, detail, approve, reject operations.
- * Note: DraftTransactionController does not have create/edit endpoints.
+ * Draft transaction review (list, filter, detail, approve, reject, delete) through /drafts and
+ * /drafts/api. Drafts arrive from Telegram/API, so each test inserts its own drafts dated 2060.
  */
 @DisplayName("Draft Transaction Controller Tests")
 @Import(ServiceTestDataInitializer.class)
 class DraftTransactionControllerFunctionalTest extends PlaywrightTestBase {
 
-    @Autowired
-    private DraftTransactionRepository draftRepository;
+    private static final String TPL_TELEKOM = "Bayar Beban Telekomunikasi";
 
-    @Autowired
-    private JournalTemplateRepository templateRepository;
+    @Autowired private DraftTransactionRepository draftRepository;
+    @Autowired private JournalTemplateRepository templateRepository;
+    @Autowired private TransactionRepository transactionRepository;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
+    private String csrfHeader;
+    private String csrfToken;
 
     @BeforeEach
     void setupAndLogin() {
-        ensurePendingDraftsExist();
         loginAsAdmin();
+        csrfHeader = page.locator("meta[name='_csrf_header']").getAttribute("content");
+        csrfToken = page.locator("meta[name='_csrf']").getAttribute("content");
     }
-
-    private void ensurePendingDraftsExist() {
-        // Create PENDING drafts if none exist
-        boolean hasPending = draftRepository.findAll().stream()
-                .anyMatch(d -> d.getStatus() == DraftTransaction.Status.PENDING);
-        if (!hasPending) {
-            for (int i = 0; i < 3; i++) {
-                DraftTransaction draft = new DraftTransaction();
-                draft.setSource(DraftTransaction.Source.MANUAL);
-                draft.setMerchantName("Test Merchant " + i);
-                draft.setTransactionDate(LocalDate.now());
-                draft.setAmount(BigDecimal.valueOf(100000 + i * 10000));
-                draft.setStatus(DraftTransaction.Status.PENDING);
-                draftRepository.save(draft);
-            }
-        }
-    }
-
-    // ==================== LIST PAGE ====================
 
     @Test
-    @DisplayName("Should display draft transaction list page")
-    void shouldDisplayDraftTransactionListPage() {
+    @DisplayName("List shows drafts newest first with their status; the status filter narrows the table")
+    void shouldListAndFilterDraftsByStatus() {
+        String marker = "Toko " + uid();
+        DraftTransaction pending = draft(marker + " pending", DraftTransaction.Status.PENDING);
+        DraftTransaction approved = draft(marker + " approved", DraftTransaction.Status.APPROVED);
+        DraftTransaction rejected = draft(marker + " rejected", DraftTransaction.Status.REJECTED);
+
         navigateTo("/drafts");
         waitForPageLoad();
+        assertThat(page.locator("#page-title")).hasText("Draft Transaksi");
+        assertThat(row(pending)).containsText(marker + " pending");
+        assertThat(row(pending)).containsText("Menunggu Review");
+        assertThat(row(approved)).containsText("Disetujui");
+        assertThat(row(rejected)).containsText("Ditolak");
+        assertThat(page.locator("#drafts-list-content"))
+                .containsText(draftRepository.countByStatus(DraftTransaction.Status.PENDING) + " menunggu review");
 
-        assertThat(page.locator("#page-title, h1").first()).isVisible();
-    }
+        page.locator("#filter-status").selectOption("PENDING");
+        assertThat(row(approved)).hasCount(0);
+        assertThat(row(rejected)).hasCount(0);
+        assertThat(row(pending)).isVisible();
+        assertThat(page).hasURL(Pattern.compile(".*/drafts\\?status=PENDING.*"));
 
-    @Test
-    @DisplayName("Should filter drafts by PENDING status via query param")
-    void shouldFilterDraftsByPendingStatus() {
-        navigateTo("/drafts?status=PENDING");
-        waitForPageLoad();
-
-        assertThat(page.locator("#page-title, h1").first()).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should filter drafts by APPROVED status via query param")
-    void shouldFilterDraftsByApprovedStatus() {
-        navigateTo("/drafts?status=APPROVED");
-        waitForPageLoad();
-
-        assertThat(page.locator("#page-title, h1").first()).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should filter drafts by REJECTED status via query param")
-    void shouldFilterDraftsByRejectedStatus() {
         navigateTo("/drafts?status=REJECTED");
         waitForPageLoad();
-
-        assertThat(page.locator("#page-title, h1").first()).isVisible();
+        assertThat(row(rejected)).isVisible();
+        assertThat(row(pending)).hasCount(0);
+        assertThat(row(approved)).hasCount(0);
     }
 
     @Test
-    @DisplayName("Should paginate draft list")
-    void shouldPaginateDraftList() {
-        navigateTo("/drafts?page=0&size=10");
+    @DisplayName("Pagination keeps page size and status filter")
+    void shouldPaginateWithSizeAndStatus() {
+        String marker = "Halaman " + uid();
+        DraftTransaction oldest = draft(marker + " 1", DraftTransaction.Status.PENDING);
+        DraftTransaction middle = draft(marker + " 2", DraftTransaction.Status.PENDING);
+        DraftTransaction newest = draft(marker + " 3", DraftTransaction.Status.PENDING);
+
+        navigateTo("/drafts?status=PENDING&size=2");
         waitForPageLoad();
+        assertThat(row(newest)).isVisible();
+        assertThat(row(middle)).isVisible();
+        assertThat(row(oldest)).hasCount(0);
+        assertThat(page.locator("#draft-table tbody tr")).hasCount(2);
 
-        assertThat(page.locator("#page-title, h1").first()).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should handle second page of draft list")
-    void shouldHandleSecondPageOfDraftList() {
-        navigateTo("/drafts?page=1&size=10");
+        page.locator("a[href*='page=1']").first().click();
         waitForPageLoad();
-
-        assertThat(page.locator("#page-title, h1").first()).isVisible();
+        assertThat(page).hasURL(Pattern.compile(".*page=1.*"));
+        assertThat(page).hasURL(Pattern.compile(".*size=2.*"));
+        assertThat(page).hasURL(Pattern.compile(".*status=PENDING.*"));
+        assertThat(row(oldest)).isVisible();
+        assertThat(row(newest)).hasCount(0);
+        assertThat(row(middle)).hasCount(0);
     }
 
     @Test
-    @DisplayName("Should filter drafts by status using form")
-    void shouldFilterDraftsByStatusUsingForm() {
+    @DisplayName("Approving from the detail page creates a DRAFT transaction with the chosen template, amount and description")
+    void shouldApproveDraftIntoTransaction() {
+        JournalTemplate template = template(TPL_TELEKOM);
+        DraftTransaction draft = draft("Telkomsel " + uid(), DraftTransaction.Status.PENDING);
+        String description = "Pulsa kantor " + uid();
+
+        navigateTo("/drafts/" + draft.getId());
+        waitForPageLoad();
+        assertThat(page.locator("#status-badge-pending")).isVisible();
+        assertThat(page.locator("#draft-detail-content")).containsText(draft.getMerchantName());
+        assertThat(page.locator("#draft-detail-content")).containsText(draft.getAmountFormatted());
+        assertThat(page.locator("#draft-detail-content")).containsText(draft.getSourceReference());
+        assertThat(page.locator("#description")).hasValue(draft.getMerchantName());
+        assertThat(page.locator("#templateId option[value='" + template.getId() + "']")).hasText(TPL_TELEKOM);
+
+        page.locator("#templateId").selectOption(template.getId().toString());
+        page.locator("#description").fill(description);
+        page.locator("#amount").fill("88500");
+        page.locator("#btn-approve").click();
+        page.waitForURL(Pattern.compile(".*/transactions/[0-9a-f-]{36}/edit$"));
+
+        DraftTransaction approved = draftRepository.findById(draft.getId()).orElseThrow();
+        assertThat(approved.getStatus()).isEqualTo(DraftTransaction.Status.APPROVED);
+        assertThat(approved.getProcessedBy()).isEqualTo("admin");
+        UUID transactionId = approved.getTransaction().getId();
+        assertThat(page).hasURL(baseUrl() + "/transactions/" + transactionId + "/edit");
+
+        Transaction transaction = transactionRepository.findById(transactionId).orElseThrow();
+        assertThat(transaction.getStatus()).isEqualTo(TransactionStatus.DRAFT);
+        assertThat(transaction.getJournalTemplate().getId()).isEqualTo(template.getId());
+        assertThat(transaction.getAmount()).isEqualByComparingTo("88500");
+        assertThat(transaction.getDescription()).isEqualTo(description);
+        assertThat(transaction.getTransactionDate()).isEqualTo(draft.getTransactionDate());
+        assertThat(transaction.getReferenceNumber()).isEqualTo(draft.getSourceReference());
+
+        navigateTo("/drafts/" + draft.getId());
+        waitForPageLoad();
+        assertThat(page.locator("#status-badge-approved")).isVisible();
+        assertThat(page.locator("a[href='/transactions/" + transactionId + "']")).isVisible();
+        assertThat(page.locator("#btn-approve")).hasCount(0);
+
+        APIResponse again = page.request().post(baseUrl() + "/drafts/" + draft.getId() + "/approve",
+                RequestOptions.create().setMaxRedirects(0).setForm(FormData.create()
+                        .set("_csrf", csrfToken).set("templateId", template.getId().toString())));
+        assertThat(again.status()).isEqualTo(409);
+        assertThat(draftRepository.findById(draft.getId()).orElseThrow().getTransaction().getId()).isEqualTo(transactionId);
+    }
+
+    @Test
+    @DisplayName("Rejecting from the detail page stores the reason and reviewer; a processed draft cannot be rejected again")
+    void shouldRejectDraftWithReason() {
+        DraftTransaction draft = draft("Indomaret " + uid(), DraftTransaction.Status.PENDING);
+
+        navigateTo("/drafts/" + draft.getId());
+        waitForPageLoad();
+        page.locator("#reason").fill("Bukan pengeluaran kantor");
+        page.locator("#btn-reject").click();
+        page.waitForURL(baseUrl() + "/drafts");
+
+        DraftTransaction rejected = draftRepository.findById(draft.getId()).orElseThrow();
+        assertThat(rejected.getStatus()).isEqualTo(DraftTransaction.Status.REJECTED);
+        assertThat(rejected.getRejectionReason()).isEqualTo("Bukan pengeluaran kantor");
+        assertThat(rejected.getProcessedBy()).isEqualTo("admin");
+        assertThat(rejected.getTransaction()).isNull();
+
+        navigateTo("/drafts/" + draft.getId());
+        waitForPageLoad();
+        assertThat(page.locator("#status-badge-rejected")).isVisible();
+        assertThat(page.locator("#draft-detail-content")).containsText("Bukan pengeluaran kantor");
+        assertThat(page.locator("#draft-detail-content")).containsText("Ditolak oleh admin");
+        assertThat(page.locator("#btn-reject")).hasCount(0);
+
+        APIResponse again = page.request().post(baseUrl() + "/drafts/api/" + draft.getId() + "/reject",
+                withCsrf().setData(Map.of("reason", "Lagi")));
+        assertThat(again.status()).isEqualTo(409);
+        assertThat(draftRepository.findById(draft.getId()).orElseThrow().getRejectionReason()).isEqualTo("Bukan pengeluaran kantor");
+    }
+
+    @Test
+    @DisplayName("Pending drafts are deleted from the list; processed drafts cannot be deleted")
+    void shouldDeleteOnlyPendingDrafts() {
+        String marker = "Hapus " + uid();
+        DraftTransaction pending = draft(marker + " pending", DraftTransaction.Status.PENDING);
+        DraftTransaction rejected = draft(marker + " rejected", DraftTransaction.Status.REJECTED);
+
         navigateTo("/drafts");
         waitForPageLoad();
+        assertThat(row(rejected).locator("button[title='Hapus']")).hasCount(0);
+        page.onceDialog(dialog -> dialog.accept());
+        row(pending).locator("button[title='Hapus']").click();
+        assertThat(row(pending)).hasCount(0);
+        assertThat(draftRepository.findById(pending.getId())).isEmpty();
 
-        var statusSelect = page.locator("select[name='status']").first();
-        if (statusSelect.isVisible()) {
-            statusSelect.selectOption("PENDING");
+        assertThat(page.request().delete(baseUrl() + "/drafts/" + rejected.getId(), withCsrf()).status()).isEqualTo(409);
+        assertThat(draftRepository.findById(rejected.getId())).isPresent();
+    }
 
-            var filterBtn = page.locator("form button[type='submit']").first();
-            if (filterBtn.isVisible()) {
-                filterBtn.click();
-                waitForPageLoad();
-            }
+    @Test
+    @DisplayName("/drafts/api lists by status, returns one draft, approves it and rejects unknown ids")
+    void shouldServeDraftApi() throws Exception {
+        String marker = "Api " + uid();
+        DraftTransaction pending = draft(marker + " pending", DraftTransaction.Status.PENDING);
+        DraftTransaction rejected = draft(marker + " rejected", DraftTransaction.Status.REJECTED);
+
+        Set<UUID> pendingIds = ids(getJson("/drafts/api?status=PENDING&size=5"));
+        assertThat(pendingIds).contains(pending.getId()).doesNotContain(rejected.getId());
+        assertThat(ids(getJson("/drafts/api?status=REJECTED&size=5"))).contains(rejected.getId()).doesNotContain(pending.getId());
+
+        JsonNode single = getJson("/drafts/api/" + pending.getId());
+        assertThat(single.get("merchantName").asText()).isEqualTo(marker + " pending");
+        assertThat(single.get("amount").decimalValue()).isEqualByComparingTo(pending.getAmount());
+        assertThat(single.get("status").asText()).isEqualTo("PENDING");
+        assertThat(single.get("transactionDate").asText()).isEqualTo(pending.getTransactionDate().toString());
+
+        APIResponse approve = page.request().post(baseUrl() + "/drafts/api/" + pending.getId() + "/approve",
+                withCsrf().setData(Map.of("templateId", template(TPL_TELEKOM).getId().toString())));
+        assertThat(approve.status()).as(approve.text()).isEqualTo(200);
+        DraftTransaction approved = draftRepository.findById(pending.getId()).orElseThrow();
+        assertThat(approved.getStatus()).isEqualTo(DraftTransaction.Status.APPROVED);
+        Transaction transaction = transactionRepository.findById(approved.getTransaction().getId()).orElseThrow();
+        assertThat(transaction.getAmount()).isEqualByComparingTo(pending.getAmount());
+        assertThat(transaction.getDescription()).isEqualTo(pending.getMerchantName());
+
+        assertThat(page.request().get(baseUrl() + "/drafts/api/" + UUID.randomUUID()).status()).isEqualTo(400);
+    }
+
+    // ==================== helpers ====================
+
+    private DraftTransaction draft(String merchant, DraftTransaction.Status status) {
+        DraftTransaction draft = new DraftTransaction();
+        draft.setSource(DraftTransaction.Source.MANUAL);
+        draft.setMerchantName(merchant);
+        draft.setSourceReference("REF-" + uid());
+        draft.setTransactionDate(LocalDate.of(2060, 2, 3));
+        draft.setAmount(new BigDecimal("75250"));
+        draft.setStatus(status);
+        if (status != DraftTransaction.Status.PENDING) {
+            draft.setProcessedBy("reviewer");
         }
-
-        assertThat(page.locator("body")).isVisible();
-    }
-
-    // ==================== DETAIL PAGE ====================
-
-    @Test
-    @DisplayName("Should display draft transaction detail page")
-    void shouldDisplayDraftTransactionDetailPage() {
-        var draft = draftRepository.findAll().stream().findFirst()
-                .orElseThrow(() -> new AssertionError("Draft required for test"));
-
-        navigateTo("/drafts/" + draft.getId());
-        waitForPageLoad();
-
-        assertThat(page).hasURL(java.util.regex.Pattern.compile(".*\\/drafts\\/.*"));
-    }
-
-    @Test
-    @DisplayName("Should display templates on detail page")
-    void shouldDisplayTemplatesOnDetailPage() {
-        var draft = draftRepository.findAll().stream().findFirst()
-                .orElseThrow(() -> new AssertionError("Draft required for test"));
-
-        navigateTo("/drafts/" + draft.getId());
-        waitForPageLoad();
-
-        // Detail page should show template selection for approval
-        assertThat(page.locator("body")).isVisible();
-    }
-
-    // ==================== APPROVE/REJECT ====================
-
-    @Test
-    @DisplayName("Should approve draft transaction")
-    void shouldApproveDraftTransaction() {
-        // Create a fresh PENDING draft for approve test
-        DraftTransaction approveDraft = new DraftTransaction();
-        approveDraft.setSource(DraftTransaction.Source.MANUAL);
-        approveDraft.setMerchantName("Approve Test Merchant");
-        approveDraft.setTransactionDate(LocalDate.now());
-        approveDraft.setAmount(BigDecimal.valueOf(50000));
-        approveDraft.setStatus(DraftTransaction.Status.PENDING);
-        approveDraft = draftRepository.save(approveDraft);
-
-        var template = templateRepository.findAll().stream().findFirst()
-                .orElseThrow(() -> new AssertionError("Template required for approve test"));
-
-        navigateTo("/drafts/" + approveDraft.getId());
-        waitForPageLoad();
-
-        // Select template
-        page.locator("#templateId").selectOption(template.getId().toString());
-
-        // Click approve button
-        page.locator("#btn-approve").click();
-        waitForPageLoad();
-
-        // Approve redirects to transaction edit page
-        assertThat(page).hasURL(java.util.regex.Pattern.compile(".*\\/(drafts|transactions).*"));
-    }
-
-    @Test
-    @DisplayName("Should reject draft transaction")
-    void shouldRejectDraftTransaction() {
-        // Create a fresh PENDING draft for reject test
-        DraftTransaction rejectDraft = new DraftTransaction();
-        rejectDraft.setSource(DraftTransaction.Source.MANUAL);
-        rejectDraft.setMerchantName("Reject Test Merchant");
-        rejectDraft.setTransactionDate(LocalDate.now());
-        rejectDraft.setAmount(BigDecimal.valueOf(75000));
-        rejectDraft.setStatus(DraftTransaction.Status.PENDING);
-        rejectDraft = draftRepository.save(rejectDraft);
-
-        navigateTo("/drafts/" + rejectDraft.getId());
-        waitForPageLoad();
-
-        // Fill rejection reason (required)
-        page.locator("#reason").fill("Test rejection reason");
-
-        // Click reject button
-        page.locator("#btn-reject").click();
-        waitForPageLoad();
-
-        assertThat(page).hasURL(java.util.regex.Pattern.compile(".*\\/drafts.*"));
-    }
-
-    // ==================== DELETE VIA UI ====================
-
-    @Test
-    @DisplayName("Should delete pending draft from detail page")
-    void shouldDeletePendingDraftFromDetailPage() {
-        DraftTransaction deleteDraft = new DraftTransaction();
-        deleteDraft.setSource(DraftTransaction.Source.MANUAL);
-        deleteDraft.setMerchantName("Delete UI Test Merchant");
-        deleteDraft.setTransactionDate(LocalDate.now());
-        deleteDraft.setAmount(BigDecimal.valueOf(30000));
-        deleteDraft.setStatus(DraftTransaction.Status.PENDING);
-        deleteDraft = draftRepository.save(deleteDraft);
-
-        navigateTo("/drafts/" + deleteDraft.getId());
-        waitForPageLoad();
-
-        // Look for delete button
-        var deleteBtn = page.locator("form[action*='/delete'] button[type='submit'], #btn-delete, button:has-text('Hapus')").first();
-        if (deleteBtn.isVisible()) {
-            page.onDialog(dialog -> dialog.accept());
-            deleteBtn.click();
-            waitForPageLoad();
+        if (status == DraftTransaction.Status.REJECTED) {
+            draft.setRejectionReason("Duplikat");
         }
-
-        assertThat(page.locator("body")).isVisible();
+        return draftRepository.save(draft);
     }
 
-    // ==================== MULTIPLE DRAFTS ====================
+    private com.microsoft.playwright.Locator row(DraftTransaction draft) {
+        return page.locator("#draft-row-" + draft.getId());
+    }
 
-    @Test
-    @DisplayName("Should display draft list with multiple pending items")
-    void shouldDisplayDraftListWithMultiplePendingItems() {
-        // Ensure at least 5 pending drafts exist
-        for (int i = 0; i < 5; i++) {
-            DraftTransaction draft = new DraftTransaction();
-            draft.setSource(DraftTransaction.Source.MANUAL);
-            draft.setMerchantName("Bulk Test Merchant " + i);
-            draft.setTransactionDate(LocalDate.now().minusDays(i));
-            draft.setAmount(BigDecimal.valueOf(10000 + i * 5000));
-            draft.setStatus(DraftTransaction.Status.PENDING);
-            draftRepository.save(draft);
+    private Set<UUID> ids(JsonNode page) {
+        Set<UUID> ids = new HashSet<>();
+        for (JsonNode node : page.get("content")) {
+            ids.add(UUID.fromString(node.get("id").asText()));
         }
-
-        navigateTo("/drafts?status=PENDING&size=3");
-        waitForPageLoad();
-
-        assertThat(page.locator("#page-title, h1").first()).isVisible();
+        return ids;
     }
 
-    @Test
-    @DisplayName("Should display detail page for rejected draft")
-    void shouldDisplayDetailPageForRejectedDraft() {
-        DraftTransaction rejectedDraft = new DraftTransaction();
-        rejectedDraft.setSource(DraftTransaction.Source.MANUAL);
-        rejectedDraft.setMerchantName("Rejected Detail Merchant");
-        rejectedDraft.setTransactionDate(LocalDate.now());
-        rejectedDraft.setAmount(BigDecimal.valueOf(45000));
-        rejectedDraft.setStatus(DraftTransaction.Status.REJECTED);
-        rejectedDraft = draftRepository.save(rejectedDraft);
-
-        navigateTo("/drafts/" + rejectedDraft.getId());
-        waitForPageLoad();
-
-        assertThat(page).hasURL(java.util.regex.Pattern.compile(".*\\/drafts\\/.*"));
+    private JsonNode getJson(String path) throws Exception {
+        APIResponse response = page.request().get(baseUrl() + path);
+        assertThat(response.status()).as(path + ": " + response.text()).isEqualTo(200);
+        return objectMapper.readTree(response.text());
     }
 
-    // ==================== API ENDPOINTS ====================
-
-    @Test
-    @DisplayName("Should access API list endpoint")
-    void shouldAccessApiListEndpoint() {
-        var response = page.request().get(baseUrl() + "/drafts/api");
-        org.assertj.core.api.Assertions.assertThat(response.status())
-                .as("API list should return success")
-                .isLessThan(500);
+    private RequestOptions withCsrf() {
+        return RequestOptions.create().setHeader(csrfHeader, csrfToken);
     }
 
-    @Test
-    @DisplayName("Should access API list with status filter")
-    void shouldAccessApiListWithStatusFilter() {
-        var response = page.request().get(baseUrl() + "/drafts/api?status=PENDING");
-        org.assertj.core.api.Assertions.assertThat(response.status())
-                .as("API list with filter should return success")
-                .isLessThan(500);
+    private JournalTemplate template(String name) {
+        return templateRepository.findByTemplateNameAndIsCurrentVersionTrue(name)
+                .orElseThrow(() -> new IllegalStateException("Seeded template missing: " + name));
     }
 
-    @Test
-    @DisplayName("Should access API get endpoint")
-    void shouldAccessApiGetEndpoint() {
-        var draft = draftRepository.findAll().stream().findFirst()
-                .orElseThrow(() -> new AssertionError("Draft required for test"));
-
-        var response = page.request().get(baseUrl() + "/drafts/api/" + draft.getId());
-        org.assertj.core.api.Assertions.assertThat(response.status())
-                .as("API get should return success")
-                .isLessThan(500);
-    }
-
-    @Test
-    @DisplayName("Should return error for non-existent draft API")
-    void shouldReturn404ForNonExistentDraftApi() {
-        var response = page.request().get(baseUrl() + "/drafts/api/00000000-0000-0000-0000-000000000000");
-        org.assertj.core.api.Assertions.assertThat(response.status())
-                .as("Non-existent draft should return error")
-                .isIn(400, 404, 500);
-    }
-
-    @Test
-    @DisplayName("Should call delete API endpoint")
-    void shouldCallDeleteApiEndpoint() {
-        // Create a fresh PENDING draft for delete test
-        DraftTransaction deleteDraft = new DraftTransaction();
-        deleteDraft.setSource(DraftTransaction.Source.MANUAL);
-        deleteDraft.setMerchantName("Delete Test Merchant");
-        deleteDraft.setTransactionDate(LocalDate.now());
-        deleteDraft.setAmount(BigDecimal.valueOf(25000));
-        deleteDraft.setStatus(DraftTransaction.Status.PENDING);
-        deleteDraft = draftRepository.save(deleteDraft);
-
-        // The DELETE API endpoint requires CSRF token which isn't easily available
-        // Test that endpoint exists and returns expected response (403 CSRF or 204 success)
-        var response = page.request().delete(baseUrl() + "/drafts/" + deleteDraft.getId());
-        org.assertj.core.api.Assertions.assertThat(response.status())
-                .as("Delete API should respond (CSRF protected)")
-                .isIn(200, 204, 403);
+    private static String uid() {
+        return UUID.randomUUID().toString().substring(0, 8);
     }
 }

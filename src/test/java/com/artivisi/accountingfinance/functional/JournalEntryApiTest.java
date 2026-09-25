@@ -1,6 +1,11 @@
 package com.artivisi.accountingfinance.functional;
 
+import com.artivisi.accountingfinance.entity.JournalEntry;
+import com.artivisi.accountingfinance.entity.Transaction;
 import com.artivisi.accountingfinance.functional.service.ServiceTestDataInitializer;
+import com.artivisi.accountingfinance.repository.ChartOfAccountRepository;
+import com.artivisi.accountingfinance.repository.JournalEntryRepository;
+import com.artivisi.accountingfinance.repository.TransactionRepository;
 import com.artivisi.accountingfinance.ui.PlaywrightTestBase;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -14,9 +19,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
 
+import java.math.BigDecimal;
 import java.time.Duration;
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,22 +32,31 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.awaitility.Awaitility.await;
 
+/**
+ * Free-form journal entry API (Phase 20). Entries are dated 2057-12-31, a date reserved for this class.
+ */
 @Slf4j
 @DisplayName("Journal Entry API - Functional Tests")
 @Import(ServiceTestDataInitializer.class)
 class JournalEntryApiTest extends PlaywrightTestBase {
 
+    private static final String DATE = "2057-12-31";
+
+    @Autowired private ChartOfAccountRepository accountRepository;
+    @Autowired private TransactionRepository transactionRepository;
+    @Autowired private JournalEntryRepository journalEntryRepository;
+
     private APIRequestContext apiContext;
     private ObjectMapper objectMapper;
     private String accessToken;
 
-    // Account IDs resolved at setup from seed data
-    private String debitAccountId;   // leaf account for debit lines
-    private String creditAccountId;  // leaf account for credit lines
-    private String thirdAccountId;   // another leaf account for multi-line tests
-    private String headerAccountId;  // header account for validation test
+    private String debitAccountId;
+    private String creditAccountId;
+    private String thirdAccountId;
+    private String headerAccountId;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -60,43 +77,17 @@ class JournalEntryApiTest extends PlaywrightTestBase {
         }
     }
 
-    private void resolveAccountIds() throws Exception {
-        // Fetch all leaf accounts via API
-        APIResponse response = get("/api/drafts/accounts");
-        assertThat(response.status()).isEqualTo(200);
-        JsonNode accounts = parse(response);
+    private void resolveAccountIds() {
+        debitAccountId = accountId("1.1.02");   // Bank BCA (asset)
+        creditAccountId = accountId("4.1.02");  // Pendapatan Jasa Konsultasi (revenue)
+        thirdAccountId = accountId("5.1.06");   // Beban Telekomunikasi (expense)
+        headerAccountId = accountId("1.1");     // Aset Lancar (header)
+    }
 
-        // Find specific accounts by code from IT service seed data
-        String debitCode = "1.1.02";  // Bank BCA (asset)
-        String creditCode = "4.1.02"; // Pendapatan Jasa Konsultasi (revenue)
-        String thirdCode = "5.1.06";  // Beban Telekomunikasi (expense)
-
-        for (JsonNode account : accounts) {
-            String code = account.get("code").asText();
-            String id = account.get("id").asText();
-            if (debitCode.equals(code)) debitAccountId = id;
-            if (creditCode.equals(code)) creditAccountId = id;
-            if (thirdCode.equals(code)) thirdAccountId = id;
-        }
-
-        assertThat(debitAccountId).as("Debit account " + debitCode + " must exist").isNotNull();
-        assertThat(creditAccountId).as("Credit account " + creditCode + " must exist").isNotNull();
-        assertThat(thirdAccountId).as("Third account " + thirdCode + " must exist").isNotNull();
-
-        // Find a header account UUID by navigating to COA page and extracting edit link
-        // Account code "1.1" (Aset Lancar) is a known header in IT service seed data
-        // Edit button id: btn-edit-1-1, href contains the UUID
-        navigateTo("/accounts");
-        waitForPageLoad();
-        var editLink = page.locator("#btn-edit-1-1");
-        if (editLink.count() > 0) {
-            String href = editLink.getAttribute("href");
-            // href format: /accounts/{uuid}/edit
-            headerAccountId = href.replace("/accounts/", "").replace("/edit", "");
-        }
-
-        log.info("Resolved accounts: debit={}, credit={}, third={}, header={}",
-                debitAccountId, creditAccountId, thirdAccountId, headerAccountId);
+    private String accountId(String code) {
+        return accountRepository.findByAccountCode(code)
+                .orElseThrow(() -> new IllegalStateException("Seeded account missing: " + code))
+                .getId().toString();
     }
 
     // ==================== CREATE JOURNAL ENTRY ====================
@@ -106,10 +97,10 @@ class JournalEntryApiTest extends PlaywrightTestBase {
     class CreateJournalEntry {
 
         @Test
-        @DisplayName("Happy path: 2-line journal entry creates DRAFT")
+        @DisplayName("2-line entry is stored as a DRAFT with the given lines and no journal numbers")
         void happyPath() throws Exception {
             Map<String, Object> request = buildJournalEntryRequest(
-                    "2025-12-31",
+                    DATE,
                     "Year-end closing entry",
                     null,
                     List.of(
@@ -125,17 +116,27 @@ class JournalEntryApiTest extends PlaywrightTestBase {
 
             JsonNode body = parse(response);
             assertThat(body.get("status").asText()).isEqualTo("DRAFT");
-            assertThat(body.get("transactionId").asText()).isNotEmpty();
             assertThat(body.get("amount").asDouble()).isEqualTo(1000000.0);
             assertThat(body.get("description").asText()).isEqualTo("Year-end closing entry");
-            log.info("Created journal entry draft: id={}", body.get("transactionId").asText());
+
+            UUID id = UUID.fromString(body.get("transactionId").asText());
+            Transaction saved = transactionRepository.findById(id).orElseThrow();
+            assertThat(saved.getTransactionDate()).isEqualTo(LocalDate.parse(DATE));
+            assertThat(saved.getTransactionNumber()).isNull();
+            assertThat(saved.getClosingEntry()).isFalse();
+            assertThat(journalEntryRepository.findByTransactionIdWithAccount(id))
+                    .extracting(e -> e.getAccount().getAccountCode(), JournalEntry::getDebitAmount,
+                            JournalEntry::getCreditAmount, JournalEntry::getJournalNumber)
+                    .containsExactlyInAnyOrder(
+                            tuple("1.1.02", new BigDecimal("1000000.00"), new BigDecimal("0.00"), null),
+                            tuple("4.1.02", new BigDecimal("0.00"), new BigDecimal("1000000.00"), null));
         }
 
         @Test
         @DisplayName("Multi-line: 4 lines (2 debit, 2 credit) preserves all entries")
         void multiLine() throws Exception {
             Map<String, Object> request = buildJournalEntryRequest(
-                    "2025-12-31",
+                    DATE,
                     "Multi-line closing journal",
                     null,
                     List.of(
@@ -153,14 +154,21 @@ class JournalEntryApiTest extends PlaywrightTestBase {
 
             JsonNode body = parse(response);
             assertThat(body.get("amount").asDouble()).isEqualTo(1000000.0);
-            assertThat(body.get("journalEntries").size()).isEqualTo(4);
+            UUID id = UUID.fromString(body.get("transactionId").asText());
+            assertThat(journalEntryRepository.findByTransactionIdWithAccount(id))
+                    .extracting(e -> e.getAccount().getAccountCode(), JournalEntry::getDebitAmount, JournalEntry::getCreditAmount)
+                    .containsExactlyInAnyOrder(
+                            tuple("1.1.02", new BigDecimal("500000.00"), new BigDecimal("0.00")),
+                            tuple("5.1.06", new BigDecimal("500000.00"), new BigDecimal("0.00")),
+                            tuple("4.1.02", new BigDecimal("0.00"), new BigDecimal("700000.00")),
+                            tuple("4.1.02", new BigDecimal("0.00"), new BigDecimal("300000.00")));
         }
 
         @Test
-        @DisplayName("Category stored in notes")
-        void categoryInNotes() {
+        @DisplayName("CLOSING category is stored in notes and marks the transaction as a closing entry")
+        void categoryInNotes() throws Exception {
             Map<String, Object> request = buildJournalEntryRequest(
-                    "2025-12-31",
+                    DATE,
                     "Closing accrued expenses",
                     "CLOSING",
                     List.of(
@@ -171,6 +179,10 @@ class JournalEntryApiTest extends PlaywrightTestBase {
 
             APIResponse response = post("/api/transactions/journal-entry", request);
             assertThat(response.status()).isEqualTo(201);
+            Transaction saved = transactionRepository.findById(
+                    UUID.fromString(parse(response).get("transactionId").asText())).orElseThrow();
+            assertThat(saved.getNotes()).isEqualTo("CLOSING");
+            assertThat(saved.getClosingEntry()).isTrue();
         }
     }
 
@@ -181,11 +193,10 @@ class JournalEntryApiTest extends PlaywrightTestBase {
     class PostJournalEntry {
 
         @Test
-        @DisplayName("Full lifecycle: create draft, post, verify journal numbers")
+        @DisplayName("Posting assigns a transaction number and one journal number with per-line suffixes")
         void fullLifecycle() throws Exception {
-            // Create draft
             Map<String, Object> request = buildJournalEntryRequest(
-                    "2025-12-31",
+                    DATE,
                     "Adjusting entry for depreciation",
                     null,
                     List.of(
@@ -198,7 +209,6 @@ class JournalEntryApiTest extends PlaywrightTestBase {
             assertThat(createResponse.status()).isEqualTo(201);
             String transactionId = parse(createResponse).get("transactionId").asText();
 
-            // Post
             APIResponse postResponse = post("/api/transactions/" + transactionId + "/post", Map.of());
             assertThat(postResponse.status())
                     .as("Post journal entry: " + postResponse.text())
@@ -206,15 +216,17 @@ class JournalEntryApiTest extends PlaywrightTestBase {
 
             JsonNode posted = parse(postResponse);
             assertThat(posted.get("status").asText()).isEqualTo("POSTED");
-            assertThat(posted.get("transactionNumber").asText()).isNotEmpty();
+            Transaction saved = transactionRepository.findById(UUID.fromString(transactionId)).orElseThrow();
+            assertThat(saved.getTransactionNumber()).matches("TRX-\\d{4}-\\d{4}")
+                    .isEqualTo(posted.get("transactionNumber").asText());
 
-            // Verify journal entries have journal numbers
-            JsonNode entries = posted.get("journalEntries");
-            assertThat(entries.size()).isEqualTo(2);
-            for (JsonNode entry : entries) {
-                assertThat(entry.get("journalNumber").asText()).isNotEmpty();
-            }
-            log.info("Posted journal entry: txNum={}", posted.get("transactionNumber").asText());
+            List<JournalEntry> entries = journalEntryRepository.findByTransactionIdWithAccount(UUID.fromString(transactionId));
+            assertThat(entries).hasSize(2);
+            String base = entries.get(0).getJournalNumber().substring(0, entries.get(0).getJournalNumber().length() - 3);
+            assertThat(base).matches("JE-\\d{4}-\\d{4}");
+            assertThat(entries).extracting(JournalEntry::getJournalNumber, e -> e.getAccount().getAccountCode())
+                    .containsExactly(tuple(base + "-01", "1.1.02"), tuple(base + "-02", "4.1.02"));
+            assertThat(post("/api/transactions/" + transactionId + "/post", Map.of()).status()).isEqualTo(409);
         }
     }
 
@@ -227,9 +239,8 @@ class JournalEntryApiTest extends PlaywrightTestBase {
         @Test
         @DisplayName("Preview freeform journal entry returns pre-created entries")
         void previewFreeform() throws Exception {
-            // Create draft
             Map<String, Object> request = buildJournalEntryRequest(
-                    "2025-12-31",
+                    DATE,
                     "Opening balance entry",
                     null,
                     List.of(
@@ -242,7 +253,6 @@ class JournalEntryApiTest extends PlaywrightTestBase {
             assertThat(createResponse.status()).isEqualTo(201);
             String transactionId = parse(createResponse).get("transactionId").asText();
 
-            // Preview
             APIResponse previewResponse = get("/api/transactions/" + transactionId + "/journal-preview");
             assertThat(previewResponse.status())
                     .as("Preview: " + previewResponse.text())
@@ -263,111 +273,48 @@ class JournalEntryApiTest extends PlaywrightTestBase {
     class ValidationErrors {
 
         @Test
-        @DisplayName("Unbalanced entry returns 400")
+        @DisplayName("Unbalanced entry returns 400 and saves nothing")
         void unbalanced() {
-            Map<String, Object> request = buildJournalEntryRequest(
-                    "2025-12-31",
-                    "Unbalanced entry",
-                    null,
-                    List.of(
-                            line(debitAccountId, 1000000, 0),
-                            line(creditAccountId, 0, 500000)
-                    )
-            );
-
-            APIResponse response = post("/api/transactions/journal-entry", request);
-            assertThat(response.status()).isEqualTo(400);
+            assertRejected(List.of(line(debitAccountId, 1000000, 0), line(creditAccountId, 0, 500000)));
         }
 
         @Test
-        @DisplayName("Both debit and credit on same line returns 400")
+        @DisplayName("Both debit and credit on same line returns 400 and saves nothing")
         void bothDebitAndCredit() {
-            Map<String, Object> request = buildJournalEntryRequest(
-                    "2025-12-31",
-                    "Both sides entry",
-                    null,
-                    List.of(
-                            line(debitAccountId, 1000000, 500000),
-                            line(creditAccountId, 0, 500000)
-                    )
-            );
-
-            APIResponse response = post("/api/transactions/journal-entry", request);
-            assertThat(response.status()).isEqualTo(400);
+            assertRejected(List.of(line(debitAccountId, 1000000, 500000), line(creditAccountId, 0, 500000)));
         }
 
         @Test
-        @DisplayName("Neither debit nor credit returns 400")
+        @DisplayName("Neither debit nor credit returns 400 and saves nothing")
         void neitherDebitNorCredit() {
-            Map<String, Object> request = buildJournalEntryRequest(
-                    "2025-12-31",
-                    "Zero entry",
-                    null,
-                    List.of(
-                            line(debitAccountId, 0, 0),
-                            line(creditAccountId, 0, 0)
-                    )
-            );
-
-            APIResponse response = post("/api/transactions/journal-entry", request);
-            assertThat(response.status()).isEqualTo(400);
+            assertRejected(List.of(line(debitAccountId, 0, 0), line(creditAccountId, 0, 0)));
         }
 
         @Test
-        @DisplayName("Fewer than 2 lines returns 400")
+        @DisplayName("Fewer than 2 lines returns 400 and saves nothing")
         void fewerThan2Lines() {
-            Map<String, Object> request = buildJournalEntryRequest(
-                    "2025-12-31",
-                    "Single line entry",
-                    null,
-                    List.of(
-                            line(debitAccountId, 1000000, 0)
-                    )
-            );
-
-            APIResponse response = post("/api/transactions/journal-entry", request);
-            assertThat(response.status()).isEqualTo(400);
+            assertRejected(List.of(line(debitAccountId, 1000000, 0)));
         }
 
         @Test
-        @DisplayName("Header account returns 400")
-        void headerAccount() throws Exception {
-            if (headerAccountId == null) {
-                log.warn("No header account found in seed data, skipping test");
-                return;
-            }
-
-            Map<String, Object> request = buildJournalEntryRequest(
-                    "2025-12-31",
-                    "Header account entry",
-                    null,
-                    List.of(
-                            line(headerAccountId, 1000000, 0),
-                            line(creditAccountId, 0, 1000000)
-                    )
-            );
-
-            APIResponse response = post("/api/transactions/journal-entry", request);
-            assertThat(response.status()).isEqualTo(400);
+        @DisplayName("Header account returns 400 and saves nothing")
+        void headerAccount() {
+            assertRejected(List.of(line(headerAccountId, 1000000, 0), line(creditAccountId, 0, 1000000)));
         }
 
         @Test
-        @DisplayName("Non-existent account returns 400")
+        @DisplayName("Non-existent account returns 400 and saves nothing")
         void nonExistentAccount() {
             String fakeAccountId = UUID.randomUUID().toString();
+            assertRejected(List.of(line(fakeAccountId, 1000000, 0), line(creditAccountId, 0, 1000000)));
+        }
 
-            Map<String, Object> request = buildJournalEntryRequest(
-                    "2025-12-31",
-                    "Bad account entry",
-                    null,
-                    List.of(
-                            line(fakeAccountId, 1000000, 0),
-                            line(creditAccountId, 0, 1000000)
-                    )
-            );
-
-            APIResponse response = post("/api/transactions/journal-entry", request);
-            assertThat(response.status()).isEqualTo(400);
+        private void assertRejected(List<Map<String, Object>> lines) {
+            long before = transactionRepository.count();
+            APIResponse response = post("/api/transactions/journal-entry",
+                    buildJournalEntryRequest(DATE, "Rejected entry", null, lines));
+            assertThat(response.status()).as(response.text()).isEqualTo(400);
+            assertThat(transactionRepository.count()).isEqualTo(before);
         }
     }
 

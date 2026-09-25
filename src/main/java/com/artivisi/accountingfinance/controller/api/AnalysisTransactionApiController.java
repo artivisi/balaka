@@ -145,7 +145,7 @@ public class AnalysisTransactionApiController {
             @RequestParam(required = false, defaultValue = "20") int size) {
 
         Page<DraftTransaction> draftsPage = draftTransactionRepository
-                .findByStatus(DraftTransaction.Status.PENDING, PageRequest.of(page, size));
+                .findByStatusOrderByCreatedAtDesc(DraftTransaction.Status.PENDING, PageRequest.of(page, size));
 
         List<DraftItemDto> items = draftsPage.getContent().stream()
                 .map(d -> new DraftItemDto(

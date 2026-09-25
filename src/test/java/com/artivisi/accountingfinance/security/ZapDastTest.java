@@ -142,7 +142,6 @@ class ZapDastTest extends ZapDastTestBase {
             "/inventory/stock/{id}",
             "/salary-components/{id}",
             "/salary-components/{id}/edit",
-            "/journals/ledger/{id}",
             "/settings/data-subjects/{id}",
             "/settings/data-subjects/{id}/export",
             "/settings/data-subjects/{id}/anonymize"

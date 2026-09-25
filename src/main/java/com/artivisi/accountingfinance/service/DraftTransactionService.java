@@ -154,12 +154,12 @@ public class DraftTransactionService {
     }
 
     public Page<DraftTransaction> findPending(Pageable pageable) {
-        return draftRepository.findByStatus(DraftTransaction.Status.PENDING, pageable);
+        return draftRepository.findByStatusOrderByCreatedAtDesc(DraftTransaction.Status.PENDING, pageable);
     }
 
     public Page<DraftTransaction> findByFilters(DraftTransaction.Status status, Pageable pageable) {
         if (status != null) {
-            return draftRepository.findByStatus(status, pageable);
+            return draftRepository.findByStatusOrderByCreatedAtDesc(status, pageable);
         }
         return draftRepository.findAllByOrderByCreatedAtDesc(pageable);
     }

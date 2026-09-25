@@ -458,6 +458,9 @@ public class TransactionController {
             @Valid @RequestBody TransactionDto dto) {
         Transaction transactionData = mapDtoToEntity(dto);
         Transaction updated = transactionService.update(existing, transactionData);
+        if (dto.accountMappings() != null) {
+            transactionService.replaceAccountMappings(updated, dto.accountMappings());
+        }
         transactionService.assignTags(updated, dto.tagIds());
         return ResponseEntity.ok(updated);
     }

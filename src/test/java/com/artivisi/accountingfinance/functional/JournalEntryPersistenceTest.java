@@ -1,363 +1,284 @@
 package com.artivisi.accountingfinance.functional;
 
 import com.artivisi.accountingfinance.entity.JournalEntry;
-import com.artivisi.accountingfinance.entity.Transaction;
 import com.artivisi.accountingfinance.enums.TransactionStatus;
 import com.artivisi.accountingfinance.functional.service.ServiceTestDataInitializer;
 import com.artivisi.accountingfinance.repository.ChartOfAccountRepository;
-import com.artivisi.accountingfinance.repository.JournalEntryRepository;
-import com.artivisi.accountingfinance.repository.JournalTemplateRepository;
 import com.artivisi.accountingfinance.repository.TransactionRepository;
 import com.artivisi.accountingfinance.service.JournalEntryService;
 import com.artivisi.accountingfinance.ui.PlaywrightTestBase;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.microsoft.playwright.APIResponse;
+import com.microsoft.playwright.options.RequestOptions;
+import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 
 /**
- * Functional tests for JournalEntryService with data persistence verification.
- * Tests journal entry retrieval, general ledger generation, and UI navigation.
+ * Journal entry lookups, general ledger (service, /journals page, /journals/api) on posted
+ * free-form journal entries. Each test uses its own month of 2059, which is reserved for this class.
  */
 @DisplayName("Journal Entry - Persistence Tests")
 @Import(ServiceTestDataInitializer.class)
 class JournalEntryPersistenceTest extends PlaywrightTestBase {
 
-    @Autowired
-    private JournalEntryService journalEntryService;
+    private static final String BANK = "1.1.02";
+    private static final String REVENUE = "4.1.02";
+    private static final String TELECOM = "5.1.06";
 
-    @Autowired
-    private JournalEntryRepository journalEntryRepository;
+    @Autowired private JournalEntryService journalEntryService;
+    @Autowired private TransactionRepository transactionRepository;
+    @Autowired private ChartOfAccountRepository accountRepository;
+    @Autowired private PlatformTransactionManager transactionManager;
 
-    @Autowired
-    private ChartOfAccountRepository chartOfAccountRepository;
-
-    @Autowired
-    private JournalTemplateRepository templateRepository;
-
-    @Autowired
-    private TransactionRepository transactionRepository;
+    private final ObjectMapper objectMapper = new ObjectMapper();
+    private String csrfHeader;
+    private String csrfToken;
 
     @BeforeEach
     void setupAndLogin() {
         loginAsAdmin();
+        csrfHeader = page.locator("meta[name='_csrf_header']").getAttribute("content");
+        csrfToken = page.locator("meta[name='_csrf']").getAttribute("content");
     }
 
-    // ==================== FIND BY ID TESTS ====================
+    @Test
+    @DisplayName("Seeded journal lines are found by id, journal number and transaction; unknown keys fail")
+    void shouldFindSeededJournalLines() {
+        UUID transactionId = transactionRepository.findByTransactionNumber("SVC-TRX-002")
+                .orElseThrow(() -> new IllegalStateException("Seeded transaction missing: SVC-TRX-002")).getId();
 
-    @Nested
-    @DisplayName("Find By ID Tests")
-    class FindByIdTests {
+        inTx(() -> {
+            JournalEntry credit = journalEntryService.findByJournalNumber("JRN-SVC-002-C");
+            assertThat(credit.getAccount().getAccountCode()).isEqualTo(REVENUE);
+            assertThat(credit.getCreditAmount()).isEqualByComparingTo("196200000");
+            assertThat(credit.getDebitAmount()).isEqualByComparingTo("0");
+            assertThat(credit.getTransaction().getId()).isEqualTo(transactionId);
+            assertThat(journalEntryService.findById(credit.getId()).getJournalNumber()).isEqualTo("JRN-SVC-002-C");
 
-        @Test
-        @DisplayName("Should find existing journal entry by ID")
-        void shouldFindExistingJournalEntryById() {
-            var entry = journalEntryRepository.findAll().stream().findFirst();
-            if (entry.isEmpty()) {
-                return;
-            }
+            assertThat(journalEntryService.findAllByJournalNumber("JRN-SVC-002-D"))
+                    .extracting(e -> e.getAccount().getAccountCode(), JournalEntry::getDebitAmount)
+                    .containsExactly(tuple(BANK, new BigDecimal("196200000.00")));
+            assertThat(journalEntryService.findByTransactionId(transactionId))
+                    .extracting(JournalEntry::getJournalNumber)
+                    .containsExactly("JRN-SVC-002-C", "JRN-SVC-002-D");
+            return null;
+        });
 
-            var found = journalEntryService.findById(entry.get().getId());
-            org.assertj.core.api.Assertions.assertThat(found).isNotNull();
-            org.assertj.core.api.Assertions.assertThat(found.getId()).isEqualTo(entry.get().getId());
-        }
-
-        @Test
-        @DisplayName("Should throw exception for non-existent ID")
-        void shouldThrowExceptionForNonExistentId() {
-            UUID nonExistentId = UUID.randomUUID();
-            assertThatThrownBy(() -> journalEntryService.findById(nonExistentId))
-                .isInstanceOf(jakarta.persistence.EntityNotFoundException.class);
-        }
+        assertThatThrownBy(() -> journalEntryService.findById(UUID.randomUUID()))
+                .isInstanceOf(EntityNotFoundException.class);
+        assertThatThrownBy(() -> journalEntryService.findByJournalNumber("JE-9999-9999"))
+                .isInstanceOf(EntityNotFoundException.class)
+                .hasMessage("Journal entry not found with number: JE-9999-9999");
+        assertThat(journalEntryService.findByTransactionId(UUID.randomUUID())).isEmpty();
+        assertThatThrownBy(() -> journalEntryService.getGeneralLedger(UUID.randomUUID(), LocalDate.of(2059, 1, 1), LocalDate.of(2059, 1, 31)))
+                .isInstanceOf(EntityNotFoundException.class);
     }
 
-    // ==================== FIND BY JOURNAL NUMBER TESTS ====================
+    @Test
+    @DisplayName("General ledger carries the opening balance, sums posted lines in range and excludes drafts, voided and out-of-range entries")
+    void shouldBuildGeneralLedgerFromPostedEntries() {
+        String marker = "GL" + uid();
+        UUID a = postJournal("2059-01-05", marker + " A", BANK, REVENUE, 3_000_000);
+        UUID b = postJournal("2059-01-20", marker + " B", TELECOM, BANK, 400_000);
+        postJournal("2059-02-03", marker + " C", BANK, REVENUE, 100_000);
+        createJournal("2059-01-10", marker + " draft", BANK, REVENUE, 999_000);
+        UUID voided = postJournal("2059-01-12", marker + " void", BANK, REVENUE, 777_000);
+        assertThat(page.request().post(baseUrl() + "/transactions/api/" + voided + "/void",
+                withCsrf().setData(Map.of("reason", "DUPLICATE", "notes", "Dobel"))).status()).isEqualTo(200);
 
-    @Nested
-    @DisplayName("Find By Journal Number Tests")
-    class FindByJournalNumberTests {
+        LocalDate janStart = LocalDate.of(2059, 1, 1);
+        LocalDate janEnd = LocalDate.of(2059, 1, 31);
+        UUID bank = account(BANK);
+        var before = journalEntryService.getGeneralLedger(bank, LocalDate.of(1900, 1, 1), LocalDate.of(2058, 12, 31));
+        assertThat(before.openingBalance()).isEqualByComparingTo("0");
 
-        @Test
-        @DisplayName("Should find existing journal entry by journal number")
-        void shouldFindExistingJournalEntryByJournalNumber() {
-            var entry = journalEntryRepository.findAll().stream()
-                .filter(e -> e.getJournalNumber() != null)
-                .findFirst();
-            if (entry.isEmpty()) {
-                return;
-            }
+        var jan = journalEntryService.getGeneralLedger(bank, janStart, janEnd);
+        BigDecimal opening = before.closingBalance();
+        assertThat(jan.openingBalance()).isEqualByComparingTo(opening);
+        assertThat(jan.totalDebit()).isEqualByComparingTo("3000000");
+        assertThat(jan.totalCredit()).isEqualByComparingTo("400000");
+        assertThat(jan.entries()).extracting(i -> i.entry().getTransaction().getId(), i -> i.entry().getDebitAmount(),
+                        i -> i.entry().getCreditAmount(), i -> i.runningBalance())
+                .containsExactly(
+                        tuple(a, new BigDecimal("3000000.00"), new BigDecimal("0.00"), opening.add(new BigDecimal("3000000"))),
+                        tuple(b, new BigDecimal("0.00"), new BigDecimal("400000.00"), opening.add(new BigDecimal("2600000"))));
+        assertThat(jan.closingBalance()).isEqualByComparingTo(opening.add(new BigDecimal("2600000")));
+        assertThat(journalEntryService.getGeneralLedger(bank, LocalDate.of(2059, 2, 1), LocalDate.of(2059, 2, 28)).openingBalance())
+                .isEqualByComparingTo(jan.closingBalance());
 
-            var found = journalEntryService.findByJournalNumber(entry.get().getJournalNumber());
-            org.assertj.core.api.Assertions.assertThat(found).isNotNull();
-            org.assertj.core.api.Assertions.assertThat(found.getJournalNumber()).isEqualTo(entry.get().getJournalNumber());
-        }
+        var revenue = journalEntryService.getGeneralLedger(account(REVENUE), janStart, janEnd);
+        assertThat(revenue.account().getNormalBalance().name()).isEqualTo("CREDIT");
+        assertThat(revenue.totalCredit()).isEqualByComparingTo("3000000");
+        assertThat(revenue.closingBalance()).isEqualByComparingTo(revenue.openingBalance().add(new BigDecimal("3000000")));
 
-        @Test
-        @DisplayName("Should throw exception for non-existent journal number")
-        void shouldThrowExceptionForNonExistentJournalNumber() {
-            String nonExistentNumber = "JE-9999-9999";
-            assertThatThrownBy(() -> journalEntryService.findByJournalNumber(nonExistentNumber))
-                .isInstanceOf(jakarta.persistence.EntityNotFoundException.class);
-        }
-
-        @Test
-        @DisplayName("Should find all entries by journal number")
-        void shouldFindAllEntriesByJournalNumber() {
-            var entry = journalEntryRepository.findAll().stream()
-                .filter(e -> e.getJournalNumber() != null)
-                .findFirst();
-            if (entry.isEmpty()) {
-                return;
-            }
-
-            var entries = journalEntryService.findAllByJournalNumber(entry.get().getJournalNumber());
-            org.assertj.core.api.Assertions.assertThat(entries).isNotEmpty();
-        }
+        assertThat(journalEntryService.findByAccountAndDateRange(bank, janStart, janEnd))
+                .extracting(JournalEntry::getDebitAmount).containsExactly(new BigDecimal("3000000.00"), new BigDecimal("0.00"));
+        assertThat(journalEntryService.findAllByDateRange(janStart, janEnd, PageRequest.of(0, 50)).getContent())
+                .extracting(JournalEntry::getDebitAmount, JournalEntry::getCreditAmount)
+                .containsExactly(
+                        tuple(new BigDecimal("3000000.00"), new BigDecimal("0.00")),
+                        tuple(new BigDecimal("0.00"), new BigDecimal("3000000.00")),
+                        tuple(new BigDecimal("400000.00"), new BigDecimal("0.00")),
+                        tuple(new BigDecimal("0.00"), new BigDecimal("400000.00")));
     }
 
-    // ==================== FIND BY TRANSACTION TESTS ====================
+    @Test
+    @DisplayName("Ledger page shows totals, balances and rows linking to their transactions; paging and search keep the running balance")
+    void shouldShowLedgerPageWithPagingAndSearch() {
+        String marker = "LP" + uid();
+        UUID one = postJournal("2059-03-01", marker + " satu", BANK, REVENUE, 100_000);
+        UUID two = postJournal("2059-03-02", marker + " dua", BANK, REVENUE, 200_000);
+        UUID three = postJournal("2059-03-03", marker + " tiga", BANK, REVENUE, 300_000);
+        UUID bank = account(BANK);
+        LocalDate start = LocalDate.of(2059, 3, 1);
+        LocalDate end = LocalDate.of(2059, 3, 31);
+        BigDecimal opening = journalEntryService.getGeneralLedger(bank, start, end).openingBalance();
 
-    @Nested
-    @DisplayName("Find By Transaction Tests")
-    class FindByTransactionTests {
+        var secondPage = journalEntryService.getGeneralLedgerPaged(bank, start, end, null, PageRequest.of(1, 1));
+        assertThat(secondPage.totalElements()).isEqualTo(3);
+        assertThat(secondPage.totalPages()).isEqualTo(3);
+        assertThat(secondPage.hasNext()).isTrue();
+        assertThat(secondPage.hasPrevious()).isTrue();
+        assertThat(secondPage.entries()).extracting(i -> i.entry().getTransaction().getId(), i -> i.runningBalance())
+                .containsExactly(tuple(two, opening.add(new BigDecimal("300000"))));
+        assertThat(secondPage.closingBalance()).isEqualByComparingTo(opening.add(new BigDecimal("600000")));
 
-        @Test
-        @DisplayName("Should find entries by transaction ID")
-        void shouldFindEntriesByTransactionId() {
-            var transaction = transactionRepository.findAll().stream()
-                .filter(t -> t.getStatus() == TransactionStatus.POSTED)
-                .findFirst();
-            if (transaction.isEmpty()) {
-                return;
-            }
+        var searched = journalEntryService.getGeneralLedgerPaged(bank, start, end, marker + " dua", PageRequest.of(0, 20));
+        assertThat(searched.entries()).extracting(i -> i.entry().getTransaction().getId()).containsExactly(two);
 
-            var entries = journalEntryService.findByTransactionId(transaction.get().getId());
-            org.assertj.core.api.Assertions.assertThat(entries).isNotNull();
+        navigateTo("/journals?startDate=2059-03-01&endDate=2059-03-31");
+        waitForPageLoad();
+        assertThat(page.locator("#no-account-message")).isVisible();
+        page.locator("#account-filter").selectOption(bank.toString());
+        assertThat(page.locator("#account-name")).hasText("1.1.02 - Bank BCA");
+        assertThat(page.locator("#opening-balance")).hasText(format(opening));
+        assertThat(page.locator("#total-debit")).hasText("600,000");
+        assertThat(page.locator("#total-credit")).hasText("0");
+        assertThat(page.locator("#entry-count-debit")).hasText("3 entri");
+        assertThat(page.locator("#closing-balance")).hasText(format(opening.add(new BigDecimal("600000"))));
+        for (UUID id : List.of(one, two, three)) {
+            assertThat(page.locator("#entries-content a[href='/transactions/" + id + "']")).hasCount(1);
         }
 
-        @Test
-        @DisplayName("Should return empty list for non-existent transaction")
-        void shouldReturnEmptyListForNonExistentTransaction() {
-            UUID nonExistentId = UUID.randomUUID();
-            var entries = journalEntryService.findByTransactionId(nonExistentId);
-            org.assertj.core.api.Assertions.assertThat(entries).isEmpty();
-        }
+        page.locator("#search-input").fill(marker + " dua");
+        page.locator("#btn-apply").click();
+        assertThat(page.locator("#entries-content a[href^='/transactions/']")).hasCount(1);
+        page.locator("#entries-content a[href='/transactions/" + two + "']").click();
+        page.waitForURL(baseUrl() + "/transactions/" + two);
+        assertThat(page.getByTestId("status-posted")).isVisible();
+        assertThat(page.locator("#transaction-detail-content")).containsText(marker + " dua");
+
+        navigateTo("/journals");
+        waitForPageLoad();
+        page.locator("#btn-add-journal").click();
+        page.waitForURL(baseUrl() + "/transactions/journal-entry/new");
     }
 
-    // ==================== FIND BY DATE RANGE TESTS ====================
+    @Test
+    @DisplayName("/journals/api returns a transaction's journal lines and an account ledger")
+    void shouldServeJournalApiByTransactionAndLedger() throws Exception {
+        String marker = "JA" + uid();
+        UUID posted = postJournal("2059-04-07", marker + " posted", BANK, REVENUE, 1_250_000);
+        UUID draft = createJournal("2059-04-08", marker + " draft", BANK, REVENUE, 50_000);
+        UUID bank = account(BANK);
 
-    @Nested
-    @DisplayName("Find By Date Range Tests")
-    class FindByDateRangeTests {
+        JsonNode lines = getJson("/journals/api/by-transaction/" + posted);
+        assertThat(lines).hasSize(2);
+        String base = lines.get(0).get("journalNumber").asText().replaceAll("-01$", "");
+        assertThat(lines.get(0).get("journalNumber").asText()).isEqualTo(base + "-01");
+        assertThat(lines.get(0).get("debitAmount").decimalValue()).isEqualByComparingTo("1250000");
+        assertThat(lines.get(1).get("journalNumber").asText()).isEqualTo(base + "-02");
+        assertThat(lines.get(1).get("creditAmount").decimalValue()).isEqualByComparingTo("1250000");
+        assertThat(getJson("/journals/api/by-transaction/" + draft)).hasSize(2);
+        assertThat(getJson("/journals/api/by-transaction/" + draft).get(0).get("journalNumber").isNull()).isTrue();
 
-        @Test
-        @DisplayName("Should find entries by date range")
-        void shouldFindEntriesByDateRange() {
-            var startDate = LocalDate.now().minusMonths(6);
-            var endDate = LocalDate.now();
-            var resultPage = journalEntryService.findAllByDateRange(startDate, endDate, PageRequest.of(0, 10));
+        JsonNode ledger = getJson("/journals/api/ledger/" + bank + "?startDate=2059-04-01&endDate=2059-04-30");
+        assertThat(ledger.get("account").get("accountCode").asText()).isEqualTo(BANK);
+        assertThat(ledger.get("totalDebit").decimalValue()).isEqualByComparingTo("1250000");
+        assertThat(ledger.get("totalCredit").decimalValue()).isEqualByComparingTo("0");
+        assertThat(ledger.get("entries")).hasSize(1);
+        assertThat(ledger.get("entries").get(0).get("entry").get("journalNumber").asText()).isEqualTo(base + "-01");
+        assertThat(ledger.get("closingBalance").decimalValue())
+                .isEqualByComparingTo(ledger.get("openingBalance").decimalValue().add(new BigDecimal("1250000")));
+        assertThat(ledger.get("entries").get(0).get("runningBalance").decimalValue())
+                .isEqualByComparingTo(ledger.get("closingBalance").decimalValue());
 
-            org.assertj.core.api.Assertions.assertThat(resultPage).isNotNull();
-        }
-
-        @Test
-        @DisplayName("Should return empty page for future date range")
-        void shouldReturnEmptyPageForFutureDateRange() {
-            var startDate = LocalDate.now().plusYears(10);
-            var endDate = LocalDate.now().plusYears(11);
-            var resultPage = journalEntryService.findAllByDateRange(startDate, endDate, PageRequest.of(0, 10));
-
-            org.assertj.core.api.Assertions.assertThat(resultPage).isNotNull();
-            org.assertj.core.api.Assertions.assertThat(resultPage.getContent()).isEmpty();
-        }
+        assertThat(page.request().get(baseUrl() + "/journals/api/ledger/" + UUID.randomUUID()
+                + "?startDate=2059-04-01&endDate=2059-04-30").status()).isEqualTo(404);
     }
 
-    // ==================== FIND BY ACCOUNT AND DATE RANGE TESTS ====================
+    // ==================== helpers ====================
 
-    @Nested
-    @DisplayName("Find By Account and Date Range Tests")
-    class FindByAccountAndDateRangeTests {
-
-        @Test
-        @DisplayName("Should find entries by account and date range")
-        void shouldFindEntriesByAccountAndDateRange() {
-            var account = chartOfAccountRepository.findAll().stream().findFirst();
-            if (account.isEmpty()) {
-                return;
-            }
-
-            var startDate = LocalDate.now().minusMonths(6);
-            var endDate = LocalDate.now();
-            var entries = journalEntryService.findByAccountAndDateRange(
-                account.get().getId(), startDate, endDate);
-
-            org.assertj.core.api.Assertions.assertThat(entries).isNotNull();
-        }
-
-        @Test
-        @DisplayName("Should return empty list for non-existent account")
-        void shouldReturnEmptyListForNonExistentAccount() {
-            UUID nonExistentId = UUID.randomUUID();
-            var startDate = LocalDate.now().minusMonths(6);
-            var endDate = LocalDate.now();
-
-            var entries = journalEntryService.findByAccountAndDateRange(
-                nonExistentId, startDate, endDate);
-            org.assertj.core.api.Assertions.assertThat(entries).isEmpty();
-        }
+    private UUID postJournal(String date, String description, String debitCode, String creditCode, long amount) {
+        UUID id = createJournal(date, description, debitCode, creditCode, amount);
+        APIResponse response = page.request().post(baseUrl() + "/transactions/api/" + id + "/post", withCsrf());
+        assertThat(response.status()).as("post " + description + ": " + response.text()).isEqualTo(200);
+        assertThat(transactionRepository.findById(id).orElseThrow().getStatus()).isEqualTo(TransactionStatus.POSTED);
+        return id;
     }
 
-    // ==================== GENERAL LEDGER TESTS ====================
-
-    @Nested
-    @DisplayName("General Ledger Tests")
-    class GeneralLedgerTests {
-
-        @Test
-        @DisplayName("Should generate general ledger for existing account")
-        void shouldGenerateGeneralLedgerForExistingAccount() {
-            var account = chartOfAccountRepository.findAll().stream().findFirst();
-            if (account.isEmpty()) {
-                return;
-            }
-
-            var startDate = LocalDate.now().minusMonths(6);
-            var endDate = LocalDate.now();
-            var ledger = journalEntryService.getGeneralLedger(
-                account.get().getId(), startDate, endDate);
-
-            org.assertj.core.api.Assertions.assertThat(ledger).isNotNull();
-            org.assertj.core.api.Assertions.assertThat(ledger.account()).isNotNull();
-        }
-
-        @Test
-        @DisplayName("Should generate paged general ledger")
-        void shouldGeneratePagedGeneralLedger() {
-            var account = chartOfAccountRepository.findAll().stream().findFirst();
-            if (account.isEmpty()) {
-                return;
-            }
-
-            var startDate = LocalDate.now().minusMonths(6);
-            var endDate = LocalDate.now();
-            var ledger = journalEntryService.getGeneralLedgerPaged(
-                account.get().getId(), startDate, endDate, null, PageRequest.of(0, 10));
-
-            org.assertj.core.api.Assertions.assertThat(ledger).isNotNull();
-            org.assertj.core.api.Assertions.assertThat(ledger.account()).isNotNull();
-        }
-
-        @Test
-        @DisplayName("Should generate paged general ledger with search filter")
-        void shouldGeneratePagedGeneralLedgerWithSearchFilter() {
-            var account = chartOfAccountRepository.findAll().stream().findFirst();
-            if (account.isEmpty()) {
-                return;
-            }
-
-            var startDate = LocalDate.now().minusMonths(6);
-            var endDate = LocalDate.now();
-            var ledger = journalEntryService.getGeneralLedgerPaged(
-                account.get().getId(), startDate, endDate, "test", PageRequest.of(0, 10));
-
-            org.assertj.core.api.Assertions.assertThat(ledger).isNotNull();
-        }
-
-        @Test
-        @DisplayName("Should throw exception for non-existent account in general ledger")
-        void shouldThrowExceptionForNonExistentAccountInGeneralLedger() {
-            UUID nonExistentId = UUID.randomUUID();
-            var startDate = LocalDate.now().minusMonths(6);
-            var endDate = LocalDate.now();
-
-            assertThatThrownBy(() -> journalEntryService.getGeneralLedger(
-                nonExistentId, startDate, endDate))
-                .isInstanceOf(jakarta.persistence.EntityNotFoundException.class);
+    private UUID createJournal(String date, String description, String debitCode, String creditCode, long amount) {
+        List<Map<String, Object>> lines = new ArrayList<>();
+        lines.add(Map.of("accountId", account(debitCode).toString(), "debit", amount, "credit", 0));
+        lines.add(Map.of("accountId", account(creditCode).toString(), "debit", 0, "credit", amount));
+        APIResponse response = page.request().post(baseUrl() + "/transactions/journal-entry",
+                withCsrf().setData(Map.of("transactionDate", date, "description", description, "lines", lines)));
+        assertThat(response.status()).as("create " + description + ": " + response.text()).isEqualTo(200);
+        try {
+            return UUID.fromString(objectMapper.readTree(response.text()).get("transactionId").asText());
+        } catch (Exception e) {
+            throw new IllegalStateException("Unparseable journal entry response: " + response.text(), e);
         }
     }
 
-    // ==================== CALCULATE ACCOUNT IMPACT TESTS ====================
-
-    @Nested
-    @DisplayName("Calculate Account Impact Tests")
-    class CalculateAccountImpactTests {
-
-        @Test
-        @Transactional
-        @DisplayName("Should calculate account impact for entries")
-        void shouldCalculateAccountImpactForEntries() {
-            var entries = journalEntryRepository.findAll().stream().limit(5).toList();
-            if (entries.isEmpty()) {
-                return;
-            }
-
-            var impacts = journalEntryService.calculateAccountImpact(entries);
-            org.assertj.core.api.Assertions.assertThat(impacts).isNotNull();
-        }
-
-        @Test
-        @DisplayName("Should return empty list for empty entries")
-        void shouldReturnEmptyListForEmptyEntries() {
-            var impacts = journalEntryService.calculateAccountImpact(List.of());
-            org.assertj.core.api.Assertions.assertThat(impacts).isEmpty();
-        }
+    private JsonNode getJson(String path) throws Exception {
+        APIResponse response = page.request().get(baseUrl() + path);
+        assertThat(response.status()).as(path + ": " + response.text()).isEqualTo(200);
+        return objectMapper.readTree(response.text());
     }
 
-    // ==================== UI TESTS ====================
+    private RequestOptions withCsrf() {
+        return RequestOptions.create().setHeader(csrfHeader, csrfToken);
+    }
 
-    @Nested
-    @DisplayName("UI Tests")
-    class UiTests {
+    private UUID account(String code) {
+        return accountRepository.findByAccountCode(code)
+                .orElseThrow(() -> new IllegalStateException("Seeded account missing: " + code)).getId();
+    }
 
-        @Test
-        @DisplayName("Should display journal entries list page")
-        void shouldDisplayJournalEntriesListPage() {
-            navigateTo("/journal-entries");
-            waitForPageLoad();
+    private static String format(BigDecimal amount) {
+        return new DecimalFormat("#,##0", DecimalFormatSymbols.getInstance(Locale.US)).format(amount);
+    }
 
-            assertThat(page.locator("body")).isVisible();
-        }
+    private <T> T inTx(Supplier<T> work) {
+        return new TransactionTemplate(transactionManager).execute(status -> work.get());
+    }
 
-        @Test
-        @DisplayName("Should display general ledger page")
-        void shouldDisplayGeneralLedgerPage() {
-            var account = chartOfAccountRepository.findAll().stream().findFirst();
-            if (account.isEmpty()) {
-                return;
-            }
-
-            navigateTo("/journal-entries/general-ledger/" + account.get().getId());
-            waitForPageLoad();
-
-            assertThat(page.locator("body")).isVisible();
-        }
-
-        @Test
-        @DisplayName("Should display journal entry detail page")
-        void shouldDisplayJournalEntryDetailPage() {
-            var entry = journalEntryRepository.findAll().stream()
-                .filter(e -> e.getJournalNumber() != null)
-                .findFirst();
-            if (entry.isEmpty()) {
-                return;
-            }
-
-            navigateTo("/journal-entries/" + entry.get().getJournalNumber());
-            waitForPageLoad();
-
-            assertThat(page.locator("body")).isVisible();
-        }
+    private static String uid() {
+        return UUID.randomUUID().toString().substring(0, 8);
     }
 }

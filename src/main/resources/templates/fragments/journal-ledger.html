@@ -91,7 +91,7 @@
 
                     <!-- Journal Entries -->
                     <a th:each="item : ${ledgerData.entries}"
-                       th:href="@{/journals/{journalNumber}(journalNumber=${item.entry.journalNumber})}"
+                       th:href="@{/transactions/{id}(id=${item.entry.transaction.id})}"
                        th:classappend="${item.entry.void} ? 'opacity-50' : ''"
                        class="grid grid-cols-12 gap-4 px-4 py-3 hover:bg-gray-50 transition-colors items-center cursor-pointer">
                         <div class="col-span-1 text-sm text-gray-600" th:text="${#temporals.format(item.entry.journalDate, 'd MMM')}">Date</div>

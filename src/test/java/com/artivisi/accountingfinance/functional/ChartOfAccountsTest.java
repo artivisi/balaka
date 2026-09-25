@@ -1,510 +1,437 @@
 package com.artivisi.accountingfinance.functional;
 
+import com.artivisi.accountingfinance.entity.ChartOfAccount;
+import com.artivisi.accountingfinance.entity.User;
+import com.artivisi.accountingfinance.enums.AccountType;
+import com.artivisi.accountingfinance.enums.NormalBalance;
+import com.artivisi.accountingfinance.enums.Role;
 import com.artivisi.accountingfinance.functional.service.ServiceTestDataInitializer;
+import com.artivisi.accountingfinance.repository.ChartOfAccountRepository;
+import com.artivisi.accountingfinance.repository.UserRepository;
 import com.artivisi.accountingfinance.ui.PlaywrightTestBase;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.microsoft.playwright.APIResponse;
+import com.microsoft.playwright.options.FormData;
+import com.microsoft.playwright.options.RequestOptions;
+import com.microsoft.playwright.options.SelectOption;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
+import org.springframework.security.crypto.password.PasswordEncoder;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.function.Supplier;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Functional tests for Chart of Accounts feature.
- * Tests account list, creation, editing, and validation.
+ * Chart of accounts CRUD through /accounts. The chart is shared by every test class, so these
+ * tests read seeded accounts but only create, edit, deactivate or delete accounts they create
+ * themselves (codes prefixed "T"). Journal lines used for the in-use check are dated 2061.
  */
 @DisplayName("Chart of Accounts")
 @Import(ServiceTestDataInitializer.class)
 class ChartOfAccountsTest extends PlaywrightTestBase {
 
+    @Autowired private ChartOfAccountRepository accountRepository;
+    @Autowired private UserRepository userRepository;
+    @Autowired private PasswordEncoder passwordEncoder;
+
+    private String csrfHeader;
+    private String csrfToken;
+
     @BeforeEach
     void setupAndLogin() {
         loginAsAdmin();
+        readCsrf();
     }
 
-    @Nested
-    @DisplayName("List Page")
-    class ListPageTests {
+    @Test
+    @DisplayName("List shows the seeded hierarchy with type and normal balance; expanding a header reveals its children")
+    void shouldShowSeededHierarchy() {
+        navigateTo("/accounts");
+        waitForPageLoad();
 
-        @Test
-        @DisplayName("Should display accounts list page with title")
-        void shouldDisplayAccountsListPage() {
-            navigateTo("/accounts");
-            waitForPageLoad();
+        assertThat(page.locator("#page-title")).hasText("Bagan Akun");
+        assertThat(page.locator("#account-name-1")).hasText("ASET");
+        assertThat(page.locator("#account-type-1")).hasText("Aset");
+        assertThat(page.locator("#account-row-1")).containsText("Debit");
+        assertThat(page.locator("#account-name-2")).hasText("LIABILITAS");
+        assertThat(page.locator("#account-row-2")).containsText("Credit");
+        assertThat(page.locator("#account-row-5-9")).isHidden();
 
-            assertThat(page.locator("#page-title")).isVisible();
-            assertThat(page.locator("#page-title")).hasText("Bagan Akun");
-        }
-
-        @Test
-        @DisplayName("Should display root accounts")
-        void shouldDisplayRootAccounts() {
-            navigateTo("/accounts");
-            waitForPageLoad();
-
-            // Should see major account categories
-            assertThat(page.locator("#account-row-1")).isVisible();
-        }
-
-        @Test
-        @DisplayName("Should expand account hierarchy")
-        void shouldExpandAccountHierarchy() {
-            navigateTo("/accounts");
-            waitForPageLoad();
-
-            // Click expand on account 5 (BEBAN)
-            page.locator("#btn-expand-5").click();
-            page.waitForTimeout(300);
-
-            // Should now see children
-            assertThat(page.locator("#account-row-5-1")).isVisible();
-        }
+        page.locator("#btn-expand-5").click();
+        assertThat(page.locator("#account-name-5-9")).hasText("Beban Pajak");
+        assertThat(page.locator("#account-row-5-9-01")).isHidden();
+        page.locator("#btn-expand-5-9").click();
+        assertThat(page.locator("#account-name-5-9-01")).hasText("Beban PPh 21 Ditanggung Perusahaan");
+        assertThat(page.locator("#account-type-5-9-01")).hasText("Beban");
+        assertThat(page.locator("#btn-delete-5")).hasCount(0);
     }
 
-    @Nested
-    @DisplayName("New Account Form")
-    class NewAccountFormTests {
+    @Test
+    @DisplayName("New account form lists account types and active parents; the type suggests the permanent flag")
+    void shouldOfferTypesParentsAndPermanentSuggestion() {
+        navigateTo("/accounts/new");
+        waitForPageLoad();
 
-        @Test
-        @DisplayName("Should display new account form with title")
-        void shouldDisplayNewAccountForm() {
-            navigateTo("/accounts/new");
-            waitForPageLoad();
+        assertThat(page.locator("#page-title")).hasText("Tambah Akun");
+        assertThat(page.locator("#accountType option")).hasText(new String[]{
+                "Pilih tipe akun", "Aset", "Liabilitas", "Ekuitas", "Pendapatan", "Beban"});
+        assertThat(page.locator("#parentId option").first()).hasText("Tanpa induk (akun utama)");
+        assertThat(page.locator("#parentId option", new com.microsoft.playwright.Page.LocatorOptions()
+                .setHasText("2.1 - Liabilitas Jangka Pendek"))).hasCount(1);
+        assertThat(page.locator("input[name='active']")).hasCount(0);
 
-            assertThat(page.locator("#page-title")).isVisible();
-            assertThat(page.locator("#page-title")).hasText("Tambah Akun");
-        }
-
-        @Test
-        @DisplayName("Should display account code field")
-        void shouldDisplayAccountCodeField() {
-            navigateTo("/accounts/new");
-            waitForPageLoad();
-
-            assertThat(page.locator("#accountCode")).isVisible();
-        }
-
-        @Test
-        @DisplayName("Should display account name field")
-        void shouldDisplayAccountNameField() {
-            navigateTo("/accounts/new");
-            waitForPageLoad();
-
-            assertThat(page.locator("#accountName")).isVisible();
-        }
-
-        @Test
-        @DisplayName("Should display account type dropdown")
-        void shouldDisplayAccountTypeDropdown() {
-            navigateTo("/accounts/new");
-            waitForPageLoad();
-
-            assertThat(page.locator("#accountType")).isVisible();
-        }
-
-        @Test
-        @DisplayName("Should display parent dropdown")
-        void shouldDisplayParentDropdown() {
-            navigateTo("/accounts/new");
-            waitForPageLoad();
-
-            assertThat(page.locator("#parentId")).isVisible();
-        }
-
-        @Test
-        @DisplayName("Should display submit button")
-        void shouldDisplaySubmitButton() {
-            navigateTo("/accounts/new");
-            waitForPageLoad();
-
-            assertThat(page.locator("#btn-simpan")).isVisible();
-        }
-
-        @Test
-        @DisplayName("Should auto-suggest permanent based on account type")
-        void autoSuggestPermanentBasedOnAccountType() {
-            navigateTo("/accounts/new");
-            waitForPageLoad();
-
-            // Select EXPENSE type - should auto-uncheck permanent
-            page.getByTestId("account-type").selectOption("EXPENSE");
-            page.waitForTimeout(100);
-
-            assertThat(page.locator("#permanent").isChecked())
-                .as("Permanent should be unchecked for EXPENSE type")
-                .isFalse();
-
-            // Select ASSET type - should auto-check permanent
-            page.getByTestId("account-type").selectOption("ASSET");
-            page.waitForTimeout(100);
-
-            assertThat(page.locator("#permanent").isChecked())
-                .as("Permanent should be checked for ASSET type")
-                .isTrue();
-
-            // Select REVENUE type - should auto-uncheck permanent
-            page.getByTestId("account-type").selectOption("REVENUE");
-            page.waitForTimeout(100);
-
-            assertThat(page.locator("#permanent").isChecked())
-                .as("Permanent should be unchecked for REVENUE type")
-                .isFalse();
-
-            // Select LIABILITY type - should auto-check permanent
-            page.getByTestId("account-type").selectOption("LIABILITY");
-            page.waitForTimeout(100);
-
-            assertThat(page.locator("#permanent").isChecked())
-                .as("Permanent should be checked for LIABILITY type")
-                .isTrue();
-        }
+        page.getByTestId("account-type").selectOption("EXPENSE");
+        assertThat(page.locator("#permanent")).not().isChecked();
+        page.getByTestId("account-type").selectOption("ASSET");
+        assertThat(page.locator("#permanent")).isChecked();
+        page.getByTestId("account-type").selectOption("REVENUE");
+        assertThat(page.locator("#permanent")).not().isChecked();
+        page.getByTestId("account-type").selectOption("LIABILITY");
+        assertThat(page.locator("#permanent")).isChecked();
     }
 
-    @Nested
-    @DisplayName("Edit Account Form")
-    class EditAccountFormTests {
+    @Test
+    @DisplayName("Root account takes its normal balance from its type; a child inherits type and normal balance from its parent")
+    void shouldCreateRootAndChildAccounts() {
+        String rootCode = code();
+        String childCode = rootCode + ".01";
 
-        @Test
-        @DisplayName("Should edit account with parent without validation error")
-        void editAccountWithParentWithoutValidationError() {
-            navigateTo("/accounts");
-            waitForPageLoad();
+        navigateTo("/accounts/new");
+        waitForPageLoad();
+        page.locator("#accountCode").fill(rootCode);
+        page.locator("#accountName").fill("Pendapatan Uji " + rootCode);
+        page.getByTestId("account-type").selectOption("REVENUE");
+        page.locator("#isHeader").check();
+        page.locator("#btn-simpan").click();
+        page.waitForURL(baseUrl() + "/accounts");
+        assertThat(page.locator("#success-message")).hasText("Akun berhasil ditambahkan");
 
-            // Expand hierarchy to reach 5.9.01
-            page.locator("#btn-expand-5").click();
-            page.waitForTimeout(300);
-            page.locator("#btn-expand-5-9").click();
-            page.waitForTimeout(300);
+        ChartOfAccount root = account(rootCode);
+        assertThat(root.getAccountType()).isEqualTo(AccountType.REVENUE);
+        assertThat(root.getNormalBalance()).isEqualTo(NormalBalance.CREDIT);
+        assertThat(root.getLevel()).isEqualTo(1);
+        assertThat(root.getIsHeader()).isTrue();
+        assertThat(root.getPermanent()).isFalse();
+        assertThat(root.getActive()).isTrue();
 
-            // Click edit on account 5.9.01 (has parent 5.9)
-            page.locator("#btn-edit-5-9-01").click();
-            waitForPageLoad();
+        navigateTo("/accounts/new");
+        waitForPageLoad();
+        page.locator("#accountCode").fill(childCode);
+        page.locator("#accountName").fill("Pendapatan Anak " + childCode);
+        page.getByTestId("account-type").selectOption("ASSET");
+        page.locator("#parentId").selectOption(new SelectOption().setLabel(rootCode + " - Pendapatan Uji " + rootCode));
+        page.locator("#btn-simpan").click();
+        page.waitForURL(baseUrl() + "/accounts");
 
-            // Verify we're on the edit form
-            assertThat(page.title())
-                .as("Page title should contain 'Edit Akun'")
-                .contains("Edit Akun");
+        ChartOfAccount child = account(childCode);
+        assertThat(child.getAccountType()).isEqualTo(AccountType.REVENUE);
+        assertThat(child.getNormalBalance()).isEqualTo(NormalBalance.CREDIT);
+        assertThat(child.getLevel()).isEqualTo(2);
+        assertThat(child.getIsHeader()).isFalse();
+        assertThat(accountRepository.findByParentIdOrderByAccountCodeAsc(root.getId()))
+                .extracting(ChartOfAccount::getAccountCode).containsExactly(childCode);
 
-            // Verify accountType is disabled (inherit from parent)
-            assertThat(page.getByTestId("account-type").isDisabled())
-                .as("Account type should be disabled when account has parent")
-                .isTrue();
-
-            // Modify the description
-            page.getByTestId("description").fill("Updated description");
-
-            // Submit the form
-            page.getByTestId("btn-submit").click();
-            waitForPageLoad();
-
-            // Verify redirected back to accounts list
-            assertThat(page.url())
-                .as("Should redirect to accounts list after successful save")
-                .contains("/accounts");
-            assertThat(page.url())
-                .as("Should not be on edit page")
-                .doesNotContain("/edit");
-        }
-
-        @Test
-        @DisplayName("Should show inherited values from parent when editing child account")
-        void showInheritedValuesFromParentWhenEditingChildAccount() {
-            navigateTo("/accounts");
-            waitForPageLoad();
-
-            // Expand hierarchy to reach 5.9.01
-            page.locator("#btn-expand-5").click();
-            page.waitForTimeout(300);
-            page.locator("#btn-expand-5-9").click();
-            page.waitForTimeout(300);
-
-            // Click edit on account 5.9.01
-            page.locator("#btn-edit-5-9-01").click();
-            waitForPageLoad();
-
-            // Verify account type is disabled
-            assertThat(page.getByTestId("account-type").isDisabled())
-                .as("Account type should be disabled")
-                .isTrue();
-
-            // The selected value should be EXPENSE
-            String selectedType = page.getByTestId("account-type").inputValue();
-            assertThat(selectedType)
-                .as("Account type should show EXPENSE from parent")
-                .isEqualTo("EXPENSE");
-
-            // Verify help text shows that it follows parent
-            assertThat(page.locator("text=Tipe akun mengikuti akun induk").isVisible())
-                .as("Help text should indicate account type follows parent")
-                .isTrue();
-        }
-
-        @Test
-        @DisplayName("Should show cannot edit message for account with children")
-        void shouldShowCannotEditMessageForAccountWithChildren() {
-            navigateTo("/accounts");
-            waitForPageLoad();
-
-            // Click edit on root account "5 - BEBAN" (has children)
-            page.locator("#btn-edit-5").click();
-            waitForPageLoad();
-
-            // Verify message about having children
-            assertThat(page.locator("text=Tipe akun tidak dapat diubah karena memiliki akun anak").isVisible())
-                .as("Help text should indicate account type cannot change due to children")
-                .isTrue();
-        }
-
-        @Test
-        @DisplayName("Should save permanent field change")
-        void savePermanentFieldChange() {
-            navigateTo("/accounts");
-            waitForPageLoad();
-
-            // Expand to reach 5.9.01
-            page.locator("#btn-expand-5").click();
-            page.waitForTimeout(300);
-            page.locator("#btn-expand-5-9").click();
-            page.waitForTimeout(300);
-
-            // Click edit on account 5.9.01
-            page.locator("#btn-edit-5-9-01").click();
-            waitForPageLoad();
-
-            // Get initial state of permanent checkbox
-            boolean initiallyChecked = page.locator("#permanent").isChecked();
-
-            // Toggle the permanent checkbox
-            page.locator("#permanent").click();
-
-            // Submit the form
-            page.getByTestId("btn-submit").click();
-            waitForPageLoad();
-
-            // Verify success - redirected to list
-            assertThat(page.url())
-                .as("Should redirect to accounts list after successful save")
-                .contains("/accounts");
-
-            // Edit again to verify the change was saved
-            page.locator("#btn-expand-5").click();
-            page.waitForTimeout(300);
-            page.locator("#btn-expand-5-9").click();
-            page.waitForTimeout(300);
-            page.locator("#btn-edit-5-9-01").click();
-            waitForPageLoad();
-
-            // Verify the permanent checkbox state changed
-            boolean afterSaveChecked = page.locator("#permanent").isChecked();
-            assertThat(afterSaveChecked)
-                .as("Permanent checkbox state should have changed after save")
-                .isNotEqualTo(initiallyChecked);
-        }
+        page.locator("#btn-expand-" + rowId(rootCode)).click();
+        assertThat(page.locator("#account-name-" + rowId(childCode))).hasText("Pendapatan Anak " + childCode);
+        assertThat(page.locator("#account-type-" + rowId(childCode))).hasText("Pendapatan");
     }
 
-    @Nested
-    @DisplayName("Account Actions")
-    class AccountActionsTests {
+    @Test
+    @DisplayName("Create rejects a duplicate code and a root account without type, keeps the input and saves nothing")
+    void shouldRejectInvalidNewAccounts() {
+        String duplicateName = "Duplikat " + code();
+        navigateTo("/accounts/new");
+        waitForPageLoad();
+        page.locator("#accountCode").fill("1.1.02");
+        page.locator("#accountName").fill(duplicateName);
+        page.getByTestId("account-type").selectOption("ASSET");
+        page.locator("#btn-simpan").click();
+        waitForPageLoad();
 
-        @Test
-        @DisplayName("Should create new account successfully and persist boolean fields")
-        void shouldCreateNewAccountSuccessfully() {
-            navigateTo("/accounts/new");
-            waitForPageLoad();
+        assertThat(page).hasURL(baseUrl() + "/accounts/new");
+        assertThat(page.getByTestId("validation-errors")).containsText("Account code already exists: 1.1.02");
+        assertThat(page.locator("#accountName")).hasValue(duplicateName);
+        assertThat(account("1.1.02").getAccountName()).isEqualTo("Bank BCA");
 
-            // Fill form matching the bug report scenario:
-            // LIABILITY type, permanent checked, isHeader unchecked, with parent
-            String uniqueCode = "2.1.99";
-            page.locator("#accountCode").fill(uniqueCode);
-            page.locator("#accountName").fill("Hutang Test");
-            page.getByTestId("account-type").selectOption("LIABILITY");
+        String untyped = code();
+        page.locator("#accountCode").fill(untyped);
+        page.locator("#accountName").fill("Tanpa Tipe " + untyped);
+        page.getByTestId("account-type").selectOption("");
+        page.locator("#btn-simpan").click();
+        waitForPageLoad();
 
-            // Select parent "2.1 - Liabilitas Jangka Pendek"
-            page.locator("#parentId").selectOption(
-                    new com.microsoft.playwright.options.SelectOption().setLabel("2.1 - Liabilitas Jangka Pendek"));
+        assertThat(page).hasURL(baseUrl() + "/accounts/new");
+        assertThat(page.getByTestId("validation-errors")).containsText("Tipe akun harus diisi untuk akun tanpa induk");
+        assertThat(page.locator("#accountCode")).hasValue(untyped);
+        assertThat(accountRepository.findByAccountCode(untyped)).isEmpty();
+    }
 
-            // Permanent should be auto-checked for LIABILITY; verify it
-            assertThat(page.locator("#permanent").isChecked())
-                .as("Permanent should be auto-checked for LIABILITY")
-                .isTrue();
+    @Test
+    @DisplayName("Editing a child keeps the inherited type and saves description and permanent flag")
+    void shouldEditChildAccount() {
+        String rootCode = code();
+        ChartOfAccount root = createAccount(rootCode, "Beban Uji", "EXPENSE", null, true);
+        ChartOfAccount child = createAccount(rootCode + ".01", "Beban Anak", null, root.getId(), false);
 
-            // isHeader should be unchecked
-            assertThat(page.locator("#isHeader").isChecked())
-                .as("isHeader should be unchecked by default")
-                .isFalse();
+        navigateTo("/accounts/" + child.getId() + "/edit");
+        waitForPageLoad();
+        assertThat(page.locator("#page-title")).hasText("Edit Akun");
+        assertThat(page.getByTestId("account-type")).isDisabled();
+        assertThat(page.getByTestId("account-type")).hasValue("EXPENSE");
+        assertThat(page.locator("#account-form-content")).containsText("Tipe akun mengikuti akun induk");
+        assertThat(page.locator("#permanent")).not().isChecked();
 
-            // Submit
-            page.locator("#btn-simpan").click();
-            waitForPageLoad();
+        page.getByTestId("description").fill("Beban uji operasional");
+        page.locator("#permanent").check();
+        page.getByTestId("btn-submit").click();
+        page.waitForURL(baseUrl() + "/accounts");
+        assertThat(page.locator("#success-message")).hasText("Akun berhasil diperbarui");
 
-            // Should redirect to list on success (not stay on form with error)
-            assertThat(page.url())
-                .as("Should redirect to accounts list after successful create")
-                .contains("/accounts");
-            assertThat(page.url())
-                .as("Should not stay on /new form (which would indicate an error)")
-                .doesNotContain("/new");
+        ChartOfAccount saved = account(child.getAccountCode());
+        assertThat(saved.getDescription()).isEqualTo("Beban uji operasional");
+        assertThat(saved.getPermanent()).isTrue();
+        assertThat(saved.getAccountType()).isEqualTo(AccountType.EXPENSE);
+        assertThat(saved.getNormalBalance()).isEqualTo(NormalBalance.DEBIT);
+        assertThat(accountRepository.findByParentIdOrderByAccountCodeAsc(root.getId()))
+                .extracting(ChartOfAccount::getId).containsExactly(child.getId());
+    }
 
-            // Verify the account appears in the list
-            String accountRowId = "#account-row-" + uniqueCode.replace(".", "-");
-            page.locator("#btn-expand-2").click();
-            page.waitForTimeout(300);
-            page.locator("#btn-expand-2-1").click();
-            page.waitForTimeout(300);
+    @Test
+    @DisplayName("Editing a root account that has children saves the change and keeps its type")
+    void shouldEditRootAccountWithChildren() {
+        String rootCode = code();
+        ChartOfAccount root = createAccount(rootCode, "Aset Uji", "ASSET", null, true);
+        createAccount(rootCode + ".01", "Aset Anak", null, root.getId(), false);
 
-            assertThat(page.locator(accountRowId)).isVisible();
+        navigateTo("/accounts/" + root.getId() + "/edit");
+        waitForPageLoad();
+        assertThat(page.getByTestId("account-type")).isDisabled();
+        assertThat(page.locator("#account-form-content")).containsText("Tipe akun tidak dapat diubah karena memiliki akun anak");
+        page.locator("#accountName").fill("Aset Uji Revisi");
+        page.getByTestId("btn-submit").click();
+        page.waitForURL(baseUrl() + "/accounts");
+        assertThat(page.locator("#success-message")).hasText("Akun berhasil diperbarui");
 
-            // Edit the created account to verify boolean fields were persisted correctly
-            String editBtnId = "#btn-edit-" + uniqueCode.replace(".", "-");
-            page.locator(editBtnId).click();
-            waitForPageLoad();
+        ChartOfAccount saved = account(rootCode);
+        assertThat(saved.getAccountName()).isEqualTo("Aset Uji Revisi");
+        assertThat(saved.getAccountType()).isEqualTo(AccountType.ASSET);
+        assertThat(saved.getNormalBalance()).isEqualTo(NormalBalance.DEBIT);
+    }
 
-            assertThat(page.locator("#permanent").isChecked())
-                .as("Permanent should be true after save")
-                .isTrue();
-            assertThat(page.locator("#isHeader").isChecked())
-                .as("isHeader should be false after save")
-                .isFalse();
-            assertThat(page.locator("input[name='active']").isChecked())
-                .as("Active should be true for newly created account")
-                .isTrue();
+    @Test
+    @DisplayName("Edit rejects another account's code; the form keeps targeting the edited account")
+    void shouldKeepEditFormBoundAfterDuplicateCode() {
+        ChartOfAccount first = createAccount(code(), "Kas Uji Satu", "ASSET", null, false);
+        ChartOfAccount second = createAccount(code(), "Kas Uji Dua", "ASSET", null, false);
+
+        navigateTo("/accounts/" + first.getId() + "/edit");
+        waitForPageLoad();
+        page.locator("#accountCode").fill(second.getAccountCode());
+        page.getByTestId("btn-submit").click();
+        waitForPageLoad();
+
+        assertThat(page.getByTestId("validation-errors")).containsText("Account code already exists: " + second.getAccountCode());
+        assertThat(page.locator("form[action='/accounts/" + first.getId() + "/edit']")).hasCount(1);
+
+        String newCode = code();
+        page.locator("#accountCode").fill(newCode);
+        page.getByTestId("btn-submit").click();
+        page.waitForURL(baseUrl() + "/accounts");
+
+        assertThat(accountRepository.findById(first.getId()).orElseThrow().getAccountCode()).isEqualTo(newCode);
+        ChartOfAccount untouched = accountRepository.findById(second.getId()).orElseThrow();
+        assertThat(untouched.getAccountCode()).isEqualTo(second.getAccountCode());
+        assertThat(untouched.getAccountName()).isEqualTo("Kas Uji Dua");
+    }
+
+    @Test
+    @DisplayName("Deactivated accounts show as inactive and leave the account picker; activating restores them")
+    void shouldDeactivateAndActivateAccount() {
+        String rootCode = code();
+        ChartOfAccount root = createAccount(rootCode, "Beban Aktif", "EXPENSE", null, true);
+        ChartOfAccount leaf = createAccount(rootCode + ".01", "Beban Aktif Anak", null, root.getId(), false);
+        assertThat(pickerCodes(leaf.getAccountCode())).containsExactly(leaf.getAccountCode());
+
+        navigateTo("/accounts");
+        waitForPageLoad();
+        page.locator("#btn-expand-" + rowId(rootCode)).click();
+        page.onceDialog(dialog -> dialog.accept());
+        page.locator("#btn-deactivate-" + rowId(leaf.getAccountCode())).click();
+        page.waitForURL(baseUrl() + "/accounts");
+        assertThat(page.locator("#success-message")).hasText("Akun berhasil dinonaktifkan");
+        assertThat(accountRepository.findById(leaf.getId()).orElseThrow().getActive()).isFalse();
+        assertThat(pickerCodes(leaf.getAccountCode())).isEmpty();
+
+        page.locator("#btn-expand-" + rowId(rootCode)).click();
+        assertThat(page.locator("#account-row-" + rowId(leaf.getAccountCode()))).containsText("Non-aktif");
+        page.locator("#btn-activate-" + rowId(leaf.getAccountCode())).click();
+        page.waitForURL(baseUrl() + "/accounts");
+        assertThat(page.locator("#success-message")).hasText("Akun berhasil diaktifkan");
+        assertThat(accountRepository.findById(leaf.getId()).orElseThrow().getActive()).isTrue();
+        assertThat(pickerCodes(leaf.getAccountCode())).containsExactly(leaf.getAccountCode());
+    }
+
+    @Test
+    @DisplayName("Delete removes an unused leaf; accounts with children or journal lines are kept with an error")
+    void shouldDeleteOnlyUnusedLeafAccounts() {
+        String rootCode = code();
+        ChartOfAccount root = createAccount(rootCode, "Beban Hapus", "EXPENSE", null, true);
+        ChartOfAccount unused = createAccount(rootCode + ".01", "Beban Tak Dipakai", null, root.getId(), false);
+        ChartOfAccount used = createAccount(rootCode + ".02", "Beban Dipakai", null, root.getId(), false);
+        postJournal("2061-01-15", "Pemakaian akun " + used.getAccountCode(), used.getId(), account("1.1.02").getId(), 125000);
+
+        navigateTo("/accounts");
+        waitForPageLoad();
+        assertThat(page.locator("#btn-delete-" + rowId(rootCode))).hasCount(0);
+        page.locator("#btn-expand-" + rowId(rootCode)).click();
+        page.onceDialog(dialog -> dialog.accept());
+        page.locator("#btn-delete-" + rowId(unused.getAccountCode())).click();
+        page.waitForURL(baseUrl() + "/accounts");
+        assertThat(page.locator("#success-message")).hasText("Akun berhasil dihapus");
+        assertThat(accountRepository.findByAccountCode(unused.getAccountCode())).isEmpty();
+
+        page.locator("#btn-expand-" + rowId(rootCode)).click();
+        page.onceDialog(dialog -> dialog.accept());
+        page.locator("#btn-delete-" + rowId(used.getAccountCode())).click();
+        page.waitForURL(baseUrl() + "/accounts");
+        assertThat(page.getByTestId("error-message")).hasText("Cannot delete account with journal entries");
+        assertThat(accountRepository.findByAccountCode(used.getAccountCode())).isPresent();
+
+        assertThat(postForm("/accounts/" + root.getId() + "/delete", FormData.create()).status()).isEqualTo(302);
+        navigateTo("/accounts");
+        waitForPageLoad();
+        assertThat(page.getByTestId("error-message")).hasText("Cannot delete account with child accounts");
+        assertThat(accountRepository.findByAccountCode(rootCode)).isPresent();
+    }
+
+    @Test
+    @DisplayName("AUDITOR cannot create, edit, activate, deactivate or delete accounts and sees no write controls")
+    void shouldRefuseAccountWritesForAuditor() {
+        String rootCode = code();
+        ChartOfAccount root = createAccount(rootCode, "Beban Auditor", "EXPENSE", null, true);
+        ChartOfAccount leaf = createAccount(rootCode + ".01", "Beban Auditor Anak", null, root.getId(), false);
+        String newCode = code();
+        Supplier<String> state = () -> accountRepository.findById(leaf.getId())
+                .map(a -> a.getAccountCode() + "|" + a.getAccountName() + "|" + a.getActive()).orElse("deleted")
+                + "|" + accountRepository.findByAccountCode(newCode).isPresent();
+        String before = state.get();
+
+        loginAsNewUser(Role.AUDITOR);
+
+        assertThat(page.request().get(baseUrl() + "/accounts/new").status()).isEqualTo(403);
+        assertThat(page.request().get(baseUrl() + "/accounts/" + leaf.getId() + "/edit").status()).isEqualTo(403);
+        assertThat(postForm("/accounts/new", accountForm(newCode, "Ilegal", "EXPENSE", null, false)).status()).isEqualTo(403);
+        assertThat(postForm("/accounts/" + leaf.getId() + "/edit",
+                accountForm(leaf.getAccountCode(), "Ilegal", null, null, false)).status()).isEqualTo(403);
+        assertThat(postForm("/accounts/" + leaf.getId() + "/deactivate", FormData.create()).status()).isEqualTo(403);
+        assertThat(postForm("/accounts/" + leaf.getId() + "/activate", FormData.create()).status()).isEqualTo(403);
+        assertThat(postForm("/accounts/" + leaf.getId() + "/delete", FormData.create()).status()).isEqualTo(403);
+        assertThat(state.get()).isEqualTo(before);
+
+        navigateTo("/accounts");
+        waitForPageLoad();
+        assertThat(page.locator("#account-row-" + rowId(rootCode))).isVisible();
+        assertThat(page.locator("#btn-tambah-akun")).hasCount(0);
+        assertThat(page.locator("[id^='btn-edit-'], [id^='btn-delete-'], [id^='btn-deactivate-'], [id^='btn-activate-']"))
+                .hasCount(0);
+    }
+
+    // ==================== helpers ====================
+
+    private ChartOfAccount createAccount(String code, String name, String type, UUID parentId, boolean header) {
+        APIResponse response = page.request().post(baseUrl() + "/accounts/new",
+                RequestOptions.create().setForm(accountForm(code, name, type, parentId, header).set("_csrf", csrfToken)));
+        assertThat(response.status()).as("create account " + code).isEqualTo(200);
+        assertThat(response.url()).isEqualTo(baseUrl() + "/accounts");
+        assertThat(response.text()).contains("Akun berhasil ditambahkan");
+        return account(code);
+    }
+
+    private FormData accountForm(String code, String name, String type, UUID parentId, boolean header) {
+        FormData form = FormData.create().set("accountCode", code).set("accountName", name);
+        if (type != null) {
+            form.set("accountType", type);
         }
-
-        @Test
-        @DisplayName("Should create child account with parent")
-        void shouldCreateChildAccountWithParent() {
-            navigateTo("/accounts/new");
-            waitForPageLoad();
-
-            // Fill account code with unique value
-            String uniqueCode = "CHILD-" + System.currentTimeMillis() % 10000;
-            page.locator("#accountCode").fill(uniqueCode);
-            page.locator("#accountName").fill("Child Account " + uniqueCode);
-
-            // Select parent account
-            var parentSelect = page.locator("#parentId");
-            if (parentSelect.isVisible()) {
-                var options = parentSelect.locator("option");
-                if (options.count() > 1) {
-                    parentSelect.selectOption(new String[]{options.nth(1).getAttribute("value")});
-                }
-            }
-
-            // Submit
-            page.locator("#btn-simpan").click();
-            waitForPageLoad();
-
-            // Should redirect to list
-            assertThat(page.url()).contains("/accounts");
+        if (parentId != null) {
+            form.set("parentId", parentId.toString());
         }
-
-        @Test
-        @DisplayName("Should activate account")
-        void shouldActivateAccount() {
-            navigateTo("/accounts");
-            waitForPageLoad();
-
-            // Find and click activate button if available
-            var activateBtn = page.locator("form[action*='/activate'] button[type='submit']").first();
-            if (activateBtn.isVisible()) {
-                activateBtn.click();
-                waitForPageLoad();
-            }
-
-            // Should stay on accounts page
-            assertThat(page.url()).contains("/accounts");
+        if (header) {
+            form.set("isHeader", "true");
         }
+        return form;
+    }
 
-        @Test
-        @DisplayName("Should deactivate account")
-        void shouldDeactivateAccount() {
-            navigateTo("/accounts");
-            waitForPageLoad();
-
-            // Find and click deactivate button if available
-            var deactivateBtn = page.locator("form[action*='/deactivate'] button[type='submit']").first();
-            if (deactivateBtn.isVisible()) {
-                deactivateBtn.click();
-                waitForPageLoad();
-            }
-
-            // Should stay on accounts page
-            assertThat(page.url()).contains("/accounts");
+    private void postJournal(String date, String description, UUID debitAccount, UUID creditAccount, long amount) {
+        APIResponse created = page.request().post(baseUrl() + "/transactions/journal-entry", withCsrf().setData(Map.of(
+                "transactionDate", date, "description", description,
+                "lines", List.of(
+                        Map.of("accountId", debitAccount.toString(), "debit", amount, "credit", 0),
+                        Map.of("accountId", creditAccount.toString(), "debit", 0, "credit", amount)))));
+        assertThat(created.status()).as(created.text()).isEqualTo(200);
+        String transactionId;
+        try {
+            transactionId = new ObjectMapper().readTree(created.text()).get("transactionId").asText();
+        } catch (Exception e) {
+            throw new IllegalStateException("Unparseable journal entry response: " + created.text(), e);
         }
+        APIResponse posted = page.request().post(baseUrl() + "/transactions/api/" + transactionId + "/post", withCsrf());
+        assertThat(posted.status()).as(posted.text()).isEqualTo(200);
+    }
 
-        @Test
-        @DisplayName("Should delete account")
-        void shouldDeleteAccount() {
-            navigateTo("/accounts");
-            waitForPageLoad();
+    private List<String> pickerCodes(String query) {
+        APIResponse response = page.request().get(baseUrl() + "/accounts/search?q=" + query);
+        assertThat(response.status()).isEqualTo(200);
+        return List.of(response.text().split("\"code\":\"")).stream().skip(1)
+                .map(s -> s.substring(0, s.indexOf('"'))).toList();
+    }
 
-            // Find and click delete button if available
-            var deleteBtn = page.locator("form[action*='/delete'] button[type='submit']").first();
-            if (deleteBtn.isVisible()) {
-                deleteBtn.click();
-                waitForPageLoad();
-            }
+    private APIResponse postForm(String path, FormData form) {
+        return page.request().post(baseUrl() + path,
+                RequestOptions.create().setMaxRedirects(0).setForm(form.set("_csrf", csrfToken)));
+    }
 
-            // Should stay on accounts page
-            assertThat(page.url()).contains("/accounts");
-        }
+    private RequestOptions withCsrf() {
+        return RequestOptions.create().setHeader(csrfHeader, csrfToken);
+    }
 
-        @Test
-        @DisplayName("Should attempt to delete account with children and stay on page")
-        void shouldNotDeleteAccountWithChildren() {
-            navigateTo("/accounts");
-            waitForPageLoad();
+    private void readCsrf() {
+        csrfHeader = page.locator("meta[name='_csrf_header']").getAttribute("content");
+        csrfToken = page.locator("meta[name='_csrf']").getAttribute("content");
+    }
 
-            // Try to delete root account "5 - BEBAN" which has children
-            var deleteForm = page.locator("#form-delete-5");
-            if (deleteForm.isVisible()) {
-                page.onDialog(dialog -> dialog.accept());
-                deleteForm.locator("button[type='submit']").click();
-                waitForPageLoad();
+    private void loginAsNewUser(Role role) {
+        String id = UUID.randomUUID().toString().substring(0, 8);
+        User user = new User();
+        user.setUsername("coa-" + role.name().toLowerCase() + "-" + id);
+        user.setPassword(passwordEncoder.encode("password"));
+        user.setFullName("Pengguna " + id);
+        user.setEmail("coa-" + id + "@example.com");
+        user.setActive(true);
+        user.addRole(role, "system");
+        userRepository.save(user);
+        context.clearCookies();
+        login(user.getUsername(), "password");
+        readCsrf();
+    }
 
-                // Should stay on accounts page (delete should fail due to children)
-                assertThat(page.url()).contains("/accounts");
-            }
-        }
+    private ChartOfAccount account(String code) {
+        return accountRepository.findByAccountCode(code)
+                .orElseThrow(() -> new IllegalStateException("Account missing: " + code));
+    }
 
-        @Test
-        @DisplayName("Should create root account without parent")
-        void shouldCreateRootAccountWithoutParent() {
-            navigateTo("/accounts/new");
-            waitForPageLoad();
+    private static String rowId(String code) {
+        return code.replace('.', '-');
+    }
 
-            String uniqueCode = "ROOT-" + System.currentTimeMillis() % 10000;
-            page.locator("#accountCode").fill(uniqueCode);
-            page.locator("#accountName").fill("Root Account " + uniqueCode);
-            page.getByTestId("account-type").selectOption("LIABILITY");
-
-            page.locator("#btn-simpan").click();
-            waitForPageLoad();
-
-            assertThat(page.url())
-                .as("Should redirect to accounts list after creating root account")
-                .contains("/accounts");
-        }
-
-        @Test
-        @DisplayName("Should show validation error for duplicate account code")
-        void shouldShowValidationErrorForDuplicateAccountCode() {
-            navigateTo("/accounts/new");
-            waitForPageLoad();
-
-            // Use existing account code
-            page.locator("#accountCode").fill("1");
-            page.locator("#accountName").fill("Duplicate Test");
-            page.getByTestId("account-type").selectOption("ASSET");
-
-            // Submit
-            page.locator("#btn-simpan").click();
-            waitForPageLoad();
-
-            // Should stay on form (validation error)
-            assertThat(page.locator("body")).isVisible();
-        }
+    private static String code() {
+        return "T" + UUID.randomUUID().toString().replace("-", "").substring(0, 7).toUpperCase();
     }
 }

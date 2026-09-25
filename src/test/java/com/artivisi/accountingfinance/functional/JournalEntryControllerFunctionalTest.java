@@ -22,8 +22,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 /**
  * Functional tests for JournalEntryController.
  * Tests journal list page with filters.
- *
- * Note: Ledger page tests removed - template journals/ledger.html does not exist.
  */
 @DisplayName("Journal Entry Controller Tests")
 @Import(ServiceTestDataInitializer.class)
