@@ -1,6 +1,7 @@
 package com.artivisi.accountingfinance.functional;
 
 import com.artivisi.accountingfinance.functional.service.ServiceTestDataInitializer;
+import com.artivisi.accountingfinance.repository.AmortizationEntryRepository;
 import com.artivisi.accountingfinance.repository.AmortizationScheduleRepository;
 import com.artivisi.accountingfinance.repository.ChartOfAccountRepository;
 import com.artivisi.accountingfinance.ui.PlaywrightTestBase;
@@ -29,6 +30,9 @@ class AmortizationControllerFunctionalTest extends PlaywrightTestBase {
 
     @Autowired
     private ChartOfAccountRepository coaRepository;
+
+    @Autowired
+    private AmortizationEntryRepository entryRepository;
 
     @BeforeEach
     void setupAndLogin() {
@@ -661,7 +665,7 @@ class AmortizationControllerFunctionalTest extends PlaywrightTestBase {
         }
 
         var schedule = schedules.stream()
-            .filter(s -> s.getEntries() != null && !s.getEntries().isEmpty())
+            .filter(s -> !entryRepository.findByScheduleIdOrderByPeriodNumberAsc(s.getId()).isEmpty())
             .findFirst()
             .orElse(schedules.get(0));
 
@@ -687,7 +691,7 @@ class AmortizationControllerFunctionalTest extends PlaywrightTestBase {
         }
 
         var schedule = schedules.stream()
-            .filter(s -> s.getEntries() != null && !s.getEntries().isEmpty())
+            .filter(s -> !entryRepository.findByScheduleIdOrderByPeriodNumberAsc(s.getId()).isEmpty())
             .findFirst()
             .orElse(schedules.get(0));
 
