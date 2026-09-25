@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
-      th:replace="~{layouts/main :: layout('Rekonsiliasi Bank', ~{::#page-title}, ~{::section}, ~{})}"
+      th:replace="~{layouts/main :: layout('Rekonsiliasi Bank', ~{::#page-title}, ~{::section}, ~{::script})}"
       lang="id">
 <head>
     <title>Rekonsiliasi Bank</title>
@@ -60,9 +60,9 @@
                         class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">Auto-Match</button>
             </form>
             <form sec:authorize="hasAuthority('BANK_RECONCILIATION_COMPLETE')"
-                  th:action="@{/bank-reconciliation/reconciliations/{id}/complete(id=${recon.id})}" method="post" class="inline">
+                  th:action="@{/bank-reconciliation/reconciliations/{id}/complete(id=${recon.id})}" method="post" class="inline"
+                  id="form-complete">
                 <button type="submit" data-testid="btn-complete"
-                        onclick="return confirm('Yakin menyelesaikan rekonsiliasi ini?')"
                         class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm">Selesaikan</button>
             </form>
             <a th:href="@{/bank-reconciliation/reconciliations/{id}/report(id=${recon.id})}"
@@ -259,5 +259,10 @@
             </div>
         </div>
     </section>
+    <script th:attr="nonce=${cspNonce}">
+        document.getElementById('form-complete')?.addEventListener('submit', function(e) {
+            if (!confirm('Yakin menyelesaikan rekonsiliasi ini?')) e.preventDefault();
+        });
+    </script>
 </body>
 </html>

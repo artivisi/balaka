@@ -113,7 +113,7 @@
                                     <input type="text" :id="'bill-lineExpenseAccountLabel-' + index"
                                            x-model="line.expenseAccountLabel"
                                            @input.debounce.300ms="searchExpenseAccounts(line)"
-                                           @focus="line.pickerOpen = true; searchExpenseAccounts(line)"
+                                           @focus="focusExpenseAccountPicker(line)"
                                            @click.away="line.pickerOpen = false"
                                            autocomplete="off"
                                            class="w-full px-3 py-2 border border-gray-300 rounded text-sm"
@@ -243,6 +243,10 @@
                         },
                         removeLine: function(index) {
                             this.lines.splice(index, 1);
+                        },
+                        focusExpenseAccountPicker: function(line) {
+                            line.pickerOpen = true;
+                            this.searchExpenseAccounts(line);
                         },
                         searchExpenseAccounts: function(line) {
                             var q = encodeURIComponent(line.expenseAccountLabel || '');

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
-      th:replace="~{layouts/main :: layout('Konfigurasi Parser Bank', ~{::#page-title}, ~{::section}, ~{})}"
+      th:replace="~{layouts/main :: layout('Konfigurasi Parser Bank', ~{::#page-title}, ~{::section}, ~{::script})}"
       lang="id">
 <head>
     <title>Konfigurasi Parser Bank</title>
@@ -69,9 +69,8 @@
                                     <form th:unless="${cfg.active}" th:action="@{/bank-reconciliation/parser-configs/{id}/activate(id=${cfg.id})}" method="post" class="inline">
                                         <button type="submit" class="text-green-600 hover:text-green-700 text-sm">Aktifkan</button>
                                     </form>
-                                    <form th:unless="${cfg.systemConfig}" th:action="@{/bank-reconciliation/parser-configs/{id}/delete(id=${cfg.id})}" method="post" class="inline">
-                                        <button type="submit" class="text-red-600 hover:text-red-700 text-sm"
-                                                onclick="return confirm('Yakin hapus konfigurasi ini?')">Hapus</button>
+                                    <form th:unless="${cfg.systemConfig}" th:action="@{/bank-reconciliation/parser-configs/{id}/delete(id=${cfg.id})}" method="post" class="inline form-delete-parser-config">
+                                        <button type="submit" class="text-red-600 hover:text-red-700 text-sm">Hapus</button>
                                     </form>
                                 </div>
                             </td>
@@ -84,5 +83,10 @@
             </div>
         </div>
     </section>
+    <script th:attr="nonce=${cspNonce}">
+        document.addEventListener('submit', function(e) {
+            if (e.target.matches('.form-delete-parser-config') && !confirm('Yakin hapus konfigurasi ini?')) e.preventDefault();
+        });
+    </script>
 </body>
 </html>

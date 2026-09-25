@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
-      th:replace="~{layouts/main :: layout(|Analisis: ${report.title}|, ~{::#page-title}, ~{::section}, ~{})}"
+      th:replace="~{layouts/main :: layout(|Analisis: ${report.title}|, ~{::#page-title}, ~{::section}, ~{::script})}"
       lang="id">
 <head>
     <title th:text="|Analisis: ${report.title}|">Analisis AI</title>
@@ -19,7 +19,7 @@
                 Kembali ke Daftar
             </a>
             <form sec:authorize="hasAuthority('ANALYSIS_REPORT_DELETE')" th:action="@{/analysis-reports/{id}/delete(id=${report.id})}" method="post"
-                  onsubmit="return confirm('Hapus laporan analisis ini?')">
+                  id="form-delete">
                 <button type="submit" data-testid="btn-delete"
                         class="inline-flex items-center px-3 py-1.5 text-sm text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors">
                     <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -185,5 +185,10 @@
             </div>
         </div>
     </section>
+    <script th:attr="nonce=${cspNonce}">
+        document.getElementById('form-delete')?.addEventListener('submit', function(e) {
+            if (!confirm('Hapus laporan analisis ini?')) e.preventDefault();
+        });
+    </script>
 </body>
 </html>

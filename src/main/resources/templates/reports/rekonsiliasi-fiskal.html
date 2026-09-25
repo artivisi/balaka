@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
-      th:replace="~{layouts/main :: layout('Rekonsiliasi Fiskal', ~{::#page-title}, ~{::section}, ~{})}"
+      th:replace="~{layouts/main :: layout('Rekonsiliasi Fiskal', ~{::#page-title}, ~{::section}, ~{::script})}"
       lang="id">
 <head>
     <title>Rekonsiliasi Fiskal</title>
@@ -122,10 +122,9 @@
                                         th:classappend="${adj.adjustmentDirection.name() == 'POSITIVE'} ? 'text-red-600' : 'text-green-600'"
                                         th:text="${(adj.adjustmentDirection.name() == 'NEGATIVE' ? '(' : '') + #numbers.formatDecimal(adj.amount, 1, 'POINT', 0, 'COMMA') + (adj.adjustmentDirection.name() == 'NEGATIVE' ? ')' : '')}">0</td>
                                     <td class="px-4 py-2 text-center">
-                                        <form sec:authorize="hasAuthority('FISCAL_PERIOD_MANAGE')" th:action="@{/reports/rekonsiliasi-fiskal/adjustments/{id}/delete(id=${adj.id})}" method="post" class="inline">
+                                        <form sec:authorize="hasAuthority('FISCAL_PERIOD_MANAGE')" th:action="@{/reports/rekonsiliasi-fiskal/adjustments/{id}/delete(id=${adj.id})}" method="post" class="inline form-delete-adjustment">
                                             <input type="hidden" name="year" th:value="${year}">
-                                            <button type="submit" class="text-red-600 hover:text-red-800 text-xs"
-                                                    onclick="return confirm('Hapus koreksi fiskal ini?')">Hapus</button>
+                                            <button type="submit" class="text-red-600 hover:text-red-800 text-xs">Hapus</button>
                                         </form>
                                     </td>
                                 </tr>
@@ -269,5 +268,10 @@
             </div>
         </div>
     </section>
+    <script th:attr="nonce=${cspNonce}">
+        document.addEventListener('submit', function(e) {
+            if (e.target.matches('.form-delete-adjustment') && !confirm('Hapus koreksi fiskal ini?')) e.preventDefault();
+        });
+    </script>
 </body>
 </html>

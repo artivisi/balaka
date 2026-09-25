@@ -34,7 +34,7 @@
             Kembali ke Dashboard
         </a>
 
-        <button onclick="window.close(); document.getElementById('close-note').classList.remove('hidden');"
+        <button type="button" id="btn-close-tab"
                 class="block w-full bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300">
             Tutup Tab Ini
         </button>
@@ -49,5 +49,11 @@
         </p>
     </div>
 </div>
+<script th:attr="nonce=${cspNonce}">
+    document.getElementById('btn-close-tab').addEventListener('click', function() {
+        window.close();
+        document.getElementById('close-note').classList.remove('hidden');
+    });
+</script>
 </body>
 </html>
