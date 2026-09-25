@@ -2,488 +2,312 @@ package com.artivisi.accountingfinance.functional;
 
 import com.artivisi.accountingfinance.entity.CompanyBankAccount;
 import com.artivisi.accountingfinance.entity.CompanyConfig;
+import com.artivisi.accountingfinance.entity.SecurityAuditLog;
+import com.artivisi.accountingfinance.enums.AuditEventType;
 import com.artivisi.accountingfinance.functional.service.ServiceTestDataInitializer;
+import com.artivisi.accountingfinance.repository.ChartOfAccountRepository;
 import com.artivisi.accountingfinance.repository.CompanyBankAccountRepository;
 import com.artivisi.accountingfinance.repository.CompanyConfigRepository;
 import com.artivisi.accountingfinance.service.CompanyBankAccountService;
 import com.artivisi.accountingfinance.service.CompanyConfigService;
 import com.artivisi.accountingfinance.service.SecurityAuditService;
 import com.artivisi.accountingfinance.ui.PlaywrightTestBase;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 
-import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Functional tests for Settings with data persistence verification.
- * Tests company settings, bank accounts, and audit log functionality.
+ * CompanyConfigService, CompanyBankAccountService and SecurityAuditService persistence.
+ * UI flows for the same features are in SettingsControllerFunctionalTest and
+ * ServiceSettingsComprehensiveTest. Company config and the default bank account are
+ * shared by every test class, so both are restored after each test.
  */
 @DisplayName("Settings - Persistence Tests")
 @Import(ServiceTestDataInitializer.class)
 class SettingsPersistenceTest extends PlaywrightTestBase {
 
-    @Autowired
-    private CompanyConfigService companyConfigService;
+    @Autowired private CompanyConfigService companyConfigService;
+    @Autowired private CompanyConfigRepository companyConfigRepository;
+    @Autowired private ChartOfAccountRepository accountRepository;
+    @Autowired private CompanyBankAccountService bankAccountService;
+    @Autowired private CompanyBankAccountRepository bankAccountRepository;
+    @Autowired private SecurityAuditService securityAuditService;
 
-    @Autowired
-    private CompanyConfigRepository companyConfigRepository;
-
-    @Autowired
-    private CompanyBankAccountService bankAccountService;
-
-    @Autowired
-    private CompanyBankAccountRepository bankAccountRepository;
-
-    @Autowired
-    private SecurityAuditService securityAuditService;
+    private final List<UUID> createdAccounts = new ArrayList<>();
+    private CompanyConfigSnapshot originalConfig;
+    private Optional<UUID> originalDefault;
 
     @BeforeEach
-    void setupAndLogin() {
-        loginAsAdmin();
+    void captureSharedSettings() {
+        originalConfig = CompanyConfigSnapshot.capture(companyConfigRepository);
+        originalDefault = bankAccountRepository.findByIsDefaultTrueAndActiveTrue().map(CompanyBankAccount::getId);
     }
 
-    // ==================== COMPANY CONFIG SERVICE TESTS ====================
-
-    @Test
-    @DisplayName("Should get company config")
-    void shouldGetCompanyConfig() {
-        CompanyConfig config = companyConfigService.getConfig();
-
-        assertThat(config).isNotNull();
-        assertThat(config.getId()).isNotNull();
+    @AfterEach
+    void restoreSharedSettings() {
+        createdAccounts.stream().filter(bankAccountRepository::existsById).forEach(bankAccountService::delete);
+        originalDefault.ifPresent(bankAccountService::setAsDefault);
+        originalConfig.restore(companyConfigRepository, accountRepository);
     }
 
+    // ==================== Company config ====================
+
     @Test
-    @DisplayName("Should update company config and verify persistence")
-    void shouldUpdateCompanyConfigAndVerifyPersistence() {
-        CompanyConfig config = companyConfigService.getConfig();
-        String originalName = config.getCompanyName();
-        String newName = "Test Company " + System.currentTimeMillis();
+    @DisplayName("Should return the single stored company config without creating another row")
+    void shouldReturnSingletonCompanyConfig() {
+        CompanyConfig first = companyConfigService.getConfig();
+        CompanyConfig second = companyConfigService.getConfig();
 
-        // Update config
-        config.setCompanyName(newName);
-        companyConfigService.update(config.getId(), config);
-
-        // Verify persistence
-        CompanyConfig updated = companyConfigService.getConfig();
-        assertThat(updated.getCompanyName()).isEqualTo(newName);
-
-        // Restore original name
-        config.setCompanyName(originalName);
-        companyConfigService.update(config.getId(), config);
+        assertThat(companyConfigRepository.count()).isEqualTo(1);
+        assertThat(first.getId()).isEqualTo(originalConfig.id()).isEqualTo(second.getId());
+        assertThat(first.getCompanyName()).isEqualTo(originalConfig.companyName());
+        assertThat(first.getNpwp()).isEqualTo(originalConfig.npwp());
     }
 
     @Test
-    @DisplayName("Should verify company config has required fields")
-    void shouldVerifyCompanyConfigHasRequiredFields() {
-        CompanyConfig config = companyConfigService.getConfig();
+    @DisplayName("Should persist every editable company field and leave the logo and PKP data alone")
+    void shouldUpdateCompanyConfig() {
+        String suffix = UUID.randomUUID().toString().substring(0, 8);
+        CompanyConfig changes = new CompanyConfig();
+        changes.setCompanyName("PT Persisten " + suffix);
+        changes.setCompanyAddress("Jl. Persisten " + suffix);
+        changes.setCompanyPhone("021-" + suffix);
+        changes.setCompanyEmail(suffix + "@example.com");
+        changes.setTaxId("TAX-" + suffix);
+        changes.setNpwp("02.345.678.9-012.000");
+        changes.setNitku("0234567890120000000001");
+        changes.setFiscalYearStartMonth(4);
+        changes.setCurrencyCode("SGD");
+        changes.setSigningOfficerName("Direktur " + suffix);
+        changes.setSigningOfficerTitle("Direktur Utama");
+        changes.setIndustry("online-seller");
+        changes.setReceivableAccount(accountRepository.findById(originalConfig.receivableAccountId()).orElseThrow());
+        CompanyConfig withLogo = companyConfigRepository.findById(originalConfig.id()).orElseThrow();
+        withLogo.setCompanyLogoPath("logos/persisten-" + suffix + ".png");
+        companyConfigRepository.save(withLogo);
 
-        assertThat(config).isNotNull();
-        assertThat(config.getId()).isNotNull();
-        // Company name should be set
-        assertThat(config.getCompanyName()).isNotNull();
+        companyConfigService.update(originalConfig.id(), changes);
+
+        CompanyConfig saved = companyConfigRepository.findById(originalConfig.id()).orElseThrow();
+        assertThat(saved.getCompanyName()).isEqualTo("PT Persisten " + suffix);
+        assertThat(saved.getCompanyAddress()).isEqualTo("Jl. Persisten " + suffix);
+        assertThat(saved.getCompanyPhone()).isEqualTo("021-" + suffix);
+        assertThat(saved.getCompanyEmail()).isEqualTo(suffix + "@example.com");
+        assertThat(saved.getTaxId()).isEqualTo("TAX-" + suffix);
+        assertThat(saved.getNpwp()).isEqualTo("02.345.678.9-012.000");
+        assertThat(saved.getNitku()).isEqualTo("0234567890120000000001");
+        assertThat(saved.getFiscalYearStartMonth()).isEqualTo(4);
+        assertThat(saved.getCurrencyCode()).isEqualTo("SGD");
+        assertThat(saved.getSigningOfficerName()).isEqualTo("Direktur " + suffix);
+        assertThat(saved.getSigningOfficerTitle()).isEqualTo("Direktur Utama");
+        assertThat(saved.getIndustry()).isEqualTo("online-seller");
+        assertThat(saved.getReceivableAccountId()).isEqualTo(originalConfig.receivableAccountId());
+        assertThat(saved.getPayableAccountId()).isNull();
+        assertThat(saved.getCompanyLogoPath()).isEqualTo("logos/persisten-" + suffix + ".png");
+        assertThat(saved.getIsPkp()).isEqualTo(originalConfig.isPkp());
+        assertThat(saved.getEstablishedDate()).isEqualTo(originalConfig.establishedDate());
+        assertThat(companyConfigRepository.count()).isEqualTo(1);
     }
 
-    // ==================== BANK ACCOUNT SERVICE TESTS ====================
+    // ==================== Bank accounts ====================
 
     @Test
-    @DisplayName("Should create bank account and verify persistence")
-    void shouldCreateBankAccountAndVerifyPersistence() {
-        String uniqueNumber = "987654" + System.currentTimeMillis() % 10000;
-
-        CompanyBankAccount account = new CompanyBankAccount();
-        account.setBankName("Test Bank Persistence");
-        account.setAccountNumber(uniqueNumber);
-        account.setAccountName("PT Test Company Persistence");
+    @DisplayName("Should create an active bank account and store every field")
+    void shouldCreateBankAccount() {
+        CompanyBankAccount account = newAccount("Bank Persisten");
         account.setBankBranch("001");
-        account.setActive(true);
+        account.setCurrencyCode("USD");
+        account.setActive(false);
 
-        CompanyBankAccount saved = bankAccountService.create(account);
+        CompanyBankAccount saved = create(account);
 
-        // Verify persistence
-        assertThat(saved.getId()).isNotNull();
+        CompanyBankAccount fromDb = bankAccountRepository.findById(saved.getId()).orElseThrow();
+        assertThat(fromDb.getBankName()).isEqualTo("Bank Persisten");
+        assertThat(fromDb.getAccountNumber()).isEqualTo(account.getAccountNumber());
+        assertThat(fromDb.getAccountName()).isEqualTo("PT Persisten");
+        assertThat(fromDb.getBankBranch()).isEqualTo("001");
+        assertThat(fromDb.getCurrencyCode()).isEqualTo("USD");
+        assertThat(fromDb.isActive()).isTrue();
+        assertThat(fromDb.isDefaultAccount()).isFalse();
+    }
 
-        var fromDb = bankAccountRepository.findById(saved.getId());
-        assertThat(fromDb).isPresent();
-        assertThat(fromDb.get().getBankName()).isEqualTo("Test Bank Persistence");
-        assertThat(fromDb.get().getAccountNumber()).isEqualTo(uniqueNumber);
+    @Test
+    @DisplayName("Should update bank account fields")
+    void shouldUpdateBankAccount() {
+        CompanyBankAccount saved = create(newAccount("Bank Awal"));
+        CompanyBankAccount changes = newAccount("Bank Diubah");
+        changes.setAccountNumber(saved.getAccountNumber());
+        changes.setAccountName("PT Diubah");
+        changes.setBankBranch("002");
 
-        // Cleanup
+        bankAccountService.update(saved.getId(), changes);
+
+        CompanyBankAccount fromDb = bankAccountRepository.findById(saved.getId()).orElseThrow();
+        assertThat(fromDb.getBankName()).isEqualTo("Bank Diubah");
+        assertThat(fromDb.getAccountName()).isEqualTo("PT Diubah");
+        assertThat(fromDb.getBankBranch()).isEqualTo("002");
+    }
+
+    @Test
+    @DisplayName("Should reject a duplicate account number on create and on update")
+    void shouldRejectDuplicateAccountNumber() {
+        CompanyBankAccount first = create(newAccount("Bank Pertama"));
+        CompanyBankAccount second = create(newAccount("Bank Kedua"));
+
+        CompanyBankAccount duplicate = newAccount("Bank Duplikat");
+        duplicate.setAccountNumber(first.getAccountNumber());
+        assertThatThrownBy(() -> bankAccountService.create(duplicate))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Account number already exists: " + first.getAccountNumber());
+
+        CompanyBankAccount renumber = newAccount("Bank Kedua");
+        renumber.setAccountNumber(first.getAccountNumber());
+        assertThatThrownBy(() -> bankAccountService.update(second.getId(), renumber))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Account number already exists: " + first.getAccountNumber());
+
+        assertThat(bankAccountRepository.findById(second.getId()).orElseThrow().getAccountNumber())
+                .isEqualTo(second.getAccountNumber());
+        assertThat(bankAccountRepository.findAll()).filteredOn(a -> first.getAccountNumber().equals(a.getAccountNumber()))
+                .hasSize(1);
+    }
+
+    @Test
+    @DisplayName("Should delete a bank account")
+    void shouldDeleteBankAccount() {
+        CompanyBankAccount saved = create(newAccount("Bank Dihapus"));
+
         bankAccountService.delete(saved.getId());
+
+        assertThat(bankAccountRepository.findById(saved.getId())).isEmpty();
+        assertThat(bankAccountService.findAll()).extracting(CompanyBankAccount::getId).doesNotContain(saved.getId());
     }
 
     @Test
-    @DisplayName("Should update bank account and verify persistence")
-    void shouldUpdateBankAccountAndVerifyPersistence() {
-        // Create test account
-        String uniqueNumber = "123456" + System.currentTimeMillis() % 10000;
+    @DisplayName("Should keep a single default account when another account becomes default")
+    void shouldSetDefaultBankAccount() {
+        CompanyBankAccount first = create(newAccount("Bank Default Satu"));
+        CompanyBankAccount second = create(newAccount("Bank Default Dua"));
 
-        CompanyBankAccount account = new CompanyBankAccount();
-        account.setBankName("Original Bank Name");
-        account.setAccountNumber(uniqueNumber);
-        account.setAccountName("Original Account Name");
-        account.setActive(true);
+        bankAccountService.setAsDefault(first.getId());
+        assertThat(bankAccountService.findDefaultAccount()).map(CompanyBankAccount::getId).contains(first.getId());
+        originalDefault.ifPresent(id ->
+                assertThat(bankAccountRepository.findById(id).orElseThrow().isDefaultAccount()).isFalse());
 
-        CompanyBankAccount saved = bankAccountService.create(account);
-
-        // Update account
-        CompanyBankAccount updateData = new CompanyBankAccount();
-        updateData.setBankName("Updated Bank Name");
-        updateData.setAccountNumber(uniqueNumber);
-        updateData.setAccountName("Updated Account Name");
-        updateData.setActive(true);
-
-        CompanyBankAccount updated = bankAccountService.update(saved.getId(), updateData);
-
-        // Verify persistence
-        assertThat(updated.getBankName()).isEqualTo("Updated Bank Name");
-
-        var fromDb = bankAccountRepository.findById(saved.getId());
-        assertThat(fromDb).isPresent();
-        assertThat(fromDb.get().getBankName()).isEqualTo("Updated Bank Name");
-
-        // Cleanup
-        bankAccountService.delete(saved.getId());
+        bankAccountService.setAsDefault(second.getId());
+        assertThat(bankAccountService.findDefaultAccount()).map(CompanyBankAccount::getId).contains(second.getId());
+        assertThat(bankAccountRepository.findById(first.getId()).orElseThrow().isDefaultAccount()).isFalse();
     }
 
     @Test
-    @DisplayName("Should delete bank account and verify removal")
-    void shouldDeleteBankAccountAndVerifyRemoval() {
-        // Create test account
-        String uniqueNumber = "555666" + System.currentTimeMillis() % 10000;
+    @DisplayName("Should clear the default flag when a new account is created as default")
+    void shouldCreateDefaultBankAccount() {
+        CompanyBankAccount first = create(newAccount("Bank Default Lama"));
+        bankAccountService.setAsDefault(first.getId());
+        CompanyBankAccount second = newAccount("Bank Default Baru");
+        second.setIsDefault(true);
 
-        CompanyBankAccount account = new CompanyBankAccount();
-        account.setBankName("Bank To Delete");
-        account.setAccountNumber(uniqueNumber);
-        account.setAccountName("Delete Test Account");
-        account.setActive(true);
+        CompanyBankAccount saved = create(second);
 
-        CompanyBankAccount saved = bankAccountService.create(account);
-        java.util.UUID savedId = saved.getId();
-
-        // Delete account
-        bankAccountService.delete(savedId);
-
-        // Verify removal
-        var fromDb = bankAccountRepository.findById(savedId);
-        assertThat(fromDb).isEmpty();
+        assertThat(bankAccountService.findDefaultAccount()).map(CompanyBankAccount::getId).contains(saved.getId());
+        assertThat(bankAccountRepository.findById(first.getId()).orElseThrow().isDefaultAccount()).isFalse();
     }
 
     @Test
-    @DisplayName("Should set bank account as default and verify")
-    void shouldSetBankAccountAsDefaultAndVerify() {
-        // Create test account
-        String uniqueNumber = "777888" + System.currentTimeMillis() % 10000;
-
-        CompanyBankAccount account = new CompanyBankAccount();
-        account.setBankName("Default Test Bank");
-        account.setAccountNumber(uniqueNumber);
-        account.setAccountName("Default Test Account");
-        account.setActive(true);
-        account.setIsDefault(false);
-
-        CompanyBankAccount saved = bankAccountService.create(account);
-
-        // Set as default
+    @DisplayName("Should deactivate an account, dropping its default flag and hiding it from active accounts, then reactivate it")
+    void shouldDeactivateAndActivateBankAccount() {
+        CompanyBankAccount saved = create(newAccount("Bank Status"));
         bankAccountService.setAsDefault(saved.getId());
 
-        // Verify
-        var fromDb = bankAccountRepository.findById(saved.getId());
-        assertThat(fromDb).isPresent();
-        assertThat(fromDb.get().isDefaultAccount()).isTrue();
-
-        // Cleanup
-        bankAccountService.delete(saved.getId());
-    }
-
-    @Test
-    @DisplayName("Should deactivate bank account and verify")
-    void shouldDeactivateBankAccountAndVerify() {
-        // Create active account
-        String uniqueNumber = "999111" + System.currentTimeMillis() % 10000;
-
-        CompanyBankAccount account = new CompanyBankAccount();
-        account.setBankName("Deactivate Test Bank");
-        account.setAccountNumber(uniqueNumber);
-        account.setAccountName("Deactivate Test Account");
-        account.setActive(true);
-
-        CompanyBankAccount saved = bankAccountService.create(account);
-
-        // Deactivate
         bankAccountService.deactivate(saved.getId());
 
-        // Verify
-        var fromDb = bankAccountRepository.findById(saved.getId());
-        assertThat(fromDb).isPresent();
-        assertThat(fromDb.get().isActive()).isFalse();
+        CompanyBankAccount inactive = bankAccountRepository.findById(saved.getId()).orElseThrow();
+        assertThat(inactive.isActive()).isFalse();
+        assertThat(inactive.isDefaultAccount()).isFalse();
+        assertThat(bankAccountService.findActive()).extracting(CompanyBankAccount::getId).doesNotContain(saved.getId());
+        assertThat(bankAccountService.findDefaultAccount()).isEmpty();
 
-        // Cleanup
-        bankAccountService.delete(saved.getId());
-    }
-
-    @Test
-    @DisplayName("Should activate bank account and verify")
-    void shouldActivateBankAccountAndVerify() {
-        // Create inactive account
-        String uniqueNumber = "222333" + System.currentTimeMillis() % 10000;
-
-        CompanyBankAccount account = new CompanyBankAccount();
-        account.setBankName("Activate Test Bank");
-        account.setAccountNumber(uniqueNumber);
-        account.setAccountName("Activate Test Account");
-        account.setActive(false);
-
-        CompanyBankAccount saved = bankAccountService.create(account);
-
-        // Activate
         bankAccountService.activate(saved.getId());
 
-        // Verify
-        var fromDb = bankAccountRepository.findById(saved.getId());
-        assertThat(fromDb).isPresent();
-        assertThat(fromDb.get().isActive()).isTrue();
-
-        // Cleanup
-        bankAccountService.delete(saved.getId());
+        CompanyBankAccount active = bankAccountRepository.findById(saved.getId()).orElseThrow();
+        assertThat(active.isActive()).isTrue();
+        assertThat(active.isDefaultAccount()).isFalse();
+        assertThat(bankAccountService.findActive()).extracting(CompanyBankAccount::getId).contains(saved.getId());
     }
 
     @Test
-    @DisplayName("Should reject duplicate account number")
-    void shouldRejectDuplicateAccountNumber() {
-        String uniqueNumber = "444555" + System.currentTimeMillis() % 10000;
+    @DisplayName("Should list all bank accounts ordered by bank name, including inactive ones")
+    void shouldListBankAccountsByBankName() {
+        String prefix = "ZZ Urut " + UUID.randomUUID().toString().substring(0, 6);
+        CompanyBankAccount b = create(newAccount(prefix + " B"));
+        CompanyBankAccount a = create(newAccount(prefix + " A"));
+        bankAccountService.deactivate(b.getId());
 
-        // Create first account
-        CompanyBankAccount account1 = new CompanyBankAccount();
-        account1.setBankName("First Bank");
-        account1.setAccountNumber(uniqueNumber);
-        account1.setAccountName("First Account");
-        account1.setActive(true);
+        List<UUID> ours = bankAccountService.findAll().stream()
+                .filter(acc -> acc.getBankName().startsWith(prefix))
+                .map(CompanyBankAccount::getId)
+                .toList();
 
-        CompanyBankAccount saved = bankAccountService.create(account1);
-
-        // Try to create second with same number
-        CompanyBankAccount account2 = new CompanyBankAccount();
-        account2.setBankName("Second Bank");
-        account2.setAccountNumber(uniqueNumber);
-        account2.setAccountName("Second Account");
-        account2.setActive(true);
-
-        assertThatThrownBy(() -> bankAccountService.create(account2))
-            .isInstanceOf(IllegalArgumentException.class);
-
-        // Cleanup
-        bankAccountService.delete(saved.getId());
+        assertThat(ours).containsExactly(a.getId(), b.getId());
     }
 
-    @Test
-    @DisplayName("Should find all bank accounts")
-    void shouldFindAllBankAccounts() {
-        var accounts = bankAccountService.findAll();
-        assertThat(accounts).isNotNull();
-    }
-
-    // ==================== AUDIT LOG TESTS ====================
+    // ==================== Audit log ====================
 
     @Test
-    @DisplayName("Should search audit logs")
+    @DisplayName("Should find login audit events by username, event type and time range")
     void shouldSearchAuditLogs() {
-        var results = securityAuditService.search(
-            null, null, null, null, PageRequest.of(0, 10));
+        String username = "stp-" + UUID.randomUUID().toString().substring(0, 8);
+        LocalDateTime before = LocalDateTime.now().minusSeconds(1);
+        securityAuditService.logLogin(username, true, "Login dari pengujian");
+        securityAuditService.logLogin(username, false, "Password salah");
+        LocalDateTime after = LocalDateTime.now().plusSeconds(1);
+        PageRequest page = PageRequest.of(0, 10);
 
-        assertThat(results).isNotNull();
+        Page<SecurityAuditLog> all = securityAuditService.search(null, username, null, null, page);
+        assertThat(all.getContent()).extracting(SecurityAuditLog::getEventType)
+                .containsExactlyInAnyOrder(AuditEventType.LOGIN_SUCCESS, AuditEventType.LOGIN_FAILURE);
+
+        Page<SecurityAuditLog> failures = securityAuditService.search(
+                AuditEventType.LOGIN_FAILURE, username, null, null, page);
+        assertThat(failures.getContent()).singleElement().satisfies(log -> {
+            assertThat(log.getUsername()).isEqualTo(username);
+            assertThat(log.getDetails()).isEqualTo("Password salah");
+            assertThat(log.getSuccess()).isFalse();
+        });
+
+        assertThat(securityAuditService.search(null, username, before, after, page).getTotalElements()).isEqualTo(2);
+        assertThat(securityAuditService.search(null, username, after, null, page).getTotalElements()).isZero();
+        assertThat(securityAuditService.search(AuditEventType.SETTINGS_CHANGE, username, null, null, page)
+                .getTotalElements()).isZero();
     }
 
-    @Test
-    @DisplayName("Should search audit logs by event type")
-    void shouldSearchAuditLogsByEventType() {
-        var results = securityAuditService.search(
-            com.artivisi.accountingfinance.enums.AuditEventType.LOGIN_SUCCESS,
-            null, null, null, PageRequest.of(0, 10));
+    // ==================== helpers ====================
 
-        assertThat(results).isNotNull();
-    }
-
-    @Test
-    @DisplayName("Should search audit logs by username")
-    void shouldSearchAuditLogsByUsername() {
-        var results = securityAuditService.search(
-            null, "admin", null, null, PageRequest.of(0, 10));
-
-        assertThat(results).isNotNull();
-    }
-
-    // ==================== BANK ACCOUNT CRUD OPERATIONS ====================
-
-    @Test
-    @DisplayName("Should edit bank account and verify database update")
-    void shouldEditBankAccountAndVerifyDatabaseUpdate() {
-        // Create test account
-        String uniqueNumber = "EDIT" + System.currentTimeMillis() % 10000;
-
+    private CompanyBankAccount newAccount(String bankName) {
         CompanyBankAccount account = new CompanyBankAccount();
-        account.setBankName("Original Bank");
-        account.setAccountNumber(uniqueNumber);
-        account.setAccountName("Original Account");
-        account.setActive(true);
+        account.setBankName(bankName);
+        account.setAccountNumber(String.valueOf(System.nanoTime()));
+        account.setAccountName("PT Persisten");
+        return account;
+    }
 
+    private CompanyBankAccount create(CompanyBankAccount account) {
         CompanyBankAccount saved = bankAccountService.create(account);
-
-        // Navigate to edit form
-        navigateTo("/settings/bank-accounts/" + saved.getId() + "/edit");
-        waitForPageLoad();
-
-        // Update bank name via UI
-        var bankNameInput = page.locator("#bankName");
-        if (bankNameInput.isVisible()) {
-            bankNameInput.fill("Edited Bank Name");
-            page.locator("#btn-save-bank").click();
-            waitForPageLoad();
-
-            // Verify in database
-            var fromDb = bankAccountRepository.findById(saved.getId());
-            org.assertj.core.api.Assertions.assertThat(fromDb).isPresent();
-            org.assertj.core.api.Assertions.assertThat(fromDb.get().getBankName()).isEqualTo("Edited Bank Name");
-        }
-
-        // Cleanup
-        bankAccountService.delete(saved.getId());
-    }
-
-    @Test
-    @DisplayName("Should deactivate bank account and verify in database")
-    void shouldDeactivateBankAccountAndVerifyInDatabase() {
-        // Create active test account
-        String uniqueNumber = "DEACT" + System.currentTimeMillis() % 10000;
-
-        CompanyBankAccount account = new CompanyBankAccount();
-        account.setBankName("Deactivate Test Bank");
-        account.setAccountNumber(uniqueNumber);
-        account.setAccountName("Deactivate Test Account");
-        account.setActive(true);
-
-        CompanyBankAccount saved = bankAccountService.create(account);
-        org.assertj.core.api.Assertions.assertThat(saved.isActive()).isTrue();
-
-        // Deactivate via service
-        bankAccountService.deactivate(saved.getId());
-
-        // Verify in database
-        var fromDb = bankAccountRepository.findById(saved.getId());
-        org.assertj.core.api.Assertions.assertThat(fromDb).isPresent();
-        org.assertj.core.api.Assertions.assertThat(fromDb.get().isActive()).isFalse();
-
-        // Cleanup
-        bankAccountService.delete(saved.getId());
-    }
-
-    @Test
-    @DisplayName("Should activate bank account and verify in database")
-    void shouldActivateBankAccountAndVerifyInDatabase() {
-        // Create inactive test account
-        String uniqueNumber = "ACT" + System.currentTimeMillis() % 10000;
-
-        CompanyBankAccount account = new CompanyBankAccount();
-        account.setBankName("Activate Test Bank");
-        account.setAccountNumber(uniqueNumber);
-        account.setAccountName("Activate Test Account");
-        account.setActive(false);
-
-        CompanyBankAccount saved = bankAccountService.create(account);
-
-        // Activate via service
-        bankAccountService.activate(saved.getId());
-
-        // Verify in database
-        var fromDb = bankAccountRepository.findById(saved.getId());
-        org.assertj.core.api.Assertions.assertThat(fromDb).isPresent();
-        org.assertj.core.api.Assertions.assertThat(fromDb.get().isActive()).isTrue();
-
-        // Cleanup
-        bankAccountService.delete(saved.getId());
-    }
-
-    // ==================== UI TESTS ====================
-
-    @Test
-    @DisplayName("Should update company settings via UI and verify in database")
-    void shouldUpdateCompanySettingsViaUiAndVerifyInDatabase() {
-        navigateTo("/settings");
-        waitForPageLoad();
-
-        // Get current config
-        CompanyConfig originalConfig = companyConfigService.getConfig();
-        String originalName = originalConfig.getCompanyName();
-
-        // Update company name via UI
-        var companyNameInput = page.locator("#companyName");
-        assertThat(companyNameInput).isVisible();
-
-        String newName = "UI Updated Company " + System.currentTimeMillis() % 1000;
-        companyNameInput.fill(newName);
-
-        page.locator("#btn-save-company").click();
-        waitForPageLoad();
-
-        // Verify in database
-        CompanyConfig updated = companyConfigService.getConfig();
-        org.assertj.core.api.Assertions.assertThat(updated.getCompanyName()).isEqualTo(newName);
-
-        // Restore original
-        companyNameInput = page.locator("#companyName");
-        companyNameInput.fill(originalName);
-        page.locator("#btn-save-company").click();
-        waitForPageLoad();
-    }
-
-    @Test
-    @DisplayName("Should create bank account via UI and verify in database")
-    void shouldCreateBankAccountViaUiAndVerifyInDatabase() {
-        navigateTo("/settings/bank-accounts/new");
-        waitForPageLoad();
-
-        String uniqueNumber = "UI" + System.currentTimeMillis() % 100000000;
-
-        // Fill form
-        page.locator("#bankName").fill("UI Created Bank");
-        page.locator("#accountNumber").fill(uniqueNumber);
-        page.locator("#accountName").fill("UI Created Account");
-
-        page.locator("#btn-save-bank").click();
-        waitForPageLoad();
-
-        // Verify in database
-        var fromDb = bankAccountRepository.findByAccountNumber(uniqueNumber);
-        assertThat(fromDb).isPresent();
-        assertThat(fromDb.get().getBankName()).isEqualTo("UI Created Bank");
-
-        // Cleanup
-        bankAccountService.delete(fromDb.get().getId());
-    }
-
-    @Test
-    @DisplayName("Should display audit logs page with data")
-    void shouldDisplayAuditLogsPageWithData() {
-        navigateTo("/settings/audit-logs");
-        waitForPageLoad();
-
-        assertThat(page.locator("#page-title")).isVisible();
-        assertThat(page.locator("#audit-log-table")).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should filter audit logs via UI")
-    void shouldFilterAuditLogsViaUi() {
-        navigateTo("/settings/audit-logs?eventType=LOGIN_SUCCESS");
-        waitForPageLoad();
-
-        // Verify filter is applied
-        assertThat(page.locator("#event-type-filter")).hasValue("LOGIN_SUCCESS");
+        createdAccounts.add(saved.getId());
+        return saved;
     }
 }

@@ -80,6 +80,8 @@ public class SettingsController {
     private static final String VIEW_BANK_FORM = "settings/bank-form";
     private static final String ATTR_BANK_ACCOUNTS = "bankAccounts";
     private static final String ATTR_GL_ACCOUNTS = "glAccounts";
+    private static final String ATTR_SELECTED_GL_ACCOUNT_ID = "selectedGlAccountId";
+    private static final String ATTR_COMPANY_LOGO_PATH = "companyLogoPath";
     private static final String REDIRECT_SETTINGS_DEVICES = "redirect:/settings/devices";
     private static final String ERR_USER_NOT_FOUND = "User not found";
     private static final Set<String> ALLOWED_LOGO_TYPES = Set.of(
@@ -139,9 +141,6 @@ public class SettingsController {
 
         @Size(max = 100, message = "Signing officer title must not exceed 100 characters")
         private String signingOfficerTitle;
-
-        @Size(max = 500, message = "Company logo path must not exceed 500 characters")
-        private String companyLogoPath;
 
         @Size(max = 50, message = "Industry must not exceed 50 characters")
         private String industry;
@@ -214,6 +213,7 @@ public class SettingsController {
         List<CompanyBankAccount> bankAccounts = bankAccountService.findAll();
 
         model.addAttribute("config", config);
+        model.addAttribute(ATTR_COMPANY_LOGO_PATH, config.getCompanyLogoPath());
         model.addAttribute(ATTR_BANK_ACCOUNTS, bankAccounts);
         // Posting account pickers fetch via GET /accounts/search (combobox; ≤10 results).
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_SETTINGS);
@@ -231,6 +231,7 @@ public class SettingsController {
 
         if (bindingResult.hasErrors()) {
             List<CompanyBankAccount> bankAccounts = bankAccountService.findAll();
+            model.addAttribute(ATTR_COMPANY_LOGO_PATH, companyConfigService.getConfig().getCompanyLogoPath());
             model.addAttribute(ATTR_BANK_ACCOUNTS, bankAccounts);
             // Posting account pickers fetch via GET /accounts/search (combobox; ≤10 results).
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_SETTINGS);
@@ -384,6 +385,7 @@ public class SettingsController {
     public String newBankAccountForm(Model model) {
         model.addAttribute("bankAccount", new CompanyBankAccount());
         model.addAttribute(ATTR_GL_ACCOUNTS, chartOfAccountService.findTransactableAccounts());
+        model.addAttribute(ATTR_SELECTED_GL_ACCOUNT_ID, null);
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_SETTINGS);
         return VIEW_BANK_FORM;
     }
@@ -399,6 +401,7 @@ public class SettingsController {
 
         if (bindingResult.hasErrors()) {
             model.addAttribute(ATTR_GL_ACCOUNTS, chartOfAccountService.findTransactableAccounts());
+            model.addAttribute(ATTR_SELECTED_GL_ACCOUNT_ID, glAccountId);
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_SETTINGS);
             return VIEW_BANK_FORM;
         }
@@ -416,6 +419,7 @@ public class SettingsController {
         } catch (IllegalArgumentException e) {
             bindingResult.rejectValue("accountNumber", "duplicate", e.getMessage());
             model.addAttribute(ATTR_GL_ACCOUNTS, chartOfAccountService.findTransactableAccounts());
+            model.addAttribute(ATTR_SELECTED_GL_ACCOUNT_ID, glAccountId);
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_SETTINGS);
             return VIEW_BANK_FORM;
         }
@@ -427,6 +431,8 @@ public class SettingsController {
         CompanyBankAccount bankAccount = bankAccountService.findById(id);
         model.addAttribute("bankAccount", bankAccount);
         model.addAttribute(ATTR_GL_ACCOUNTS, chartOfAccountService.findTransactableAccounts());
+        model.addAttribute(ATTR_SELECTED_GL_ACCOUNT_ID,
+                bankAccount.getGlAccount() != null ? bankAccount.getGlAccount().getId() : null);
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_SETTINGS);
         return VIEW_BANK_FORM;
     }
@@ -444,6 +450,7 @@ public class SettingsController {
         if (bindingResult.hasErrors()) {
             form.setId(id);
             model.addAttribute(ATTR_GL_ACCOUNTS, chartOfAccountService.findTransactableAccounts());
+            model.addAttribute(ATTR_SELECTED_GL_ACCOUNT_ID, glAccountId);
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_SETTINGS);
             return VIEW_BANK_FORM;
         }
@@ -464,6 +471,7 @@ public class SettingsController {
             bindingResult.rejectValue("accountNumber", "duplicate", e.getMessage());
             form.setId(id);
             model.addAttribute(ATTR_GL_ACCOUNTS, chartOfAccountService.findTransactableAccounts());
+            model.addAttribute(ATTR_SELECTED_GL_ACCOUNT_ID, glAccountId);
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_SETTINGS);
             return VIEW_BANK_FORM;
         }

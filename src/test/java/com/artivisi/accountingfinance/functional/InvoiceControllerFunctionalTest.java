@@ -1,6 +1,7 @@
 package com.artivisi.accountingfinance.functional;
 
 import com.artivisi.accountingfinance.entity.Client;
+import com.artivisi.accountingfinance.entity.CompanyConfig;
 import com.artivisi.accountingfinance.entity.Invoice;
 import com.artivisi.accountingfinance.entity.InvoiceLine;
 import com.artivisi.accountingfinance.entity.InvoicePayment;
@@ -8,6 +9,7 @@ import com.artivisi.accountingfinance.entity.Project;
 import com.artivisi.accountingfinance.enums.InvoiceStatus;
 import com.artivisi.accountingfinance.enums.PaymentMethod;
 import com.artivisi.accountingfinance.functional.service.ServiceTestDataInitializer;
+import com.artivisi.accountingfinance.repository.CompanyConfigRepository;
 import com.artivisi.accountingfinance.repository.InvoiceRepository;
 import com.artivisi.accountingfinance.repository.ProjectRepository;
 import com.artivisi.accountingfinance.service.ClientService;
@@ -61,6 +63,9 @@ class InvoiceControllerFunctionalTest extends PlaywrightTestBase {
 
     @Autowired
     private ProjectRepository projectRepository;
+
+    @Autowired
+    private CompanyConfigRepository companyConfigRepository;
 
     private Client client;
     private String csrfHeader;
@@ -356,9 +361,11 @@ class InvoiceControllerFunctionalTest extends PlaywrightTestBase {
         navigateTo("/invoices/" + invoice.getInvoiceNumber() + "/print");
         waitForPageLoad();
 
+        CompanyConfig company = companyConfigRepository.findFirst()
+                .orElseThrow(() -> new IllegalStateException("Seeded company config missing"));
         assertThat(page).hasTitle("Invoice " + invoice.getInvoiceNumber());
-        assertThat(page.locator(".company-name")).hasText("PT ArtiVisi Intermedia");
-        assertThat(page.locator("body")).containsText("NPWP: 01.234.567.8-901.000");
+        assertThat(page.locator(".company-name")).hasText(company.getCompanyName());
+        assertThat(page.locator(".company-details")).containsText("NPWP: " + company.getTaxId());
         assertThat(page.locator(".invoice-number")).hasText(invoice.getInvoiceNumber());
         assertThat(page.locator(".status-badge")).hasText("Draf");
         assertThat(page.locator(".client-name")).hasText(client.getName());
@@ -379,7 +386,7 @@ class InvoiceControllerFunctionalTest extends PlaywrightTestBase {
         assertThat(page.locator(".amount-value")).hasText("Rp 11,100,000");
         assertThat(page.locator(".amount-words")).hasText(AmountToWordsUtil.toWords(new BigDecimal("11100000")));
         assertThat(page.locator(".notes-content")).hasText("Transfer ke rekening perusahaan");
-        assertThat(page.locator(".signature-name")).hasText("Endy Muhardin");
+        assertThat(page.locator(".signature-name")).hasText(company.getSigningOfficerName());
         assertThat(page.locator("a.btn-back")).hasAttribute("href", "/invoices/" + invoice.getInvoiceNumber());
     }
 

@@ -15,7 +15,7 @@
 
         <!-- Table Body -->
         <div class="flex-1 overflow-y-auto divide-y divide-gray-100">
-            <div th:each="log : ${auditLogs.content}"
+            <div th:each="log : ${auditLogs.content}" data-testid="audit-log-row"
                  class="grid grid-cols-12 gap-4 px-4 py-3 hover:bg-gray-50 transition-colors items-start">
 
                 <!-- Timestamp -->
@@ -71,7 +71,7 @@
             </div>
 
             <!-- Empty State -->
-            <div th:if="${#lists.isEmpty(auditLogs.content)}" class="px-4 py-12 text-center">
+            <div th:if="${#lists.isEmpty(auditLogs.content)}" data-testid="audit-log-empty" class="px-4 py-12 text-center">
                 <svg class="w-12 h-12 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                 </svg>
@@ -94,8 +94,8 @@
             <div class="flex items-center gap-1">
                 <!-- Previous Page -->
                 <a th:if="${auditLogs.hasPrevious()}"
-                   th:href="@{/settings/audit-logs(eventType=${selectedEventType}, username=${selectedUsername}, startDate=${startDate}, endDate=${endDate}, page=${auditLogs.number - 1})}"
-                   th:hx-get="@{/settings/audit-logs(eventType=${selectedEventType}, username=${selectedUsername}, startDate=${startDate}, endDate=${endDate}, page=${auditLogs.number - 1})}"
+                   th:href="@{/settings/audit-logs(eventType=${selectedEventType}, username=${selectedUsername}, startDate=${startDate}, endDate=${endDate}, page=${auditLogs.number - 1}, size=${auditLogs.size})}"
+                   th:hx-get="@{/settings/audit-logs(eventType=${selectedEventType}, username=${selectedUsername}, startDate=${startDate}, endDate=${endDate}, page=${auditLogs.number - 1}, size=${auditLogs.size})}"
                    hx-target="#audit-log-table"
                    hx-swap="outerHTML"
                    hx-push-url="true"
@@ -115,8 +115,8 @@
 
                 <!-- Next Page -->
                 <a th:if="${auditLogs.hasNext()}"
-                   th:href="@{/settings/audit-logs(eventType=${selectedEventType}, username=${selectedUsername}, startDate=${startDate}, endDate=${endDate}, page=${auditLogs.number + 1})}"
-                   th:hx-get="@{/settings/audit-logs(eventType=${selectedEventType}, username=${selectedUsername}, startDate=${startDate}, endDate=${endDate}, page=${auditLogs.number + 1})}"
+                   th:href="@{/settings/audit-logs(eventType=${selectedEventType}, username=${selectedUsername}, startDate=${startDate}, endDate=${endDate}, page=${auditLogs.number + 1}, size=${auditLogs.size})}"
+                   th:hx-get="@{/settings/audit-logs(eventType=${selectedEventType}, username=${selectedUsername}, startDate=${startDate}, endDate=${endDate}, page=${auditLogs.number + 1}, size=${auditLogs.size})}"
                    hx-target="#audit-log-table"
                    hx-swap="outerHTML"
                    hx-push-url="true"

@@ -53,7 +53,6 @@ public class CompanyConfigService {
         existing.setCurrencyCode(updatedConfig.getCurrencyCode());
         existing.setSigningOfficerName(updatedConfig.getSigningOfficerName());
         existing.setSigningOfficerTitle(updatedConfig.getSigningOfficerTitle());
-        existing.setCompanyLogoPath(updatedConfig.getCompanyLogoPath());
         existing.setIndustry(updatedConfig.getIndustry());
         existing.setReceivableAccount(updatedConfig.getReceivableAccount());
         existing.setPayableAccount(updatedConfig.getPayableAccount());

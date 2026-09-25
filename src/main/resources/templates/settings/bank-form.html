@@ -75,13 +75,12 @@
                 <div>
                     <label for="glAccount" class="block text-sm font-medium text-gray-700 mb-1">Akun Buku Besar</label>
                     <select id="glAccount" name="glAccountId"
-                            th:value="${bankAccount.glAccount != null ? bankAccount.glAccount.id : ''}"
                             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
                         <option value="">-- Pilih Akun GL --</option>
                         <option th:each="account : ${glAccounts}"
                                 th:value="${account.id}"
                                 th:text="${account.accountCode + ' - ' + account.accountName}"
-                                th:selected="${bankAccount.glAccount != null && bankAccount.glAccount.id == account.id}">Account</option>
+                                th:selected="${selectedGlAccountId == account.id}">Account</option>
                     </select>
                     <p class="mt-1 text-xs text-gray-500">Hubungkan dengan akun GL untuk rekonsiliasi bank</p>
                 </div>

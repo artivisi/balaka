@@ -1,1021 +1,648 @@
 package com.artivisi.accountingfinance.functional;
 
+import com.artivisi.accountingfinance.entity.ChartOfAccount;
+import com.artivisi.accountingfinance.entity.CompanyBankAccount;
+import com.artivisi.accountingfinance.entity.CompanyConfig;
+import com.artivisi.accountingfinance.entity.DeviceToken;
+import com.artivisi.accountingfinance.entity.TelegramUserLink;
+import com.artivisi.accountingfinance.entity.User;
+import com.artivisi.accountingfinance.enums.AuditEventType;
+import com.artivisi.accountingfinance.enums.Role;
 import com.artivisi.accountingfinance.functional.service.ServiceTestDataInitializer;
+import com.artivisi.accountingfinance.repository.ApiClientRepository;
+import com.artivisi.accountingfinance.repository.ChartOfAccountRepository;
 import com.artivisi.accountingfinance.repository.CompanyBankAccountRepository;
+import com.artivisi.accountingfinance.repository.CompanyConfigRepository;
+import com.artivisi.accountingfinance.repository.DeviceTokenRepository;
+import com.artivisi.accountingfinance.repository.SecurityAuditLogRepository;
+import com.artivisi.accountingfinance.repository.TelegramUserLinkRepository;
+import com.artivisi.accountingfinance.repository.UserRepository;
+import com.artivisi.accountingfinance.service.CompanyBankAccountService;
+import com.artivisi.accountingfinance.service.DeviceAuthService;
+import com.artivisi.accountingfinance.service.DocumentStorageService;
+import com.artivisi.accountingfinance.service.VersionInfoService;
 import com.artivisi.accountingfinance.ui.PlaywrightTestBase;
+import com.microsoft.playwright.APIRequest;
+import com.microsoft.playwright.APIRequestContext;
+import com.microsoft.playwright.APIResponse;
+import com.microsoft.playwright.Locator;
+import com.microsoft.playwright.options.FilePayload;
+import com.microsoft.playwright.options.FormData;
+import com.microsoft.playwright.options.RequestOptions;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
+import org.springframework.security.crypto.password.PasswordEncoder;
+
+import java.io.IOException;
+import java.time.LocalDateTime;
+import java.util.Base64;
+import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
+import java.util.regex.Pattern;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Functional tests for SettingsController.
- * Tests company settings, bank account form, telegram, about, privacy, and audit logs.
+ * SettingsController: company settings, company logo, telegram link, device sessions,
+ * API client validation, about/privacy pages and write authorization. Bank accounts and
+ * audit log filtering are covered by ServiceSettingsComprehensiveTest.
  *
- * Note: Bank accounts list page (/settings/bank-accounts) removed - template does not exist.
- * Only the bank account form (/settings/bank-accounts/new) is testable.
+ * The company_config row is a singleton read by every other test class, so each test
+ * restores it in {@link #restoreCompanyConfig()}. Telegram and device-session tests use
+ * users created per test so the admin account's links and tokens stay untouched.
  */
 @DisplayName("Settings Controller Tests")
 @Import(ServiceTestDataInitializer.class)
 class SettingsControllerFunctionalTest extends PlaywrightTestBase {
 
-    @Autowired
-    private CompanyBankAccountRepository bankAccountRepository;
+    private static final byte[] PNG = Base64.getDecoder().decode(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==");
+
+    @Autowired private CompanyConfigRepository companyConfigRepository;
+    @Autowired private ChartOfAccountRepository accountRepository;
+    @Autowired private CompanyBankAccountRepository bankAccountRepository;
+    @Autowired private CompanyBankAccountService bankAccountService;
+    @Autowired private DocumentStorageService documentStorageService;
+    @Autowired private TelegramUserLinkRepository telegramLinkRepository;
+    @Autowired private DeviceAuthService deviceAuthService;
+    @Autowired private DeviceTokenRepository deviceTokenRepository;
+    @Autowired private ApiClientRepository apiClientRepository;
+    @Autowired private SecurityAuditLogRepository auditLogRepository;
+    @Autowired private UserRepository userRepository;
+    @Autowired private PasswordEncoder passwordEncoder;
+    @Autowired private VersionInfoService versionInfoService;
+
+    private CompanyConfigSnapshot originalConfig;
+    private String csrfHeader;
+    private String csrfToken;
 
     @BeforeEach
-    void setupAndLogin() {
-        loginAsAdmin();
+    void captureCompanyConfig() {
+        originalConfig = CompanyConfigSnapshot.capture(companyConfigRepository);
+    }
+
+    @AfterEach
+    void restoreCompanyConfig() throws IOException {
+        String currentLogo = currentConfig().getCompanyLogoPath();
+        if (currentLogo != null && !currentLogo.equals(originalConfig.companyLogoPath())) {
+            documentStorageService.delete(currentLogo);
+        }
+        originalConfig.restore(companyConfigRepository, accountRepository);
     }
 
     // ==================== COMPANY SETTINGS ====================
 
     @Test
-    @DisplayName("Should display company settings page")
-    void shouldDisplayCompanySettingsPage() {
+    @DisplayName("Should prefill the company form with the stored company config and link related settings")
+    void shouldDisplayStoredCompanyConfig() {
+        loginAsAdminWithCsrf();
+        CompanyConfig config = currentConfig();
+
         navigateTo("/settings");
         waitForPageLoad();
 
-        assertThat(page.locator("#page-title")).isVisible();
-        assertThat(page.locator("#companyName")).isVisible();
+        assertThat(page.locator("#page-title")).hasText("Pengaturan Perusahaan");
+        assertThat(page.locator("#companyName")).hasValue(config.getCompanyName());
+        assertThat(page.locator("#companyAddress")).hasValue(config.getCompanyAddress());
+        assertThat(page.locator("#companyPhone")).hasValue(config.getCompanyPhone());
+        assertThat(page.locator("#companyEmail")).hasValue(config.getCompanyEmail());
+        assertThat(page.locator("#taxId")).hasValue(config.getTaxId());
+        assertThat(page.locator("#npwp")).hasValue(config.getNpwp());
+        assertThat(page.locator("#currencyCode")).hasValue(config.getCurrencyCode());
+        assertThat(page.locator("#fiscalYearStartMonth")).hasValue(String.valueOf(config.getFiscalYearStartMonth()));
+        assertThat(page.locator("#industry")).hasValue(config.getIndustry());
+        assertThat(page.locator("#signingOfficerName")).hasValue(config.getSigningOfficerName());
+        assertThat(page.locator("#signingOfficerTitle")).hasValue(config.getSigningOfficerTitle());
+        assertThat(page.locator("#receivableAccountId")).hasValue(label(config.getReceivableAccountId()));
+        assertThat(page.locator("#payableAccountId")).hasValue(label(config.getPayableAccountId()));
+        assertThat(page.locator("#outputTaxAccountId")).hasValue(label(config.getOutputTaxAccountId()));
+        assertThat(page.locator("#inputTaxAccountId")).hasValue(label(config.getInputTaxAccountId()));
+
+        assertThat(page.locator("section a[href='/settings/telegram']")).isVisible();
+        assertThat(page.locator("section a[href='/settings/about']")).isVisible();
+        assertThat(page.locator("section a[href='/fiscal-periods']")).isVisible();
+        assertThat(page.locator("section a[href='/settings/bank-accounts/new']")).hasText("+ Tambah Rekening");
     }
 
     @Test
-    @DisplayName("Should display company name field")
-    void shouldDisplayCompanyNameField() {
-        navigateTo("/settings");
-        waitForPageLoad();
-
-        assertThat(page.locator("#companyName")).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should display NPWP field")
-    void shouldDisplayNpwpField() {
-        navigateTo("/settings");
-        waitForPageLoad();
-
-        assertThat(page.locator("#npwp")).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should have add bank account button")
-    void shouldHaveAddBankAccountButton() {
-        navigateTo("/settings");
-        waitForPageLoad();
-
-        // The add bank account link exists on company page
-        assertThat(page.locator("a[href*='/bank-accounts/new']").first()).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should update company settings")
+    @DisplayName("Should save every company field and the receivable posting account, keeping other posting accounts")
     void shouldUpdateCompanySettings() {
+        loginAsAdminWithCsrf();
+        String suffix = shortId();
+        ChartOfAccount employeeReceivable = accountRepository.findByAccountCode("1.1.11")
+                .orElseThrow(() -> new IllegalStateException("Seeded account 1.1.11 missing"));
+
         navigateTo("/settings");
         waitForPageLoad();
-
-        // Update company name
-        var companyNameInput = page.locator("#companyName");
-        assertThat(companyNameInput).isVisible();
-        String originalName = companyNameInput.inputValue();
-
-        companyNameInput.fill(originalName + " Updated");
+        page.locator("#companyName").fill("PT Pengaturan " + suffix);
+        page.locator("#companyAddress").fill("Jl. Pengujian " + suffix);
+        page.locator("#companyPhone").fill("021-555-" + suffix.substring(0, 4));
+        page.locator("#companyEmail").fill("stl-" + suffix + "@example.com");
+        page.locator("#taxId").fill("TAX-" + suffix);
+        page.locator("#npwp").fill("09.876.543.2-101.000");
+        page.locator("#nitku").fill("0987654321010000000001");
+        page.locator("#currencyCode").selectOption("USD");
+        page.locator("#industry").selectOption("coffee-shop");
+        page.locator("#fiscalYearStartMonth").selectOption("7");
+        page.locator("#signingOfficerName").fill("Penanda " + suffix);
+        page.locator("#signingOfficerTitle").fill("Komisaris " + suffix);
+        page.locator("#receivableAccountId").fill("");
+        page.locator("#receivableAccountId").pressSequentially("1.1.11");
+        Locator result = page.locator("[data-testid='account-picker-result']:has-text('Piutang Karyawan')");
+        result.click();
+        assertThat(page.locator("#receivableAccountId")).hasValue("1.1.11 - Piutang Karyawan");
         page.locator("#btn-save-company").click();
         waitForPageLoad();
 
-        // Verify success - page should reload with updated name
-        assertThat(page.locator("#page-title")).isVisible();
+        assertEquals(baseUrl() + "/settings", page.url());
+        assertThat(page.locator("[data-testid='flash-success']")).hasText("Pengaturan perusahaan berhasil disimpan");
+        assertThat(page.locator("#companyName")).hasValue("PT Pengaturan " + suffix);
+        assertThat(page.locator("#receivableAccountId")).hasValue("1.1.11 - Piutang Karyawan");
 
-        // Restore original name
+        CompanyConfig saved = currentConfig();
+        assertEquals(originalConfig.id(), saved.getId());
+        assertEquals("PT Pengaturan " + suffix, saved.getCompanyName());
+        assertEquals("Jl. Pengujian " + suffix, saved.getCompanyAddress());
+        assertEquals("021-555-" + suffix.substring(0, 4), saved.getCompanyPhone());
+        assertEquals("stl-" + suffix + "@example.com", saved.getCompanyEmail());
+        assertEquals("TAX-" + suffix, saved.getTaxId());
+        assertEquals("09.876.543.2-101.000", saved.getNpwp());
+        assertEquals("0987654321010000000001", saved.getNitku());
+        assertEquals("USD", saved.getCurrencyCode());
+        assertEquals("coffee-shop", saved.getIndustry());
+        assertEquals(7, saved.getFiscalYearStartMonth());
+        assertEquals("Penanda " + suffix, saved.getSigningOfficerName());
+        assertEquals("Komisaris " + suffix, saved.getSigningOfficerTitle());
+        assertEquals(employeeReceivable.getId(), saved.getReceivableAccountId());
+        assertEquals(originalConfig.payableAccountId(), saved.getPayableAccountId());
+        assertEquals(originalConfig.outputTaxAccountId(), saved.getOutputTaxAccountId());
+        assertEquals(originalConfig.inputTaxAccountId(), saved.getInputTaxAccountId());
+        assertEquals(originalConfig.establishedDate(), saved.getEstablishedDate());
+        assertEquals(originalConfig.isPkp(), saved.getIsPkp());
+
+        assertTrue(auditLogRepository.findByUsernameAndEventTypeAndTimestampAfter(
+                        "admin", AuditEventType.SETTINGS_CHANGE, LocalDateTime.now().minusMinutes(5)).stream()
+                .anyMatch(l -> ("Company settings updated: PT Pengaturan " + suffix).equals(l.getDetails())));
+    }
+
+    @Test
+    @DisplayName("Should reject a blank company name and an over-long signing officer title without saving")
+    void shouldRejectInvalidCompanySettings() {
+        loginAsAdminWithCsrf();
+        clearLogo();
+
         navigateTo("/settings");
         waitForPageLoad();
-        page.locator("#companyName").fill(originalName);
+        page.locator("#logoFile").setInputFiles(new FilePayload("logo.png", "image/png", PNG));
+        page.locator("#btn-upload-logo").click();
+        waitForPageLoad();
+        page.locator("#companyName").evaluate("el => el.removeAttribute('required')");
+        page.locator("#companyName").fill("");
+        page.locator("#signingOfficerTitle").fill("J".repeat(101));
         page.locator("#btn-save-company").click();
         waitForPageLoad();
-    }
 
-    // ==================== BANK ACCOUNT FORM ====================
+        assertEquals(baseUrl() + "/settings/company", page.url());
+        Locator errors = page.locator("form[action='/settings/company'] ul li");
+        assertThat(errors).hasCount(2);
+        assertThat(errors.filter(new Locator.FilterOptions().setHasText("Company name is required"))).hasCount(1);
+        assertThat(errors.filter(new Locator.FilterOptions()
+                .setHasText("Signing officer title must not exceed 100 characters"))).hasCount(1);
+        assertThat(page.locator("#companyName")).hasClass(Pattern.compile(".*border-red-500.*"));
+        assertThat(page.locator("#signingOfficerTitle")).hasValue("J".repeat(101));
+        assertThat(page.locator("#company-logo-preview")).isVisible();
 
-    @Test
-    @DisplayName("Should display new bank account form")
-    void shouldDisplayNewBankAccountForm() {
-        navigateTo("/settings/bank-accounts/new");
-        waitForPageLoad();
-
-        assertThat(page.locator("#page-title")).isVisible();
-        assertThat(page.locator("#bankName")).isVisible();
-        assertThat(page.locator("#accountNumber")).isVisible();
-        assertThat(page.locator("#accountName")).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should create new bank account")
-    void shouldCreateNewBankAccount() {
-        navigateTo("/settings/bank-accounts/new");
-        waitForPageLoad();
-
-        // Fill the form
-        page.locator("#bankName").fill("Bank Test");
-        page.locator("#accountNumber").fill("1234567890123");
-        page.locator("#accountName").fill("PT Test Company");
-
-        page.locator("#btn-save-bank").click();
-        waitForPageLoad();
-
-        // Should redirect to settings page (which shows bank accounts list)
-        assertThat(page.locator("#page-title")).isVisible();
-    }
-
-    // ==================== TELEGRAM SETTINGS ====================
-
-    @Test
-    @DisplayName("Should display telegram settings page")
-    void shouldDisplayTelegramSettingsPage() {
-        navigateTo("/settings/telegram");
-        waitForPageLoad();
-
-        assertThat(page.locator("#page-title")).isVisible();
-        assertThat(page.locator("#telegram-settings-content")).isVisible();
-    }
-
-    // ==================== ABOUT PAGE ====================
-
-    @Test
-    @DisplayName("Should display about page")
-    void shouldDisplayAboutPage() {
-        navigateTo("/settings/about");
-        waitForPageLoad();
-
-        assertThat(page.locator("#page-title")).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should show git commit info")
-    void shouldShowGitCommitInfo() {
-        navigateTo("/settings/about");
-        waitForPageLoad();
-
-        assertThat(page.locator("#value-commit-id")).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should have link to about page from settings")
-    void shouldHaveLinkToAboutPage() {
-        navigateTo("/settings");
-        waitForPageLoad();
-
-        assertThat(page.locator("a[href*='/settings/about']").first()).isVisible();
-    }
-
-    // ==================== PRIVACY PAGE ====================
-
-    @Test
-    @DisplayName("Should display privacy policy page")
-    void shouldDisplayPrivacyPolicyPage() {
-        navigateTo("/settings/privacy");
-        waitForPageLoad();
-
-        assertThat(page.locator("#privacy-page-content")).isVisible();
-    }
-
-    // ==================== AUDIT LOGS ====================
-
-    @Test
-    @DisplayName("Should display audit logs page")
-    void shouldDisplayAuditLogsPage() {
-        navigateTo("/settings/audit-logs");
-        waitForPageLoad();
-
-        assertThat(page.locator("#page-title")).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should display event type filter")
-    void shouldDisplayEventTypeFilter() {
-        navigateTo("/settings/audit-logs");
-        waitForPageLoad();
-
-        assertThat(page.locator("#event-type-filter")).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should display date range filters")
-    void shouldDisplayDateRangeFilters() {
-        navigateTo("/settings/audit-logs");
-        waitForPageLoad();
-
-        assertThat(page.locator("#start-date")).isVisible();
-        assertThat(page.locator("#end-date")).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should display username filter")
-    void shouldDisplayUsernameFilter() {
-        navigateTo("/settings/audit-logs");
-        waitForPageLoad();
-
-        assertThat(page.locator("#username-filter")).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should filter audit logs by event type")
-    void shouldFilterAuditLogsByEventType() {
-        // Navigate directly with filter parameter to test server-side filtering
-        navigateTo("/settings/audit-logs?eventType=LOGIN_SUCCESS");
-        waitForPageLoad();
-
-        // Verify the filter is applied (select should have the value selected)
-        assertThat(page.locator("#event-type-filter")).hasValue("LOGIN_SUCCESS");
-    }
-
-    @Test
-    @DisplayName("Should show audit log table")
-    void shouldShowAuditLogTable() {
-        navigateTo("/settings/audit-logs");
-        waitForPageLoad();
-
-        // The page should have the audit log table
-        assertThat(page.locator("#audit-log-table")).isVisible();
-    }
-
-    // ==================== BANK ACCOUNT ACTIONS ====================
-
-    @Test
-    @DisplayName("Should edit bank account")
-    void shouldEditBankAccount() {
-        var bankAccounts = bankAccountRepository.findAll();
-        if (bankAccounts.isEmpty()) {
-            return;
-        }
-
-        var bankAccount = bankAccounts.get(0);
-        navigateTo("/settings/bank-accounts/" + bankAccount.getId() + "/edit");
-        waitForPageLoad();
-
-        // Update bank name
-        var bankNameInput = page.locator("#bankName");
-        if (bankNameInput.isVisible()) {
-            String originalName = bankNameInput.inputValue();
-            bankNameInput.fill(originalName + " (Test Update)");
-            page.locator("#btn-save-bank").click();
-            waitForPageLoad();
-
-            // Restore original name
-            navigateTo("/settings/bank-accounts/" + bankAccount.getId() + "/edit");
-            waitForPageLoad();
-            page.locator("#bankName").fill(originalName);
-            page.locator("#btn-save-bank").click();
-            waitForPageLoad();
-        }
-    }
-
-    @Test
-    @DisplayName("Should activate bank account")
-    void shouldActivateBankAccount() {
-        var bankAccounts = bankAccountRepository.findAll();
-        if (bankAccounts.isEmpty()) {
-            return;
-        }
-
-        // Find inactive bank account or use first one
-        var bankAccount = bankAccounts.stream()
-            .filter(ba -> !ba.isActive())
-            .findFirst()
-            .orElse(bankAccounts.get(0));
-
-        navigateTo("/settings");
-        waitForPageLoad();
-
-        var activateForm = page.locator("form[action*='/bank-accounts/" + bankAccount.getId() + "/activate']").first();
-        if (activateForm.isVisible()) {
-            activateForm.locator("button[type='submit']").click();
-            waitForPageLoad();
-        }
-
-        // Verify page loads after action
-        assertThat(page.locator("#page-title")).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should delete bank account")
-    void shouldDeleteBankAccount() {
-        // Create a bank account to delete
-        navigateTo("/settings/bank-accounts/new");
-        waitForPageLoad();
-
-        String uniqueNumber = "TEST" + System.currentTimeMillis();
-        page.locator("#bankName").fill("Bank To Delete");
-        page.locator("#accountNumber").fill(uniqueNumber);
-        page.locator("#accountName").fill("Test Delete Account");
-
-        page.locator("#btn-save-bank").click();
-        waitForPageLoad();
-
-        // Find the newly created account
-        var bankAccount = bankAccountRepository.findByAccountNumber(uniqueNumber);
-        if (bankAccount.isEmpty()) {
-            return;
-        }
-
-        navigateTo("/settings");
-        waitForPageLoad();
-
-        var deleteForm = page.locator("form[action*='/bank-accounts/" + bankAccount.get().getId() + "/delete']").first();
-        if (deleteForm.isVisible()) {
-            deleteForm.locator("button[type='submit']").click();
-            waitForPageLoad();
-        }
-
-        // Verify page loads after delete
-        assertThat(page.locator("#page-title")).isVisible();
+        CompanyConfig unchanged = currentConfig();
+        assertEquals(originalConfig.companyName(), unchanged.getCompanyName());
+        assertEquals(originalConfig.signingOfficerTitle(), unchanged.getSigningOfficerTitle());
     }
 
     // ==================== COMPANY LOGO ====================
 
     @Test
-    @DisplayName("Should access company logo upload form")
-    void shouldAccessCompanyLogoUploadForm() {
-        navigateTo("/settings");
-        waitForPageLoad();
-
-        // Logo upload form should be present
-        var logoForm = page.locator("form[action*='/company/logo']").first();
-        if (logoForm.isVisible()) {
-            assertThat(logoForm).isVisible();
-        }
-    }
-
-    @Test
-    @DisplayName("Should access get company logo endpoint")
-    void shouldAccessGetCompanyLogoEndpoint() {
-        // Trigger the get logo endpoint
-        var response = page.request().get(baseUrl() + "/settings/company/logo");
-        // 200 = has logo, 404 = no logo set
-        org.assertj.core.api.Assertions.assertThat(response.status())
-            .as("Logo endpoint should return 200 or 404")
-            .isIn(200, 404);
-    }
-
-    @Test
-    @DisplayName("Should access delete company logo form")
-    void shouldAccessDeleteCompanyLogoForm() {
-        navigateTo("/settings");
-        waitForPageLoad();
-
-        // Check for delete logo form - visibility depends on whether logo exists
-        var deleteLogoForm = page.locator("form[action*='/company/logo/delete'], form[action*='/logo'][method]").first();
-        if (deleteLogoForm.isVisible()) {
-            assertThat(deleteLogoForm).isVisible();
-        } else {
-            // Logo not set, so delete form is not shown — verify page loaded correctly
-            assertThat(page.locator("#page-title")).isVisible();
-        }
-    }
-
-    // ==================== TELEGRAM ACTIONS ====================
-
-    @Test
-    @DisplayName("Should generate telegram code")
-    void shouldGenerateTelegramCode() {
-        navigateTo("/settings/telegram");
-        waitForPageLoad();
-
-        var generateForm = page.locator("form[action*='/telegram/generate-code']").first();
-        if (generateForm.isVisible()) {
-            generateForm.locator("button[type='submit']").click();
-            waitForPageLoad();
-
-            // Should redirect back to telegram settings
-            org.assertj.core.api.Assertions.assertThat(page.url())
-                .as("Should remain on telegram settings")
-                .contains("/settings/telegram");
-        }
-    }
-
-    @Test
-    @DisplayName("Should access unlink telegram form")
-    void shouldAccessUnlinkTelegramForm() {
-        navigateTo("/settings/telegram");
-        waitForPageLoad();
-
-        // Just verify the page loads
-        assertThat(page.locator("#page-title")).isVisible();
-    }
-
-    // ==================== ADDITIONAL AUDIT LOG TESTS ====================
-
-    @Test
-    @DisplayName("Should filter audit logs by username")
-    void shouldFilterAuditLogsByUsername() {
-        navigateTo("/settings/audit-logs?username=admin");
-        waitForPageLoad();
-
-        // Verify filter is applied
-        var usernameFilter = page.locator("#username-filter");
-        if (usernameFilter.isVisible()) {
-            org.assertj.core.api.Assertions.assertThat(usernameFilter.inputValue())
-                .as("Username filter should have value")
-                .isEqualTo("admin");
-        }
-    }
-
-    @Test
-    @DisplayName("Should filter audit logs by date range")
-    void shouldFilterAuditLogsByDateRange() {
-        String today = java.time.LocalDate.now().toString();
-        navigateTo("/settings/audit-logs?startDate=" + today + "&endDate=" + today);
-        waitForPageLoad();
-
-        // Verify the page loads with filters
-        assertThat(page.locator("#page-title")).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should paginate audit logs")
-    void shouldPaginateAuditLogs() {
-        navigateTo("/settings/audit-logs?page=0&size=5");
-        waitForPageLoad();
-
-        // Verify the page loads
-        assertThat(page.locator("#page-title")).isVisible();
-    }
-
-    // ==================== ADDITIONAL COVERAGE TESTS ====================
-
-    @Test
-    @DisplayName("Should deactivate bank account")
-    void shouldDeactivateBankAccount() {
-        var bankAccounts = bankAccountRepository.findAll();
-        if (bankAccounts.isEmpty()) {
-            return;
-        }
-
-        // Find active bank account
-        var bankAccount = bankAccounts.stream()
-            .filter(ba -> ba.isActive())
-            .findFirst()
-            .orElse(bankAccounts.get(0));
+    @DisplayName("Should upload, serve and delete the company logo")
+    void shouldUploadServeAndDeleteLogo() {
+        loginAsAdminWithCsrf();
+        clearLogo();
 
         navigateTo("/settings");
         waitForPageLoad();
+        assertThat(page.locator("#company-logo-preview")).hasCount(0);
+        assertEquals(404, page.request().get(baseUrl() + "/settings/company/logo").status());
 
-        var deactivateForm = page.locator("form[action*='/bank-accounts/" + bankAccount.getId() + "/deactivate']").first();
-        if (deactivateForm.isVisible()) {
-            deactivateForm.locator("button[type='submit']").click();
-            waitForPageLoad();
-        }
+        page.locator("#logoFile").setInputFiles(new FilePayload("logo.png", "image/png", PNG));
+        page.locator("#btn-upload-logo").click();
+        waitForPageLoad();
 
-        // Verify page loads after action
-        assertThat(page.locator("#page-title")).isVisible();
+        assertThat(page.locator("[data-testid='flash-success']")).hasText("Logo perusahaan berhasil diupload");
+        assertThat(page.locator("#company-logo-preview")).isVisible();
+        String storedPath = currentConfig().getCompanyLogoPath();
+        assertNotNull(storedPath);
+        assertTrue(storedPath.endsWith(".png"), storedPath);
+        APIResponse logo = page.request().get(baseUrl() + "/settings/company/logo");
+        assertEquals(200, logo.status());
+        assertEquals("image/png", logo.headers().get("content-type"));
+        assertArrayEquals(PNG, logo.body());
+
+        page.onDialog(dialog -> dialog.accept());
+        page.locator("#btn-delete-logo").click();
+        waitForPageLoad();
+
+        assertThat(page.locator("[data-testid='flash-success']")).hasText("Logo perusahaan berhasil dihapus");
+        assertThat(page.locator("#company-logo-preview")).hasCount(0);
+        assertNull(currentConfig().getCompanyLogoPath());
+        assertEquals(404, page.request().get(baseUrl() + "/settings/company/logo").status());
     }
 
     @Test
-    @DisplayName("Should set bank account as default")
-    void shouldSetBankAccountAsDefault() {
-        var bankAccounts = bankAccountRepository.findAll();
-        if (bankAccounts.isEmpty()) {
-            return;
-        }
-
-        // Find non-default bank account
-        var bankAccount = bankAccounts.stream()
-            .filter(ba -> !ba.isDefaultAccount() && ba.isActive())
-            .findFirst()
-            .orElse(bankAccounts.get(0));
+    @DisplayName("Should keep the uploaded logo when the company form is saved")
+    void shouldKeepLogoWhenSavingCompanySettings() {
+        loginAsAdminWithCsrf();
+        clearLogo();
 
         navigateTo("/settings");
         waitForPageLoad();
-
-        var setDefaultForm = page.locator("form[action*='/bank-accounts/" + bankAccount.getId() + "/set-default']").first();
-        if (setDefaultForm.isVisible()) {
-            setDefaultForm.locator("button[type='submit']").click();
-            waitForPageLoad();
-        }
-
-        // Verify page loads after action
-        assertThat(page.locator("#page-title")).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should access bank accounts list page")
-    void shouldAccessBankAccountsListPage() {
-        navigateTo("/settings/bank-accounts");
+        page.locator("#logoFile").setInputFiles(new FilePayload("logo.png", "image/png", PNG));
+        page.locator("#btn-upload-logo").click();
         waitForPageLoad();
+        String storedPath = currentConfig().getCompanyLogoPath();
+        assertNotNull(storedPath);
 
-        // Verify page loads
-        assertThat(page.locator("body")).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should access bank accounts list via HTMX")
-    void shouldAccessBankAccountsListViaHtmx() {
-        var response = page.request().get(baseUrl() + "/settings/bank-accounts",
-            com.microsoft.playwright.options.RequestOptions.create()
-                .setHeader("HX-Request", "true"));
-        // 200 = success with fragment, 500 = fragment template not found (acceptable)
-        org.assertj.core.api.Assertions.assertThat(response.status())
-            .as("HTMX request should return response")
-            .isIn(200, 500);
-    }
-
-    @Test
-    @DisplayName("Should access audit logs via HTMX")
-    void shouldAccessAuditLogsViaHtmx() {
-        var response = page.request().get(baseUrl() + "/settings/audit-logs",
-            com.microsoft.playwright.options.RequestOptions.create()
-                .setHeader("HX-Request", "true"));
-        org.assertj.core.api.Assertions.assertThat(response.status())
-            .as("HTMX request should return 200")
-            .isEqualTo(200);
-    }
-
-    @Test
-    @DisplayName("Should filter audit logs by LOGIN_FAILURE event type")
-    void shouldFilterAuditLogsByLoginFailureEventType() {
-        navigateTo("/settings/audit-logs?eventType=LOGIN_FAILURE");
-        waitForPageLoad();
-
-        assertThat(page.locator("#page-title")).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should filter audit logs by SETTINGS_CHANGE event type")
-    void shouldFilterAuditLogsBySettingsChangeEventType() {
-        navigateTo("/settings/audit-logs?eventType=SETTINGS_CHANGE");
-        waitForPageLoad();
-
-        assertThat(page.locator("#page-title")).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should filter audit logs with combined filters")
-    void shouldFilterAuditLogsWithCombinedFilters() {
-        String today = java.time.LocalDate.now().toString();
-        navigateTo("/settings/audit-logs?eventType=LOGIN_SUCCESS&username=admin&startDate=" + today + "&endDate=" + today);
-        waitForPageLoad();
-
-        assertThat(page.locator("#page-title")).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should paginate audit logs second page")
-    void shouldPaginateAuditLogsSecondPage() {
-        navigateTo("/settings/audit-logs?page=1&size=5");
-        waitForPageLoad();
-
-        assertThat(page.locator("#page-title")).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should show bank account list on company settings")
-    void shouldShowBankAccountListOnCompanySettings() {
-        navigateTo("/settings");
-        waitForPageLoad();
-
-        // Verify bank accounts section is present with the add bank account link
-        assertThat(page.locator("a[href*='/bank-accounts/new']").first()).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should show address field in company settings")
-    void shouldShowAddressFieldInCompanySettings() {
-        navigateTo("/settings");
-        waitForPageLoad();
-
-        var addressTextarea = page.locator("textarea[name='address'], #address");
-        if (addressTextarea.isVisible()) {
-            assertThat(addressTextarea).isVisible();
-        }
-    }
-
-    @Test
-    @DisplayName("Should show phone field in company settings")
-    void shouldShowPhoneFieldInCompanySettings() {
-        navigateTo("/settings");
-        waitForPageLoad();
-
-        var phoneInput = page.locator("input[name='phone'], #phone");
-        if (phoneInput.isVisible()) {
-            assertThat(phoneInput).isVisible();
-        }
-    }
-
-    @Test
-    @DisplayName("Should show email field in company settings")
-    void shouldShowEmailFieldInCompanySettings() {
-        navigateTo("/settings");
-        waitForPageLoad();
-
-        var emailInput = page.locator("input[name='email'], #email");
-        if (emailInput.isVisible()) {
-            assertThat(emailInput).isVisible();
-        }
-    }
-
-    @Test
-    @DisplayName("Should show branch code field")
-    void shouldShowBranchCodeField() {
-        navigateTo("/settings/bank-accounts/new");
-        waitForPageLoad();
-
-        var branchCodeInput = page.locator("input[name='branchCode'], #branchCode");
-        if (branchCodeInput.isVisible()) {
-            assertThat(branchCodeInput).isVisible();
-        }
-    }
-
-    @Test
-    @DisplayName("Should have link to telegram settings")
-    void shouldHaveLinkToTelegramSettings() {
-        navigateTo("/settings");
-        waitForPageLoad();
-
-        assertThat(page.locator("a[href*='/settings/telegram']").first()).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should have link to privacy policy")
-    void shouldHaveLinkToPrivacyPolicy() {
-        navigateTo("/settings");
-        waitForPageLoad();
-
-        // Link may be in footer or sidebar, verify page loads
-        var privacyLink = page.locator("a[href*='/settings/privacy'], a[href*='/privacy']").first();
-        if (privacyLink.isVisible()) {
-            assertThat(privacyLink).isVisible();
-        } else {
-            // Privacy link might not be on settings page, just verify page loads
-            assertThat(page.locator("#page-title")).isVisible();
-        }
-    }
-
-    @Test
-    @DisplayName("Should have link to audit logs")
-    void shouldHaveLinkToAuditLogs() {
-        navigateTo("/settings");
-        waitForPageLoad();
-
-        // Link may be in sidebar menu, verify page loads
-        var auditLink = page.locator("a[href*='/settings/audit-logs'], a[href*='/audit-logs']").first();
-        if (auditLink.isVisible()) {
-            assertThat(auditLink).isVisible();
-        } else {
-            // Audit logs link might not be on settings page, just verify page loads
-            assertThat(page.locator("#page-title")).isVisible();
-        }
-    }
-
-    // ==================== FORM SUBMISSION TESTS ====================
-
-    @Test
-    @DisplayName("Should submit company settings form")
-    void shouldSubmitCompanySettingsForm() {
-        navigateTo("/settings");
-        waitForPageLoad();
-
-        // Update company name
-        var companyNameInput = page.locator("input[name='companyName'], #companyName").first();
-        if (companyNameInput.isVisible()) {
-            companyNameInput.fill("Test Company " + System.currentTimeMillis() % 1000);
-        }
-
-        // Update phone
-        var phoneInput = page.locator("input[name='phone'], #phone").first();
-        if (phoneInput.isVisible()) {
-            phoneInput.fill("021-12345678");
-        }
-
-        // Update email
-        var emailInput = page.locator("input[name='email'], #email").first();
-        if (emailInput.isVisible()) {
-            emailInput.fill("test@company.com");
-        }
-
-        // Submit form
-        var submitBtn = page.locator("form[action*='/settings'] button[type='submit']").first();
-        if (submitBtn.isVisible()) {
-            submitBtn.click();
-            waitForPageLoad();
-        }
-
-        assertThat(page.locator("#page-title")).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should submit create bank account form")
-    void shouldSubmitCreateBankAccountForm() {
-        navigateTo("/settings/bank-accounts/new");
-        waitForPageLoad();
-
-        String uniqueCode = "TEST-" + System.currentTimeMillis() % 10000;
-
-        // Fill bank name
-        var bankNameInput = page.locator("input[name='bankName'], #bankName").first();
-        if (bankNameInput.isVisible()) {
-            bankNameInput.fill("Bank Test " + uniqueCode);
-        }
-
-        // Fill account number
-        var accountNumberInput = page.locator("input[name='accountNumber'], #accountNumber").first();
-        if (accountNumberInput.isVisible()) {
-            accountNumberInput.fill("12345678" + System.currentTimeMillis() % 10000);
-        }
-
-        // Fill account name
-        var accountNameInput = page.locator("input[name='accountName'], #accountName").first();
-        if (accountNameInput.isVisible()) {
-            accountNameInput.fill("Test Account " + uniqueCode);
-        }
-
-        // Fill branch code
-        var branchCodeInput = page.locator("input[name='branchCode'], #branchCode").first();
-        if (branchCodeInput.isVisible()) {
-            branchCodeInput.fill("001");
-        }
-
-        // Select COA account if available
-        var coaSelect = page.locator("select[name='chartOfAccountId'], select[name='coaId']").first();
-        if (coaSelect.isVisible()) {
-            var options = coaSelect.locator("option[value]");
-            if (options.count() > 1) {
-                coaSelect.selectOption(options.nth(1).getAttribute("value"));
-            }
-        }
-
-        // Submit using specific ID
-        page.locator("#btn-save-bank").click();
-        waitForPageLoad();
-
-        // Verify we're still on settings page (not redirected to login)
-        assertThat(page).hasURL(java.util.regex.Pattern.compile(".*\\/settings.*"));
-    }
-
-    @Test
-    @DisplayName("Should submit update bank account form")
-    void shouldSubmitUpdateBankAccountForm() {
-        var bankAccounts = bankAccountRepository.findAll();
-        if (bankAccounts.isEmpty()) {
-            return;
-        }
-
-        navigateTo("/settings/bank-accounts/" + bankAccounts.get(0).getId() + "/edit");
-        waitForPageLoad();
-
-        // Update bank name
-        var bankNameInput = page.locator("input[name='bankName'], #bankName").first();
-        if (bankNameInput.isVisible()) {
-            bankNameInput.fill("Updated Bank " + System.currentTimeMillis() % 1000);
-        }
-
-        // Submit using specific ID
-        page.locator("#btn-save-bank").click();
-        waitForPageLoad();
-
-        // Verify we're still on settings page (not redirected to login)
-        assertThat(page).hasURL(java.util.regex.Pattern.compile(".*\\/settings.*"));
-    }
-
-    @Test
-    @DisplayName("Should submit delete bank account form")
-    void shouldSubmitDeleteBankAccountForm() {
-        var bankAccounts = bankAccountRepository.findAll();
-        if (bankAccounts.isEmpty()) {
-            return;
-        }
-
-        navigateTo("/settings");
-        waitForPageLoad();
-
-        var deleteForm = page.locator("form[action*='/bank-accounts/'][action*='/delete']").first();
-        if (deleteForm.isVisible()) {
-            deleteForm.locator("button[type='submit']").click();
-            waitForPageLoad();
-        }
-
-        assertThat(page.locator("#page-title")).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should submit activate bank account form")
-    void shouldSubmitActivateBankAccountForm() {
-        var bankAccounts = bankAccountRepository.findAll();
-        var inactiveBankAccount = bankAccounts.stream()
-            .filter(ba -> !ba.isActive())
-            .findFirst();
-
-        if (inactiveBankAccount.isEmpty()) {
-            return;
-        }
-
-        navigateTo("/settings");
-        waitForPageLoad();
-
-        var activateForm = page.locator("form[action*='/bank-accounts/" + inactiveBankAccount.get().getId() + "/activate']").first();
-        if (activateForm.isVisible()) {
-            activateForm.locator("button[type='submit']").click();
-            waitForPageLoad();
-        }
-
-        assertThat(page.locator("#page-title")).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should submit telegram settings form")
-    void shouldSubmitTelegramSettingsForm() {
-        navigateTo("/settings/telegram");
-        waitForPageLoad();
-
-        // Try to fill bot token if form is visible
-        var botTokenInput = page.locator("input[name='botToken'], #botToken").first();
-        if (botTokenInput.isVisible()) {
-            botTokenInput.fill("test_bot_token_" + System.currentTimeMillis());
-        }
-
-        // Submit form if visible
-        var submitBtn = page.locator("form[action*='/settings/telegram'] button[type='submit']").first();
-        if (submitBtn.isVisible()) {
-            submitBtn.click();
-            waitForPageLoad();
-        }
-
-        assertThat(page.locator("body")).isVisible();
-    }
-
-    // ==================== DEVICE TOKEN MANAGEMENT ====================
-
-    @Test
-    @DisplayName("Should display device tokens page")
-    void shouldDisplayDeviceTokensPage() {
-        navigateTo("/settings/devices");
-        waitForPageLoad();
-
-        assertThat(page.locator("#page-title")).isVisible();
-        assertThat(page.locator("#device-management-content")).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should show device tokens table or empty state")
-    void shouldShowDeviceTokensTableOrEmptyState() {
-        navigateTo("/settings/devices");
-        waitForPageLoad();
-
-        // Either the table or the empty state should be visible
-        var tokensTable = page.locator("#device-tokens-table");
-        var emptyState = page.locator("#empty-state");
-        boolean hasTable = tokensTable.isVisible();
-        boolean hasEmpty = emptyState.isVisible();
-
-        org.assertj.core.api.Assertions.assertThat(hasTable || hasEmpty)
-            .as("Either device tokens table or empty state should be visible")
-            .isTrue();
-    }
-
-    @Test
-    @DisplayName("Should show revoke all button on devices page")
-    void shouldShowRevokeAllButtonOnDevicesPage() {
-        navigateTo("/settings/devices");
-        waitForPageLoad();
-
-        // The revoke-all form should exist on the page
-        var revokeAllForm = page.locator("#form-revoke-all");
-        if (revokeAllForm.isVisible()) {
-            assertThat(revokeAllForm).isVisible();
-        } else {
-            // No active tokens, so no revoke-all button shown
-            assertThat(page.locator("#page-title")).isVisible();
-        }
-    }
-
-    // ==================== COMPANY CONFIG FORM VALIDATION ====================
-
-    @Test
-    @DisplayName("Should reject empty company name on submit")
-    void shouldRejectEmptyCompanyNameOnSubmit() {
-        navigateTo("/settings");
-        waitForPageLoad();
-
-        // Clear company name to trigger validation
-        page.locator("#companyName").fill("");
+        page.locator("#companyPhone").fill("021-777-" + shortId().substring(0, 4));
         page.locator("#btn-save-company").click();
         waitForPageLoad();
 
-        // Should stay on the settings page (form re-rendered with errors)
-        assertThat(page.locator("#companyName")).isVisible();
+        assertThat(page.locator("[data-testid='flash-success']")).hasText("Pengaturan perusahaan berhasil disimpan");
+        assertEquals(storedPath, currentConfig().getCompanyLogoPath());
+        assertThat(page.locator("#company-logo-preview")).isVisible();
+        assertEquals(200, page.request().get(baseUrl() + "/settings/company/logo").status());
     }
 
     @Test
-    @DisplayName("Should show fiscal year start month field")
-    void shouldShowFiscalYearStartMonthField() {
+    @DisplayName("Should reject a logo that is not an image, and an empty upload, keeping the stored logo")
+    void shouldRejectInvalidLogoUpload() {
+        loginAsAdminWithCsrf();
+        clearLogo();
+
         navigateTo("/settings");
         waitForPageLoad();
+        page.locator("#logoFile").setInputFiles(new FilePayload("logo.txt", "text/plain", "not an image".getBytes()));
+        page.locator("#btn-upload-logo").click();
+        waitForPageLoad();
 
-        var fiscalMonthInput = page.locator("#fiscalYearStartMonth, input[name='fiscalYearStartMonth'], select[name='fiscalYearStartMonth']").first();
-        if (fiscalMonthInput.isVisible()) {
-            assertThat(fiscalMonthInput).isVisible();
+        assertThat(page.locator("[data-testid='flash-error']"))
+                .hasText("Format file tidak didukung. Gunakan PNG, JPG, GIF, atau WebP.");
+        assertNull(currentConfig().getCompanyLogoPath());
+
+        page.locator("#btn-upload-logo").click();
+        waitForPageLoad();
+
+        assertThat(page.locator("[data-testid='flash-error']")).hasText("File tidak boleh kosong");
+        assertNull(currentConfig().getCompanyLogoPath());
+        assertThat(page.locator("#company-logo-preview")).hasCount(0);
+    }
+
+    // ==================== TELEGRAM ====================
+
+    @Test
+    @DisplayName("Should show the disabled-bot notice and store a 6-digit verification code for the current user")
+    void shouldGenerateTelegramVerificationCode() {
+        User user = createUser(Role.ADMIN);
+        loginAsWithCsrf(user);
+
+        navigateTo("/settings/telegram");
+        waitForPageLoad();
+        assertThat(page.locator("#page-title")).hasText("Pengaturan Telegram");
+        assertThat(page.locator("#telegram-settings-content")).containsText("Telegram Bot Tidak Aktif");
+        assertThat(page.locator("form[action='/settings/telegram/generate-code']")).hasCount(0);
+
+        APIResponse response = post("/settings/telegram/generate-code", null);
+
+        assertEquals(200, response.status());
+        assertEquals(baseUrl() + "/settings/telegram", response.url());
+        TelegramUserLink link = telegramLinkRepository.findByUser(user)
+                .orElseThrow(() -> new AssertionError("No telegram link stored for " + user.getUsername()));
+        assertTrue(link.getVerificationCode().matches("\\d{6}"), link.getVerificationCode());
+        assertFalse(link.getIsActive());
+        assertFalse(link.isLinked());
+        assertTrue(link.getVerificationExpiresAt().isAfter(LocalDateTime.now().plusMinutes(14)));
+        assertTrue(link.getVerificationExpiresAt().isBefore(LocalDateTime.now().plusMinutes(16)));
+    }
+
+    @Test
+    @DisplayName("Should unlink the current user's telegram account")
+    void shouldUnlinkTelegram() {
+        User user = createUser(Role.ADMIN);
+        TelegramUserLink link = new TelegramUserLink();
+        link.setUser(user);
+        link.setTelegramUserId(Math.abs(UUID.randomUUID().getMostSignificantBits()));
+        link.setTelegramUsername("stl_" + shortId());
+        link.setLinkedAt(LocalDateTime.now().minusDays(1));
+        link.setIsActive(true);
+        telegramLinkRepository.save(link);
+        loginAsWithCsrf(user);
+
+        APIResponse response = post("/settings/telegram/unlink", null);
+
+        assertEquals(baseUrl() + "/settings/telegram", response.url());
+        page.setContent(response.text());
+        assertThat(page.locator("[data-testid='flash-success']")).containsText("Akun Telegram berhasil diputus");
+        TelegramUserLink unlinked = telegramLinkRepository.findByUser(user).orElseThrow();
+        assertFalse(unlinked.getIsActive());
+        assertNull(unlinked.getTelegramUserId());
+        assertNull(unlinked.getTelegramUsername());
+        assertNull(unlinked.getLinkedAt());
+    }
+
+    // ==================== DEVICE SESSIONS ====================
+
+    @Test
+    @DisplayName("Should list the user's device session and revoke it so the token gets 401 on the API")
+    void shouldRevokeDeviceSessionAndInvalidateToken() {
+        User user = createUser(Role.ADMIN);
+        String clientId = "stl-cli-" + shortId();
+        DeviceToken token = deviceAuthService.createAccessToken(user, clientId, "Laptop " + clientId);
+        assertEquals(200, apiStatus(token));
+        loginAsWithCsrf(user);
+
+        navigateTo("/settings/devices");
+        waitForPageLoad();
+        Locator row = page.locator("#device-tokens-table tbody tr");
+        assertThat(row).hasCount(1);
+        assertThat(row.locator("td").nth(0)).hasText("Laptop " + clientId);
+        assertThat(row.locator("td").nth(1)).hasText(clientId);
+        assertThat(row.locator("td").nth(3)).hasText("Aktif");
+
+        page.onDialog(dialog -> dialog.accept());
+        row.locator(".form-revoke-session button").click();
+        waitForPageLoad();
+
+        assertThat(page.locator("[data-testid='flash-success']")).containsText("Sesi perangkat berhasil dicabut");
+        assertThat(page.locator("#empty-state")).hasText("Tidak ada sesi perangkat aktif");
+        DeviceToken revoked = deviceTokenRepository.findById(token.getId()).orElseThrow();
+        assertNotNull(revoked.getRevokedAt());
+        assertEquals(user.getUsername(), revoked.getRevokedBy());
+        assertEquals(401, apiStatus(token));
+    }
+
+    @Test
+    @DisplayName("Should refuse to revoke another user's device session")
+    void shouldNotRevokeAnotherUsersDeviceSession() {
+        User owner = createUser(Role.ADMIN);
+        DeviceToken foreign = deviceAuthService.createAccessToken(owner, "stl-cli-" + shortId(), "Owner device");
+        loginAsWithCsrf(createUser(Role.ADMIN));
+
+        APIResponse response = post("/settings/devices/" + foreign.getId() + "/revoke", null);
+
+        assertEquals(baseUrl() + "/settings/devices", response.url());
+        page.setContent(response.text());
+        assertThat(page.locator("[data-testid='flash-error']")).containsText("Token tidak ditemukan");
+        assertNull(deviceTokenRepository.findById(foreign.getId()).orElseThrow().getRevokedAt());
+        assertEquals(200, apiStatus(foreign));
+    }
+
+    @Test
+    @DisplayName("Should revoke all of the user's device sessions and leave other users' sessions valid")
+    void shouldRevokeAllOwnDeviceSessions() {
+        User user = createUser(Role.ADMIN);
+        DeviceToken first = deviceAuthService.createAccessToken(user, "stl-cli-" + shortId(), "Laptop");
+        DeviceToken second = deviceAuthService.createAccessToken(user, "stl-cli-" + shortId(), "Phone");
+        DeviceToken other = deviceAuthService.createAccessToken(createUser(Role.ADMIN), "stl-cli-" + shortId(), "Other");
+        loginAsWithCsrf(user);
+
+        navigateTo("/settings/devices");
+        waitForPageLoad();
+        assertThat(page.locator("#device-tokens-table tbody tr")).hasCount(2);
+        page.onDialog(dialog -> dialog.accept());
+        page.locator("#form-revoke-all button").click();
+        waitForPageLoad();
+
+        assertThat(page.locator("[data-testid='flash-success']")).containsText("2 sesi perangkat berhasil dicabut");
+        assertThat(page.locator("#empty-state")).isVisible();
+        assertEquals(401, apiStatus(first));
+        assertEquals(401, apiStatus(second));
+        assertEquals(200, apiStatus(other));
+    }
+
+    // ==================== API CLIENTS ====================
+
+    @Test
+    @DisplayName("Should reject an API client with an unknown scope without creating it")
+    void shouldRejectApiClientWithUnknownScope() {
+        loginAsAdminWithCsrf();
+        String name = "stl-client-" + shortId();
+        User admin = userRepository.findByUsername("admin").orElseThrow();
+
+        APIResponse response = post("/settings/api-clients", FormData.create()
+                .set("name", name)
+                .set("scopes", "transactions:post, bogus:scope")
+                .set("userId", admin.getId().toString()));
+
+        assertEquals(baseUrl() + "/settings/api-clients", response.url());
+        page.setContent(response.text());
+        assertThat(page.locator("[data-testid='flash-error']")).containsText("Scope tidak dikenal: bogus:scope");
+        assertThat(page.locator("#new-credentials")).hasCount(0);
+        assertTrue(apiClientRepository.findAll().stream().noneMatch(c -> name.equals(c.getName())));
+    }
+
+    // ==================== ABOUT / PRIVACY ====================
+
+    @Test
+    @DisplayName("Should show the running build's git commit and branch on the about page")
+    void shouldDisplayVersionInfo() {
+        loginAsAdminWithCsrf();
+
+        navigateTo("/settings/about");
+        waitForPageLoad();
+
+        assertThat(page.locator("#page-title")).hasText("Tentang Aplikasi");
+        assertThat(page.locator("#value-commit-id")).hasText(versionInfoService.getGitCommitShort());
+        assertThat(page.locator("#btn-copy-commit")).hasAttribute("data-value", versionInfoService.getGitCommitId());
+        assertThat(page.locator("#value-branch")).hasText(versionInfoService.getGitBranch());
+        assertThat(page.locator("#value-build-date")).hasText(versionInfoService.getGitCommitDate());
+        assertThat(page.locator("#tech-spring-boot")).isVisible();
+        assertThat(page.locator("#tech-postgresql")).isVisible();
+    }
+
+    @Test
+    @DisplayName("Should show every section of the privacy policy")
+    void shouldDisplayPrivacyPolicy() {
+        loginAsAdminWithCsrf();
+
+        navigateTo("/settings/privacy");
+        waitForPageLoad();
+
+        assertThat(page.locator("#page-title")).hasText("Kebijakan Privasi");
+        assertThat(page.locator("#privacy-page-content h2")).hasText(new String[]{
+                "1. Pendahuluan", "2. Data yang Dikumpulkan", "3. Dasar Hukum Pemrosesan", "4. Penyimpanan Data",
+                "5. Hak Anda", "6. Keamanan Data", "7. Pemberitahuan Pelanggaran Data", "8. Kontak"});
+    }
+
+    // ==================== AUTHORIZATION ====================
+
+    @Test
+    @DisplayName("Should refuse settings writes to a role with view-only settings access and hide the controls")
+    void shouldRefuseSettingsWritesWithoutEditPermission() {
+        String number = "STL" + System.nanoTime();
+        CompanyBankAccount account = new CompanyBankAccount();
+        account.setBankName("Bank Otorisasi " + number);
+        account.setAccountNumber(number);
+        account.setAccountName("PT Otorisasi");
+        account = bankAccountService.create(account);
+        bankAccountService.deactivate(account.getId());
+        UUID accountId = account.getId();
+        User admin = userRepository.findByUsername("admin").orElseThrow();
+        long apiClientsBefore = apiClientRepository.count();
+        loginAsWithCsrf(createUser(Role.ACCOUNTANT));
+
+        try {
+            navigateTo("/settings");
+            waitForPageLoad();
+            assertThat(page.locator("#companyName")).hasValue(originalConfig.companyName());
+            assertThat(page.locator("#btn-save-company")).hasCount(0);
+            assertThat(page.locator("#btn-upload-logo")).hasCount(0);
+            assertThat(page.locator("a[href='/settings/bank-accounts/new']")).hasCount(0);
+            assertThat(page.locator("form[action^='/settings/bank-accounts/']")).hasCount(0);
+
+            FormData companyForm = FormData.create()
+                    .set("id", originalConfig.id().toString())
+                    .set("companyName", "PT Tanpa Izin")
+                    .set("fiscalYearStartMonth", "1")
+                    .set("currencyCode", "IDR");
+            FormData bankForm = FormData.create()
+                    .set("bankName", "Bank Tanpa Izin")
+                    .set("accountNumber", number + "X")
+                    .set("accountName", "PT Tanpa Izin");
+            List<String> refused = List.of(
+                    "/settings/company", "/settings/company/logo/delete", "/settings/bank-accounts/new",
+                    "/settings/bank-accounts/" + accountId, "/settings/bank-accounts/" + accountId + "/set-default",
+                    "/settings/bank-accounts/" + accountId + "/activate", "/settings/bank-accounts/" + accountId + "/delete",
+                    "/settings/api-clients");
+            for (String path : refused) {
+                FormData form = path.equals("/settings/company") ? companyForm
+                        : path.equals("/settings/api-clients") ? FormData.create().set("name", "x")
+                                .set("scopes", "transactions:post").set("userId", admin.getId().toString())
+                        : bankForm;
+                assertEquals(403, postNoRedirect(path, form).status(), path);
+            }
+            APIResponse upload = page.request().post(baseUrl() + "/settings/company/logo", RequestOptions.create()
+                    .setHeader(csrfHeader, csrfToken)
+                    .setMaxRedirects(0)
+                    .setMultipart(FormData.create().set("logoFile", new FilePayload("logo.png", "image/png", PNG))));
+            assertEquals(403, upload.status());
+            assertEquals(403, page.request().get(baseUrl() + "/settings/bank-accounts/new",
+                    RequestOptions.create().setMaxRedirects(0)).status());
+            assertEquals(403, page.request().get(baseUrl() + "/settings/api-clients",
+                    RequestOptions.create().setMaxRedirects(0)).status());
+
+            CompanyConfig config = currentConfig();
+            assertEquals(originalConfig.companyName(), config.getCompanyName());
+            assertEquals(originalConfig.companyLogoPath(), config.getCompanyLogoPath());
+            CompanyBankAccount stored = bankAccountRepository.findById(accountId).orElseThrow();
+            assertEquals("Bank Otorisasi " + number, stored.getBankName());
+            assertFalse(stored.isActive());
+            assertFalse(stored.isDefaultAccount());
+            assertFalse(bankAccountRepository.existsByAccountNumber(number + "X"));
+            assertEquals(apiClientsBefore, apiClientRepository.count());
+        } finally {
+            bankAccountService.delete(accountId);
         }
     }
 
     @Test
-    @DisplayName("Should show currency code field")
-    void shouldShowCurrencyCodeField() {
-        navigateTo("/settings");
-        waitForPageLoad();
+    @DisplayName("Should deny company settings to an auditor while allowing the audit log")
+    void shouldDenyCompanySettingsToAuditor() {
+        loginAsWithCsrf(createUser(Role.AUDITOR));
 
-        var currencyInput = page.locator("#currencyCode, input[name='currencyCode']").first();
-        if (currencyInput.isVisible()) {
-            assertThat(currencyInput).isVisible();
+        assertEquals(403, page.request().get(baseUrl() + "/settings",
+                RequestOptions.create().setMaxRedirects(0)).status());
+        assertEquals(200, page.request().get(baseUrl() + "/settings/audit-logs",
+                RequestOptions.create().setMaxRedirects(0)).status());
+    }
+
+    // ==================== helpers ====================
+
+    private CompanyConfig currentConfig() {
+        return companyConfigRepository.findById(originalConfig.id())
+                .orElseThrow(() -> new IllegalStateException("Company config removed"));
+    }
+
+    private void clearLogo() {
+        CompanyConfig config = currentConfig();
+        config.setCompanyLogoPath(null);
+        companyConfigRepository.save(config);
+    }
+
+    private String label(UUID accountId) {
+        ChartOfAccount account = accountRepository.findById(Objects.requireNonNull(accountId, "posting account not set"))
+                .orElseThrow();
+        return account.getAccountCode() + " - " + account.getAccountName();
+    }
+
+    private void loginAsAdminWithCsrf() {
+        loginAsAdmin();
+        readCsrf();
+    }
+
+    private void loginAsWithCsrf(User user) {
+        login(user.getUsername(), "password");
+        readCsrf();
+    }
+
+    private void readCsrf() {
+        csrfHeader = page.locator("meta[name='_csrf_header']").getAttribute("content");
+        csrfToken = page.locator("meta[name='_csrf']").getAttribute("content");
+    }
+
+    private APIResponse post(String path, FormData form) {
+        RequestOptions options = RequestOptions.create().setHeader(csrfHeader, csrfToken);
+        if (form != null) {
+            options.setForm(form);
+        }
+        return page.request().post(baseUrl() + path, options);
+    }
+
+    private APIResponse postNoRedirect(String path, FormData form) {
+        return page.request().post(baseUrl() + path, RequestOptions.create()
+                .setHeader(csrfHeader, csrfToken)
+                .setMaxRedirects(0)
+                .setForm(form));
+    }
+
+    private int apiStatus(DeviceToken token) {
+        APIRequestContext api = playwright.request().newContext(new APIRequest.NewContextOptions().setBaseURL(baseUrl()));
+        try {
+            return api.get("/api/drafts/templates", RequestOptions.create()
+                    .setHeader("Authorization", "Bearer " + token.getTokenHash())).status();
+        } finally {
+            api.dispose();
         }
     }
 
-    @Test
-    @DisplayName("Should show signing officer fields")
-    void shouldShowSigningOfficerFields() {
-        navigateTo("/settings");
-        waitForPageLoad();
-
-        var officerName = page.locator("#signingOfficerName, input[name='signingOfficerName']").first();
-        var officerTitle = page.locator("#signingOfficerTitle, input[name='signingOfficerTitle']").first();
-        if (officerName.isVisible()) {
-            assertThat(officerName).isVisible();
-        }
-        if (officerTitle.isVisible()) {
-            assertThat(officerTitle).isVisible();
-        }
+    private User createUser(Role role) {
+        String id = shortId();
+        User user = new User();
+        user.setUsername("stl-" + role.name().toLowerCase() + "-" + id);
+        user.setPassword(passwordEncoder.encode("password"));
+        user.setFullName("Pengguna Pengaturan " + id);
+        user.setEmail("stl-" + id + "@example.com");
+        user.setActive(true);
+        user.addRole(role, "system");
+        return userRepository.save(user);
     }
 
-    @Test
-    @DisplayName("Should show industry field")
-    void shouldShowIndustryField() {
-        navigateTo("/settings");
-        waitForPageLoad();
-
-        var industryInput = page.locator("#industry, input[name='industry'], select[name='industry']").first();
-        if (industryInput.isVisible()) {
-            assertThat(industryInput).isVisible();
-        }
-    }
-
-    @Test
-    @DisplayName("Should show NITKU field")
-    void shouldShowNitkuField() {
-        navigateTo("/settings");
-        waitForPageLoad();
-
-        var nitkuInput = page.locator("#nitku, input[name='nitku']").first();
-        if (nitkuInput.isVisible()) {
-            assertThat(nitkuInput).isVisible();
-        }
-    }
-
-    @Test
-    @DisplayName("Should show tax ID field")
-    void shouldShowTaxIdField() {
-        navigateTo("/settings");
-        waitForPageLoad();
-
-        var taxIdInput = page.locator("#taxId, input[name='taxId']").first();
-        if (taxIdInput.isVisible()) {
-            assertThat(taxIdInput).isVisible();
-        }
-    }
-
-    // ==================== BANK ACCOUNT GL ACCOUNT MAPPING ====================
-
-    @Test
-    @DisplayName("Should show GL account select on bank account form")
-    void shouldShowGlAccountSelectOnBankAccountForm() {
-        navigateTo("/settings/bank-accounts/new");
-        waitForPageLoad();
-
-        var glAccountSelect = page.locator("select[name='glAccountId']").first();
-        if (glAccountSelect.isVisible()) {
-            assertThat(glAccountSelect).isVisible();
-        }
-    }
-
-    @Test
-    @DisplayName("Should show currency code on bank account form")
-    void shouldShowCurrencyCodeOnBankAccountForm() {
-        navigateTo("/settings/bank-accounts/new");
-        waitForPageLoad();
-
-        var currencyInput = page.locator("#currencyCode, input[name='currencyCode']").first();
-        if (currencyInput.isVisible()) {
-            assertThat(currencyInput).isVisible();
-        }
-    }
-
-    @Test
-    @DisplayName("Should show is-default checkbox on bank account form")
-    void shouldShowIsDefaultCheckboxOnBankAccountForm() {
-        navigateTo("/settings/bank-accounts/new");
-        waitForPageLoad();
-
-        var isDefaultCheckbox = page.locator("input[name='isDefault'], #isDefault").first();
-        if (isDefaultCheckbox.isVisible()) {
-            assertThat(isDefaultCheckbox).isVisible();
-        }
+    private static String shortId() {
+        return UUID.randomUUID().toString().replace("-", "").substring(0, 10);
     }
 }

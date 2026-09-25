@@ -202,17 +202,14 @@ class SettingsControllerTest {
 
         @Test
         @DisplayName("Should reject bank account with missing required fields")
-        void shouldRejectBankAccountWithMissingFields() {
-            // Validation fails and controller returns bank-form view,
-            // but template has a bug (references bankAccount.glAccount which
-            // doesn't exist on BankAccountForm), causing a ServletException
-            assertThat(org.junit.jupiter.api.Assertions.assertThrows(
-                    jakarta.servlet.ServletException.class,
-                    () -> mockMvc.perform(post("/settings/bank-accounts/new").with(csrf())
+        void shouldRejectBankAccountWithMissingFields() throws Exception {
+            mockMvc.perform(post("/settings/bank-accounts/new").with(csrf())
                             .param("bankName", "")
                             .param("accountNumber", "")
                             .param("accountName", ""))
-            ).getMessage()).contains("TemplateInputException");
+                    .andExpect(status().isOk())
+                    .andExpect(view().name("settings/bank-form"))
+                    .andExpect(model().attributeHasFieldErrors("bankAccount", "bankName", "accountNumber", "accountName"));
         }
     }
 

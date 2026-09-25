@@ -11,12 +11,12 @@
 
     <section class="space-y-6">
         <!-- Success Message -->
-        <div th:if="${successMessage}" class="p-4 bg-green-50 border border-green-200 rounded-lg">
+        <div th:if="${successMessage}" data-testid="flash-success" class="p-4 bg-green-50 border border-green-200 rounded-lg">
             <p class="text-sm text-green-600" th:text="${successMessage}">Success</p>
         </div>
 
         <!-- Error Message -->
-        <div th:if="${errorMessage}" class="p-4 bg-red-50 border border-red-200 rounded-lg">
+        <div th:if="${errorMessage}" data-testid="flash-error" class="p-4 bg-red-50 border border-red-200 rounded-lg">
             <p class="text-sm text-red-600" th:text="${errorMessage}">Error</p>
         </div>
 
@@ -297,7 +297,7 @@
                 <h3 id="label-logo" class="text-md font-medium text-gray-900 mb-4">Logo Perusahaan</h3>
 
                 <!-- Current Logo Preview -->
-                <div th:if="${config.companyLogoPath}" class="mb-4">
+                <div th:if="${companyLogoPath}" class="mb-4">
                     <p class="text-sm text-gray-600 mb-2">Logo saat ini:</p>
                     <div class="flex items-center gap-4">
                         <img id="company-logo-preview" th:src="@{/settings/company/logo}"
