@@ -1,143 +1,208 @@
 package com.artivisi.accountingfinance.functional.service;
 
-import com.artivisi.accountingfinance.functional.page.ClientListPage;
-import com.artivisi.accountingfinance.functional.page.EmployeeListPage;
-import com.artivisi.accountingfinance.functional.page.PayrollListPage;
-import com.artivisi.accountingfinance.functional.page.ProjectListPage;
-import com.artivisi.accountingfinance.functional.page.TransactionListPage;
+import com.artivisi.accountingfinance.entity.PayrollRun;
 import com.artivisi.accountingfinance.functional.util.CsvLoader;
 import com.artivisi.accountingfinance.functional.util.TransactionRow;
+import com.artivisi.accountingfinance.repository.PayrollRunRepository;
 import com.artivisi.accountingfinance.ui.PlaywrightTestBase;
+import com.microsoft.playwright.Locator;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
 
+import java.math.BigDecimal;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * CSV-Driven Service Industry Tests
- * Loads test scenarios from CSV files and executes them as dynamic tests.
- * Data from: src/test/resources/testdata/service/
- * Uses Page Object Pattern for maintainability.
+ * CSV-driven checks that the service test data (src/test/resources/testdata/service/) is
+ * visible through the UI: every client, project, employee, payroll run and transaction row in
+ * the CSVs is looked up by its natural key and its rendered values compared to the CSV.
  */
 @DisplayName("Service Industry - CSV-Driven Tests")
 @Import(ServiceTestDataInitializer.class)
 class ServiceCsvDrivenTest extends PlaywrightTestBase {
 
-    // Page Objects
-    private TransactionListPage transactionListPage;
-    private ClientListPage clientListPage;
-    private ProjectListPage projectListPage;
-    private EmployeeListPage employeeListPage;
-    private PayrollListPage payrollListPage;
+    private static final String DATA_DIR = "service/";
 
-    private void initPageObjects() {
-        String baseUrl = "http://localhost:" + port;
-        transactionListPage = new TransactionListPage(page, baseUrl);
-        clientListPage = new ClientListPage(page, baseUrl);
-        projectListPage = new ProjectListPage(page, baseUrl);
-        employeeListPage = new EmployeeListPage(page, baseUrl);
-        payrollListPage = new PayrollListPage(page, baseUrl);
-    }
+    @Autowired
+    private PayrollRunRepository payrollRunRepository;
 
     @Test
     @DisplayName("Should load transactions CSV")
     void shouldLoadTransactionsCsv() {
-        List<TransactionRow> transactions = CsvLoader.loadTransactions("service/transactions.csv");
+        List<TransactionRow> transactions = CsvLoader.loadTransactions(DATA_DIR + "transactions.csv");
 
-        // Verify CSV loads correctly
         assertEquals(5, transactions.size());
         assertEquals("Setoran Modal", transactions.get(0).templateName());
         assertEquals("Pendapatan Jasa Konsultasi", transactions.get(1).templateName());
     }
 
     @TestFactory
-    @DisplayName("Verify transactions from CSV")
+    @DisplayName("Verify transactions from CSV are posted with expected journal")
     Stream<DynamicTest> verifyTransactionsFromCsv() {
-        List<TransactionRow> transactions = CsvLoader.loadTransactions("service/transactions.csv");
-
-        return transactions.stream()
+        return CsvLoader.loadTransactions(DATA_DIR + "transactions.csv").stream()
             .map(tx -> DynamicTest.dynamicTest(
                 "Tx " + tx.sequence() + ": " + tx.description(),
-                () -> verifyTransactionExists(tx)
+                () -> verifyTransaction(tx)
             ));
     }
 
-    private void verifyTransactionExists(TransactionRow tx) {
+    private void verifyTransaction(TransactionRow tx) {
+        String number = String.format("SVC-TRX-%03d", tx.sequence());
+        String amount = "Rp " + tx.expectedAmount();
         loginAsAdmin();
-        initPageObjects();
 
-        transactionListPage.navigate()
-            .verifyPageTitle()
-            .verifyTableVisible();
+        navigateTo("/transactions");
+        waitForPageLoad();
+        page.locator("#search-transaksi").fill(number);
+        page.locator("#btn-filter").click();
 
-        // Search for transaction by description using ID-based search input
-        transactionListPage.search(tx.description().substring(0, Math.min(20, tx.description().length())));
+        assertThat(page.locator("#transaction-table [data-testid^='trx-row-']")).hasCount(1);
+        Locator row = page.locator("[data-testid='trx-row-" + number + "']");
+        assertThat(row).containsText(tx.description());
+        assertThat(row).containsText(tx.reference());
+        assertThat(row).containsText(amount);
+        assertThat(row).containsText("POSTED");
 
-        // Verify table still visible after search
-        transactionListPage.verifyTableVisible();
+        row.locator(".hidden a:text-is('" + number + "')").first().click();
+        waitForPageLoad();
+
+        assertThat(page.locator("[data-testid='status-posted']")).isVisible();
+        assertThat(page.locator("[data-testid='template-link']")).hasText(tx.templateName());
+        Locator entries = page.locator(".journal-entry-row");
+        assertThat(entries).hasCount(2);
+        assertThat(journalLine(tx.expectedDebitAccount()).locator("[id^='entry-debit-']")).hasText(amount);
+        assertThat(journalLine(tx.expectedCreditAccount()).locator("[id^='entry-credit-']")).hasText(amount);
+        assertThat(page.locator("#total-debit")).hasText(amount);
+        assertThat(page.locator("#total-credit")).hasText(amount);
 
         if (tx.screenshot()) {
             takeManualScreenshot("service/tx-" + tx.sequence() + "-" + slugify(tx.description()));
         }
     }
 
-    @Test
-    @DisplayName("Verify 3 clients from test data exist")
-    void verifyClientsFromTestData() {
-        loginAsAdmin();
-        initPageObjects();
+    @TestFactory
+    @DisplayName("Verify clients from CSV on client detail page")
+    Stream<DynamicTest> verifyClientsFromTestData() {
+        return CsvLoader.loadRecords(DATA_DIR + "clients.csv").stream()
+            .map(c -> DynamicTest.dynamicTest("Client " + c.get("code"), () -> {
+                loginAsAdmin();
+                navigateTo("/clients/" + c.get("code"));
+                waitForPageLoad();
 
-        // Test data: PT Bank Mandiri, PT Telkom Indonesia, PT Pertamina
-        clientListPage.navigate()
-            .verifyPageTitle()
-            .verifyTableVisible()
-            .verifyClientCount(3);
+                Locator detail = page.locator("[data-testid='client-detail']");
+                assertThat(detail.locator("h2").first()).hasText(c.get("name"));
+                assertThat(detail.locator("[data-testid='client-code']")).hasText(c.get("code"));
+                assertThat(infoValue("Kontak")).hasText(c.get("contact_person"));
+                assertThat(infoValue("Email")).hasText(c.get("email"));
+                assertThat(infoValue("Telepon")).hasText(c.get("phone"));
+                assertThat(infoValue("Alamat")).hasText(c.get("address"));
+                assertThat(infoValue("NPWP")).hasText(c.get("npwp"));
+                assertThat(detail.locator("[data-testid='client-status']")).hasText("Aktif");
+            }));
+    }
+
+    @TestFactory
+    @DisplayName("Verify projects from CSV in project list with client, contract value and status")
+    Stream<DynamicTest> verifyProjectsFromTestData() {
+        Map<String, String> clientNames = CsvLoader.loadRecords(DATA_DIR + "clients.csv").stream()
+            .collect(Collectors.toMap(c -> c.get("code"), c -> c.get("name")));
+        Map<String, String> statusLabels = Map.of("ACTIVE", "Aktif", "COMPLETED", "Selesai", "ARCHIVED", "Diarsipkan");
+
+        return CsvLoader.loadRecords(DATA_DIR + "projects.csv").stream()
+            .map(p -> DynamicTest.dynamicTest("Project " + p.get("code"), () -> {
+                String clientName = required(clientNames, p.get("client_code"), "client");
+                String status = required(statusLabels, p.get("status"), "status");
+                loginAsAdmin();
+                navigateTo("/projects");
+                waitForPageLoad();
+                Locator search = page.locator("#search-input");
+                search.fill(p.get("code"));
+                search.press("End");
+
+                Locator rows = page.locator("[data-testid='project-table'] tbody tr");
+                assertThat(rows).hasCount(1);
+                Locator cells = rows.first().locator("td");
+                assertThat(cells.nth(0)).hasText(p.get("code"));
+                assertThat(cells.nth(1)).hasText(p.get("name"));
+                assertThat(cells.nth(2)).hasText(clientName);
+                assertThat(cells.nth(3)).hasText(groupedThousands(p.get("contract_value")));
+                assertThat(cells.nth(4)).hasText(status);
+            }));
+    }
+
+    @TestFactory
+    @DisplayName("Verify employees from CSV in employee list")
+    Stream<DynamicTest> verifyEmployeesFromTestData() {
+        return CsvLoader.loadRecords(DATA_DIR + "employees.csv").stream()
+            .map(e -> DynamicTest.dynamicTest("Employee " + e.get("employee_id"), () -> {
+                loginAsAdmin();
+                navigateTo("/employees");
+                waitForPageLoad();
+                Locator search = page.locator("#search-input");
+                search.fill(e.get("employee_id"));
+                search.press("End");
+
+                Locator row = page.locator("#employee-table tbody tr:has(span.font-mono:text-is('"
+                    + e.get("employee_id") + "'))");
+                assertThat(row).hasCount(1);
+                assertThat(row.locator("td").nth(1)).containsText(e.get("name"));
+                assertThat(row.locator("td").nth(1)).containsText(e.get("email"));
+            }));
     }
 
     @Test
-    @DisplayName("Verify at least 4 projects from test data exist")
-    void verifyProjectsFromTestData() {
-        loginAsAdmin();
-        initPageObjects();
+    @DisplayName("Verify payroll run from CSV in payroll list")
+    void verifyPayrollFromTestData() {
+        List<Map<String, String>> runs = CsvLoader.loadRecords(DATA_DIR + "21_payroll_runs.csv");
+        assertEquals(1, runs.size());
+        Map<String, String> csv = runs.get(0);
+        PayrollRun run = payrollRunRepository.findByPayrollPeriod(csv.get("payroll_period"))
+            .orElseThrow(() -> new IllegalStateException("Seeded payroll run missing: " + csv.get("payroll_period")));
 
-        // Test data: 4 projects (may be more if other tests create projects)
-        projectListPage.navigate()
-            .verifyPageTitle()
-            .verifyTableVisible()
-            .verifyMinimumProjectCount(4);
+        loginAsAdmin();
+        navigateTo("/payroll?size=" + payrollRunRepository.count());
+        waitForPageLoad();
+
+        assertThat(page.locator("#page-title")).hasText("Daftar Payroll");
+        Locator cells = page.locator("#payroll-" + run.getId() + " td");
+        assertThat(cells.nth(0)).containsText("Februari 2024");
+        assertThat(cells.nth(0)).containsText(csv.get("payroll_period"));
+        assertThat(cells.nth(1)).hasText(csv.get("employee_count"));
+        assertThat(cells.nth(2)).hasText("Rp " + groupedThousands(csv.get("total_gross")));
+        assertThat(cells.nth(3)).hasText("Rp " + groupedThousands(csv.get("total_net_pay")));
+        assertThat(cells.nth(4)).hasText(run.getStatus().getDisplayName());
     }
 
-    @Test
-    @DisplayName("Verify 3 employees from test data exist")
-    void verifyEmployeesFromTestData() {
-        loginAsAdmin();
-        initPageObjects();
-
-        // Test data: Budi Santoso, Dewi Lestari, Agus Wijaya
-        // Other tests in the same Spring context may create additional employees
-        employeeListPage.navigate()
-            .verifyPageTitle()
-            .verifyTableVisible()
-            .verifyMinimumEmployeeCount(3);
+    private Locator infoValue(String label) {
+        return page.locator("[data-testid='client-detail'] div:has(> p.text-gray-500:text-is('" + label + "')) > p.font-medium");
     }
 
-    @Test
-    @DisplayName("Verify payroll page loads")
-    void verifyPayrollPageLoads() {
-        loginAsAdmin();
-        initPageObjects();
+    private Locator journalLine(String accountCode) {
+        return page.locator(".journal-entry-row").filter(new Locator.FilterOptions()
+            .setHas(page.locator("[id^='entry-account-code-']:text-is('" + accountCode + "')")));
+    }
 
-        payrollListPage.navigate()
-            .verifyPageTitle();
+    private static String required(Map<String, String> map, String key, String what) {
+        return Optional.ofNullable(map.get(key))
+            .orElseThrow(() -> new IllegalStateException("Unknown " + what + " in CSV: " + key));
+    }
 
-        // Payroll page loads successfully - data check is optional
-        // Note: Payroll runs require separate test data setup
+    private static String groupedThousands(String value) {
+        return new DecimalFormat("#,##0", DecimalFormatSymbols.getInstance(Locale.US)).format(new BigDecimal(value));
     }
 
     private String slugify(String text) {

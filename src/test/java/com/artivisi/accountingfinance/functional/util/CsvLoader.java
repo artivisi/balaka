@@ -6,7 +6,9 @@ import java.io.InputStreamReader;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -51,6 +53,45 @@ public final class CsvLoader {
                         Boolean.parseBoolean(parts[6].trim())
                     ));
                 }
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to load CSV: " + fullPath, e);
+        }
+
+        return rows;
+    }
+
+    /**
+     * Load rows of a headed CSV file as column-name to value maps, in file order.
+     * Fails on a row whose column count differs from the header.
+     * @param resourcePath path relative to src/test/resources/testdata/
+     */
+    public static List<Map<String, String>> loadRecords(String resourcePath) {
+        List<Map<String, String>> rows = new ArrayList<>();
+        String fullPath = "testdata/" + resourcePath;
+
+        try (var is = CsvLoader.class.getClassLoader().getResourceAsStream(fullPath);
+             var reader = new BufferedReader(new InputStreamReader(
+                     Objects.requireNonNull(is, "CSV not found: " + fullPath), StandardCharsets.UTF_8))) {
+
+            String headerLine = reader.readLine();
+            if (headerLine == null) {
+                throw new IllegalStateException("CSV has no header: " + fullPath);
+            }
+            String[] header = headerLine.split(",", -1);
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.trim().isEmpty()) continue;
+                String[] parts = line.split(",", -1);
+                if (parts.length != header.length) {
+                    throw new IllegalStateException("CSV " + fullPath + ": expected " + header.length
+                            + " columns, got " + parts.length + " in line: " + line);
+                }
+                Map<String, String> row = new LinkedHashMap<>();
+                for (int i = 0; i < header.length; i++) {
+                    row.put(header[i].trim(), parts[i].trim());
+                }
+                rows.add(row);
             }
         } catch (IOException e) {
             throw new RuntimeException("Failed to load CSV: " + fullPath, e);
