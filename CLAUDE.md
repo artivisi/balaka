@@ -63,7 +63,7 @@ Indonesian accounting application for small businesses. Spring Boot 4.0 + Thymel
 | Services | `src/main/java/.../service/` |
 | Controllers | `src/main/java/.../controller/` |
 | Templates | `src/main/resources/templates/` |
-| Migrations (Production) | `src/main/resources/db/migration/` (V001-V005) |
+| Migrations (Production) | `src/main/resources/db/migration/` (V001-V006) |
 | Test Migrations (Integration) | `src/test/resources/db/test/integration/` (V900-V912) |
 | Industry Seed Packs | `industry-seed/{it-service,online-seller,coffee-shop,campus}/` (loaded via DataImportService) |
 | API Reference (developer) | `docs/developer-guide/api/*.md` |
@@ -160,7 +160,7 @@ failures indistinguishable from real ones; `run-tests.sh` flags it, and
 ## Database
 
 - PostgreSQL via Testcontainers (tests)
-- Production migrations: V001-V005 (V001 security, V002 core schema, V003 feature schema, V004 seed data, V005 tax filing register)
+- Production migrations: V001-V005 (V001 security, V002 core schema, V003 feature schema, V004 seed data, V005 tax filing register, V006 API scope columns widened + new scopes for existing device tokens — not yet deployed)
 - **Migration caveat:** Modifying already-applied migrations requires manual schema fix on production + checksum update in `flyway_schema_history`. See `docs/03-operations-guide.md` Troubleshooting section.
 - Test data:
   - Functional tests: NO migrations - all data loaded via `@TestConfiguration` initializers from industry-seed/ packs
