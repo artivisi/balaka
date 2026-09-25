@@ -50,11 +50,7 @@ public class TaxDetailApiController {
     public ResponseEntity<TaxDetailResponse> getTaxDetail(
             @PathVariable UUID id,
             @PathVariable UUID detailId) {
-        TaxTransactionDetail detail = taxDetailService.findById(detailId);
-        if (!detail.getTransaction().getId().equals(id)) {
-            throw new IllegalArgumentException("Tax detail does not belong to transaction " + id);
-        }
-        return ResponseEntity.ok(TaxDetailResponse.from(detail));
+        return ResponseEntity.ok(TaxDetailResponse.from(findOwnedDetail(id, detailId)));
     }
 
     @PostMapping("/api/transactions/{id}/tax-details")
@@ -83,6 +79,7 @@ public class TaxDetailApiController {
         log.info("API: Update tax detail - detailId={}, transactionId={}, user={}",
                 detailId, id, username);
 
+        findOwnedDetail(id, detailId);
         TaxTransactionDetail updated = toEntity(request);
         TaxTransactionDetail saved = taxDetailService.update(detailId, updated);
 
@@ -99,6 +96,7 @@ public class TaxDetailApiController {
         log.info("API: Delete tax detail - detailId={}, transactionId={}, user={}",
                 detailId, id, username);
 
+        findOwnedDetail(id, detailId);
         taxDetailService.delete(detailId);
 
         log.info("API: Tax detail deleted - id={}", detailId);
@@ -134,6 +132,14 @@ public class TaxDetailApiController {
 
         log.info("API: Bulk create completed - success={}, failure={}", successCount, failureCount);
         return ResponseEntity.ok(new BulkTaxDetailResponse(results, successCount, failureCount));
+    }
+
+    private TaxTransactionDetail findOwnedDetail(UUID transactionId, UUID detailId) {
+        TaxTransactionDetail detail = taxDetailService.findById(detailId);
+        if (!detail.getTransaction().getId().equals(transactionId)) {
+            throw new IllegalArgumentException("Tax detail does not belong to transaction " + transactionId);
+        }
+        return detail;
     }
 
     private TaxTransactionDetail toEntity(TaxDetailRequest request) {

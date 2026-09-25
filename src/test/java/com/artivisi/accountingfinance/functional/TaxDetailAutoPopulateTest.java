@@ -1,9 +1,13 @@
 package com.artivisi.accountingfinance.functional;
 
+import com.artivisi.accountingfinance.entity.JournalEntry;
 import com.artivisi.accountingfinance.entity.Project;
+import com.artivisi.accountingfinance.enums.TransactionStatus;
 import com.artivisi.accountingfinance.functional.taxdetail.TaxDetailTestDataInitializer;
 import com.artivisi.accountingfinance.repository.ChartOfAccountRepository;
+import com.artivisi.accountingfinance.repository.JournalEntryRepository;
 import com.artivisi.accountingfinance.repository.ProjectRepository;
+import com.artivisi.accountingfinance.repository.TransactionRepository;
 import com.artivisi.accountingfinance.ui.PlaywrightTestBase;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -11,7 +15,6 @@ import com.microsoft.playwright.APIRequest;
 import com.microsoft.playwright.APIRequestContext;
 import com.microsoft.playwright.APIResponse;
 import com.microsoft.playwright.options.RequestOptions;
-import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -19,24 +22,38 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
 
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-@Slf4j
+/**
+ * Tax detail auto-population when a draft is posted through the API. Every test creates and posts
+ * its own draft dated {@link #TRANSACTION_DATE}; 2006 is reserved for this class in the tax-detail
+ * test context (the draft API rejects future dates).
+ */
 @DisplayName("Tax Detail Auto-Populate - Functional Tests")
 @Import(TaxDetailTestDataInitializer.class)
 class TaxDetailAutoPopulateTest extends PlaywrightTestBase {
+
+    private static final String TRANSACTION_DATE = "2006-02-20";
 
     @Autowired
     private ProjectRepository projectRepository;
 
     @Autowired
     private ChartOfAccountRepository chartOfAccountRepository;
+
+    @Autowired
+    private TransactionRepository transactionRepository;
+
+    @Autowired
+    private JournalEntryRepository journalEntryRepository;
 
     private APIRequestContext apiContext;
     private ObjectMapper objectMapper;
@@ -61,127 +78,96 @@ class TaxDetailAutoPopulateTest extends PlaywrightTestBase {
     }
 
     @Test
-    @DisplayName("PPN template auto-populates PPN_KELUARAN tax detail on post")
+    @DisplayName("Posting a PPN sale auto-populates one PPN Keluaran detail: DPP = amount, PPN from the journal, client as buyer")
     void testPpnAutoPopulates() throws Exception {
-        String templateId = findTemplateIdByName("Pendapatan Jasa + PPN");
-        String projectId = findProjectIdByCode("PRJ-2024-001");
-        String transactionId = createAndPostDraft(templateId, 10000000, "Auto PPN Test", projectId);
+        String transactionId = createAndPostDraft("Pendapatan Jasa + PPN", 10000000, "Auto PPN", "PRJ-2024-001");
 
         JsonNode taxDetails = getTaxDetails(transactionId);
-        assertThat(taxDetails.size()).as("Should have 1 auto-populated PPN detail").isEqualTo(1);
-
+        assertThat(taxDetails).hasSize(1);
         JsonNode detail = taxDetails.get(0);
         assertThat(detail.get("taxType").asText()).isEqualTo("PPN_KELUARAN");
-        assertThat(detail.get("dpp").asDouble()).isEqualTo(10000000.0);
-        assertThat(detail.get("ppn").asDouble()).isEqualTo(1100000.0);
         assertThat(detail.get("transactionCode").asText()).isEqualTo("01");
-
-        log.info("PPN auto-populate test passed");
+        assertThat(detail.get("dpp").decimalValue()).isEqualByComparingTo("10000000");
+        assertThat(detail.get("ppn").decimalValue()).isEqualByComparingTo(creditOn(transactionId, "2.1.03"));
+        assertThat(detail.get("ppn").decimalValue()).isEqualByComparingTo("1100000");
+        assertThat(detail.get("counterpartyName").asText()).isEqualTo("PT Bank Mandiri Tbk");
+        assertThat(detail.get("counterpartyNpwp").asText()).isEqualTo("01.310.523.4-091.000");
+        assertThat(detail.get("fakturNumber").isNull()).isTrue();
     }
 
     @Test
-    @DisplayName("PPh 23 template auto-populates PPH_23 tax detail on post")
+    @DisplayName("Posting a PPh 23 payment auto-populates one PPh 23 detail: gross = amount, 2%, tax from the journal")
     void testPph23AutoPopulates() throws Exception {
-        String templateId = findTemplateIdByName("Pembayaran Jasa dengan PPh 23");
-        String projectId = findProjectIdByCode("PRJ-2024-003");
-        String transactionId = createAndPostDraft(templateId, 5000000, "Auto PPh 23 Test", projectId);
+        String transactionId = createAndPostDraft("Pembayaran Jasa dengan PPh 23", 5000000, "Auto PPh 23", "PRJ-2024-003");
 
         JsonNode taxDetails = getTaxDetails(transactionId);
-        assertThat(taxDetails.size()).as("Should have 1 auto-populated PPh 23 detail").isEqualTo(1);
-
+        assertThat(taxDetails).hasSize(1);
         JsonNode detail = taxDetails.get(0);
         assertThat(detail.get("taxType").asText()).isEqualTo("PPH_23");
-        assertThat(detail.get("grossAmount").asDouble()).isEqualTo(5000000.0);
-        assertThat(detail.get("taxRate").asDouble()).isEqualTo(2.0);
-        assertThat(detail.get("taxAmount").asDouble()).isEqualTo(100000.0);
-
-        log.info("PPh 23 auto-populate test passed");
+        assertThat(detail.get("grossAmount").decimalValue()).isEqualByComparingTo("5000000");
+        assertThat(detail.get("taxRate").decimalValue()).isEqualByComparingTo("2.00");
+        assertThat(detail.get("taxAmount").decimalValue()).isEqualByComparingTo(creditOn(transactionId, "2.1.21"));
+        assertThat(detail.get("taxAmount").decimalValue()).isEqualByComparingTo("100000");
     }
 
     @Test
-    @DisplayName("Non-tax template creates no tax details on post")
+    @DisplayName("Posting with a template without tax creates no tax details")
     void testNonTaxTemplateNoDetails() throws Exception {
-        String templateId = findTemplateIdByName("Pendapatan Jasa Training");
-        String projectId = findProjectIdByCode("PRJ-2024-001");
-        String transactionId = createAndPostDraft(templateId, 15000000, "Non-tax Template Test", projectId);
+        String transactionId = createAndPostDraft("Pendapatan Jasa Training", 15000000, "Non-tax", "PRJ-2024-001");
 
-        JsonNode taxDetails = getTaxDetails(transactionId);
-        assertThat(taxDetails).as("Non-tax template should have no tax details").isEmpty();
-
-        log.info("Non-tax template test passed");
+        assertThat(getTaxDetails(transactionId)).isEmpty();
     }
 
     @Test
-    @DisplayName("Counterparty info populated from project client NPWP")
-    void testCounterpartyFromProjectClient() throws Exception {
-        String templateId = findTemplateIdByName("Pendapatan Jasa + PPN");
-        String projectId = findProjectIdByCode("PRJ-2024-001");
-        String transactionId = createAndPostDraft(templateId, 8000000, "Client NPWP Test", projectId);
+    @DisplayName("A PPN sale without a project has no counterparty, so no detail is auto-populated")
+    void testNoDetailWithoutCounterparty() throws Exception {
+        String transactionId = createAndPostDraft("Pendapatan Jasa + PPN", 4000000, "PPN tanpa proyek", null);
 
-        JsonNode taxDetails = getTaxDetails(transactionId);
-        assertThat(taxDetails.size()).isEqualTo(1);
-
-        JsonNode detail = taxDetails.get(0);
-        assertThat(detail.get("counterpartyNpwp").asText()).isEqualTo("01.310.523.4-091.000");
-        assertThat(detail.get("counterpartyName").asText()).isEqualTo("PT Bank Mandiri Tbk");
-
-        log.info("Counterparty from project client test passed");
+        assertThat(getTaxDetails(transactionId)).isEmpty();
+        assertThat(transactionRepository.findById(UUID.fromString(transactionId)).orElseThrow().getStatus())
+                .isEqualTo(TransactionStatus.POSTED);
     }
 
     @Test
-    @DisplayName("Already-posted transactions with existing tax details are not duplicated")
+    @DisplayName("A detail entered on the draft before posting is kept and no second detail is auto-populated")
     void testNoDuplicates() throws Exception {
-        // TAX-TRX-001 is already POSTED with PPN template and has no tax details yet
-        // Manually add a tax detail first, then verify auto-populate doesn't duplicate
-        String txnId = findTransactionId("TAX-TRX-001");
+        String transactionId = createDraft("Pendapatan Jasa + PPN", 20000000, "Manual sebelum posting", "PRJ-2024-001");
 
-        // Manually add a PPN detail
         Map<String, Object> manualDetail = new HashMap<>();
         manualDetail.put("taxType", "PPN_KELUARAN");
         manualDetail.put("counterpartyName", "PT Manual Entry");
-        manualDetail.put("dpp", 10000000);
-        manualDetail.put("ppn", 1100000);
-        manualDetail.put("transactionCode", "01");
+        manualDetail.put("dpp", 20000000);
+        manualDetail.put("ppn", 2200000);
+        manualDetail.put("transactionCode", "04");
+        APIResponse createResponse = post("/api/transactions/" + transactionId + "/tax-details", manualDetail);
+        assertThat(createResponse.status()).as(createResponse.text()).isEqualTo(201);
 
-        APIResponse createResponse = post("/api/transactions/" + txnId + "/tax-details", manualDetail);
-        assertThat(createResponse.status()).isEqualTo(201);
+        postDraft(transactionId);
 
-        // Now create a new PPN transaction, post it, and verify exactly 1 detail
-        String templateId = findTemplateIdByName("Pendapatan Jasa + PPN");
-        String projectId = findProjectIdByCode("PRJ-2024-001");
-        String newTxnId = createAndPostDraft(templateId, 20000000, "No Duplicate Test", projectId);
-
-        JsonNode taxDetails = getTaxDetails(newTxnId);
-        assertThat(taxDetails.size()).as("Should have exactly 1 auto-populated detail, not duplicated").isEqualTo(1);
-
-        // Verify original transaction still has the manual detail (other tests may add details too)
-        JsonNode originalDetails = getTaxDetails(txnId);
-        assertThat(originalDetails.size()).as("Original transaction should have at least the manual detail").isGreaterThanOrEqualTo(1);
-        boolean hasManualEntry = false;
-        for (int i = 0; i < originalDetails.size(); i++) {
-            if ("PT Manual Entry".equals(originalDetails.get(i).get("counterpartyName").asText())) {
-                hasManualEntry = true;
-                break;
-            }
-        }
-        assertThat(hasManualEntry).as("Manual detail 'PT Manual Entry' should still exist").isTrue();
-
-        log.info("No duplicates test passed");
+        JsonNode taxDetails = getTaxDetails(transactionId);
+        assertThat(taxDetails).hasSize(1);
+        assertThat(taxDetails.get(0).get("counterpartyName").asText()).isEqualTo("PT Manual Entry");
+        assertThat(taxDetails.get(0).get("transactionCode").asText()).isEqualTo("04");
     }
 
     // --- Helper methods ---
 
-    private String createAndPostDraft(String templateId, int amount, String description, String projectId) throws Exception {
+    private String createAndPostDraft(String templateName, int amount, String description, String projectCode) throws Exception {
+        String transactionId = createDraft(templateName, amount, description, projectCode);
+        postDraft(transactionId);
+        return transactionId;
+    }
+
+    private String createDraft(String templateName, int amount, String description, String projectCode) throws Exception {
+        String templateId = findTemplateIdByName(templateName);
         Map<String, Object> request = new HashMap<>();
         request.put("templateId", templateId);
-        request.put("description", description);
+        request.put("description", description + " " + UUID.randomUUID().toString().substring(0, 8));
         request.put("amount", amount);
-        request.put("transactionDate", "2026-02-20");
-        if (projectId != null) {
-            request.put("projectId", projectId);
+        request.put("transactionDate", TRANSACTION_DATE);
+        if (projectCode != null) {
+            request.put("projectId", findProjectIdByCode(projectCode));
         }
-
-        // Resolve account slots from template hints
         Map<String, String> accountSlots = resolveAccountSlots(templateId);
         if (!accountSlots.isEmpty()) {
             request.put("accountSlots", accountSlots);
@@ -191,20 +177,25 @@ class TaxDetailAutoPopulateTest extends PlaywrightTestBase {
         assertThat(createResponse.status())
                 .as("Create draft failed: %d %s", createResponse.status(), createResponse.text())
                 .isEqualTo(201);
+        return objectMapper.readTree(createResponse.text()).get("transactionId").asText();
+    }
 
-        JsonNode createBody = objectMapper.readTree(createResponse.text());
-        String transactionId = createBody.get("transactionId").asText();
-
-        // Post the draft
+    private void postDraft(String transactionId) {
         APIResponse postResponse = apiContext.post("/api/transactions/" + transactionId + "/post",
-                RequestOptions.create()
-                        .setHeader("Authorization", "Bearer " + accessToken));
-
+                RequestOptions.create().setHeader("Authorization", "Bearer " + accessToken));
         assertThat(postResponse.ok())
                 .as("Post failed: %d %s", postResponse.status(), postResponse.text())
                 .isTrue();
+    }
 
-        return transactionId;
+    private BigDecimal creditOn(String transactionId, String accountCode) {
+        UUID accountId = chartOfAccountRepository.findByAccountCode(accountCode)
+                .orElseThrow(() -> new IllegalStateException("Seeded account missing: " + accountCode)).getId();
+        return journalEntryRepository.findByTransactionIdOrderByJournalNumberAsc(UUID.fromString(transactionId)).stream()
+                .filter(e -> e.getAccount().getId().equals(accountId))
+                .map(JournalEntry::getCreditAmount)
+                .reduce(BigDecimal::add)
+                .orElseThrow(() -> new AssertionError("No journal line on " + accountCode));
     }
 
     private Map<String, String> resolveAccountSlots(String templateId) throws Exception {
@@ -267,17 +258,6 @@ class TaxDetailAutoPopulateTest extends PlaywrightTestBase {
         Project project = projectRepository.findByCode(projectCode)
                 .orElseThrow(() -> new RuntimeException("Project not found: " + projectCode));
         return project.getId().toString();
-    }
-
-    private String findTransactionId(String transactionNumber) throws Exception {
-        APIResponse response = get("/api/analysis/transactions?search=" + transactionNumber + "&size=1");
-        assertThat(response.status()).isEqualTo(200);
-
-        JsonNode body = objectMapper.readTree(response.text());
-        JsonNode transactions = body.get("data").get("transactions");
-        assertThat(transactions.size()).as("Transaction not found: " + transactionNumber).isGreaterThanOrEqualTo(1);
-
-        return transactions.get(0).get("id").asText();
     }
 
     private APIResponse get(String path) {
