@@ -25,7 +25,7 @@
                     Klien: <a th:href="@{/clients/{code}(code=${project.client.code})}" class="text-primary-600 hover:underline" th:text="${project.client.name}">Client Name</a>
                 </p>
             </div>
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2" data-testid="project-status">
                 <span th:if="${project.status.name() == 'ACTIVE'}" class="px-3 py-1 text-sm font-medium rounded-full bg-green-100 text-green-800" th:text="${project.status.indonesianName}">Aktif</span>
                 <span th:if="${project.status.name() == 'COMPLETED'}" class="px-3 py-1 text-sm font-medium rounded-full bg-blue-100 text-blue-800" th:text="${project.status.indonesianName}">Selesai</span>
                 <span th:if="${project.status.name() == 'ARCHIVED'}" class="px-3 py-1 text-sm font-medium rounded-full bg-gray-100 text-gray-600" th:text="${project.status.indonesianName}">Diarsipkan</span>

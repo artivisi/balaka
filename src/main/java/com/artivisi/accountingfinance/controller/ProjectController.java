@@ -13,6 +13,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -68,7 +69,10 @@ public class ProjectController {
         private ProjectStatus status;
         private BigDecimal contractValue;
         private BigDecimal budgetAmount;
+        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
         private LocalDate startDate;
+
+        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
         private LocalDate endDate;
 
         // Used by Thymeleaf for dropdown pre-selection (project.client.id)
@@ -88,11 +92,24 @@ public class ProjectController {
         ProjectForm form = new ProjectForm();
         BeanUtils.copyProperties(entity, form, "client");
         if (entity.getClient() != null) {
-            EntityRef ref = new EntityRef();
-            ref.setId(entity.getClient().getId());
-            form.setClient(ref);
+            setClient(form, entity.getClient().getId());
         }
         return form;
+    }
+
+    private void setClient(ProjectForm form, UUID clientId) {
+        EntityRef ref = new EntityRef();
+        ref.setId(clientId);
+        form.setClient(ref);
+        form.setClientLabel(resolveClientLabel(clientId));
+    }
+
+    private String rerenderForm(ProjectForm form, UUID clientId, Model model) {
+        if (clientId != null) {
+            setClient(form, clientId);
+        }
+        model.addAttribute(ATTR_CURRENT_PAGE, PAGE_PROJECTS);
+        return VIEW_FORM;
     }
 
     @GetMapping
@@ -137,8 +154,7 @@ public class ProjectController {
             RedirectAttributes redirectAttributes) {
 
         if (bindingResult.hasErrors()) {
-            model.addAttribute(ATTR_CURRENT_PAGE, PAGE_PROJECTS);
-            return VIEW_FORM;
+            return rerenderForm(form, clientId, model);
         }
 
         try {
@@ -148,8 +164,7 @@ public class ProjectController {
             return REDIRECT_PROJECTS_PREFIX + saved.getCode();
         } catch (IllegalArgumentException e) {
             bindingResult.rejectValue("code", "duplicate", e.getMessage());
-            model.addAttribute(ATTR_CURRENT_PAGE, PAGE_PROJECTS);
-            return VIEW_FORM;
+            return rerenderForm(form, clientId, model);
         }
     }
 
@@ -181,8 +196,7 @@ public class ProjectController {
         if (bindingResult.hasErrors()) {
             Project existing = projectService.findByCode(code);
             form.setId(existing.getId());
-            model.addAttribute(ATTR_CURRENT_PAGE, PAGE_PROJECTS);
-            return VIEW_FORM;
+            return rerenderForm(form, clientId, model);
         }
 
         try {
@@ -195,8 +209,7 @@ public class ProjectController {
             bindingResult.rejectValue("code", "duplicate", e.getMessage());
             Project existing = projectService.findByCode(code);
             form.setId(existing.getId());
-            model.addAttribute(ATTR_CURRENT_PAGE, PAGE_PROJECTS);
-            return VIEW_FORM;
+            return rerenderForm(form, clientId, model);
         }
     }
 

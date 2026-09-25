@@ -58,6 +58,14 @@ function searchPicker(endpoint) {
             this.label = item.code + ' - ' + item.name
             this.results = []
             this.open = false
+        },
+        // For filters that live-refresh via hx-trigger="picker:selected" on the x-data root.
+        // Dispatched after the hidden input re-renders so hx-include sends the new id.
+        selectAndNotify(item) {
+            // Resolve the root before select() re-renders the result list and detaches the clicked button.
+            const root = this.$root
+            this.select(item)
+            this.$nextTick(() => root.dispatchEvent(new CustomEvent('picker:selected', { bubbles: true })))
         }
     })
 }
