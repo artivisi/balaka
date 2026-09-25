@@ -10,7 +10,7 @@
 
     <section class="space-y-6 max-w-2xl">
         <!-- Messages -->
-        <div th:if="${errorMessage}" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+        <div th:if="${errorMessage}" data-testid="flash-error" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
             <span th:text="${errorMessage}">Error message</span>
         </div>
 
@@ -26,7 +26,7 @@
                            th:value="${suggestedPeriod}"
                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
                            required>
-                    <p th:if="${#fields.hasErrors('period')}" class="mt-1 text-sm text-red-600" th:errors="*{period}">Error</p>
+                    <p th:if="${#fields.hasErrors('period')}" data-testid="period-error" class="mt-1 text-sm text-red-600" th:errors="*{period}">Error</p>
                     <p class="mt-1 text-xs text-gray-500">Format: Bulan-Tahun (contoh: 2025-01)</p>
                 </div>
 
@@ -38,7 +38,7 @@
                     <input type="number" id="baseSalary" th:field="*{baseSalary}"
                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
                            placeholder="10000000" step="100000" min="0" required>
-                    <p th:if="${#fields.hasErrors('baseSalary')}" class="mt-1 text-sm text-red-600" th:errors="*{baseSalary}">Error</p>
+                    <p th:if="${#fields.hasErrors('baseSalary')}" data-testid="base-salary-error" class="mt-1 text-sm text-red-600" th:errors="*{baseSalary}">Error</p>
                     <p class="mt-1 text-xs text-gray-500">Gaji pokok yang sama untuk semua karyawan (dapat diubah nanti per karyawan)</p>
                 </div>
 

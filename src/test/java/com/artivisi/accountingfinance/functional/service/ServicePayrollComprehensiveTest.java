@@ -1,29 +1,49 @@
 package com.artivisi.accountingfinance.functional.service;
 
+import com.artivisi.accountingfinance.entity.PayrollDetail;
+import com.artivisi.accountingfinance.entity.PayrollRun;
+import com.artivisi.accountingfinance.functional.util.CsvLoader;
+import com.artivisi.accountingfinance.repository.PayrollDetailRepository;
 import com.artivisi.accountingfinance.repository.PayrollRunRepository;
 import com.artivisi.accountingfinance.ui.PlaywrightTestBase;
+import com.microsoft.playwright.Dialog;
+import com.microsoft.playwright.Locator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
 
-import java.time.YearMonth;
-import java.time.format.DateTimeFormatter;
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Comprehensive Payroll Functional Tests.
- * Tests the complete payroll lifecycle: create, calculate, approve, post, export.
- * Covers PayrollController, PayrollService, PayrollReportService.
+ * Payroll end to end through the UI: the seeded run's detail page, and a new run taken from the
+ * list through create, approve and post to its journal on the transaction page and its 1721-A1 row.
+ *
+ * Action-level behavior (validation, rejected transitions, recalculation, delete, exports) is
+ * covered by PayrollControllerFunctionalTest. The lifecycle here uses period 2032-03, which no
+ * other test creates, and never touches the seeded 2024-02 run beyond viewing it.
  */
 @DisplayName("Service Industry - Payroll Comprehensive")
 @Import(ServiceTestDataInitializer.class)
 class ServicePayrollComprehensiveTest extends PlaywrightTestBase {
 
+    private static final String DATA_DIR = "service/";
+    private static final String LIFECYCLE_PERIOD = "2032-03";
+
     @Autowired
     private PayrollRunRepository payrollRunRepository;
+
+    @Autowired
+    private PayrollDetailRepository payrollDetailRepository;
 
     @BeforeEach
     void setup() {
@@ -31,320 +51,129 @@ class ServicePayrollComprehensiveTest extends PlaywrightTestBase {
     }
 
     @Test
-    @DisplayName("Should create new payroll run and calculate salaries")
-    void shouldCreatePayrollAndCalculate() {
-        // Navigate to new payroll form
-        navigateTo("/payroll/new");
+    @DisplayName("Should show seeded payroll run with per-employee amounts from test data")
+    void shouldDisplaySeededPayrollRun() {
+        Map<String, String> csvRun = CsvLoader.loadRecords(DATA_DIR + "21_payroll_runs.csv").get(0);
+        Map<String, String> names = CsvLoader.loadRecords(DATA_DIR + "employees.csv").stream()
+            .collect(Collectors.toMap(e -> e.get("employee_id"), e -> e.get("name")));
+        PayrollRun run = payrollRunRepository.findByPayrollPeriod(csvRun.get("payroll_period"))
+            .orElseThrow(() -> new IllegalStateException("Seeded payroll run missing: " + csvRun.get("payroll_period")));
+
+        navigateTo("/payroll?size=" + payrollRunRepository.count());
+        waitForPageLoad();
+        page.locator("#payroll-" + run.getId() + " a:text-is('Detail')").click();
         waitForPageLoad();
 
-        // Verify form loads
-        assertThat(page.locator("#page-title, h1").first()).isVisible();
+        assertThat(page).hasURL(baseUrl() + "/payroll/" + run.getId());
+        assertThat(page.locator("#page-title")).hasText("Detail Payroll - Februari 2024");
+        assertThat(page.locator("[data-testid='status-badge']")).hasText("Approved");
+        assertThat(page.locator("[data-testid='employee-count']")).hasText(csvRun.get("employee_count"));
+        assertThat(page.locator("[data-testid='total-gross']")).hasText(rupiah(csvRun.get("total_gross")));
+        assertThat(page.locator("[data-testid='total-deductions']")).hasText(rupiah(csvRun.get("total_deductions")));
+        assertThat(page.locator("[data-testid='total-net']")).hasText(rupiah(csvRun.get("total_net_pay")));
+        assertThat(page.locator("#btn-post")).isVisible();
+        assertThat(page.locator("#btn-cancel")).isVisible();
+        assertThat(page.locator("#btn-approve")).hasCount(0);
+        assertThat(page.locator("#btn-delete")).hasCount(0);
 
-        // Fill form with far future period to avoid duplicates
-        YearMonth futurePeriod = YearMonth.now().plusMonths(24);
-        page.fill("input[name='period']", futurePeriod.toString());
-        page.fill("input[name='baseSalary']", "12000000");
-        page.selectOption("select[name='jkkRiskClass']", "1");
-
-        // Submit form
-        page.click("button[type='submit']");
-        waitForPageLoad();
-
-        // Verify page loads after submission (either success redirect or error on form)
-        assertThat(page.locator("#page-title, h1, .alert").first()).isVisible();
+        List<Map<String, String>> csvDetails = CsvLoader.loadRecords(DATA_DIR + "22_payroll_details.csv");
+        assertThat(page.locator("[data-testid^='detail-row-']")).hasCount(csvDetails.size());
+        for (Map<String, String> d : csvDetails) {
+            BigDecimal employeeBpjs = new BigDecimal(d.get("bpjs_kes_employee"))
+                .add(new BigDecimal(d.get("bpjs_jht_employee")))
+                .add(new BigDecimal(d.get("bpjs_jp_employee")));
+            Locator cells = page.locator("[data-testid='detail-row-" + d.get("employee_id") + "'] td");
+            assertThat(cells.nth(1)).hasText(names.get(d.get("employee_id")));
+            assertThat(cells.nth(2)).hasText(rupiah(d.get("gross_salary")));
+            assertThat(cells.nth(3)).hasText(rupiah(employeeBpjs));
+            assertThat(cells.nth(4)).hasText(rupiah(d.get("pph21")));
+            assertThat(cells.nth(5)).hasText("(" + rupiah(d.get("total_deductions")) + ")");
+            assertThat(cells.nth(6)).hasText(rupiah(d.get("net_pay")));
+        }
     }
 
     @Test
-    @DisplayName("Should display existing payroll from test data")
-    void shouldDisplayExistingPayroll() {
-        // Test data has payroll for 2024-02
+    @DisplayName("Should take a new payroll run from the list through approve and post to its journal and 1721-A1")
+    void shouldRunPayrollLifecycleThroughUi() {
         navigateTo("/payroll");
         waitForPageLoad();
-
-        // Verify list page loads
-        assertThat(page.locator("#page-title")).containsText("Payroll");
-
-        // Check if payroll rows exist
-        var payrollRows = page.locator("tr[id^='payroll-']");
-        if (payrollRows.count() > 0) {
-            // Click first payroll row
-            payrollRows.first().click();
-            waitForPageLoad();
-
-            // Verify detail page loads
-            assertThat(page.locator("#page-title")).containsText("Payroll");
-        }
-    }
-
-    @Test
-    @DisplayName("Should approve payroll")
-    void shouldApprovePayroll() {
-        // First find a DRAFT payroll or create one
-        var draftPayroll = payrollRunRepository.findAll().stream()
-                .filter(p -> p.getStatus().name().equals("DRAFT"))
-                .findFirst();
-
-        if (draftPayroll.isPresent()) {
-            navigateTo("/payroll/" + draftPayroll.get().getId());
-            waitForPageLoad();
-
-            // Find and click approve button
-            var approveBtn = page.locator("form[action$='/approve'] button[type='submit'], button:has-text('Approve')").first();
-            if (approveBtn.isVisible()) {
-                approveBtn.click();
-                waitForPageLoad();
-
-                // Verify page reloads successfully
-                assertThat(page.locator("#page-title, h1").first()).isVisible();
-            }
-        }
-    }
-
-    @Test
-    @DisplayName("Should post approved payroll to journal")
-    void shouldPostPayrollToJournal() {
-        // Find an APPROVED payroll
-        var approvedPayroll = payrollRunRepository.findAll().stream()
-                .filter(p -> p.getStatus().name().equals("APPROVED"))
-                .findFirst();
-
-        if (approvedPayroll.isPresent()) {
-            navigateTo("/payroll/" + approvedPayroll.get().getId());
-            waitForPageLoad();
-
-            // Find and click post button - look for more specific patterns
-            var postBtn = page.locator("form[action$='/post'] button[type='submit'], button:has-text('Posting ke Jurnal')").first();
-            if (postBtn.isVisible()) {
-                postBtn.click();
-                waitForPageLoad();
-
-                // Verify page reloads successfully (may show success or already posted)
-                assertThat(page.locator("#page-title, h1").first()).isVisible();
-            }
-        }
-    }
-
-    @Test
-    @DisplayName("Should recalculate payroll with different parameters")
-    void shouldRecalculatePayroll() {
-        // Find a DRAFT payroll
-        var draftPayroll = payrollRunRepository.findAll().stream()
-                .filter(p -> p.getStatus().name().equals("DRAFT"))
-                .findFirst();
-
-        if (draftPayroll.isPresent()) {
-            navigateTo("/payroll/" + draftPayroll.get().getId());
-            waitForPageLoad();
-
-            // Find recalculate form/button
-            var recalculateForm = page.locator("form[action*='recalculate']").first();
-            if (recalculateForm.isVisible()) {
-                // Fill new base salary
-                page.fill("input[name='baseSalary']", "15000000");
-                page.click("form[action*='recalculate'] button[type='submit']");
-                waitForPageLoad();
-
-                // Verify page reloads successfully
-                assertThat(page.locator("#page-title, h1").first()).isVisible();
-            }
-        }
-    }
-
-    @Test
-    @DisplayName("Should cancel payroll")
-    void shouldCancelPayroll() {
-        // Find a payroll that can be cancelled (DRAFT or APPROVED)
-        var cancellablePayroll = payrollRunRepository.findAll().stream()
-                .filter(p -> p.getStatus().name().equals("DRAFT") || p.getStatus().name().equals("APPROVED"))
-                .findFirst();
-
-        if (cancellablePayroll.isPresent()) {
-            navigateTo("/payroll/" + cancellablePayroll.get().getId());
-            waitForPageLoad();
-
-            // Find and click cancel button
-            var cancelBtn = page.locator("form[action$='/cancel'] button[type='submit'], button:has-text('Batalkan')").first();
-            if (cancelBtn.isVisible()) {
-                cancelBtn.click();
-                waitForPageLoad();
-
-                // Verify page reloads successfully
-                assertThat(page.locator("#page-title, h1").first()).isVisible();
-            }
-        }
-    }
-
-    @Test
-    @DisplayName("Should export payroll summary to PDF")
-    void shouldExportPayrollSummaryPdf() {
-        var payroll = payrollRunRepository.findAll().stream().findFirst();
-
-        if (payroll.isPresent()) {
-            navigateTo("/payroll/" + payroll.get().getId());
-            waitForPageLoad();
-
-            // Find export PDF link
-            var pdfLink = page.locator("a[href*='export/summary/pdf']").first();
-            if (pdfLink.isVisible()) {
-                // Verify link exists (actual download handled by browser)
-                assertThat(pdfLink).isVisible();
-            }
-        }
-    }
-
-    @Test
-    @DisplayName("Should export payroll summary to Excel")
-    void shouldExportPayrollSummaryExcel() {
-        var payroll = payrollRunRepository.findAll().stream().findFirst();
-
-        if (payroll.isPresent()) {
-            navigateTo("/payroll/" + payroll.get().getId());
-            waitForPageLoad();
-
-            // Find export Excel link
-            var excelLink = page.locator("a[href*='export/summary/excel']").first();
-            if (excelLink.isVisible()) {
-                assertThat(excelLink).isVisible();
-            }
-        }
-    }
-
-    @Test
-    @DisplayName("Should export PPh 21 report to PDF")
-    void shouldExportPph21ReportPdf() {
-        var payroll = payrollRunRepository.findAll().stream().findFirst();
-
-        if (payroll.isPresent()) {
-            navigateTo("/payroll/" + payroll.get().getId());
-            waitForPageLoad();
-
-            // Find export PPh 21 PDF link
-            var pdfLink = page.locator("a[href*='export/pph21/pdf']").first();
-            if (pdfLink.isVisible()) {
-                assertThat(pdfLink).isVisible();
-            }
-        }
-    }
-
-    @Test
-    @DisplayName("Should export BPJS report to PDF")
-    void shouldExportBpjsReportPdf() {
-        var payroll = payrollRunRepository.findAll().stream().findFirst();
-
-        if (payroll.isPresent()) {
-            navigateTo("/payroll/" + payroll.get().getId());
-            waitForPageLoad();
-
-            // Find export BPJS PDF link
-            var pdfLink = page.locator("a[href*='export/bpjs/pdf']").first();
-            if (pdfLink.isVisible()) {
-                assertThat(pdfLink).isVisible();
-            }
-        }
-    }
-
-    @Test
-    @DisplayName("Should display bukti potong 1721-A1 page")
-    void shouldDisplayBuktiPotongPage() {
-        navigateTo("/payroll/bukti-potong");
+        page.locator("#btn-new-payroll").click();
         waitForPageLoad();
 
-        // Verify page loads
-        assertThat(page.locator("#page-title, h1").first()).isVisible();
-
-        // Check year selector exists
-        var yearSelect = page.locator("select[name='year']").first();
-        if (yearSelect.isVisible()) {
-            assertThat(yearSelect).isVisible();
-        }
-    }
-
-    @Test
-    @DisplayName("Should filter payroll list by status")
-    void shouldFilterPayrollByStatus() {
-        navigateTo("/payroll");
+        page.locator("input#period").fill(LIFECYCLE_PERIOD);
+        page.locator("input#baseSalary").fill("10000000");
+        page.locator("select#jkkRiskClass").selectOption("1");
+        page.locator("#btn-submit").click();
         waitForPageLoad();
 
-        // Try filtering by APPROVED status - need to submit the filter form
-        var statusSelect = page.locator("select[name='status']").first();
-        if (statusSelect.isVisible()) {
-            statusSelect.selectOption("APPROVED");
+        PayrollRun run = payrollRunRepository.findByPayrollPeriod(LIFECYCLE_PERIOD)
+            .orElseThrow(() -> new AssertionError("Payroll run not created for " + LIFECYCLE_PERIOD));
+        assertThat(page).hasURL(baseUrl() + "/payroll/" + run.getId());
+        assertThat(page.locator("[data-testid='status-badge']")).hasText("Calculated");
 
-            // Check if there's a filter button or if form auto-submits
-            var filterBtn = page.locator("button[type='submit']:has-text('Filter'), button:has-text('Cari')").first();
-            if (filterBtn.isVisible()) {
-                filterBtn.click();
-                waitForPageLoad();
-            }
+        page.locator("#btn-approve").click();
+        waitForPageLoad();
+        assertThat(page.locator("[data-testid='success-message']")).hasText("Payroll periode 2032-03 berhasil di-approve");
+        assertThat(page.locator("[data-testid='status-badge']")).hasText("Approved");
 
-            // Verify page loads (filter may or may not change URL depending on implementation)
-            assertThat(page.locator("#page-title, h1").first()).isVisible();
-        }
-    }
+        page.onDialog(Dialog::accept); // "Posting payroll akan membuat jurnal. Lanjutkan?"
+        page.locator("#btn-post").click();
+        waitForPageLoad();
+        assertThat(page.locator("[data-testid='success-message']")).hasText("Payroll periode 2032-03 berhasil di-posting ke jurnal");
+        assertThat(page.locator("[data-testid='status-badge']")).hasText("Posted");
 
-    @Test
-    @DisplayName("Should delete payroll")
-    void shouldDeletePayroll() {
-        // First create a new payroll that we can delete
-        YearMonth testPeriod = YearMonth.now().plusMonths(6);
-        navigateTo("/payroll/new");
+        List<PayrollDetail> details = payrollDetailRepository.findByPayrollRunIdWithEmployee(run.getId());
+        BigDecimal n = BigDecimal.valueOf(details.size());
+        BigDecimal gross = new BigDecimal("10000000").multiply(n);
+        BigDecimal pph21 = details.stream().map(PayrollDetail::getPph21).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal netPay = gross.subtract(new BigDecimal("400000").multiply(n)).subtract(pph21);
+        Map<String, PayrollDetail> byNik = details.stream()
+            .collect(Collectors.toMap(PayrollDetail::getEmployeeId, Function.identity()));
+        // TER category A (TK/0) 2% and B (K/2) 1.5% of 10,000,000
+        assertThat(byNik.get("EMP-001").getPph21()).isEqualByComparingTo("150000");
+        assertThat(byNik.get("EMP-002").getPph21()).isEqualByComparingTo("200000");
+        assertThat(byNik.get("EMP-003").getPph21()).isEqualByComparingTo("200000");
+
+        page.locator("[data-testid='journal-reference'] a").click();
         waitForPageLoad();
 
-        page.fill("input[name='period']", testPeriod.toString());
-        page.fill("input[name='baseSalary']", "10000000");
-        page.click("button[type='submit']");
+        assertThat(page.locator("[data-testid='status-posted']")).isVisible();
+        assertThat(page.locator("[data-testid='template-link']")).hasText("Post Gaji Bulanan");
+        assertThat(page.locator(".journal-entry-row")).hasCount(6);
+        assertThat(journalLine("5.1.01").locator("[id^='entry-debit-']")).hasText(dotted(gross));
+        assertThat(journalLine("5.1.02").locator("[id^='entry-debit-']")).hasText(dotted(new BigDecimal("400000").multiply(n)));
+        assertThat(journalLine("5.1.03").locator("[id^='entry-debit-']")).hasText(dotted(new BigDecimal("624000").multiply(n)));
+        assertThat(journalLine("2.1.10").locator("[id^='entry-credit-']")).hasText(dotted(netPay));
+        assertThat(journalLine("2.1.13").locator("[id^='entry-credit-']")).hasText(dotted(new BigDecimal("1424000").multiply(n)));
+        assertThat(journalLine("2.1.20").locator("[id^='entry-credit-']")).hasText(dotted(pph21));
+        String total = dotted(gross.add(new BigDecimal("1024000").multiply(n)));
+        assertThat(page.locator("#total-debit")).hasText(total);
+        assertThat(page.locator("#total-credit")).hasText(total);
+
+        navigateTo("/payroll/bukti-potong?year=2032");
         waitForPageLoad();
-
-        // Now try to delete it
-        var deleteBtn = page.locator("button:has-text('Hapus'), form[action*='delete'] button[type='submit']").first();
-        if (deleteBtn.isVisible()) {
-            deleteBtn.click();
-            waitForPageLoad();
-
-            // Verify redirected to list
-            assertThat(page).hasURL(java.util.regex.Pattern.compile(".*/payroll$"));
-        }
+        Locator agus = page.locator("[data-testid='bukti-potong-row-EMP-003'] td");
+        assertThat(agus.nth(1)).hasText("Agus Wijaya");
+        assertThat(agus.nth(3)).hasText("1");
+        assertThat(agus.nth(4)).hasText("Rp 10,000,000");
+        assertThat(agus.nth(5)).hasText("Rp 200,000");
     }
 
-    @Test
-    @DisplayName("Should display payroll detail with employee breakdown")
-    void shouldDisplayPayrollDetailWithEmployeeBreakdown() {
-        var payroll = payrollRunRepository.findAll().stream().findFirst();
-
-        if (payroll.isPresent()) {
-            navigateTo("/payroll/" + payroll.get().getId());
-            waitForPageLoad();
-
-            // Verify page loads with title
-            assertThat(page.locator("#page-title, h1").first()).isVisible();
-
-            // Verify table or content area exists
-            var contentArea = page.locator("table, .content, main").first();
-            assertThat(contentArea).isVisible();
-        }
+    private Locator journalLine(String accountCode) {
+        return page.locator(".journal-entry-row").filter(new Locator.FilterOptions()
+            .setHas(page.locator("[id^='entry-account-code-']:text-is('" + accountCode + "')")));
     }
 
-    @Test
-    @DisplayName("Should show validation error for duplicate period")
-    void shouldShowValidationErrorForDuplicatePeriod() {
-        // Get existing payroll period
-        var existingPayroll = payrollRunRepository.findAll().stream().findFirst();
+    private static String rupiah(String amount) {
+        return rupiah(new BigDecimal(amount));
+    }
 
-        if (existingPayroll.isPresent()) {
-            String existingPeriod = existingPayroll.get().getPayrollPeriod();
+    private static String rupiah(BigDecimal amount) {
+        return "Rp " + String.format(Locale.US, "%,d", amount.longValueExact());
+    }
 
-            navigateTo("/payroll/new");
-            waitForPageLoad();
-
-            // Try to create with same period
-            page.fill("input[name='period']", existingPeriod);
-            page.fill("input[name='baseSalary']", "10000000");
-            page.click("button[type='submit']");
-            waitForPageLoad();
-
-            // After submit, either stay on form with error OR redirect to error/new page
-            // Just verify the page loads without crash
-            assertThat(page.locator("body")).isVisible();
-        }
+    /** Transaction detail formats amounts with '.' grouping. */
+    private static String dotted(BigDecimal amount) {
+        return "Rp " + String.format(Locale.US, "%,d", amount.longValueExact()).replace(',', '.');
     }
 }

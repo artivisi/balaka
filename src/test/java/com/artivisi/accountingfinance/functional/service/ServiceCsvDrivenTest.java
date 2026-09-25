@@ -1,6 +1,7 @@
 package com.artivisi.accountingfinance.functional.service;
 
 import com.artivisi.accountingfinance.entity.PayrollRun;
+import com.artivisi.accountingfinance.entity.PayrollStatus;
 import com.artivisi.accountingfinance.functional.util.CsvLoader;
 import com.artivisi.accountingfinance.functional.util.TransactionRow;
 import com.artivisi.accountingfinance.repository.PayrollRunRepository;
@@ -184,7 +185,7 @@ class ServiceCsvDrivenTest extends PlaywrightTestBase {
         assertThat(cells.nth(1)).hasText(csv.get("employee_count"));
         assertThat(cells.nth(2)).hasText("Rp " + groupedThousands(csv.get("total_gross")));
         assertThat(cells.nth(3)).hasText("Rp " + groupedThousands(csv.get("total_net_pay")));
-        assertThat(cells.nth(4)).hasText(run.getStatus().getDisplayName());
+        assertThat(cells.nth(4)).hasText(PayrollStatus.valueOf(csv.get("status")).getDisplayName());
     }
 
     private Locator infoValue(String label) {

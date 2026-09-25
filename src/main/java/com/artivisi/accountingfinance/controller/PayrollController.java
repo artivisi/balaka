@@ -6,6 +6,7 @@ import com.artivisi.accountingfinance.entity.PayrollStatus;
 import com.artivisi.accountingfinance.service.PayrollReportService;
 import com.artivisi.accountingfinance.service.PayrollService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -398,7 +399,7 @@ public class PayrollController {
     public record RiskClassOption(int value, String label) {}
 
     public static class PayrollForm {
-        @NotNull(message = "Periode wajib diisi")
+        @NotBlank(message = "Periode wajib diisi")
         private String period;
 
         @NotNull(message = "Gaji pokok wajib diisi")

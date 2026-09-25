@@ -62,7 +62,7 @@
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
-                        <tr th:each="summary : ${summaries}">
+                        <tr th:each="summary : ${summaries}" th:attr="data-testid=${'bukti-potong-row-' + summary.employee().getEmployeeId()}">
                             <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900" th:text="${summary.employee().getEmployeeId()}">EMP001</td>
                             <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900" th:text="${summary.employee().getName()}">John Doe</td>
                             <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-600" th:text="${summary.employee().getNpwp() ?: '-'}">12.345.678.9-012.345</td>

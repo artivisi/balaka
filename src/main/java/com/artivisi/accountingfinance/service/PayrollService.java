@@ -110,6 +110,9 @@ public class PayrollService {
         // Clear existing details
         payrollDetailRepository.deleteByPayrollRun(payrollRun);
         payrollRun.clearDetails();
+        // Hibernate flushes inserts before deletes; without this, re-inserting an employee's
+        // detail violates uk_payroll_employee
+        payrollDetailRepository.flush();
 
         // Get active employees
         List<Employee> activeEmployees = employeeRepository.findByActiveTrueAndEmploymentStatus(EmploymentStatus.ACTIVE);
