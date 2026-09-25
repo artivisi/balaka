@@ -15,7 +15,7 @@
                 <label for="year-select" class="sr-only">Tahun</label>
                 <select id="year-select" name="year"
                         class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
-                    <option th:each="y : ${#numbers.sequence(2020, 2030)}"
+                    <option th:each="y : ${#numbers.sequence(selectedYear - 5, selectedYear + 5)}"
                             th:value="${y}"
                             th:text="${y}"
                             th:selected="${selectedYear == y}">Tahun</option>
@@ -34,6 +34,7 @@
         <!-- Yearly Grid -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             <div th:each="summary : ${summaries}"
+                 th:attr="data-testid=|month-card-${summary.month}|"
                  class="bg-white rounded-lg shadow overflow-hidden">
                 <a th:href="@{/tax-calendar(year=${summary.year}, month=${summary.month})}"
                    class="block hover:bg-gray-50 transition-colors">
@@ -50,9 +51,9 @@
                     </div>
                     <div class="p-4">
                         <div class="flex items-center justify-between mb-2">
-                            <span class="text-sm text-gray-500"
+                            <span class="completion-count text-sm text-gray-500"
                                   th:text="${summary.completedCount + '/' + summary.totalDeadlines}">5/8</span>
-                            <span class="text-sm text-gray-500"
+                            <span class="completion-percent text-sm text-gray-500"
                                   th:text="${summary.completionPercentage + '%'}">62%</span>
                         </div>
                         <div class="w-full bg-gray-200 rounded-full h-2">

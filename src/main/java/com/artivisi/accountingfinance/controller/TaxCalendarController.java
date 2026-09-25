@@ -12,7 +12,6 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
@@ -39,7 +38,6 @@ public class TaxCalendarController {
     public String list(
             @RequestParam(required = false) Integer year,
             @RequestParam(required = false) Integer month,
-            @RequestHeader(value = "HX-Request", required = false) String hxRequest,
             Model model) {
 
         LocalDate now = LocalDate.now();
@@ -56,10 +54,6 @@ public class TaxCalendarController {
         model.addAttribute("selectedMonth", selectedMonth);
         model.addAttribute("monthNames", getMonthNames());
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_TAX_CALENDAR);
-
-        if ("true".equals(hxRequest)) {
-            return "tax-calendar/fragments/checklist :: checklist";
-        }
 
         return "tax-calendar/list";
     }
@@ -122,9 +116,12 @@ public class TaxCalendarController {
 
     @GetMapping("/upcoming")
     public String upcoming(Model model) {
-        List<TaxDeadlineStatus> upcoming = taxDeadlineService.getUpcomingDeadlines();
-        List<TaxDeadlineStatus> overdue = taxDeadlineService.getOverdueDeadlines();
-        List<TaxDeadlineStatus> dueSoon = taxDeadlineService.getDueSoonDeadlines();
+        List<TaxDeadlineStatus> pending = taxDeadlineService.getUpcomingDeadlines();
+        List<TaxDeadlineStatus> overdue = pending.stream().filter(TaxDeadlineStatus::isOverdue).toList();
+        List<TaxDeadlineStatus> dueSoon = pending.stream().filter(TaxDeadlineStatus::isDueSoon).toList();
+        List<TaxDeadlineStatus> upcoming = pending.stream()
+                .filter(status -> !status.isOverdue() && !status.isDueSoon())
+                .toList();
 
         model.addAttribute("upcoming", upcoming);
         model.addAttribute("overdue", overdue);

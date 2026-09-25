@@ -5,14 +5,15 @@
 <body>
 <div th:fragment="checklist" id="checklist-container" class="bg-white rounded-lg shadow overflow-hidden">
     <div class="px-6 py-4 border-b border-gray-200">
-        <h3 class="text-lg font-medium text-gray-900"
+        <h3 data-testid="checklist-title" class="text-lg font-medium text-gray-900"
             th:text="'Checklist Kewajiban Pajak - ' + ${monthNames[summary.month]} + ' ' + ${summary.year}">
             Checklist Kewajiban Pajak - November 2024
         </h3>
     </div>
 
     <div class="divide-y divide-gray-200">
-        <div th:each="status : ${summary.deadlines}" class="p-4 hover:bg-gray-50">
+        <div th:each="status : ${summary.deadlines}" class="deadline-row p-4 hover:bg-gray-50"
+             th:attr="data-testid=|deadline-${status.deadline.deadlineType}|">
             <div class="flex items-start justify-between">
                 <div class="flex items-start gap-4">
                     <!-- Status Icon -->
@@ -49,19 +50,19 @@
                         </div>
                         <div class="flex items-center gap-4 mt-2 text-xs">
                             <span class="text-gray-500">
-                                Jatuh tempo: <span th:text="${#temporals.format(status.dueDate, 'd MMMM yyyy')}">10 Desember 2024</span>
+                                Jatuh tempo: <span class="due-date" th:text="${#temporals.format(status.dueDate, 'd MMMM yyyy')}">10 Desember 2024</span>
                             </span>
                             <span th:if="${status.completed}" class="text-green-600">
-                                Selesai: <span th:text="${#temporals.format(status.completion.completedDate, 'd MMMM yyyy')}">8 Desember 2024</span>
+                                Selesai: <span class="completed-date" th:text="${#temporals.format(status.completion.completedDate, 'd MMMM yyyy')}">8 Desember 2024</span>
                             </span>
-                            <span th:if="${!status.completed and status.daysUntilDue > 0}" class="text-gray-500"
+                            <span th:if="${!status.completed and status.daysUntilDue > 0}" class="days-left text-gray-500"
                                   th:text="${status.daysUntilDue + ' hari lagi'}">5 hari lagi</span>
-                            <span th:if="${!status.completed and status.daysUntilDue < 0}" class="text-red-600"
+                            <span th:if="${!status.completed and status.daysUntilDue < 0}" class="days-left text-red-600"
                                   th:text="'Terlambat ' + ${-status.daysUntilDue} + ' hari'">Terlambat 3 hari</span>
                             <span th:if="${!status.completed and status.daysUntilDue == 0}" class="text-yellow-600">Hari ini</span>
                         </div>
-                        <div th:if="${status.completed and status.completion.referenceNumber}" class="text-xs text-gray-500 mt-1">
-                            Referensi: <span th:text="${status.completion.referenceNumber}">NTPN-12345</span>
+                        <div th:if="${status.completed and !#strings.isEmpty(status.completion.referenceNumber)}" class="text-xs text-gray-500 mt-1">
+                            Referensi: <span class="reference-number" th:text="${status.completion.referenceNumber}">NTPN-12345</span>
                         </div>
                     </div>
                 </div>
@@ -98,94 +99,5 @@
     </div>
 </div>
 
-<!-- Mark Complete Modal -->
-<div id="complete-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
-        <div class="px-6 py-4 border-b border-gray-200">
-            <h3 class="text-lg font-medium text-gray-900">Tandai Selesai</h3>
-        </div>
-        <form id="complete-form" method="post" class="p-6 space-y-4">
-            <input type="hidden" name="year" id="modal-year">
-            <input type="hidden" name="month" id="modal-month">
-
-            <div>
-                <label for="completedDate" class="block text-sm font-medium text-gray-700 mb-1">Tanggal Selesai</label>
-                <input type="date" id="completedDate" name="completedDate" required
-                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
-                       th:value="${#temporals.format(#temporals.createNow(), 'yyyy-MM-dd')}">
-            </div>
-
-            <div>
-                <label for="referenceNumber" class="block text-sm font-medium text-gray-700 mb-1">Nomor Referensi (NTPN/BPN)</label>
-                <input type="text" id="referenceNumber" name="referenceNumber"
-                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
-                       placeholder="Opsional">
-            </div>
-
-            <div>
-                <label for="notes" class="block text-sm font-medium text-gray-700 mb-1">Catatan</label>
-                <textarea id="notes" name="notes" rows="2"
-                          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
-                          placeholder="Opsional"></textarea>
-            </div>
-
-            <div class="flex justify-end gap-3 pt-4">
-                <button type="button" id="btn-modal-cancel"
-                        class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-                    Batal
-                </button>
-                <button type="submit"
-                        class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
-                    Simpan
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<script th:inline="javascript" th:attr="nonce=${cspNonce}">
-    document.querySelectorAll('.btn-mark-complete').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const deadlineId = this.dataset.deadlineId;
-            const year = this.dataset.year;
-            const month = this.dataset.month;
-
-            document.getElementById('complete-form').action = '/tax-calendar/complete/' + deadlineId;
-            document.getElementById('modal-year').value = year;
-            document.getElementById('modal-month').value = month;
-            document.getElementById('complete-modal').classList.remove('hidden');
-        });
-    });
-
-    // Add confirm dialog for uncomplete forms
-    document.querySelectorAll('.form-uncomplete').forEach(form => {
-        form.addEventListener('submit', function(e) {
-            if (!confirm('Yakin ingin menghapus status selesai?')) {
-                e.preventDefault();
-            }
-        });
-    });
-
-    function closeModal() {
-        document.getElementById('complete-modal').classList.add('hidden');
-    }
-
-    // Close modal button
-    document.getElementById('btn-modal-cancel')?.addEventListener('click', closeModal);
-
-    // Close modal on escape key
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            closeModal();
-        }
-    });
-
-    // Close modal on backdrop click
-    document.getElementById('complete-modal').addEventListener('click', function(e) {
-        if (e.target === this) {
-            closeModal();
-        }
-    });
-</script>
 </body>
 </html>

@@ -20,12 +20,12 @@
         </div>
 
         <!-- Overdue Section -->
-        <div th:if="${!overdue.isEmpty()}" class="bg-white rounded-lg shadow">
+        <div th:if="${!overdue.isEmpty()}" data-testid="overdue-section" class="bg-white rounded-lg shadow">
             <div class="px-6 py-4 border-b border-gray-200 bg-red-50">
                 <h2 class="text-lg font-semibold text-red-700">Terlambat</h2>
             </div>
             <ul class="divide-y divide-gray-200">
-                <li th:each="item : ${overdue}" class="px-6 py-4 flex items-center justify-between">
+                <li th:each="item : ${overdue}" class="deadline-item px-6 py-4 flex items-center justify-between">
                     <div>
                         <span class="font-medium text-gray-900" th:text="${item.deadline.name}">PPh 21</span>
                         <span class="text-sm text-gray-500 ml-2" th:text="${item.deadline.description}">Penyetoran</span>
@@ -36,12 +36,12 @@
         </div>
 
         <!-- Due Soon Section -->
-        <div th:if="${!dueSoon.isEmpty()}" class="bg-white rounded-lg shadow">
+        <div th:if="${!dueSoon.isEmpty()}" data-testid="due-soon-section" class="bg-white rounded-lg shadow">
             <div class="px-6 py-4 border-b border-gray-200 bg-yellow-50">
                 <h2 class="text-lg font-semibold text-yellow-700">Segera Jatuh Tempo</h2>
             </div>
             <ul class="divide-y divide-gray-200">
-                <li th:each="item : ${dueSoon}" class="px-6 py-4 flex items-center justify-between">
+                <li th:each="item : ${dueSoon}" class="deadline-item px-6 py-4 flex items-center justify-between">
                     <div>
                         <span class="font-medium text-gray-900" th:text="${item.deadline.name}">PPh 21</span>
                         <span class="text-sm text-gray-500 ml-2" th:text="${item.deadline.description}">Penyetoran</span>
@@ -52,12 +52,12 @@
         </div>
 
         <!-- Upcoming Section -->
-        <div th:if="${!upcoming.isEmpty()}" class="bg-white rounded-lg shadow">
+        <div th:if="${!upcoming.isEmpty()}" data-testid="upcoming-section" class="bg-white rounded-lg shadow">
             <div class="px-6 py-4 border-b border-gray-200">
                 <h2 class="text-lg font-semibold text-gray-900">Akan Datang</h2>
             </div>
             <ul class="divide-y divide-gray-200">
-                <li th:each="item : ${upcoming}" class="px-6 py-4 flex items-center justify-between">
+                <li th:each="item : ${upcoming}" class="deadline-item px-6 py-4 flex items-center justify-between">
                     <div>
                         <span class="font-medium text-gray-900" th:text="${item.deadline.name}">PPh 21</span>
                         <span class="text-sm text-gray-500 ml-2" th:text="${item.deadline.description}">Penyetoran</span>

@@ -129,7 +129,7 @@ public class TaxDeadlineService {
                 .findByTaxDeadlineAndYearAndMonth(deadline, year, month);
 
         if (existing.isPresent()) {
-            throw new IllegalArgumentException("Tax deadline already completed for this period");
+            throw new IllegalArgumentException("Kewajiban pajak sudah ditandai selesai untuk periode ini");
         }
 
         TaxDeadlineCompletion completion = new TaxDeadlineCompletion();
