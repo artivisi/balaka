@@ -1,605 +1,1065 @@
 package com.artivisi.accountingfinance.functional;
 
+import com.artivisi.accountingfinance.entity.ChartOfAccount;
+import com.artivisi.accountingfinance.entity.JournalEntry;
+import com.artivisi.accountingfinance.entity.JournalTemplate;
+import com.artivisi.accountingfinance.entity.JournalTemplateLine;
+import com.artivisi.accountingfinance.entity.Transaction;
+import com.artivisi.accountingfinance.entity.User;
+import com.artivisi.accountingfinance.enums.CashFlowCategory;
+import com.artivisi.accountingfinance.enums.JournalPosition;
+import com.artivisi.accountingfinance.enums.Role;
+import com.artivisi.accountingfinance.enums.TemplateCategory;
+import com.artivisi.accountingfinance.enums.TemplateType;
+import com.artivisi.accountingfinance.enums.TransactionStatus;
 import com.artivisi.accountingfinance.functional.service.ServiceTestDataInitializer;
+import com.artivisi.accountingfinance.repository.ChartOfAccountRepository;
+import com.artivisi.accountingfinance.repository.JournalEntryRepository;
 import com.artivisi.accountingfinance.repository.JournalTemplateRepository;
+import com.artivisi.accountingfinance.repository.TransactionRepository;
+import com.artivisi.accountingfinance.repository.UserRepository;
+import com.artivisi.accountingfinance.service.JournalTemplateService;
+import com.artivisi.accountingfinance.service.UserTemplatePreferenceService;
 import com.artivisi.accountingfinance.ui.PlaywrightTestBase;
-import org.junit.jupiter.api.BeforeEach;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.microsoft.playwright.APIResponse;
+import com.microsoft.playwright.Locator;
+import com.microsoft.playwright.options.FormData;
+import com.microsoft.playwright.options.RequestOptions;
+import com.microsoft.playwright.options.SelectOption;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
+import org.springframework.security.crypto.password.PasswordEncoder;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.regex.Pattern;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Functional tests for JournalTemplateController.
- * Tests template list, create, edit, duplicate, execute operations.
+ * JournalTemplateController: list with category/search/favorite/tag filters, detail, create/edit/duplicate
+ * form with per-line formula preview and whole-template preview, formula validation (syntax and
+ * disallowed SpEL constructs), in-place update vs. new version for templates in use, execution, delete,
+ * system-template protection and TEMPLATE_* permissions.
+ *
+ * Seeded templates are used by many other tests to post transactions, so they are only read here;
+ * every change is made on templates this class creates (unique names).
  */
 @DisplayName("Journal Template Controller Tests")
 @Import(ServiceTestDataInitializer.class)
 class JournalTemplateControllerFunctionalTest extends PlaywrightTestBase {
 
+    private static final String BEBAN_SEWA = "5.1.05 - Beban Sewa";
+    private static final String BANK_BCA = "1.1.02 - Bank BCA";
+    private static final String HUTANG_PPH23 = "2.1.21 - Hutang PPh 23";
+    private static final Pattern GRAY_STAR = Pattern.compile("(^|\\s)text-gray-300(\\s|$)");
+    private static final Pattern AMBER_STAR = Pattern.compile("(^|\\s)text-amber-400(\\s|$)");
+
     @Autowired
     private JournalTemplateRepository templateRepository;
 
-    @BeforeEach
-    void setupAndLogin() {
+    @Autowired
+    private JournalTemplateService templateService;
+
+    @Autowired
+    private UserTemplatePreferenceService preferenceService;
+
+    @Autowired
+    private ChartOfAccountRepository accountRepository;
+
+    @Autowired
+    private TransactionRepository transactionRepository;
+
+    @Autowired
+    private JournalEntryRepository journalEntryRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    // ==================== LIST & FILTERS ====================
+
+    @Test
+    @DisplayName("Should list active current templates as cards with cash flow, journal preview, version or system badge and use link")
+    void shouldListTemplates() {
+        JournalTemplate custom = createTemplate("Daftar " + uid(), false);
+        JournalTemplate system = createTemplate("Sistem " + uid(), true);
+        JournalTemplate inactive = createTemplate("Nonaktif " + uid(), false);
+        templateService.deactivate(inactive.getId());
         loginAsAdmin();
-    }
 
-    @Test
-    @DisplayName("Should display template list page")
-    void shouldDisplayTemplateListPage() {
         navigateTo("/templates");
         waitForPageLoad();
 
-        assertThat(page.locator("#page-title, h1").first()).isVisible();
+        assertThat(page.locator("#page-title")).hasText("Template Jurnal");
+        assertThat(page.locator("#btn-new-template")).isVisible();
+
+        Locator seeded = card("Setoran Modal");
+        assertThat(seeded).hasCount(1);
+        assertThat(seeded).containsText("Cash Flow: FINANCING");
+
+        Locator customCard = card(custom.getTemplateName());
+        assertThat(customCard).containsText("Cash Flow: OPERATING");
+        assertThat(customCard).containsText("D: Beban Sewa");
+        assertThat(customCard).containsText("K: Bank BCA");
+        assertThat(customCard).containsText("amount * 0.98");
+        assertThat(customCard).containsText("v1");
+        assertThat(customCard.locator("#btn-use-" + custom.getId()))
+                .hasAttribute("href", "/transactions/new?templateId=" + custom.getId());
+
+        assertThat(card(system.getTemplateName())).containsText("Sistem");
+        assertThat(card(inactive.getTemplateName())).hasCount(0);
     }
 
     @Test
-    @DisplayName("Should filter templates by category")
-    void shouldFilterTemplatesByCategory() {
+    @DisplayName("Should filter templates by category chip and by category query parameter")
+    void shouldFilterByCategory() {
+        loginAsAdmin();
         navigateTo("/templates");
         waitForPageLoad();
 
-        var categorySelect = page.locator("select[name='category']").first();
-        if (categorySelect.isVisible()) {
-            var options = categorySelect.locator("option");
-            if (options.count() > 1) {
-                categorySelect.selectOption(new String[]{options.nth(1).getAttribute("value")});
+        page.locator("a[href='/templates?category=EXPENSE']").click();
+        page.waitForURL(Pattern.compile(".*/templates\\?category=EXPENSE$"));
+        assertThat(card("Bayar Beban Sewa")).hasCount(1);
+        assertThat(card("Setoran Modal")).hasCount(0);
+        assertThat(card("Pendapatan Jasa Konsultasi")).hasCount(0);
 
-                var filterBtn = page.locator("form button[type='submit']").first();
-                if (filterBtn.isVisible()) {
-                    filterBtn.click();
-                    waitForPageLoad();
-                }
-            }
-        }
-
-        assertThat(page.locator("body")).isVisible();
+        navigateTo("/templates?category=RECEIPT");
+        waitForPageLoad();
+        assertThat(page.locator("a[href='/templates?category=RECEIPT']")).hasClass(Pattern.compile("bg-primary-600"));
+        assertThat(card("Setoran Modal")).hasCount(1);
+        assertThat(card("Bayar Beban Sewa")).hasCount(0);
+        assertThat(page.locator("form a:text-is('Reset')")).isVisible();
     }
 
     @Test
-    @DisplayName("Should search templates by keyword")
-    void shouldSearchTemplatesByKeyword() {
+    @DisplayName("Should search templates by name and description, and show the empty state when nothing matches")
+    void shouldSearchTemplates() {
+        String id = uid();
+        String descriptionTerm = "uraian-" + uid();
+        JournalTemplate template = createTemplate("Cari " + id, false);
+        template.setDescription("Sewa ruang rapat " + descriptionTerm);
+        templateRepository.save(template);
+        loginAsAdmin();
         navigateTo("/templates");
         waitForPageLoad();
 
-        var searchInput = page.locator("input[name='search'], input[name='keyword']").first();
-        if (searchInput.isVisible()) {
-            searchInput.fill("penjualan");
+        page.locator("[data-testid='search-input']").fill("cari " + id);
+        page.locator("[data-testid='search-button']").click();
+        page.waitForURL(Pattern.compile(".*/templates\\?search=.*"));
+        assertThat(page.locator("[data-testid='template-card']")).hasCount(1);
+        assertThat(card(template.getTemplateName())).hasCount(1);
 
-            var filterBtn = page.locator("form button[type='submit']").first();
-            if (filterBtn.isVisible()) {
-                filterBtn.click();
-                waitForPageLoad();
-            }
-        }
+        navigateTo("/templates?search=" + descriptionTerm.toUpperCase());
+        waitForPageLoad();
+        assertThat(page.locator("[data-testid='template-card']")).hasCount(1);
+        assertThat(card(template.getTemplateName())).hasCount(1);
 
-        assertThat(page.locator("body")).isVisible();
+        navigateTo("/templates?search=tidak-ada-" + id);
+        waitForPageLoad();
+        assertThat(page.locator("[data-testid='template-card']")).hasCount(0);
+        assertThat(page.locator("#template-grid")).containsText("Tidak ada template yang cocok");
     }
 
     @Test
-    @DisplayName("Should filter templates by active status")
-    void shouldFilterTemplatesByActiveStatus() {
-        navigateTo("/templates");
-        waitForPageLoad();
+    @DisplayName("Should return only the template grid fragment for HTMX requests")
+    void shouldReturnGridFragmentForHtmx() {
+        loginAsAdmin();
 
-        var activeCheckbox = page.locator("input[name='active']").first();
-        if (activeCheckbox.isVisible()) {
-            activeCheckbox.check();
+        APIResponse response = page.request().get(baseUrl() + "/templates?category=INCOME",
+                RequestOptions.create().setHeader("HX-Request", "true"));
 
-            var filterBtn = page.locator("form button[type='submit']").first();
-            if (filterBtn.isVisible()) {
-                filterBtn.click();
-                waitForPageLoad();
-            }
-        }
-
-        assertThat(page.locator("body")).isVisible();
+        assertEquals(200, response.status());
+        String body = response.text();
+        assertTrue(body.contains("<div id=\"template-grid\">"), body);
+        assertTrue(body.contains(">Pendapatan Jasa Konsultasi</h3>"));
+        assertFalse(body.contains(">Bayar Beban Sewa</h3>"));
+        assertFalse(body.contains("page-title"));
+        assertFalse(body.contains("<html"));
     }
 
-    @Test
-    @DisplayName("Should display new template form")
-    void shouldDisplayNewTemplateForm() {
-        navigateTo("/templates/new");
-        waitForPageLoad();
-
-        assertThat(page.locator("body")).isVisible();
-    }
+    // ==================== DETAIL ====================
 
     @Test
-    @DisplayName("Should create new template")
-    void shouldCreateNewTemplate() {
-        navigateTo("/templates/new");
+    @DisplayName("Should show seeded template detail: header, lines with fixed and dynamic accounts, AI metadata and actions")
+    void shouldShowTemplateDetail() {
+        JournalTemplate template = seeded("Pendapatan Jasa Konsultasi");
+        loginAsAdmin();
+
+        navigateTo("/templates/" + template.getId());
         waitForPageLoad();
 
-        // Fill template name
-        var nameInput = page.locator("input[name='name']").first();
-        if (nameInput.isVisible()) {
-            nameInput.fill("Test Template " + System.currentTimeMillis());
-        }
+        assertThat(page.locator("#template-name")).hasText("Pendapatan Jasa Konsultasi");
+        assertThat(page.locator("#template-name-breadcrumb")).hasText("Pendapatan Jasa Konsultasi");
+        assertThat(page.locator("[data-testid='template-category-label']")).hasText("Pendapatan");
+        assertThat(page.locator("[data-testid='template-cash-flow']")).hasText("OPERATING");
+        assertThat(page.locator("[data-testid='template-type']")).hasText("Custom");
+        assertThat(page.locator("#template-version")).hasText(String.valueOf(template.getVersion()));
 
-        // Fill description
-        var descriptionInput = page.locator("textarea[name='description'], input[name='description']").first();
-        if (descriptionInput.isVisible()) {
-            descriptionInput.fill("Test template description");
-        }
+        Locator lines = page.locator("[data-testid='template-line']");
+        assertThat(lines).hasCount(2);
+        assertThat(lines.nth(0)).containsText("BANK");
+        assertThat(lines.nth(0)).containsText("Dipilih saat input transaksi");
+        assertThat(lines.nth(0)).containsText("Debit");
+        assertThat(lines.nth(0)).containsText("Penerimaan kas/bank");
+        assertThat(lines.nth(0).locator("code")).hasText("amount");
+        assertThat(lines.nth(1)).containsText("4.1.02");
+        assertThat(lines.nth(1)).containsText("Pendapatan Jasa Konsultasi");
+        assertThat(lines.nth(1)).containsText("Akun tetap");
+        assertThat(lines.nth(1)).containsText("Kredit");
+        assertThat(page.locator("#debit-count")).containsText("1");
+        assertThat(page.locator("#credit-count")).containsText("1");
 
-        // Select category
-        var categorySelect = page.locator("select[name='category']").first();
-        if (categorySelect.isVisible()) {
-            var options = categorySelect.locator("option");
-            if (options.count() > 1) {
-                categorySelect.selectOption(new String[]{options.nth(1).getAttribute("value")});
-            }
-        }
+        assertThat(page.locator("[data-testid='semantic-description']"))
+                .hasText(template.getSemanticDescription());
+        assertThat(page.locator("[data-testid='keywords-badges'] span")).hasCount(template.getKeywords().length);
+        assertThat(page.locator("[data-testid='keywords-badges']")).containsText("konsultasi");
+        assertThat(page.locator("[data-testid='example-merchants-badges']")).containsText("PT Client A");
+        assertThat(page.locator("[data-testid='amount-range']")).hasText("Rp 5.000.000 - Rp 500.000.000");
 
-        // Submit
-        var submitBtn = page.locator("#btn-simpan").first();
-        if (submitBtn.isVisible()) {
-            submitBtn.click();
-            waitForPageLoad();
-        }
+        assertThat(page.locator("#btn-edit")).hasAttribute("href", "/templates/" + template.getId() + "/edit");
+        assertThat(page.locator("#btn-duplicate")).hasAttribute("href", "/templates/" + template.getId() + "/duplicate");
+        assertThat(page.locator("#btn-execute")).hasAttribute("href", "/transactions/new?templateId=" + template.getId());
+        assertThat(page.locator("#form-delete")).hasCount(1);
 
-        assertThat(page.locator("body")).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should display template detail page")
-    void shouldDisplayTemplateDetailPage() {
-        var template = templateRepository.findAll().stream().findFirst();
-        if (template.isEmpty()) {
-            return;
-        }
-
-        navigateTo("/templates/" + template.get().getId());
-        waitForPageLoad();
-
-        assertThat(page).hasURL(java.util.regex.Pattern.compile(".*\\/templates\\/.*"));
-    }
-
-    @Test
-    @DisplayName("Should display template edit form")
-    void shouldDisplayTemplateEditForm() {
-        var template = templateRepository.findAll().stream().findFirst();
-        if (template.isEmpty()) {
-            return;
-        }
-
-        navigateTo("/templates/" + template.get().getId() + "/edit");
-        waitForPageLoad();
-
-        assertThat(page.locator("body")).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should update template")
-    void shouldUpdateTemplate() {
-        var template = templateRepository.findAll().stream().findFirst();
-        if (template.isEmpty()) {
-            return;
-        }
-
-        navigateTo("/templates/" + template.get().getId() + "/edit");
-        waitForPageLoad();
-
-        // Update name
-        var nameInput = page.locator("input[name='name']").first();
-        if (nameInput.isVisible()) {
-            nameInput.fill("Updated Template " + System.currentTimeMillis());
-        }
-
-        // Submit
-        var submitBtn = page.locator("#btn-simpan").first();
-        if (submitBtn.isVisible()) {
-            submitBtn.click();
-            waitForPageLoad();
-        }
-
-        assertThat(page).hasURL(java.util.regex.Pattern.compile(".*\\/templates\\/.*"));
-    }
-
-    @Test
-    @DisplayName("Should duplicate template")
-    void shouldDuplicateTemplate() {
-        var template = templateRepository.findAll().stream().findFirst();
-        if (template.isEmpty()) {
-            return;
-        }
-
-        navigateTo("/templates/" + template.get().getId() + "/duplicate");
-        waitForPageLoad();
-
-        assertThat(page.locator("body")).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should display execute template form")
-    void shouldDisplayExecuteTemplateForm() {
-        var template = templateRepository.findAll().stream()
-                .filter(t -> Boolean.TRUE.equals(t.getActive()))
-                .findFirst();
-        if (template.isEmpty()) {
-            return;
-        }
-
-        navigateTo("/templates/" + template.get().getId() + "/execute");
-        waitForPageLoad();
-
-        assertThat(page.locator("body")).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should delete template")
-    void shouldDeleteTemplate() {
-        var template = templateRepository.findAll().stream().findFirst();
-        if (template.isEmpty()) {
-            return;
-        }
-
-        navigateTo("/templates/" + template.get().getId());
-        waitForPageLoad();
-
-        var deleteBtn = page.locator("form[action*='/delete'] button[type='submit']").first();
-        if (deleteBtn.isVisible()) {
-            deleteBtn.click();
-            waitForPageLoad();
-        }
-
-        assertThat(page.locator("body")).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should toggle favorite")
-    void shouldToggleFavorite() {
-        var template = templateRepository.findAll().stream().findFirst();
-        if (template.isEmpty()) {
-            return;
-        }
-
-        navigateTo("/templates/" + template.get().getId());
-        waitForPageLoad();
-
-        var favoriteBtn = page.locator("form[action*='/toggle-favorite'] button[type='submit']").first();
-        if (favoriteBtn.isVisible()) {
-            favoriteBtn.click();
-            waitForPageLoad();
-        }
-
-        assertThat(page).hasURL(java.util.regex.Pattern.compile(".*\\/templates\\/.*"));
-    }
-
-    @Test
-    @DisplayName("Should get templates via API")
-    void shouldGetTemplatesViaApi() {
-        navigateTo("/templates/api");
-        waitForPageLoad();
-
-        assertThat(page.locator("body")).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should get recent templates via API")
-    void shouldGetRecentTemplatesViaApi() {
-        navigateTo("/templates/api/recent");
-        waitForPageLoad();
-
-        assertThat(page.locator("body")).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should search templates via API")
-    void shouldSearchTemplatesViaApi() {
-        navigateTo("/templates/api/search?q=test");
-        waitForPageLoad();
-
-        assertThat(page.locator("body")).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should get template by ID via API")
-    void shouldGetTemplateByIdViaApi() {
-        var template = templateRepository.findAll().stream().findFirst();
-        if (template.isEmpty()) {
-            return;
-        }
-
-        navigateTo("/templates/api/" + template.get().getId());
-        waitForPageLoad();
-
-        assertThat(page.locator("body")).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should display AI metadata in detail page")
-    void shouldDisplayAiMetadataInDetail() {
-        // Find a template that has AI metadata (from seed data)
-        var template = templateRepository.findAll().stream()
-                .filter(t -> t.getSemanticDescription() != null && !t.getSemanticDescription().isEmpty())
-                .findFirst();
-        if (template.isEmpty()) {
-            return;
-        }
-
-        navigateTo("/templates/" + template.get().getId());
-        waitForPageLoad();
-
-        // Verify metadata card is visible
-        assertThat(page.locator("[data-testid='metadata-ai-card']")).isVisible();
-        assertThat(page.locator("[data-testid='semantic-description']")).isVisible();
-
-        // Verify keywords badges are displayed
-        if (template.get().getKeywords() != null && template.get().getKeywords().length > 0) {
-            assertThat(page.locator("[data-testid='keywords-badges']")).isVisible();
-        }
-
-        // Capture screenshot for user manual - scroll to metadata card
         page.locator("[data-testid='metadata-ai-card']").scrollIntoViewIfNeeded();
         takeManualScreenshot("service/templates-metadata-detail");
     }
 
-    @Test
-    @DisplayName("Should edit AI metadata in template form")
-    void shouldEditAiMetadata() {
-        // Find a template to edit
-        var template = templateRepository.findAll().stream()
-                .filter(t -> Boolean.TRUE.equals(t.getActive()) && !Boolean.TRUE.equals(t.getIsSystem()))
-                .findFirst();
-        if (template.isEmpty()) {
-            return;
-        }
+    // ==================== CREATE ====================
 
-        navigateTo("/templates/" + template.get().getId() + "/edit");
+    @Test
+    @DisplayName("Should create a template with fixed and dynamic accounts; per-line formula previews follow the preview amount")
+    void shouldCreateTemplateThroughForm() {
+        String name = "Baru " + uid();
+        loginAsAdmin();
+        navigateTo("/templates/new");
         waitForPageLoad();
 
-        // Open the metadata section
-        page.locator("[data-testid='metadata-ai-section'] summary").click();
-        page.waitForTimeout(300);
+        assertThat(page.locator("#page-title")).hasText("Template Baru");
+        assertThat(page.locator("select[name$='.accountId']")).hasCount(2);
+        assertThat(page.locator("input[name='lines[0].position']")).hasValue("DEBIT");
+        assertThat(page.locator("input[name='lines[1].position']")).hasValue("CREDIT");
+        assertThat(page.locator("#previewAmount")).hasValue("10.000.000");
 
-        // Capture screenshot of metadata form section for user manual
+        page.locator("#templateName").fill(name);
+        page.locator("select[name='category']").selectOption("EXPENSE");
+        page.locator("select[name='cashFlowCategory']").selectOption("OPERATING");
+        page.locator("#description").fill("Sewa kantor dipotong PPh " + name);
+        selectAccount(0, BEBAN_SEWA);
+        selectAccount(1, BANK_BCA);
+        formula(1).fill("amount * 0.9");
+        page.locator("[data-testid='btn-add-line']").click();
+        page.locator("#btn-credit-2").click();
+        page.locator("input[name='lines[2].accountHint']").fill("Hutang PPh");
+        formula(2).fill("amount * 0.1");
+
+        assertThat(linePreview(0)).hasText("10.000.000");
+        assertThat(linePreview(1)).hasText("9.000.000");
+        assertThat(linePreview(2)).hasText("1.000.000");
+
+        page.locator("#previewAmount").fill("2000000");
+        assertThat(page.locator("#previewAmount")).hasValue("2.000.000");
+        assertThat(linePreview(0)).hasText("2.000.000");
+        assertThat(linePreview(1)).hasText("1.800.000");
+        assertThat(linePreview(2)).hasText("200.000");
+
+        page.locator("#btn-simpan").click();
+        waitForPageLoad();
+
+        JournalTemplate saved = currentByName(name);
+        assertEquals(baseUrl() + "/templates/" + saved.getId(), page.url());
+        assertThat(page.locator("[data-testid='flash-success']")).hasText("Template berhasil dibuat");
+        assertEquals(TemplateCategory.EXPENSE, saved.getCategory());
+        assertEquals(CashFlowCategory.OPERATING, saved.getCashFlowCategory());
+        assertEquals(TemplateType.SIMPLE, saved.getTemplateType());
+        assertEquals("Sewa kantor dipotong PPh " + name, saved.getDescription());
+        assertFalse(saved.getIsSystem());
+        assertTrue(saved.getActive());
+        assertEquals(1, saved.getVersion());
+        assertLines(saved,
+                "5.1.05|DEBIT|amount",
+                "1.1.02|CREDIT|amount * 0.9",
+                "-|CREDIT|amount * 0.1");
+        assertEquals("Hutang PPh", saved.getLines().get(2).getAccountHint());
+
+        Locator lines = page.locator("[data-testid='template-line']");
+        assertThat(lines).hasCount(3);
+        assertThat(lines.nth(2)).containsText("Hutang PPh");
+        assertThat(lines.nth(2)).containsText("Dipilih saat input transaksi");
+        assertThat(lines.nth(2).locator("code")).hasText("amount * 0.1");
+    }
+
+    @Test
+    @DisplayName("Should show formula errors in the line preview: syntax errors, type references, constructors and bean references")
+    void shouldPreviewFormulasAndRejectUnsafeSpel() {
+        loginAsAdmin();
+        navigateTo("/templates/new");
+        waitForPageLoad();
+
+        formula(1).fill("amount > 5000000 ? amount * 0.02 : 0");
+        assertThat(linePreview(1)).hasText("200.000");
+
+        formula(1).fill("amount * * 2");
+        assertThat(linePreview(1)).hasText("Error");
+        assertThat(linePreview(1).locator("span")).hasAttribute("title", Pattern.compile("^Syntax error: .+"));
+
+        formula(1).fill("T(java.lang.Runtime).getRuntime().exec('id')");
+        assertThat(linePreview(1).locator("span"))
+                .hasAttribute("title", "Unsupported expression: type reference is not allowed in formulas");
+
+        formula(1).fill("new java.io.File('/tmp').length()");
+        assertThat(linePreview(1).locator("span"))
+                .hasAttribute("title", "Unsupported expression: constructor is not allowed in formulas");
+
+        formula(1).fill("@journalTemplateService.findAll().size()");
+        assertThat(linePreview(1).locator("span"))
+                .hasAttribute("title", "Unsupported expression: bean reference is not allowed in formulas");
+
+        JsonNode ok = postJson("/templates/api/formula/preview", Map.of("formula", "amount * 0.11", "amount", 1000000));
+        assertTrue(ok.get("valid").asBoolean());
+        assertEquals(0, new BigDecimal("110000").compareTo(ok.get("result").decimalValue()));
+        assertEquals("110.000", ok.get("formattedResult").asText());
+
+        JsonNode unknownVariable = postJson("/templates/api/formula/preview", Map.of("formula", "fee * 0.11", "amount", 1000000));
+        assertFalse(unknownVariable.get("valid").asBoolean());
+        assertEquals("Formula evaluation failed", unknownVariable.get("errors").get(0).asText());
+    }
+
+    @Test
+    @DisplayName("Should reject saving a template without a credit line or with a disallowed formula, keep the input, and save once corrected")
+    void shouldRejectInvalidTemplateAndKeepInput() {
+        String name = "Tolak " + uid();
+        loginAsAdmin();
+        navigateTo("/templates/new");
+        waitForPageLoad();
+
+        page.locator("#templateName").fill(name);
+        page.locator("select[name='category']").selectOption("EXPENSE");
+        selectAccount(0, BEBAN_SEWA);
+        selectAccount(1, BANK_BCA);
+        page.locator("#btn-debit-1").click();
+        page.locator("#btn-simpan").click();
+        waitForPageLoad();
+
+        assertEquals(baseUrl() + "/templates", page.url());
+        assertThat(page.locator("[data-testid='form-error']"))
+                .hasText("Template must have at least one debit and one credit line");
+        assertFalse(templateRepository.existsByTemplateNameAndIsCurrentVersionTrue(name));
+
+        assertThat(page.locator("#templateName")).hasValue(name);
+        assertThat(page.locator("select[name='category']")).hasValue("EXPENSE");
+        assertThat(page.locator("select[name='lines[0].accountId']")).hasValue(accountId("5.1.05"));
+        assertThat(page.locator("select[name='lines[1].accountId']")).hasValue(accountId("1.1.02"));
+        assertThat(page.locator("input[name='lines[1].position']")).hasValue("DEBIT");
+
+        page.locator("#btn-credit-1").click();
+        formula(1).fill("T(java.lang.System).exit(0)");
+        page.locator("#btn-simpan").click();
+        waitForPageLoad();
+
+        assertThat(page.locator("[data-testid='form-error']")).hasText(
+                "Invalid formula on line 2: Unsupported expression: type reference is not allowed in formulas");
+        assertFalse(templateRepository.existsByTemplateNameAndIsCurrentVersionTrue(name));
+        assertThat(formula(1)).hasValue("T(java.lang.System).exit(0)");
+        assertThat(page.locator("input[name='lines[1].position']")).hasValue("CREDIT");
+
+        formula(1).fill("amount");
+        page.locator("#btn-simpan").click();
+        waitForPageLoad();
+
+        JournalTemplate saved = currentByName(name);
+        assertEquals(baseUrl() + "/templates/" + saved.getId(), page.url());
+        assertThat(page.locator("[data-testid='flash-success']")).hasText("Template berhasil dibuat");
+        assertLines(saved, "5.1.05|DEBIT|amount", "1.1.02|CREDIT|amount");
+    }
+
+    @Test
+    @DisplayName("Should preview the whole journal with computed debit/credit amounts without saving the template")
+    void shouldPreviewJournalWithoutSaving() {
+        String name = "Pratinjau " + uid();
+        loginAsAdmin();
+        navigateTo("/templates/new");
+        waitForPageLoad();
+
+        page.locator("#templateName").fill(name);
+        page.locator("select[name='category']").selectOption("EXPENSE");
+        selectAccount(0, BEBAN_SEWA);
+        selectAccount(1, BANK_BCA);
+        formula(1).fill("amount * 0.98");
+        page.locator("[data-testid='btn-add-line']").click();
+        page.locator("#btn-credit-2").click();
+        selectAccount(2, HUTANG_PPH23);
+        formula(2).fill("amount * 0.02");
+        page.locator("#previewAmount").fill("5000000");
+
+        page.locator("#btn-preview").click();
+
+        assertThat(page.locator("#preview-modal-title")).hasText("Preview Template: " + name);
+        assertThat(page.locator("#preview-amount-display")).containsText("Rp 5.000.000");
+        Locator rows = page.locator("#preview-tbody tr");
+        assertThat(rows).hasCount(3);
+        assertThat(rows.nth(0).locator("td")).hasText(new String[]{BEBAN_SEWA, "5.000.000", "-"});
+        assertThat(rows.nth(1).locator("td")).hasText(new String[]{BANK_BCA, "-", "4.900.000"});
+        assertThat(rows.nth(2).locator("td")).hasText(new String[]{HUTANG_PPH23, "-", "100.000"});
+        assertThat(page.locator("#preview-total-debit")).hasText("5.000.000");
+        assertThat(page.locator("#preview-total-kredit")).hasText("5.000.000");
+        assertThat(page.locator("#preview-balance-status")).hasText("Jurnal seimbang");
+
+        page.locator("#btn-preview-close").click();
+        assertThat(page.locator("#previewModal")).hasCount(0);
+        assertFalse(templateRepository.existsByTemplateNameAndIsCurrentVersionTrue(name));
+    }
+
+    // ==================== EDIT & VERSIONING ====================
+
+    @Test
+    @DisplayName("Should prefill the edit form and update an unused template in place, incrementing its version")
+    void shouldUpdateUnusedTemplateInPlace() {
+        JournalTemplate template = createTemplate("Ubah " + uid(), false);
+        String newName = template.getTemplateName() + " Revisi";
+        loginAsAdmin();
+        navigateTo("/templates/" + template.getId() + "/edit");
+        waitForPageLoad();
+
+        assertThat(page.locator("#page-title")).hasText("Edit Template");
+        assertThat(page.locator("#templateName")).hasValue(template.getTemplateName());
+        assertThat(page.locator("select[name='category']")).hasValue("EXPENSE");
+        assertThat(page.locator("select[name='cashFlowCategory']")).hasValue("OPERATING");
+        assertThat(page.locator("#description")).hasValue(template.getDescription());
+        assertThat(page.locator("select[name$='.accountId']")).hasCount(3);
+        assertThat(page.locator("select[name='lines[1].accountId']")).hasValue(accountId("1.1.02"));
+        assertThat(formula(1)).hasValue("amount * 0.98");
+        assertThat(page.locator("input[name='lines[2].position']")).hasValue("CREDIT");
+
+        page.locator("#templateName").fill(newName);
+        formula(1).fill("amount * 0.97");
+        formula(2).fill("amount * 0.03");
+        page.locator("#btn-simpan").click();
+        waitForPageLoad();
+
+        assertEquals(baseUrl() + "/templates/" + template.getId(), page.url());
+        assertThat(page.locator("[data-testid='flash-success']")).hasText("Template berhasil diperbarui (versi 2)");
+        assertThat(page.locator("#template-name")).hasText(newName);
+        assertThat(page.locator("#template-version")).hasText("2");
+
+        JournalTemplate updated = reload(template.getId());
+        assertEquals(newName, updated.getTemplateName());
+        assertEquals(2, updated.getVersion());
+        assertTrue(updated.getIsCurrentVersion());
+        assertLines(updated, "5.1.05|DEBIT|amount", "1.1.02|CREDIT|amount * 0.97", "2.1.21|CREDIT|amount * 0.03");
+        assertEquals(1, templateRepository.findAllVersions(template.getId()).size());
+    }
+
+    @Test
+    @DisplayName("Should keep a template used by a transaction and save the edit as a new current version")
+    void shouldCreateNewVersionWhenTemplateInUse() {
+        JournalTemplate template = createTemplate("Versi " + uid(), false);
+        templateService.addTag(template.getId(), "versi");
+        String newName = template.getTemplateName() + " v2";
+        loginAsAdmin();
+        UUID transactionId = UUID.fromString(executeTemplate(template.getId(), 1000000).get("transactionId").asText());
+        navigateTo("/templates/" + template.getId() + "/edit");
+        waitForPageLoad();
+
+        page.locator("#templateName").fill(newName);
+        formula(1).fill("amount * 0.975");
+        formula(2).fill("amount * 0.025");
+        page.locator("#btn-simpan").click();
+        waitForPageLoad();
+
+        JournalTemplate newVersion = currentByName(newName);
+        assertNotEquals(template.getId(), newVersion.getId());
+        assertEquals(baseUrl() + "/templates/" + newVersion.getId(), page.url());
+        assertThat(page.locator("[data-testid='flash-success']")).hasText("Template berhasil diperbarui (versi 2)");
+        assertEquals(2, newVersion.getVersion());
+        assertTrue(newVersion.getIsCurrentVersion());
+        assertEquals(template.getId(), newVersion.getRootTemplateId());
+        assertEquals(1, newVersion.getUsageCount());
+        assertEquals(List.of("versi"), templateService.getTagsForTemplate(newVersion.getId()));
+        assertLines(newVersion, "5.1.05|DEBIT|amount", "1.1.02|CREDIT|amount * 0.975", "2.1.21|CREDIT|amount * 0.025");
+
+        JournalTemplate original = reload(template.getId());
+        assertFalse(original.getIsCurrentVersion());
+        assertEquals(template.getTemplateName(), original.getTemplateName());
+        assertEquals(1, original.getVersion());
+        assertLines(original, "5.1.05|DEBIT|amount", "1.1.02|CREDIT|amount * 0.98", "2.1.21|CREDIT|amount * 0.02");
+        assertEquals(template.getId(),
+                transactionRepository.findById(transactionId).orElseThrow().getJournalTemplate().getId());
+
+        navigateTo("/templates");
+        waitForPageLoad();
+        assertThat(card(template.getTemplateName())).hasCount(0);
+        assertThat(card(newName)).containsText("v2");
+    }
+
+    // ==================== EXECUTE ====================
+
+    @Test
+    @DisplayName("Should execute a template into a draft transaction with formula-computed journal lines and record usage")
+    void shouldExecuteTemplate() {
+        JournalTemplate template = createTemplate("Eksekusi " + uid(), false);
+        loginAsAdmin();
+
+        JsonNode result = executeTemplate(template.getId(), 1234567);
+
+        UUID transactionId = UUID.fromString(result.get("transactionId").asText());
+        Transaction transaction = transactionRepository.findById(transactionId).orElseThrow();
+        assertEquals(TransactionStatus.DRAFT, transaction.getStatus());
+        assertEquals(template.getId(), transaction.getJournalTemplate().getId());
+        assertEquals(0, new BigDecimal("1234567").compareTo(transaction.getAmount()));
+        List<String> entries = new ArrayList<>();
+        for (JournalEntry entry : journalEntryRepository.findByTransactionIdWithAccount(transactionId)) {
+            entries.add(entry.getAccount().getAccountCode() + "|" + entry.getDebitAmount().stripTrailingZeros().toPlainString()
+                    + "|" + entry.getCreditAmount().stripTrailingZeros().toPlainString());
+        }
+        entries.sort(null);
+        assertEquals(List.of("1.1.02|0|1209876", "2.1.21|0|24691", "5.1.05|1234567|0"), entries);
+
+        JournalTemplate used = reload(template.getId());
+        assertEquals(1, used.getUsageCount());
+        assertNotNull(used.getLastUsedAt());
+
+        APIResponse recent = page.request().get(baseUrl() + "/templates/api/recent");
+        assertEquals(200, recent.status());
+        List<String> recentIds = new ArrayList<>();
+        for (JsonNode node : readJson(recent)) {
+            assertFalse(node.get("lastUsedAt").isNull(), "Never-used template listed as recent: " + node.get("templateName"));
+            recentIds.add(node.get("id").asText());
+        }
+        assertTrue(recentIds.contains(template.getId().toString()));
+
+        navigateTo("/templates");
+        waitForPageLoad();
+        assertThat(page.locator("[data-testid='recent-template']:has-text('" + template.getTemplateName() + "')"))
+                .hasAttribute("href", "/transactions/new?templateId=" + template.getId());
+
+        navigateTo("/templates/" + template.getId() + "/execute");
+        page.waitForURL(baseUrl() + "/transactions/new?templateId=" + template.getId());
+        assertThat(page.locator("h3:has-text('Template:')")).containsText(template.getTemplateName());
+    }
+
+    // ==================== DUPLICATE ====================
+
+    @Test
+    @DisplayName("Should duplicate a template: form prefilled from the source, saved as a new template, source unchanged")
+    void shouldDuplicateTemplate() {
+        JournalTemplate source = createTemplate("Sumber " + uid(), false);
+        source.setSemanticDescription("Deskripsi AI " + source.getTemplateName());
+        source = templateRepository.save(source);
+        String copyName = source.getTemplateName() + " Salinan";
+        loginAsAdmin();
+        navigateTo("/templates/" + source.getId());
+        waitForPageLoad();
+
+        page.locator("#btn-duplicate").click();
+        waitForPageLoad();
+
+        assertEquals(baseUrl() + "/templates/" + source.getId() + "/duplicate", page.url());
+        assertThat(page.locator("#page-title")).hasText("Duplikat Template");
+        assertThat(page.locator("text=Menduplikat dari: " + source.getTemplateName())).isVisible();
+        assertThat(page.locator("#templateName")).hasValue(source.getTemplateName());
+        assertThat(page.locator("select[name='category']")).hasValue("EXPENSE");
+        assertThat(page.locator("select[name$='.accountId']")).hasCount(3);
+        assertThat(page.locator("select[name='lines[2].accountId']")).hasValue(accountId("2.1.21"));
+        assertThat(formula(2)).hasValue("amount * 0.02");
+        assertThat(page.locator("#semanticDescription")).hasValue("Deskripsi AI " + source.getTemplateName());
+
+        page.locator("#templateName").fill(copyName);
+        page.locator("#btn-simpan").click();
+        waitForPageLoad();
+
+        JournalTemplate copy = currentByName(copyName);
+        assertNotEquals(source.getId(), copy.getId());
+        assertEquals(baseUrl() + "/templates/" + copy.getId(), page.url());
+        assertThat(page.locator("[data-testid='flash-success']")).hasText("Template berhasil dibuat");
+        assertEquals(1, copy.getVersion());
+        assertEquals(copy.getId(), copy.getRootTemplateId());
+        assertLines(copy, "5.1.05|DEBIT|amount", "1.1.02|CREDIT|amount * 0.98", "2.1.21|CREDIT|amount * 0.02");
+        assertEquals("Deskripsi AI " + source.getTemplateName(), copy.getSemanticDescription());
+
+        JournalTemplate unchanged = reload(source.getId());
+        assertEquals(source.getTemplateName(), unchanged.getTemplateName());
+        assertTrue(unchanged.getIsCurrentVersion());
+        assertEquals(1, unchanged.getVersion());
+    }
+
+    // ==================== DELETE ====================
+
+    @Test
+    @DisplayName("Should delete an unused template only after confirmation")
+    void shouldDeleteTemplateAfterConfirmation() {
+        JournalTemplate template = createTemplate("Hapus " + uid(), false);
+        loginAsAdmin();
+        navigateTo("/templates/" + template.getId());
+        waitForPageLoad();
+
+        page.onceDialog(dialog -> {
+            assertEquals("Apakah Anda yakin ingin menghapus template ini?", dialog.message());
+            dialog.dismiss();
+        });
+        page.locator("#btn-delete").click();
+        assertEquals(baseUrl() + "/templates/" + template.getId(), page.url());
+        assertTrue(templateRepository.findById(template.getId()).isPresent());
+
+        page.onceDialog(dialog -> dialog.accept());
+        page.locator("#btn-delete").click();
+        page.waitForURL(baseUrl() + "/templates");
+
+        assertThat(page.locator("[data-testid='flash-success']")).hasText("Template berhasil dihapus");
+        assertThat(card(template.getTemplateName())).hasCount(0);
+        assertTrue(templateRepository.findById(template.getId()).isEmpty());
+    }
+
+    @Test
+    @DisplayName("Should refuse to delete a template used by a transaction and show why")
+    void shouldRefuseDeletingTemplateInUse() {
+        JournalTemplate template = createTemplate("Terpakai " + uid(), false);
+        loginAsAdmin();
+        executeTemplate(template.getId(), 500000);
+        navigateTo("/templates/" + template.getId());
+        waitForPageLoad();
+
+        page.onceDialog(dialog -> dialog.accept());
+        page.locator("#btn-delete").click();
+        waitForPageLoad();
+
+        assertEquals(baseUrl() + "/templates/" + template.getId(), page.url());
+        assertThat(page.locator("[data-testid='flash-error']"))
+                .hasText("Template tidak dapat dihapus karena sudah digunakan oleh data lain");
+        JournalTemplate kept = reload(template.getId());
+        assertEquals(3, kept.getLines().size());
+        assertTrue(kept.getIsCurrentVersion());
+    }
+
+    // ==================== SYSTEM TEMPLATES ====================
+
+    @Test
+    @DisplayName("Should hide edit/delete for system templates and reject update, delete and deactivate on the server")
+    void shouldProtectSystemTemplates() {
+        JournalTemplate system = createTemplate("Sistem " + uid(), true);
+        loginAsAdmin();
+        navigateTo("/templates/" + system.getId());
+        waitForPageLoad();
+
+        assertThat(page.locator("[data-testid='template-type']")).hasText("Sistem");
+        assertThat(page.locator("#btn-edit")).hasCount(0);
+        assertThat(page.locator("#form-delete")).hasCount(0);
+        String csrf = csrf();
+
+        navigateTo("/templates/" + system.getId() + "/edit");
+        waitForPageLoad();
+        page.locator("#templateName").fill(system.getTemplateName() + " Diubah");
+        formula(1).fill("amount * 0.5");
+        page.locator("#btn-simpan").click();
+        waitForPageLoad();
+
+        assertThat(page.locator("[data-testid='form-error']")).hasText("Cannot modify system template");
+        assertThat(page.locator("form[data-testid='template-form']"))
+                .hasAttribute("action", "/templates/" + system.getId());
+
+        APIResponse delete = page.request().post(baseUrl() + "/templates/" + system.getId() + "/delete",
+                RequestOptions.create().setForm(FormData.create().set("_csrf", csrf)));
+        assertEquals(200, delete.status());
+        assertEquals(baseUrl() + "/templates/" + system.getId(), delete.url());
+        assertTrue(delete.text().contains("Cannot delete system template"));
+
+        Map<String, Object> body = templateJson(system.getTemplateName() + " API");
+        assertEquals(409, page.request().put(baseUrl() + "/templates/api/" + system.getId(),
+                RequestOptions.create().setData(body)).status());
+        assertEquals(409, page.request().delete(baseUrl() + "/templates/api/" + system.getId()).status());
+        assertEquals(409, page.request().post(baseUrl() + "/templates/api/" + system.getId() + "/deactivate").status());
+
+        JournalTemplate unchanged = reload(system.getId());
+        assertEquals(system.getTemplateName(), unchanged.getTemplateName());
+        assertTrue(unchanged.getActive());
+        assertTrue(unchanged.getIsCurrentVersion());
+        assertEquals(1, unchanged.getVersion());
+        assertLines(unchanged, "5.1.05|DEBIT|amount", "1.1.02|CREDIT|amount * 0.98", "2.1.21|CREDIT|amount * 0.02");
+    }
+
+    // ==================== FAVORITES & TAGS ====================
+
+    @Test
+    @DisplayName("Should toggle a favorite from the detail page and the list card, and filter the list by favorites")
+    void shouldToggleFavorite() {
+        JournalTemplate template = createTemplate("Favorit " + uid(), false);
+        loginAsAdmin();
+        navigateTo("/templates/" + template.getId());
+        waitForPageLoad();
+
+        Locator star = page.locator("[data-testid='favorite-button']");
+        assertThat(star).hasClass(GRAY_STAR);
+        star.click();
+        assertThat(star).hasClass(AMBER_STAR);
+        assertTrue(preferenceService.isFavorite("admin", template.getId()));
+
+        navigateTo("/templates");
+        waitForPageLoad();
+        page.locator("[data-testid='filter-favorites']").click();
+        page.waitForURL(baseUrl() + "/templates?favorites=true");
+        Locator favoriteCard = card(template.getTemplateName());
+        assertThat(favoriteCard).hasCount(1);
+        assertThat(card("Setoran Modal")).hasCount(0);
+
+        Locator cardStar = favoriteCard.locator("[data-testid='favorite-button']");
+        assertThat(cardStar).hasClass(AMBER_STAR);
+        cardStar.click();
+        assertThat(cardStar).hasClass(GRAY_STAR);
+        assertFalse(preferenceService.isFavorite("admin", template.getId()));
+
+        navigateTo("/templates?favorites=true");
+        waitForPageLoad();
+        assertThat(card(template.getTemplateName())).hasCount(0);
+    }
+
+    @Test
+    @DisplayName("Should add a normalized tag, filter the list by it, and remove it")
+    void shouldAddFilterAndRemoveTag() {
+        String id = uid();
+        String tag = "uji-" + id;
+        JournalTemplate template = createTemplate("Tag " + id, false);
+        loginAsAdmin();
+        navigateTo("/templates/" + template.getId());
+        waitForPageLoad();
+        assertThat(page.locator("[data-testid='detail-tag']")).hasCount(0);
+
+        page.locator("[data-testid='tag-input']").fill("  UJI-" + id.toUpperCase() + " ");
+        page.locator("[data-testid='add-tag-button']").click();
+
+        assertThat(page.locator("[data-testid='detail-tag']")).hasText(new String[]{tag});
+        assertEquals(List.of(tag), templateService.getTagsForTemplate(template.getId()));
+
+        navigateTo("/templates?tag=" + tag);
+        waitForPageLoad();
+        assertThat(page.locator("[data-testid='template-card']")).hasCount(1);
+        assertThat(card(template.getTemplateName()).locator("[data-testid='template-tag']")).hasText(tag);
+        assertThat(page.locator("[data-testid='tag-filter']:text-is('" + tag + "')")).hasClass(Pattern.compile("bg-blue-600"));
+
+        navigateTo("/templates/" + template.getId());
+        waitForPageLoad();
+        page.locator("[data-testid='detail-tag'] [data-testid='remove-tag-button']").click();
+        assertThat(page.locator("[data-testid='detail-tag']")).hasCount(0);
+        assertTrue(templateService.getTagsForTemplate(template.getId()).isEmpty());
+
+        navigateTo("/templates?tag=" + tag);
+        waitForPageLoad();
+        assertThat(page.locator("[data-testid='template-card']")).hasCount(0);
+    }
+
+    // ==================== AI METADATA ====================
+
+    @Test
+    @DisplayName("Should create a template with AI metadata and show it on the detail page")
+    void shouldCreateTemplateWithMetadata() {
+        String name = "Metadata " + uid();
+        loginAsAdmin();
+        navigateTo("/templates/new");
+        waitForPageLoad();
+
+        page.locator("#templateName").fill(name);
+        page.locator("select[name='category']").selectOption("EXPENSE");
+        page.locator("select[name='cashFlowCategory']").selectOption("OPERATING");
+        selectAccount(0, BEBAN_SEWA);
+        selectAccount(1, BANK_BCA);
+        page.locator("[data-testid='metadata-ai-section'] summary").click();
+        page.locator("#semanticDescription").fill("New template with metadata");
+        page.locator("#keywordsText").fill("new, test, , create");
+        page.locator("#typicalAmountMin").fill("50000");
+        page.locator("#typicalAmountMax").fill("1000000");
+        page.locator("#btn-simpan").click();
+        waitForPageLoad();
+
+        JournalTemplate saved = currentByName(name);
+        assertEquals(baseUrl() + "/templates/" + saved.getId(), page.url());
+        assertEquals("New template with metadata", saved.getSemanticDescription());
+        assertEquals(List.of("new", "test", "create"), List.of(saved.getKeywords()));
+        assertEquals(0, new BigDecimal("50000").compareTo(saved.getTypicalAmountMin()));
+        assertEquals(0, new BigDecimal("1000000").compareTo(saved.getTypicalAmountMax()));
+        assertNull(saved.getExampleMerchants());
+        assertNull(saved.getMerchantPatterns());
+
+        assertThat(page.locator("[data-testid='semantic-description']")).hasText("New template with metadata");
+        assertThat(page.locator("[data-testid='keywords-badges'] span")).hasText(new String[]{"new", "test", "create"});
+        assertThat(page.locator("[data-testid='amount-range']")).hasText("Rp 50.000 - Rp 1.000.000");
+        assertThat(page.locator("[data-testid='example-merchants-badges']")).hasCount(0);
+    }
+
+    @Test
+    @DisplayName("Should edit AI metadata of a template and show every field on the detail page")
+    void shouldEditAiMetadata() {
+        JournalTemplate template = createTemplate("Edit Metadata " + uid(), false);
+        loginAsAdmin();
+        navigateTo("/templates/" + template.getId() + "/edit");
+        waitForPageLoad();
+
+        page.locator("[data-testid='metadata-ai-section'] summary").click();
         page.locator("[data-testid='metadata-ai-section']").scrollIntoViewIfNeeded();
         takeManualScreenshot("service/templates-metadata-form");
 
-        // Fill metadata fields
-        page.locator("#semanticDescription").click();
         page.locator("#semanticDescription").fill("Test semantic description for automation");
-        page.locator("#keywordsText").click();
         page.locator("#keywordsText").fill("test, automation, metadata");
-        page.locator("#exampleMerchantsText").click();
         page.locator("#exampleMerchantsText").fill("Merchant A, Merchant B");
-        page.locator("#typicalAmountMin").click();
         page.locator("#typicalAmountMin").fill("100000");
-        page.locator("#typicalAmountMax").click();
         page.locator("#typicalAmountMax").fill("5000000");
-        page.locator("#merchantPatternsText").click();
         page.locator("#merchantPatternsText").fill(".*test.*, .*auto.*");
-
-        // Submit form
         page.locator("#btn-simpan").click();
         waitForPageLoad();
 
-        // After update, may redirect to detail of new version or same ID
-        // Verify metadata is displayed
-        assertThat(page.locator("[data-testid='metadata-ai-card']")).isVisible();
-        assertThat(page.locator("[data-testid='semantic-description']")).containsText("Test semantic description for automation");
-        assertThat(page.locator("[data-testid='keywords-badges']")).isVisible();
-        assertThat(page.locator("[data-testid='example-merchants-badges']")).isVisible();
-        assertThat(page.locator("[data-testid='amount-range']")).isVisible();
-        assertThat(page.locator("[data-testid='merchant-patterns-badges']")).isVisible();
+        assertEquals(baseUrl() + "/templates/" + template.getId(), page.url());
+        assertThat(page.locator("[data-testid='semantic-description']")).hasText("Test semantic description for automation");
+        assertThat(page.locator("[data-testid='keywords-badges'] span")).hasText(new String[]{"test", "automation", "metadata"});
+        assertThat(page.locator("[data-testid='example-merchants-badges'] span")).hasText(new String[]{"Merchant A", "Merchant B"});
+        assertThat(page.locator("[data-testid='amount-range']")).hasText("Rp 100.000 - Rp 5.000.000");
+        assertThat(page.locator("[data-testid='merchant-patterns-badges'] code")).hasText(new String[]{".*test.*", ".*auto.*"});
+
+        JournalTemplate updated = reload(template.getId());
+        assertEquals(List.of("Merchant A", "Merchant B"), List.of(updated.getExampleMerchants()));
+        assertEquals(List.of(".*test.*", ".*auto.*"), List.of(updated.getMerchantPatterns()));
+        assertLines(updated, "5.1.05|DEBIT|amount", "1.1.02|CREDIT|amount * 0.98", "2.1.21|CREDIT|amount * 0.02");
     }
 
+    // ==================== JSON API ====================
+
     @Test
-    @DisplayName("Should create template with AI metadata")
-    void shouldCreateTemplateWithMetadata() {
-        navigateTo("/templates/new");
-        waitForPageLoad();
+    @DisplayName("Should serve templates as JSON by category, search and id; unknown id is 404")
+    void shouldServeTemplatesAsJson() {
+        String id = uid();
+        JournalTemplate template = createTemplate("Json " + id, false);
+        templateService.addTag(template.getId(), "json");
+        loginAsAdmin();
 
-        // Fill required fields
-        page.locator("input[name='templateName']").fill("Test Metadata Template " + System.currentTimeMillis());
-        page.locator("select[name='category']").selectOption("EXPENSE");
-        page.locator("select[name='cashFlowCategory']").selectOption("OPERATING");
-
-        // Set journal lines using leaf accounts from the account select options
-        var accountOptions = page.locator("select[name='lines[0].accountId'] option[value]");
-        if (accountOptions.count() < 2) {
-            return;
+        List<String> incomeNames = new ArrayList<>();
+        for (JsonNode node : readJson(page.request().get(baseUrl() + "/templates/api?category=INCOME"))) {
+            assertEquals("INCOME", node.get("category").asText(), node.toString());
+            incomeNames.add(node.get("templateName").asText());
         }
+        assertTrue(incomeNames.contains("Pendapatan Jasa Konsultasi"));
+        assertFalse(incomeNames.contains("Bayar Beban Sewa"));
 
-        // Pick first two non-empty account options
-        String firstAccountId = accountOptions.nth(1).getAttribute("value");
-        String secondAccountId = accountOptions.nth(2).getAttribute("value");
+        JsonNode search = readJson(page.request().get(baseUrl() + "/templates/api/search?q=json%20" + id));
+        assertEquals(1, search.get("content").size());
+        assertEquals(template.getId().toString(), search.get("content").get(0).get("id").asText());
 
-        // Set first line (debit)
-        page.locator("select[name='lines[0].accountId']").selectOption(firstAccountId);
-        // Set second line (credit)
-        page.locator("[data-testid='btn-credit-1']").click();
-        page.locator("select[name='lines[1].accountId']").selectOption(secondAccountId);
+        JsonNode one = readJson(page.request().get(baseUrl() + "/templates/api/" + template.getId()));
+        assertEquals(template.getTemplateName(), one.get("templateName").asText());
+        assertEquals("EXPENSE", one.get("category").asText());
+        assertEquals("OPERATING", one.get("cashFlowCategory").asText());
+        assertEquals(1, one.get("version").asInt());
+        assertEquals("json", one.get("tagNames").get(0).asText());
 
-        // Open metadata section and fill
-        page.locator("[data-testid='metadata-ai-section'] summary").click();
-        page.locator("#semanticDescription").fill("New template with metadata");
-        page.locator("#keywordsText").fill("new, test, create");
-        page.locator("#typicalAmountMin").fill("50000");
-        page.locator("#typicalAmountMax").fill("1000000");
+        assertEquals(404, page.request().get(baseUrl() + "/templates/api/" + UUID.randomUUID()).status());
+    }
 
-        // Submit
-        page.locator("#btn-simpan").click();
+    // ==================== PERMISSIONS ====================
+
+    @Test
+    @DisplayName("Should let a view-only user browse templates but not create, edit, delete, tag or execute them")
+    void shouldDenyChangesWithoutTemplatePermissions() {
+        JournalTemplate template = createTemplate("Auditor " + uid(), false);
+        templateService.addTag(template.getId(), "audit");
+        User auditor = createUser(Role.AUDITOR);
+        login(auditor.getUsername(), "password");
+
+        navigateTo("/templates");
         waitForPageLoad();
+        assertThat(card(template.getTemplateName())).hasCount(1);
+        assertThat(page.locator("#btn-new-template")).hasCount(0);
 
-        // Verify metadata persists on detail page
-        assertThat(page.locator("[data-testid='metadata-ai-card']")).isVisible();
-        assertThat(page.locator("[data-testid='semantic-description']")).containsText("New template with metadata");
-        assertThat(page.locator("[data-testid='keywords-badges']")).isVisible();
-    }
-
-    // ==================== TEMPLATE LIST FILTER TESTS ====================
-
-    @Test
-    @DisplayName("Should filter templates by category via query param")
-    void shouldFilterTemplatesByCategoryViaQueryParam() {
-        navigateTo("/templates?category=EXPENSE");
+        navigateTo("/templates/" + template.getId());
         waitForPageLoad();
+        assertThat(page.locator("#template-name")).hasText(template.getTemplateName());
+        assertThat(page.locator("#btn-edit")).hasCount(0);
+        assertThat(page.locator("#form-delete")).hasCount(0);
+        assertThat(page.locator("#btn-duplicate")).hasCount(0);
+        assertThat(page.locator("[data-testid='detail-tag']")).hasText(new String[]{"audit"});
+        assertThat(page.locator("[data-testid='tag-input']")).hasCount(0);
+        assertThat(page.locator("[data-testid='remove-tag-button']")).hasCount(0);
+        String csrf = csrf();
 
-        assertThat(page.locator("#page-title, h1").first()).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should filter templates by search via query param")
-    void shouldFilterTemplatesBySearchViaQueryParam() {
-        navigateTo("/templates?search=penjualan");
-        waitForPageLoad();
-
-        assertThat(page.locator("#page-title, h1").first()).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should filter templates by favorites via query param")
-    void shouldFilterTemplatesByFavoritesViaQueryParam() {
-        navigateTo("/templates?favorites=true");
-        waitForPageLoad();
-
-        assertThat(page.locator("#page-title, h1").first()).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should filter templates by tag via query param")
-    void shouldFilterTemplatesByTagViaQueryParam() {
-        navigateTo("/templates?tag=testTag");
-        waitForPageLoad();
-
-        assertThat(page.locator("#page-title, h1").first()).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should display template list via HTMX")
-    void shouldDisplayTemplateListViaHtmx() {
-        var response = page.request().get(baseUrl() + "/templates",
-            com.microsoft.playwright.options.RequestOptions.create()
-                .setHeader("HX-Request", "true"));
-
-        org.assertj.core.api.Assertions.assertThat(response.status()).isEqualTo(200);
-    }
-
-    @Test
-    @DisplayName("Should filter template list by category via HTMX")
-    void shouldFilterTemplateListByCategoryViaHtmx() {
-        var response = page.request().get(baseUrl() + "/templates?category=INCOME",
-            com.microsoft.playwright.options.RequestOptions.create()
-                .setHeader("HX-Request", "true"));
-
-        org.assertj.core.api.Assertions.assertThat(response.status()).isEqualTo(200);
-    }
-
-    // ==================== TEMPLATE TAG MANAGEMENT ====================
-
-    @Test
-    @DisplayName("Should add tag to template via form")
-    void shouldAddTagToTemplateViaForm() {
-        var template = templateRepository.findAll().stream().findFirst();
-        if (template.isEmpty()) {
-            return;
-        }
-
-        navigateTo("/templates/" + template.get().getId());
-        waitForPageLoad();
-
-        // Look for tag input form
-        var tagInput = page.locator("input[name='tag']").first();
-        if (tagInput.isVisible()) {
-            tagInput.fill("test-coverage-tag");
-            var addTagBtn = page.locator("form[action*='/tags'] button[type='submit']").first();
-            if (addTagBtn.isVisible()) {
-                addTagBtn.click();
-                waitForPageLoad();
-            }
-        }
-
-        assertThat(page).hasURL(java.util.regex.Pattern.compile(".*\\/templates\\/.*"));
-    }
-
-    @Test
-    @DisplayName("Should remove tag from template")
-    void shouldRemoveTagFromTemplate() {
-        var template = templateRepository.findAll().stream().findFirst();
-        if (template.isEmpty()) {
-            return;
-        }
-
-        navigateTo("/templates/" + template.get().getId());
-        waitForPageLoad();
-
-        // Look for tag delete form
-        var deleteTagForm = page.locator("form[action*='/tags/'][action*='/delete']").first();
-        if (deleteTagForm.isVisible()) {
-            deleteTagForm.locator("button[type='submit']").click();
+        for (String path : List.of("/templates/new", "/templates/" + template.getId() + "/edit",
+                "/templates/" + template.getId() + "/duplicate")) {
+            navigateTo(path);
             waitForPageLoad();
+            assertThat(page.locator("#access-denied-page")).isVisible();
         }
 
-        assertThat(page).hasURL(java.util.regex.Pattern.compile(".*\\/templates\\/.*"));
+        String name = "Ilegal " + uid();
+        assertEquals(403, postForm("/templates", templateForm(csrf, name)).status());
+        assertEquals(403, postForm("/templates/" + template.getId(), templateForm(csrf, name)).status());
+        assertEquals(403, postForm("/templates/" + template.getId() + "/delete", FormData.create().set("_csrf", csrf)).status());
+        assertEquals(403, postForm("/templates/" + template.getId() + "/tags",
+                FormData.create().set("_csrf", csrf).set("tag", "ilegal")).status());
+        assertEquals(403, postForm("/templates/" + template.getId() + "/tags/audit/delete",
+                FormData.create().set("_csrf", csrf)).status());
+        assertEquals(403, page.request().post(baseUrl() + "/templates/api",
+                RequestOptions.create().setData(templateJson(name))).status());
+        assertEquals(403, page.request().put(baseUrl() + "/templates/api/" + template.getId(),
+                RequestOptions.create().setData(templateJson(name))).status());
+        assertEquals(403, page.request().delete(baseUrl() + "/templates/api/" + template.getId()).status());
+        assertEquals(403, page.request().post(baseUrl() + "/templates/api/" + template.getId() + "/deactivate").status());
+        assertEquals(403, page.request().post(baseUrl() + "/templates/api/" + template.getId() + "/execute",
+                RequestOptions.create().setData(Map.of("transactionDate", "2030-06-15", "amount", 1000,
+                        "description", "Ilegal"))).status());
+
+        assertFalse(templateRepository.existsByTemplateNameAndIsCurrentVersionTrue(name));
+        JournalTemplate unchanged = reload(template.getId());
+        assertEquals(template.getTemplateName(), unchanged.getTemplateName());
+        assertTrue(unchanged.getActive());
+        assertEquals(0, unchanged.getUsageCount());
+        assertEquals(List.of("audit"), templateService.getTagsForTemplate(template.getId()));
     }
 
-    // ==================== TEMPLATE EXECUTE REDIRECT ====================
+    // ==================== helpers ====================
 
-    @Test
-    @DisplayName("Should redirect execute to transaction form")
-    void shouldRedirectExecuteToTransactionForm() {
-        var template = templateRepository.findAll().stream()
-                .filter(t -> Boolean.TRUE.equals(t.getActive()))
-                .findFirst();
-        if (template.isEmpty()) {
-            return;
-        }
-
-        navigateTo("/templates/" + template.get().getId() + "/execute");
-        waitForPageLoad();
-
-        // Execute redirects to /transactions/new?templateId=...
-        assertThat(page).hasURL(java.util.regex.Pattern.compile(".*\\/transactions\\/new.*templateId.*"));
+    private JournalTemplate createTemplate(String name, boolean system) {
+        JournalTemplate template = new JournalTemplate();
+        template.setTemplateName(name);
+        template.setCategory(TemplateCategory.EXPENSE);
+        template.setCashFlowCategory(CashFlowCategory.OPERATING);
+        template.setTemplateType(TemplateType.SIMPLE);
+        template.setDescription("Deskripsi " + name);
+        template.setIsSystem(system);
+        template.addLine(line(1, "5.1.05", JournalPosition.DEBIT, "amount"));
+        template.addLine(line(2, "1.1.02", JournalPosition.CREDIT, "amount * 0.98"));
+        template.addLine(line(3, "2.1.21", JournalPosition.CREDIT, "amount * 0.02"));
+        return templateService.create(template);
     }
 
-    // ==================== TEMPLATE DELETE VIA FORM POST ====================
-
-    @Test
-    @DisplayName("Should delete template via form post and redirect to list")
-    void shouldDeleteTemplateViaFormPost() {
-        // Create a template first so we have one to delete
-        navigateTo("/templates/new");
-        waitForPageLoad();
-
-        page.locator("input[name='templateName']").fill("Delete Test " + System.currentTimeMillis());
-        page.locator("select[name='category']").selectOption("EXPENSE");
-        page.locator("select[name='cashFlowCategory']").selectOption("OPERATING");
-
-        var accountOptions = page.locator("select[name='lines[0].accountId'] option[value]");
-        if (accountOptions.count() < 2) {
-            return;
-        }
-        page.locator("select[name='lines[0].accountId']").selectOption(accountOptions.nth(1).getAttribute("value"));
-        page.locator("[data-testid='btn-credit-1']").click();
-        page.locator("select[name='lines[1].accountId']").selectOption(accountOptions.nth(2).getAttribute("value"));
-
-        page.locator("#btn-simpan").click();
-        waitForPageLoad();
-
-        // Now on detail page — find and click delete
-        var deleteBtn = page.locator("form[action*='/delete'] button[type='submit']").first();
-        if (deleteBtn.isVisible()) {
-            deleteBtn.click();
-            waitForPageLoad();
-        }
-
-        // Should redirect to template list
-        assertThat(page).hasURL(java.util.regex.Pattern.compile(".*\\/templates.*"));
+    private JournalTemplateLine line(int order, String accountCode, JournalPosition position, String formula) {
+        JournalTemplateLine line = new JournalTemplateLine();
+        line.setLineOrder(order);
+        line.setAccount(account(accountCode));
+        line.setPosition(position);
+        line.setFormula(formula);
+        return line;
     }
 
-    // ==================== TEMPLATE API ENDPOINTS ====================
+    private ChartOfAccount account(String code) {
+        return accountRepository.findByAccountCode(code)
+                .orElseThrow(() -> new IllegalStateException("Seeded account missing: " + code));
+    }
 
-    @Test
-    @DisplayName("Should get templates by category via API")
-    void shouldGetTemplatesByCategoryViaApi() {
-        var response = page.request().get(baseUrl() + "/templates/api?category=INCOME");
+    private String accountId(String code) {
+        return account(code).getId().toString();
+    }
 
-        org.assertj.core.api.Assertions.assertThat(response.status()).isEqualTo(200);
+    private JournalTemplate seeded(String name) {
+        return templateRepository.findByTemplateNameWithLines(name)
+                .orElseThrow(() -> new IllegalStateException("Seeded template missing: " + name));
+    }
+
+    private JournalTemplate currentByName(String name) {
+        return templateRepository.findByTemplateNameWithLines(name)
+                .orElseThrow(() -> new AssertionError("Template not saved: " + name));
+    }
+
+    private JournalTemplate reload(UUID id) {
+        return templateRepository.findByIdWithLines(id).orElseThrow();
+    }
+
+    private void assertLines(JournalTemplate template, String... expected) {
+        List<String> actual = new ArrayList<>();
+        for (JournalTemplateLine line : template.getLines()) {
+            actual.add((line.getAccount() == null ? "-" : line.getAccount().getAccountCode())
+                    + "|" + line.getPosition() + "|" + line.getFormula());
+        }
+        assertEquals(List.of(expected), actual);
+    }
+
+    private Locator card(String templateName) {
+        return page.locator("[data-testid='template-card']:has(h3:text-is('" + templateName + "'))");
+    }
+
+    private Locator formula(int index) {
+        return page.locator("input[name='lines[" + index + "].formula']");
+    }
+
+    private Locator linePreview(int index) {
+        return page.locator("[data-testid='line-preview-" + index + "']");
+    }
+
+    private void selectAccount(int index, String label) {
+        page.locator("select[name='lines[" + index + "].accountId']").selectOption(new SelectOption().setLabel(label));
+    }
+
+    private String csrf() {
+        return page.locator("meta[name='_csrf']").getAttribute("content");
+    }
+
+    private APIResponse postForm(String path, FormData form) {
+        return page.request().post(baseUrl() + path, RequestOptions.create().setMaxRedirects(0).setForm(form));
+    }
+
+    private FormData templateForm(String csrf, String name) {
+        return FormData.create().set("_csrf", csrf).set("templateName", name).set("category", "EXPENSE")
+                .set("cashFlowCategory", "OPERATING").set("templateType", "SIMPLE")
+                .set("lines[0].accountId", accountId("5.1.05")).set("lines[0].position", "DEBIT")
+                .set("lines[0].formula", "amount").set("lines[0].lineOrder", "1")
+                .set("lines[1].accountId", accountId("1.1.02")).set("lines[1].position", "CREDIT")
+                .set("lines[1].formula", "amount").set("lines[1].lineOrder", "2");
+    }
+
+    private Map<String, Object> templateJson(String name) {
+        return Map.of("templateName", name, "category", "EXPENSE", "cashFlowCategory", "OPERATING",
+                "templateType", "SIMPLE", "lines", List.of(
+                        Map.of("accountId", accountId("5.1.05"), "position", "DEBIT", "formula", "amount", "lineOrder", 1),
+                        Map.of("accountId", accountId("1.1.02"), "position", "CREDIT", "formula", "amount", "lineOrder", 2)));
+    }
+
+    private JsonNode executeTemplate(UUID templateId, long amount) {
+        APIResponse response = page.request().post(baseUrl() + "/templates/api/" + templateId + "/execute",
+                RequestOptions.create().setData(Map.of("transactionDate", "2030-06-15", "amount", amount,
+                        "description", "Eksekusi template " + templateId)));
+        assertEquals(200, response.status(), response.text());
+        return readJson(response);
+    }
+
+    private JsonNode postJson(String path, Map<String, Object> body) {
+        APIResponse response = page.request().post(baseUrl() + path, RequestOptions.create().setData(body));
+        assertEquals(200, response.status(), response.text());
+        return readJson(response);
+    }
+
+    private JsonNode readJson(APIResponse response) {
+        assertEquals(200, response.status(), response.text());
+        try {
+            return objectMapper.readTree(response.text());
+        } catch (Exception e) {
+            throw new IllegalStateException("Invalid JSON: " + response.text(), e);
+        }
+    }
+
+    private User createUser(Role role) {
+        String id = uid();
+        User user = new User();
+        user.setUsername("tpl-user-" + id);
+        user.setPassword(passwordEncoder.encode("password"));
+        user.setFullName("Pengguna " + id);
+        user.setEmail("tpl-user-" + id + "@example.com");
+        user.setActive(true);
+        user.addRole(role, "system");
+        return userRepository.save(user);
+    }
+
+    private static String uid() {
+        return UUID.randomUUID().toString().substring(0, 8);
     }
 }

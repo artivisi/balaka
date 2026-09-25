@@ -9,7 +9,18 @@ import org.springframework.expression.TypedValue;
 import org.springframework.expression.AccessException;
 import org.springframework.expression.EvaluationContext;
 import org.springframework.expression.spel.SpelEvaluationException;
+import org.springframework.expression.spel.SpelNode;
 import org.springframework.expression.spel.SpelParseException;
+import org.springframework.expression.spel.ast.Assign;
+import org.springframework.expression.spel.ast.BeanReference;
+import org.springframework.expression.spel.ast.ConstructorReference;
+import org.springframework.expression.spel.ast.FunctionReference;
+import org.springframework.expression.spel.ast.MethodReference;
+import org.springframework.expression.spel.ast.Projection;
+import org.springframework.expression.spel.ast.Selection;
+import org.springframework.expression.spel.ast.TypeReference;
+import org.springframework.expression.spel.ast.VariableReference;
+import org.springframework.expression.spel.standard.SpelExpression;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.SimpleEvaluationContext;
 import org.springframework.stereotype.Service;
@@ -193,11 +204,17 @@ public class FormulaEvaluator {
             return errors;
         }
 
-        // Try to parse the expression
+        SpelNode ast;
         try {
-            parser.parseExpression(trimmed);
+            ast = ((SpelExpression) parser.parseExpression(trimmed)).getAST();
         } catch (SpelParseException e) {
             errors.add("Syntax error: " + e.getMessage());
+            return errors;
+        }
+
+        String forbidden = findForbiddenNode(ast);
+        if (forbidden != null) {
+            errors.add("Unsupported expression: " + forbidden + " is not allowed in formulas");
             return errors;
         }
 
@@ -206,6 +223,29 @@ public class FormulaEvaluator {
         // missing variables when the template is actually used with real data.
 
         return errors;
+    }
+
+    private static String findForbiddenNode(SpelNode node) {
+        String forbidden = switch (node) {
+            case TypeReference _ -> "type reference";
+            case ConstructorReference _ -> "constructor";
+            case BeanReference _ -> "bean reference";
+            case MethodReference _, FunctionReference _ -> "method call";
+            case VariableReference _ -> "variable reference";
+            case Assign _ -> "assignment";
+            case Projection _, Selection _ -> "collection projection/selection";
+            default -> null;
+        };
+        if (forbidden != null) {
+            return forbidden;
+        }
+        for (int i = 0; i < node.getChildCount(); i++) {
+            String childForbidden = findForbiddenNode(node.getChild(i));
+            if (childForbidden != null) {
+                return childForbidden;
+            }
+        }
+        return null;
     }
 
     /**

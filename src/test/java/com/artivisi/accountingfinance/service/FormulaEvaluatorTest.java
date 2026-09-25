@@ -314,6 +314,23 @@ class FormulaEvaluatorTest {
 
             assertThat(errors).isEmpty();
         }
+
+        @Test
+        @DisplayName("Should reject type references, constructors, bean references, method calls, variables and assignments")
+        void shouldRejectExpressionsOutsideArithmetic() {
+            assertThat(evaluator.validate("T(java.lang.Runtime).getRuntime().exec('id')"))
+                    .containsExactly("Unsupported expression: type reference is not allowed in formulas");
+            assertThat(evaluator.validate("amount * 0 + new java.io.File('/tmp').length()"))
+                    .containsExactly("Unsupported expression: constructor is not allowed in formulas");
+            assertThat(evaluator.validate("@journalTemplateService.findAll().size()"))
+                    .containsExactly("Unsupported expression: bean reference is not allowed in formulas");
+            assertThat(evaluator.validate("amount.negate()"))
+                    .containsExactly("Unsupported expression: method call is not allowed in formulas");
+            assertThat(evaluator.validate("#root.amount * 2"))
+                    .containsExactly("Unsupported expression: variable reference is not allowed in formulas");
+            assertThat(evaluator.validate("amount = 5"))
+                    .containsExactly("Unsupported expression: assignment is not allowed in formulas");
+        }
     }
 
     @Nested

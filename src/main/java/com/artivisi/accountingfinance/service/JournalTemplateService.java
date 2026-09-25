@@ -56,7 +56,9 @@ public class JournalTemplateService {
     }
 
     public List<JournalTemplate> findRecentlyUsed() {
-        return journalTemplateRepository.findByActiveAndIsCurrentVersionTrueOrderByLastUsedAtDesc(true);
+        return journalTemplateRepository.findByActiveAndIsCurrentVersionTrueOrderByLastUsedAtDesc(true).stream()
+                .filter(t -> t.getLastUsedAt() != null)
+                .toList();
     }
 
     public Page<JournalTemplate> search(String search, Pageable pageable) {

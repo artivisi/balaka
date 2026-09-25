@@ -34,8 +34,12 @@
                 </div>
             </div>
 
+            <div th:if="${errorMessage}" data-testid="form-error"
+                 class="mb-6 p-4 rounded-lg bg-red-50 border border-red-200 text-sm font-medium text-red-800"
+                 th:text="${errorMessage}">Error</div>
+
             <!-- Main Form -->
-            <form th:action="${isEdit} ? @{/templates/{id}(id=${template.id})} : @{/templates}" method="post"
+            <form th:action="${isEdit} ? @{/templates/{id}(id=${templateId})} : @{/templates}" method="post"
                   x-data="templateForm"
                   x-init="init()"
                   data-testid="template-form">
@@ -176,7 +180,7 @@
                                 <div class="relative flex-1 max-w-xs">
                                     <span class="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">Rp</span>
                                     <input type="text" id="previewAmount" x-model="previewAmount"
-                                           @input="formatPreviewAmount(); updateAllPreviews();"
+                                           @input="onPreviewAmountInput"
                                            class="w-full pl-10 pr-3 py-1.5 text-sm font-mono border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-right"
                                            placeholder="10.000.000">
                                 </div>
@@ -266,7 +270,7 @@
                                     </div>
 
                                     <!-- Preview Result -->
-                                    <div class="col-span-2 text-right">
+                                    <div class="col-span-2 text-right" :data-testid="linePreviewId(index)">
                                         <template x-if="showPreviewLoading(line)">
                                             <span class="text-xs text-gray-400">...</span>
                                         </template>
@@ -564,6 +568,9 @@
                 lineOrder(index) {
                     return index + 1;
                 },
+                linePreviewId(index) {
+                    return 'line-preview-' + index;
+                },
 
                 // CSP-safe methods for line operations
                 setDynamic(line) {
@@ -620,6 +627,11 @@
                 formatPreviewAmount() {
                     let value = this.previewAmount.replaceAll(/\D/g, '');
                     this.previewAmount = value.replaceAll(/\B(?=(\d{3})+(?!\d))/g, '.');
+                },
+
+                onPreviewAmountInput() {
+                    this.formatPreviewAmount();
+                    this.updateAllPreviews();
                 },
 
                 parsePreviewAmount() {
@@ -696,10 +708,9 @@
 
                 init() {
                     /*<![CDATA[*/
-                    const isEdit = /*[[${isEdit}]]*/ false;
-                    const isDuplicate = /*[[${isDuplicate}]]*/ false;
+                    const hasTemplateData = /*[[${template != null or sourceTemplate != null}]]*/ false;
 
-                    if (isEdit || isDuplicate) {
+                    if (hasTemplateData) {
                         this.templateName = /*[[${template?.templateName ?: (sourceTemplate?.templateName ?: '')}]]*/ '';
                         this.category = /*[[${template?.category?.name() ?: (sourceTemplate?.category?.name() ?: '')}]]*/ '';
                         this.cashFlowCategory = /*[[${template?.cashFlowCategory?.name() ?: (sourceTemplate?.cashFlowCategory?.name() ?: 'OPERATING')}]]*/ 'OPERATING';
@@ -859,24 +870,10 @@
                                 }))
                         };
 
-                        // First, create temporary template via API
-                        const createResponse = await fetch('/templates/api', {
+                        const previewResponse = await fetch('/templates/api/preview', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(templateData)
-                        });
-
-                        if (!createResponse.ok) {
-                            throw new Error('Gagal membuat preview template');
-                        }
-
-                        const createdTemplate = await createResponse.json();
-
-                        // Then get preview using the created template
-                        const previewResponse = await fetch(`/templates/api/${createdTemplate.id}/preview`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(previewData)
+                            body: JSON.stringify({ template: templateData, execution: previewData })
                         });
 
                         if (!previewResponse.ok) {
@@ -884,11 +881,6 @@
                         }
 
                         const previewResult = await previewResponse.json();
-
-                        // Clean up temporary template
-                        await fetch(`/templates/api/${createdTemplate.id}`, {
-                            method: 'DELETE'
-                        });
 
                         // Display preview result
                         this.displayPreviewResult(previewResult);

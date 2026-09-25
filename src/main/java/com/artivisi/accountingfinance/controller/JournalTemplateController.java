@@ -11,6 +11,7 @@ import com.artivisi.accountingfinance.entity.JournalTemplateLine;
 import com.artivisi.accountingfinance.enums.CashFlowCategory;
 import com.artivisi.accountingfinance.enums.TemplateCategory;
 import com.artivisi.accountingfinance.enums.TemplateType;
+import com.artivisi.accountingfinance.security.Permission;
 import com.artivisi.accountingfinance.service.ChartOfAccountService;
 import com.artivisi.accountingfinance.service.FormulaEvaluator;
 import com.artivisi.accountingfinance.service.JournalTemplateService;
@@ -18,12 +19,16 @@ import com.artivisi.accountingfinance.service.TemplateExecutionEngine;
 import com.artivisi.accountingfinance.service.UserTemplatePreferenceService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -47,8 +52,12 @@ import static com.artivisi.accountingfinance.controller.ViewConstants.*;
 @Controller
 @RequestMapping("/templates")
 @RequiredArgsConstructor
-@org.springframework.security.access.prepost.PreAuthorize("hasAuthority('" + com.artivisi.accountingfinance.security.Permission.TEMPLATE_VIEW + "')")
+@PreAuthorize("hasAuthority('" + Permission.TEMPLATE_VIEW + "')")
 public class JournalTemplateController {
+
+    private static final String HAS_CREATE = "hasAuthority('" + Permission.TEMPLATE_CREATE + "')";
+    private static final String HAS_EDIT = "hasAuthority('" + Permission.TEMPLATE_EDIT + "')";
+    private static final String HAS_DELETE = "hasAuthority('" + Permission.TEMPLATE_DELETE + "')";
 
     private static final String ATTR_TEMPLATE = "template";
     private static final String ATTR_CATEGORIES = "categories";
@@ -61,6 +70,8 @@ public class JournalTemplateController {
     private static final String ATTR_ALL_TAGS = "allTags";
     private static final String ATTR_TEMPLATE_ID = "templateId";
     private static final String ATTR_SUCCESS_MESSAGE = "successMessage";
+    private static final String ATTR_ERROR_MESSAGE = "errorMessage";
+    private static final String REDIRECT_TEMPLATES = "redirect:/templates";
     private static final String VIEW_FORM = "templates/form";
 
     private final JournalTemplateService journalTemplateService;
@@ -147,41 +158,53 @@ public class JournalTemplateController {
     }
 
     @GetMapping("/new")
+    @PreAuthorize(HAS_CREATE)
     public String create(Model model) {
-        model.addAttribute(ATTR_CURRENT_PAGE, PAGE_TEMPLATES);
-        model.addAttribute(ATTR_IS_EDIT, false);
+        addFormAttributes(model, null);
         model.addAttribute(ATTR_IS_DUPLICATE, false);
-        model.addAttribute(ATTR_CATEGORIES, TemplateCategory.values());
-        model.addAttribute(ATTR_CASH_FLOW_CATEGORIES, CashFlowCategory.values());
-        model.addAttribute(ATTR_TEMPLATE_TYPES, TemplateType.values());
-        model.addAttribute(ATTR_ACCOUNTS, chartOfAccountService.findTransactableAccounts());
         return VIEW_FORM;
     }
 
     @GetMapping("/{id}/edit")
+    @PreAuthorize(HAS_EDIT)
     public String edit(@PathVariable UUID id, Model model) {
-        model.addAttribute(ATTR_CURRENT_PAGE, PAGE_TEMPLATES);
-        model.addAttribute(ATTR_IS_EDIT, true);
+        addFormAttributes(model, id);
         model.addAttribute(ATTR_IS_DUPLICATE, false);
         model.addAttribute(ATTR_TEMPLATE, journalTemplateService.findByIdWithLines(id));
-        model.addAttribute(ATTR_CATEGORIES, TemplateCategory.values());
-        model.addAttribute(ATTR_CASH_FLOW_CATEGORIES, CashFlowCategory.values());
-        model.addAttribute(ATTR_TEMPLATE_TYPES, TemplateType.values());
-        model.addAttribute(ATTR_ACCOUNTS, chartOfAccountService.findTransactableAccounts());
         return VIEW_FORM;
     }
 
     @GetMapping("/{id}/duplicate")
+    @PreAuthorize(HAS_CREATE)
     public String duplicate(@PathVariable UUID id, Model model) {
-        model.addAttribute(ATTR_CURRENT_PAGE, PAGE_TEMPLATES);
-        model.addAttribute(ATTR_IS_EDIT, false);
+        addFormAttributes(model, null);
         model.addAttribute(ATTR_IS_DUPLICATE, true);
         model.addAttribute("sourceTemplate", journalTemplateService.findByIdWithLines(id));
+        return VIEW_FORM;
+    }
+
+    private void addFormAttributes(Model model, UUID editId) {
+        model.addAttribute(ATTR_CURRENT_PAGE, PAGE_TEMPLATES);
+        model.addAttribute(ATTR_IS_EDIT, editId != null);
+        model.addAttribute(ATTR_TEMPLATE_ID, editId);
         model.addAttribute(ATTR_CATEGORIES, TemplateCategory.values());
         model.addAttribute(ATTR_CASH_FLOW_CATEGORIES, CashFlowCategory.values());
         model.addAttribute(ATTR_TEMPLATE_TYPES, TemplateType.values());
         model.addAttribute(ATTR_ACCOUNTS, chartOfAccountService.findTransactableAccounts());
+    }
+
+    private String rejectedForm(Model model, UUID editId, JournalTemplateDto dto, String error) {
+        addFormAttributes(model, editId);
+        model.addAttribute(ATTR_IS_DUPLICATE, false);
+        model.addAttribute(ATTR_TEMPLATE, mapDtoToEntity(dto));
+        model.addAttribute(ATTR_ERROR_MESSAGE, error);
         return VIEW_FORM;
+    }
+
+    private static String bindingErrors(BindingResult bindingResult) {
+        return bindingResult.getAllErrors().stream()
+                .map(e -> e instanceof FieldError fe ? fe.getField() + ": " + fe.getDefaultMessage() : e.getDefaultMessage())
+                .collect(java.util.stream.Collectors.joining(", "));
     }
 
     /**
@@ -196,26 +219,54 @@ public class JournalTemplateController {
     // Form POST Endpoints
 
     @PostMapping
-    public String create(@Valid JournalTemplateDto dto, RedirectAttributes redirectAttributes) {
-        JournalTemplate template = mapDtoToEntity(dto);
-        JournalTemplate saved = journalTemplateService.create(template);
+    @PreAuthorize(HAS_CREATE)
+    public String create(@Valid JournalTemplateDto dto, BindingResult bindingResult, Model model,
+                         RedirectAttributes redirectAttributes) {
+        if (bindingResult.hasErrors()) {
+            return rejectedForm(model, null, dto, bindingErrors(bindingResult));
+        }
+        JournalTemplate saved;
+        try {
+            saved = journalTemplateService.create(mapDtoToEntity(dto));
+        } catch (IllegalArgumentException e) {
+            return rejectedForm(model, null, dto, e.getMessage());
+        }
         redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Template berhasil dibuat");
-        return "redirect:/templates/" + saved.getId();
+        return REDIRECT_TEMPLATES + "/" + saved.getId();
     }
 
     @PostMapping("/{id}")
-    public String update(@PathVariable UUID id, @Valid JournalTemplateDto dto, RedirectAttributes redirectAttributes) {
-        JournalTemplate template = mapDtoToEntity(dto);
-        JournalTemplate updated = journalTemplateService.update(id, template);
+    @PreAuthorize(HAS_EDIT)
+    public String update(@PathVariable UUID id, @Valid JournalTemplateDto dto, BindingResult bindingResult,
+                         Model model, RedirectAttributes redirectAttributes) {
+        if (bindingResult.hasErrors()) {
+            return rejectedForm(model, id, dto, bindingErrors(bindingResult));
+        }
+        JournalTemplate updated;
+        try {
+            updated = journalTemplateService.update(id, mapDtoToEntity(dto));
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return rejectedForm(model, id, dto, e.getMessage());
+        }
         redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Template berhasil diperbarui (versi " + updated.getVersion() + ")");
-        return "redirect:/templates/" + updated.getId();
+        return REDIRECT_TEMPLATES + "/" + updated.getId();
     }
 
     @PostMapping("/{id}/delete")
+    @PreAuthorize(HAS_DELETE)
     public String delete(@PathVariable UUID id, RedirectAttributes redirectAttributes) {
-        journalTemplateService.delete(id);
+        try {
+            journalTemplateService.delete(id);
+        } catch (IllegalStateException e) {
+            redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, e.getMessage());
+            return REDIRECT_TEMPLATES + "/" + id;
+        } catch (DataIntegrityViolationException _) {
+            redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE,
+                    "Template tidak dapat dihapus karena sudah digunakan oleh data lain");
+            return REDIRECT_TEMPLATES + "/" + id;
+        }
         redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Template berhasil dihapus");
-        return "redirect:/templates";
+        return REDIRECT_TEMPLATES;
     }
 
     // REST API Endpoints
@@ -248,6 +299,7 @@ public class JournalTemplateController {
     }
 
     @PostMapping("/api")
+    @PreAuthorize(HAS_CREATE)
     @ResponseBody
     public ResponseEntity<JournalTemplate> apiCreate(@Valid @RequestBody JournalTemplateDto dto) {
         JournalTemplate template = mapDtoToEntity(dto);
@@ -255,6 +307,7 @@ public class JournalTemplateController {
     }
 
     @PutMapping("/api/{id}")
+    @PreAuthorize(HAS_EDIT)
     @ResponseBody
     public ResponseEntity<JournalTemplate> apiUpdate(@PathVariable UUID id, @Valid @RequestBody JournalTemplateDto dto) {
         JournalTemplate template = mapDtoToEntity(dto);
@@ -262,12 +315,14 @@ public class JournalTemplateController {
     }
 
     @PostMapping("/api/{id}/duplicate")
+    @PreAuthorize(HAS_CREATE)
     @ResponseBody
     public ResponseEntity<JournalTemplate> apiDuplicate(@PathVariable UUID id, @RequestParam String newName) {
         return ResponseEntity.ok(journalTemplateService.duplicate(id, newName));
     }
 
     @PostMapping("/api/{id}/activate")
+    @PreAuthorize(HAS_EDIT)
     @ResponseBody
     public ResponseEntity<Void> apiActivate(@PathVariable UUID id) {
         journalTemplateService.activate(id);
@@ -275,6 +330,7 @@ public class JournalTemplateController {
     }
 
     @PostMapping("/api/{id}/deactivate")
+    @PreAuthorize(HAS_EDIT)
     @ResponseBody
     public ResponseEntity<Void> apiDeactivate(@PathVariable UUID id) {
         journalTemplateService.deactivate(id);
@@ -282,6 +338,7 @@ public class JournalTemplateController {
     }
 
     @DeleteMapping("/api/{id}")
+    @PreAuthorize(HAS_DELETE)
     @ResponseBody
     public ResponseEntity<Void> apiDelete(@PathVariable UUID id) {
         journalTemplateService.delete(id);
@@ -310,6 +367,27 @@ public class JournalTemplateController {
         return formatter.format(amount.longValue());
     }
 
+    public record DraftPreviewRequest(
+            @Valid JournalTemplateDto template,
+            @Valid ExecuteTemplateDto execution) {
+    }
+
+    @PostMapping("/api/preview")
+    @ResponseBody
+    public ResponseEntity<TemplateExecutionEngine.PreviewResult> apiPreviewDraft(
+            @Valid @RequestBody DraftPreviewRequest request) {
+        ExecuteTemplateDto dto = request.execution();
+        TemplateExecutionEngine.ExecutionContext context = new TemplateExecutionEngine.ExecutionContext(
+                dto.transactionDate(),
+                dto.amount() != null ? dto.amount() : java.math.BigDecimal.ZERO,
+                dto.description(),
+                null,
+                dto.safeVariables(),
+                dto.safeAccountMappings()
+        );
+        return ResponseEntity.ok(templateExecutionEngine.preview(mapDtoToEntity(request.template()), context));
+    }
+
     @PostMapping("/api/{id}/preview")
     @ResponseBody
     public ResponseEntity<TemplateExecutionEngine.PreviewResult> apiPreview(
@@ -328,6 +406,7 @@ public class JournalTemplateController {
     }
 
     @PostMapping("/api/{id}/execute")
+    @PreAuthorize("hasAuthority('" + Permission.TRANSACTION_CREATE + "')")
     @ResponseBody
     public ResponseEntity<TemplateExecutionEngine.ExecutionResult> apiExecute(
             @PathVariable UUID id,
@@ -365,6 +444,7 @@ public class JournalTemplateController {
     }
 
     @PostMapping("/{id}/tags")
+    @PreAuthorize(HAS_EDIT)
     public String addTag(@PathVariable UUID id, @RequestParam String tag, Model model) {
         if (tag == null || tag.isBlank()) {
             throw new IllegalArgumentException("Tag is required");
@@ -377,6 +457,7 @@ public class JournalTemplateController {
     }
 
     @PostMapping("/{id}/tags/{tag}/delete")
+    @PreAuthorize(HAS_EDIT)
     public String removeTag(@PathVariable UUID id, @PathVariable String tag, Model model) {
         journalTemplateService.removeTag(id, tag);
         model.addAttribute(ATTR_TEMPLATE_ID, id);

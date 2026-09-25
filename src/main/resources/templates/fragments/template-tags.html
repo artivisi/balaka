@@ -12,7 +12,8 @@
           class="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded-full"
           data-testid="detail-tag">
         <span th:text="${tag}">tag</span>
-        <button type="button"
+        <button type="button" sec:authorize="hasAuthority('TEMPLATE_EDIT')"
+                data-testid="remove-tag-button"
                 th:hx-post="@{/templates/{id}/tags/{tag}/delete(id=${templateId}, tag=${tag})}"
                 hx-target="#tag-list"
                 hx-swap="outerHTML"
@@ -24,7 +25,7 @@
     </span>
 
     <!-- Add tag form -->
-    <form th:hx-post="@{/templates/{id}/tags(id=${templateId})}"
+    <form sec:authorize="hasAuthority('TEMPLATE_EDIT')" th:hx-post="@{/templates/{id}/tags(id=${templateId})}"
           hx-target="#tag-list"
           hx-swap="outerHTML"
           class="inline-flex items-center gap-1">
