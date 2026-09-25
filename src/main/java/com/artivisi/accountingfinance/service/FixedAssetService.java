@@ -32,6 +32,7 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -312,8 +313,8 @@ public class FixedAssetService {
             if (asset.getDepreciationRate() == null || asset.getDepreciationRate().compareTo(BigDecimal.ZERO) == 0) {
                 throw new IllegalStateException(ERR_DEPRECIATION_RATE_REQUIRED);
             }
-            BigDecimal monthlyRate = asset.getDepreciationRate().divide(BigDecimal.valueOf(1200), 6, RoundingMode.HALF_UP);
-            BigDecimal calculated = asset.getBookValue().multiply(monthlyRate).setScale(2, RoundingMode.HALF_UP);
+            BigDecimal calculated = asset.getBookValue().multiply(asset.getDepreciationRate())
+                    .divide(BigDecimal.valueOf(1200), 2, RoundingMode.HALF_UP);
 
             // Ensure we don't depreciate below residual value
             BigDecimal remaining = asset.getRemainingDepreciation();
@@ -327,6 +328,17 @@ public class FixedAssetService {
      */
     @Transactional
     public List<DepreciationEntry> generateDepreciationEntries(YearMonth period) {
+        generatePeriodEntries(period);
+        return depreciationEntryRepository.findAllPendingWithDetails();
+    }
+
+    /**
+     * Generate depreciation entries for a period as PENDING.
+     *
+     * @return only the entries created by this call
+     */
+    @Transactional
+    public List<DepreciationEntry> generatePeriodEntries(YearMonth period) {
         LocalDate periodStart = period.atDay(1);
         LocalDate periodEnd = period.atEndOfMonth();
 
@@ -336,6 +348,8 @@ public class FixedAssetService {
             log.info("No assets need depreciation for period {}", period);
             return List.of();
         }
+
+        List<DepreciationEntry> created = new ArrayList<>();
 
         log.info("Generating depreciation for {} assets in period {}", assets.size(), period);
 
@@ -372,12 +386,12 @@ public class FixedAssetService {
                 entry.setStatus(DepreciationEntryStatus.PENDING);
                 entry.setGeneratedAt(LocalDateTime.now());
 
-                depreciationEntryRepository.save(entry);
+                created.add(depreciationEntryRepository.save(entry));
                 log.debug("Generated depreciation entry for asset {}: {}", asset.getAssetCode(), depreciationAmount);
             }
         }
 
-        return depreciationEntryRepository.findAllPendingWithDetails();
+        return created;
     }
 
     /**
@@ -408,7 +422,7 @@ public class FixedAssetService {
             log.info("Depreciation catch-up: generating {} through {}", earliest, upToPeriod);
         }
         for (YearMonth period = earliest; !period.isAfter(upToPeriod); period = period.plusMonths(1)) {
-            generateDepreciationEntries(period);
+            generatePeriodEntries(period);
         }
         return depreciationEntryRepository.findAllPendingWithDetails();
     }

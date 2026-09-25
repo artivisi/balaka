@@ -21,7 +21,7 @@
                         <p>Tidak ada aset ditemukan</p>
                     </td>
                 </tr>
-                <tr th:each="asset : ${assets}" class="hover:bg-gray-50">
+                <tr th:each="asset : ${assets}" th:data-code="${asset.assetCode}" class="hover:bg-gray-50">
                     <td class="px-6 py-4 whitespace-nowrap">
                         <a th:href="@{/assets/{id}(id=${asset.id})}" class="text-primary-600 hover:underline font-mono text-sm" th:text="${asset.assetCode}">AST001</a>
                     </td>
@@ -60,10 +60,10 @@
             </div>
             <div class="flex gap-2">
                 <a th:if="${assets.hasPrevious()}"
-                   th:href="@{/assets(page=${assets.number - 1}, search=${search}, status=${status}, categoryId=${categoryId})}"
+                   th:href="@{/assets(page=${assets.number - 1}, size=${assets.size}, search=${search}, status=${status}, categoryId=${categoryId})}"
                    class="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50">Sebelumnya</a>
                 <a th:if="${assets.hasNext()}"
-                   th:href="@{/assets(page=${assets.number + 1}, search=${search}, status=${status}, categoryId=${categoryId})}"
+                   th:href="@{/assets(page=${assets.number + 1}, size=${assets.size}, search=${search}, status=${status}, categoryId=${categoryId})}"
                    class="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50">Selanjutnya</a>
             </div>
         </div>

@@ -83,6 +83,7 @@ public class FixedAssetController {
         private UUID category;
 
         @NotNull(message = "Tanggal pembelian wajib diisi")
+        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
         private LocalDate purchaseDate;
 
         @NotNull(message = "Nilai perolehan wajib diisi")
@@ -108,6 +109,7 @@ public class FixedAssetController {
         private BigDecimal depreciationRate;
 
         @NotNull(message = "Tanggal mulai penyusutan wajib diisi")
+        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
         private LocalDate depreciationStartDate;
 
         @Size(max = 100, message = "Lokasi maksimal 100 karakter")
@@ -211,6 +213,7 @@ public class FixedAssetController {
             RedirectAttributes redirectAttributes) {
 
         if (bindingResult.hasErrors()) {
+            restoreFundingAccountLabel(form);
             addFormAttributes(model);
             return VIEW_FORM;
         }
@@ -220,12 +223,13 @@ public class FixedAssetController {
             FixedAsset saved = fixedAssetService.create(asset);
             redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Aset berhasil ditambahkan");
             return REDIRECT_ASSETS + "/" + saved.getId();
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException | IllegalStateException e) {
             if (e.getMessage().contains("Kode aset")) {
                 bindingResult.rejectValue("assetCode", "duplicate", e.getMessage());
             } else {
                 bindingResult.reject("error", e.getMessage());
             }
+            restoreFundingAccountLabel(form);
             addFormAttributes(model);
             return VIEW_FORM;
         }
@@ -263,6 +267,7 @@ public class FixedAssetController {
 
         if (bindingResult.hasErrors()) {
             form.setId(id);
+            restoreFundingAccountLabel(form);
             addFormAttributes(model);
             return VIEW_FORM;
         }
@@ -275,6 +280,7 @@ public class FixedAssetController {
         } catch (IllegalArgumentException | IllegalStateException e) {
             bindingResult.reject("error", e.getMessage());
             form.setId(id);
+            restoreFundingAccountLabel(form);
             addFormAttributes(model);
             return VIEW_FORM;
         }
@@ -314,7 +320,7 @@ public class FixedAssetController {
             @RequestParam @DateTimeFormat(pattern = "yyyy-MM") YearMonth period,
             RedirectAttributes redirectAttributes) {
 
-        List<DepreciationEntry> entries = fixedAssetService.generateDepreciationEntries(period);
+        List<DepreciationEntry> entries = fixedAssetService.generatePeriodEntries(period);
 
         if (entries.isEmpty()) {
             redirectAttributes.addFlashAttribute("infoMessage", "Tidak ada aset yang perlu disusutkan untuk periode " + period);
@@ -348,8 +354,12 @@ public class FixedAssetController {
             @PathVariable UUID entryId,
             RedirectAttributes redirectAttributes) {
 
-        fixedAssetService.skipDepreciationEntry(entryId);
-        redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Entri penyusutan di-skip");
+        try {
+            fixedAssetService.skipDepreciationEntry(entryId);
+            redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Entri penyusutan di-skip");
+        } catch (IllegalStateException e) {
+            redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, e.getMessage());
+        }
         return REDIRECT_ASSETS_DEPRECIATION;
     }
 
@@ -410,6 +420,15 @@ public class FixedAssetController {
             redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, e.getMessage());
             return REDIRECT_ASSETS + "/" + id + "/dispose";
         }
+    }
+
+    // The picker's visible label is not submitted; rebuild it so a re-rendered form keeps the selection.
+    private void restoreFundingAccountLabel(FixedAssetForm form) {
+        if (form.getFundingAccount() == null) {
+            return;
+        }
+        var account = chartOfAccountService.findById(form.getFundingAccount());
+        form.setFundingAccountLabel(account.getAccountCode() + " - " + account.getAccountName());
     }
 
     private void addFormAttributes(Model model) {

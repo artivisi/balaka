@@ -231,8 +231,7 @@ public class FixedAsset extends TimestampedEntity {
             return depreciableAmount.divide(BigDecimal.valueOf(usefulLifeMonths), 2, java.math.RoundingMode.HALF_UP);
         } else {
             // Declining balance: annual rate / 12
-            BigDecimal monthlyRate = depreciationRate.divide(BigDecimal.valueOf(1200), 6, java.math.RoundingMode.HALF_UP);
-            return bookValue.multiply(monthlyRate).setScale(2, java.math.RoundingMode.HALF_UP);
+            return bookValue.multiply(depreciationRate).divide(BigDecimal.valueOf(1200), 2, java.math.RoundingMode.HALF_UP);
         }
     }
 

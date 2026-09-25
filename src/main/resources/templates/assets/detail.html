@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
-      th:replace="~{layouts/main :: layout('Detail Aset - ' + ${asset.assetCode}, ~{::#page-title}, ~{::section}, ~{})}"
+      th:replace="~{layouts/main :: layout('Detail Aset - ' + ${asset.assetCode}, ~{::#page-title}, ~{::section}, ~{::script})}"
       lang="id">
 <head>
     <title th:text="'Detail Aset - ' + ${asset.assetCode}">Detail Aset</title>
@@ -10,6 +10,13 @@
     <h1 id="page-title" th:text="'Detail Aset: ' + ${asset.name}">Detail Aset</h1>
 
     <section class="space-y-6">
+        <div th:if="${successMessage}" data-testid="flash-success"
+             class="p-4 rounded-lg bg-green-50 border border-green-200 text-sm font-medium text-green-800"
+             th:text="${successMessage}">Success</div>
+        <div th:if="${errorMessage}" data-testid="flash-error"
+             class="p-4 rounded-lg bg-red-50 border border-red-200 text-sm font-medium text-red-800"
+             th:text="${errorMessage}">Error</div>
+
         <!-- Header with actions -->
         <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
@@ -26,6 +33,12 @@
                 <a id="btn-dispose" sec:authorize="hasAuthority('ASSET_DISPOSE')" th:if="${!asset.disposed}"
                    th:href="@{/assets/{id}/dispose(id=${asset.id})}"
                    class="px-4 py-2 text-red-600 border border-red-300 rounded-lg hover:bg-red-50">Lepas Aset</a>
+                <form id="form-delete" sec:authorize="hasAuthority('ASSET_DELETE')"
+                      th:if="${!asset.disposed and asset.depreciationPeriodsCompleted == 0 and asset.purchaseTransaction == null}"
+                      th:action="@{/assets/{id}/delete(id=${asset.id})}" method="post" class="inline">
+                    <button id="btn-delete" type="submit"
+                            class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">Hapus</button>
+                </form>
             </div>
         </div>
 
@@ -108,7 +121,7 @@
                                 <tr th:if="${#lists.isEmpty(depreciationHistory)}">
                                     <td colspan="6" class="px-6 py-8 text-center text-gray-500">Belum ada riwayat penyusutan</td>
                                 </tr>
-                                <tr th:each="entry : ${depreciationHistory}" class="hover:bg-gray-50">
+                                <tr th:each="entry : ${depreciationHistory}" th:data-period="${entry.periodNumber}" class="hover:bg-gray-50">
                                     <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-500" th:text="${entry.periodNumber}">1</td>
                                     <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-900" th:text="${entry.periodDisplayName}">Jan 2025</td>
                                     <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-900 text-right font-mono" th:text="${#numbers.formatDecimal(entry.depreciationAmount, 0, 'COMMA', 0, 'POINT')}">208,333</td>
@@ -225,7 +238,7 @@
                         </div>
                         <div class="flex justify-between border-t pt-3">
                             <dt class="text-sm text-gray-500">Penyusutan/Bulan</dt>
-                            <dd class="text-sm font-bold text-gray-900" th:text="'Rp ' + ${#numbers.formatDecimal(monthlyDepreciation, 0, 'COMMA', 0, 'POINT')}">Rp 208,333</dd>
+                            <dd id="monthly-depreciation" class="text-sm font-bold text-gray-900" th:text="'Rp ' + ${#numbers.formatDecimal(monthlyDepreciation, 0, 'COMMA', 0, 'POINT')}">Rp 208,333</dd>
                         </div>
                     </dl>
                 </div>
@@ -261,5 +274,12 @@
             </a>
         </div>
     </section>
+    <script th:attr="nonce=${cspNonce}">
+        document.getElementById('form-delete')?.addEventListener('submit', function(e) {
+            if (!confirm('Hapus aset ini beserta entri penyusutan yang belum diposting?')) {
+                e.preventDefault();
+            }
+        });
+    </script>
 </body>
 </html>

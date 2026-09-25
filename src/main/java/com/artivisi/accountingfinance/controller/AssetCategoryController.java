@@ -90,7 +90,7 @@ public class AssetCategoryController {
 
     private AssetCategory toEntity(AssetCategoryForm form) {
         AssetCategory category = new AssetCategory();
-        BeanUtils.copyProperties(form, category, "id", "assetAccount", "accumulatedDepreciationAccount", "depreciationExpenseAccount");
+        BeanUtils.copyProperties(form, category, "id", "active", "assetAccount", "accumulatedDepreciationAccount", "depreciationExpenseAccount");
 
         ChartOfAccount assetAcct = new ChartOfAccount();
         assetAcct.setId(form.getAssetAccount());

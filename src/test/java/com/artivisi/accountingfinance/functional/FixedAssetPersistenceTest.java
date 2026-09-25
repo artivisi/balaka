@@ -2,402 +2,298 @@ package com.artivisi.accountingfinance.functional;
 
 import com.artivisi.accountingfinance.entity.AssetCategory;
 import com.artivisi.accountingfinance.entity.AssetStatus;
+import com.artivisi.accountingfinance.entity.ChartOfAccount;
 import com.artivisi.accountingfinance.entity.DepreciationEntry;
-import com.artivisi.accountingfinance.entity.DepreciationEntryStatus;
 import com.artivisi.accountingfinance.entity.DepreciationMethod;
 import com.artivisi.accountingfinance.entity.FixedAsset;
+import com.artivisi.accountingfinance.entity.Transaction;
+import com.artivisi.accountingfinance.enums.TransactionStatus;
 import com.artivisi.accountingfinance.functional.service.ServiceTestDataInitializer;
-import com.artivisi.accountingfinance.repository.AssetCategoryRepository;
+import com.artivisi.accountingfinance.repository.ChartOfAccountRepository;
 import com.artivisi.accountingfinance.repository.DepreciationEntryRepository;
 import com.artivisi.accountingfinance.repository.FixedAssetRepository;
+import com.artivisi.accountingfinance.repository.JournalEntryRepository;
+import com.artivisi.accountingfinance.repository.TransactionRepository;
+import com.artivisi.accountingfinance.service.AssetCategoryService;
 import com.artivisi.accountingfinance.service.FixedAssetService;
+import com.artivisi.accountingfinance.service.TransactionService;
 import com.artivisi.accountingfinance.ui.PlaywrightTestBase;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
-import org.springframework.data.domain.PageRequest;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
+import java.util.UUID;
 
-import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Functional tests for FixedAssetService with data persistence verification.
- * Tests asset creation, depreciation generation, and disposal operations.
+ * FixedAssetService against the IT-service seed: category defaults on create, the acquisition DRAFT journal,
+ * declining-balance amounts down to the residual, rejected creates leaving nothing behind, and the list-page
+ * totals. Assets use 2052 dates; totals are asserted as deltas because the database is shared.
  */
 @DisplayName("Fixed Asset - Persistence Tests")
 @Import(ServiceTestDataInitializer.class)
 class FixedAssetPersistenceTest extends PlaywrightTestBase {
 
+    private static final int YEAR = 2052;
+    private static final String BANK = "1.1.02";
+    private static final String OFFICE_ASSET = "1.2.05";
+    private static final String OFFICE_ACCUM = "1.2.06";
+    private static final String DEPRECIATION_EXPENSE = "5.1.12";
+
     @Autowired
     private FixedAssetService fixedAssetService;
 
     @Autowired
-    private com.artivisi.accountingfinance.repository.ChartOfAccountRepository chartOfAccountRepository;
+    private AssetCategoryService categoryService;
+
+    @Autowired
+    private TransactionService transactionService;
 
     @Autowired
     private FixedAssetRepository fixedAssetRepository;
 
     @Autowired
-    private AssetCategoryRepository categoryRepository;
+    private DepreciationEntryRepository entryRepository;
 
     @Autowired
-    private DepreciationEntryRepository depreciationEntryRepository;
+    private ChartOfAccountRepository accountRepository;
 
-    @BeforeEach
-    void setupAndLogin() {
-        loginAsAdmin();
-    }
+    @Autowired
+    private TransactionRepository transactionRepository;
 
-    // ==================== SERVICE LAYER TESTS ====================
+    @Autowired
+    private JournalEntryRepository journalEntryRepository;
+
+    @Autowired
+    private PlatformTransactionManager transactionManager;
 
     @Test
-    @DisplayName("Should create asset and verify persistence")
-    void shouldCreateAssetAndVerifyPersistence() {
-        // Get a category
-        var categories = categoryRepository.findAll();
-        if (categories.isEmpty()) {
-            return; // Skip if no categories
-        }
-        AssetCategory category = categories.get(0);
-
-        // Create asset
-        String uniqueCode = "AST-TEST-" + System.currentTimeMillis();
-        FixedAsset asset = new FixedAsset();
-        asset.setAssetCode(uniqueCode);
-        asset.setName("Test Asset for Persistence");
-        asset.setDescription("Testing asset creation persistence");
-        asset.setPurchaseDate(LocalDate.now().minusMonths(1));
-        asset.setPurchaseCost(new BigDecimal("10000000"));
-        asset.setResidualValue(new BigDecimal("1000000"));
-        asset.setUsefulLifeMonths(60);
-        asset.setDepreciationMethod(DepreciationMethod.STRAIGHT_LINE);
-        asset.setFundingAccount(chartOfAccountRepository.findByAccountCode("1.1.02").orElseThrow());
-        asset.setCategory(category);
+    @DisplayName("Create fills unset method, life, rate and start date from the category; the acquisition DRAFT posts Dr asset / Cr funding")
+    void shouldApplyCategoryDefaultsAndComposeAcquisitionDraft() {
+        AssetCategory category = createCategory(DepreciationMethod.DECLINING_BALANCE, 60, new BigDecimal("40"));
+        FixedAsset asset = newAsset(category, "15000000", LocalDate.of(YEAR, 3, 20));
+        asset.setDepreciationMethod(null);
+        asset.setUsefulLifeMonths(null);
 
         FixedAsset saved = fixedAssetService.create(asset);
 
-        // Verify persistence
-        assertThat(saved.getId()).isNotNull();
-        assertThat(saved.getAssetCode()).isEqualTo(uniqueCode);
-        assertThat(saved.getBookValue()).isEqualByComparingTo(new BigDecimal("10000000"));
+        FixedAsset fromDb = asset(saved.getAssetCode());
+        assertThat(fromDb.getDepreciationMethod()).isEqualTo(DepreciationMethod.DECLINING_BALANCE);
+        assertThat(fromDb.getUsefulLifeMonths()).isEqualTo(60);
+        assertThat(fromDb.getDepreciationRate()).isEqualByComparingTo("40");
+        assertThat(fromDb.getDepreciationStartDate()).isEqualTo(LocalDate.of(YEAR, 3, 1));
+        assertThat(fromDb.getBookValue()).isEqualByComparingTo("15000000");
+        assertThat(fromDb.getAccumulatedDepreciation()).isEqualByComparingTo("0");
+        assertThat(fromDb.getStatus()).isEqualTo(AssetStatus.ACTIVE);
+        assertThat(fromDb.getAssetAccount().getId()).isEqualTo(account(OFFICE_ASSET).getId());
+        assertThat(fromDb.getAccumulatedDepreciationAccount().getId()).isEqualTo(account(OFFICE_ACCUM).getId());
+        assertThat(fromDb.getDepreciationExpenseAccount().getId()).isEqualTo(account(DEPRECIATION_EXPENSE).getId());
 
-        // Verify in database
-        var fromDb = fixedAssetRepository.findById(saved.getId());
-        assertThat(fromDb).isPresent();
-        assertThat(fromDb.get().getName()).isEqualTo("Test Asset for Persistence");
+        List<Transaction> drafts = transactionRepository
+                .findBySourceDocumentTypeAndSourceDocumentIdOrderByTransactionDateAsc("ASSET", saved.getId());
+        assertThat(drafts).hasSize(1);
+        assertThat(drafts.get(0).getStatus()).isEqualTo(TransactionStatus.DRAFT);
+        Transaction posted = transactionService.post(drafts.get(0).getId(), "admin");
+        assertThat(posted.getStatus()).isEqualTo(TransactionStatus.POSTED);
+        assertThat(posted.getTransactionDate()).isEqualTo(LocalDate.of(YEAR, 3, 20));
+        assertThat(lines(posted.getId())).containsExactlyInAnyOrder(
+                OFFICE_ASSET + " D15000000.00 C0.00", BANK + " D0.00 C15000000.00");
+
+        FixedAsset overridden = newAsset(category, "8000000", LocalDate.of(YEAR, 4, 5));
+        overridden.setDepreciationMethod(DepreciationMethod.STRAIGHT_LINE);
+        overridden.setUsefulLifeMonths(24);
+        overridden.setDepreciationStartDate(LocalDate.of(YEAR, 5, 1));
+        FixedAsset savedOverride = fixedAssetService.create(overridden);
+        FixedAsset overrideFromDb = asset(savedOverride.getAssetCode());
+        assertThat(overrideFromDb.getDepreciationMethod()).isEqualTo(DepreciationMethod.STRAIGHT_LINE);
+        assertThat(overrideFromDb.getUsefulLifeMonths()).isEqualTo(24);
+        assertThat(overrideFromDb.getDepreciationStartDate()).isEqualTo(LocalDate.of(YEAR, 5, 1));
+        assertThat(fixedAssetService.calculateMonthlyDepreciation(overrideFromDb)).isEqualByComparingTo("333333.33");
     }
 
     @Test
-    @DisplayName("Should verify fixed asset repository works")
-    void shouldVerifyFixedAssetRepositoryWorks() {
-        // Verify repository is accessible
-        assertThat(fixedAssetRepository).isNotNull();
-
-        // Count assets
-        long assetCount = fixedAssetRepository.count();
-        assertThat(assetCount).isGreaterThanOrEqualTo(0);
-    }
-
-    @Test
-    @DisplayName("Should calculate monthly depreciation correctly")
-    void shouldCalculateMonthlyDepreciationCorrectly() {
-        var categories = categoryRepository.findAll();
-        if (categories.isEmpty()) {
-            return;
-        }
-
-        // Create asset with known values
-        String uniqueCode = "AST-DEP-" + System.currentTimeMillis();
-        FixedAsset asset = new FixedAsset();
-        asset.setAssetCode(uniqueCode);
-        asset.setName("Depreciation Test Asset");
-        asset.setPurchaseDate(LocalDate.now().minusMonths(1));
-        asset.setPurchaseCost(new BigDecimal("12000000")); // 12 million
-        asset.setResidualValue(new BigDecimal("0")); // No residual
-        asset.setUsefulLifeMonths(12); // 12 months
-        asset.setDepreciationMethod(DepreciationMethod.STRAIGHT_LINE);
-        asset.setFundingAccount(chartOfAccountRepository.findByAccountCode("1.1.02").orElseThrow());
-        asset.setCategory(categories.get(0));
-
-        FixedAsset saved = fixedAssetService.create(asset);
-
-        // Calculate depreciation
-        BigDecimal monthlyDep = fixedAssetService.calculateMonthlyDepreciation(saved);
-
-        // Verify depreciation is calculated and positive
-        assertThat(monthlyDep).isNotNull();
-        assertThat(monthlyDep).isGreaterThan(BigDecimal.ZERO);
-    }
-
-    @Test
-    @DisplayName("Should find assets by status filter")
-    void shouldFindAssetsByStatusFilter() {
-        var activePage = fixedAssetService.findByFilters(null, AssetStatus.ACTIVE, null, PageRequest.of(0, 10));
-        assertThat(activePage).isNotNull();
-
-        var disposedPage = fixedAssetService.findByFilters(null, AssetStatus.DISPOSED, null, PageRequest.of(0, 10));
-        assertThat(disposedPage).isNotNull();
-    }
-
-    @Test
-    @DisplayName("Should find assets by search term")
-    void shouldFindAssetsBySearchTerm() {
-        // Create asset with specific name
-        var categories = categoryRepository.findAll();
-        if (categories.isEmpty()) {
-            return;
-        }
-
-        String uniqueCode = "AST-SEARCH-" + System.currentTimeMillis();
-        FixedAsset asset = new FixedAsset();
-        asset.setAssetCode(uniqueCode);
-        asset.setName("Unique Searchable Asset XYZ123");
-        asset.setPurchaseDate(LocalDate.now());
-        asset.setPurchaseCost(new BigDecimal("1000000"));
-        asset.setUsefulLifeMonths(24);
-        asset.setDepreciationMethod(DepreciationMethod.STRAIGHT_LINE);
-        asset.setFundingAccount(chartOfAccountRepository.findByAccountCode("1.1.02").orElseThrow());
-        asset.setCategory(categories.get(0));
-
-        fixedAssetService.create(asset);
-
-        // Search by name
-        var results = fixedAssetService.findByFilters("XYZ123", null, null, PageRequest.of(0, 10));
-        assertThat(results.getTotalElements()).isGreaterThanOrEqualTo(1);
-    }
-
-    @Test
-    @DisplayName("Should reject duplicate asset code")
-    void shouldRejectDuplicateAssetCode() {
-        var categories = categoryRepository.findAll();
-        if (categories.isEmpty()) {
-            return;
-        }
-
-        String uniqueCode = "AST-DUP-" + System.currentTimeMillis();
-
-        // Create first asset
-        FixedAsset asset1 = new FixedAsset();
-        asset1.setAssetCode(uniqueCode);
-        asset1.setName("First Asset");
-        asset1.setPurchaseDate(LocalDate.now());
-        asset1.setPurchaseCost(new BigDecimal("1000000"));
-        asset1.setUsefulLifeMonths(24);
-        asset1.setDepreciationMethod(DepreciationMethod.STRAIGHT_LINE);
-        asset1.setFundingAccount(chartOfAccountRepository.findByAccountCode("1.1.02").orElseThrow());
-        asset1.setCategory(categories.get(0));
-        fixedAssetService.create(asset1);
-
-        // Try to create second with same code
-        FixedAsset asset2 = new FixedAsset();
-        asset2.setAssetCode(uniqueCode);
-        asset2.setName("Second Asset");
-        asset2.setPurchaseDate(LocalDate.now());
-        asset2.setPurchaseCost(new BigDecimal("2000000"));
-        asset2.setUsefulLifeMonths(24);
-        asset2.setDepreciationMethod(DepreciationMethod.STRAIGHT_LINE);
-        asset2.setFundingAccount(chartOfAccountRepository.findByAccountCode("1.1.02").orElseThrow());
-        asset2.setCategory(categories.get(0));
-
-        assertThatThrownBy(() -> fixedAssetService.create(asset2))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("sudah digunakan");
-    }
-
-    @Test
-    @DisplayName("Should get total book value")
-    void shouldGetTotalBookValue() {
-        BigDecimal totalBookValue = fixedAssetService.getTotalBookValue();
-        assertThat(totalBookValue).isNotNull();
-        assertThat(totalBookValue).isGreaterThanOrEqualTo(BigDecimal.ZERO);
-    }
-
-    @Test
-    @DisplayName("Should get total purchase cost")
-    void shouldGetTotalPurchaseCost() {
-        BigDecimal totalPurchaseCost = fixedAssetService.getTotalPurchaseCost();
-        assertThat(totalPurchaseCost).isNotNull();
-        assertThat(totalPurchaseCost).isGreaterThanOrEqualTo(BigDecimal.ZERO);
-    }
-
-    @Test
-    @DisplayName("Should get total accumulated depreciation")
-    void shouldGetTotalAccumulatedDepreciation() {
-        BigDecimal totalAccumDep = fixedAssetService.getTotalAccumulatedDepreciation();
-        assertThat(totalAccumDep).isNotNull();
-        assertThat(totalAccumDep).isGreaterThanOrEqualTo(BigDecimal.ZERO);
-    }
-
-    @Test
-    @DisplayName("Should count pending depreciation entries")
-    void shouldCountPendingDepreciationEntries() {
-        long pendingCount = fixedAssetService.countPendingDepreciationEntries();
-        assertThat(pendingCount).isGreaterThanOrEqualTo(0);
-    }
-
-    @Test
-    @DisplayName("Should validate declining balance requires rate")
-    void shouldValidateDecliningBalanceRequiresRate() {
-        var categories = categoryRepository.findAll();
-        if (categories.isEmpty()) {
-            return;
-        }
-
-        String uniqueCode = "AST-DECL-" + System.currentTimeMillis();
-        FixedAsset asset = new FixedAsset();
-        asset.setAssetCode(uniqueCode);
-        asset.setName("Declining Balance Test");
-        asset.setPurchaseDate(LocalDate.now());
-        asset.setPurchaseCost(new BigDecimal("10000000"));
-        asset.setUsefulLifeMonths(60);
+    @DisplayName("Declining balance: each month is book value x rate / 12 to the cent and the last period depreciates down to the residual")
+    void shouldDepreciateDecliningBalanceDownToResidual() {
+        AssetCategory category = createCategory(DepreciationMethod.DECLINING_BALANCE, 48, new BigDecimal("50"));
+        FixedAsset asset = newAsset(category, "12000000", LocalDate.of(YEAR, 1, 10));
         asset.setDepreciationMethod(DepreciationMethod.DECLINING_BALANCE);
-        asset.setFundingAccount(chartOfAccountRepository.findByAccountCode("1.1.02").orElseThrow());
-        asset.setDepreciationRate(null); // Missing rate
-        asset.setCategory(categories.get(0));
+        asset.setUsefulLifeMonths(2);
+        asset.setResidualValue(new BigDecimal("1000000"));
+        FixedAsset saved = fixedAssetService.create(asset);
+        assertThat(fixedAssetService.calculateMonthlyDepreciation(saved)).isEqualByComparingTo("500000.00");
 
-        assertThatThrownBy(() -> fixedAssetService.create(asset))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("Tarif penyusutan");
+        fixedAssetService.generateDepreciationEntries(YearMonth.of(YEAR, 1));
+        DepreciationEntry first = entry(saved, 1);
+        assertThat(first.getDepreciationAmount()).isEqualByComparingTo("500000.00");
+        assertThat(first.getAccumulatedDepreciation()).isEqualByComparingTo("500000.00");
+        assertThat(first.getBookValue()).isEqualByComparingTo("11500000.00");
+        fixedAssetService.postDepreciationEntry(first.getId(), "admin");
+        assertThat(postedLines(first)).containsExactlyInAnyOrder(
+                DEPRECIATION_EXPENSE + " D500000.00 C0.00", OFFICE_ACCUM + " D0.00 C500000.00");
+        assertThat(fixedAssetService.calculateMonthlyDepreciation(asset(saved.getAssetCode())))
+                .isEqualByComparingTo("479166.67");
+
+        fixedAssetService.generateDepreciationEntries(YearMonth.of(YEAR, 2));
+        DepreciationEntry last = entry(saved, 2);
+        assertThat(last.getDepreciationAmount()).isEqualByComparingTo("10500000.00");
+        assertThat(last.getBookValue()).isEqualByComparingTo("1000000.00");
+        fixedAssetService.postDepreciationEntry(last.getId(), "admin");
+        assertThat(postedLines(last)).containsExactlyInAnyOrder(
+                DEPRECIATION_EXPENSE + " D10500000.00 C0.00", OFFICE_ACCUM + " D0.00 C10500000.00");
+
+        FixedAsset done = asset(saved.getAssetCode());
+        assertThat(done.getStatus()).isEqualTo(AssetStatus.FULLY_DEPRECIATED);
+        assertThat(done.getAccumulatedDepreciation()).isEqualByComparingTo("11000000");
+        assertThat(done.getBookValue()).isEqualByComparingTo("1000000");
+        assertThat(fixedAssetService.calculateMonthlyDepreciation(done)).isEqualByComparingTo("0");
+
+        fixedAssetService.generateDepreciationEntries(YearMonth.of(YEAR, 3));
+        assertThat(entryRepository.findByAssetIdAndPeriodEnd(saved.getId(), LocalDate.of(YEAR, 3, 31))).isEmpty();
     }
 
     @Test
-    @DisplayName("Should validate residual value less than purchase cost")
-    void shouldValidateResidualValueLessThanPurchaseCost() {
-        var categories = categoryRepository.findAll();
-        if (categories.isEmpty()) {
-            return;
-        }
+    @DisplayName("Duplicate code, residual not below cost, declining balance without rate and missing funding account are rejected and leave nothing behind")
+    void shouldRejectInvalidAssetsWithoutPersisting() {
+        AssetCategory straightLine = createCategory(DepreciationMethod.STRAIGHT_LINE, 48, null);
+        FixedAsset existing = fixedAssetService.create(newAsset(straightLine, "5000000", LocalDate.of(YEAR, 1, 10)));
 
-        String uniqueCode = "AST-RES-" + System.currentTimeMillis();
+        FixedAsset duplicate = newAsset(straightLine, "7000000", LocalDate.of(YEAR, 1, 10));
+        duplicate.setAssetCode(existing.getAssetCode());
+        duplicate.setName("Duplikat");
+        assertThatThrownBy(() -> fixedAssetService.create(duplicate))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Kode aset " + existing.getAssetCode() + " sudah digunakan");
+        assertThat(asset(existing.getAssetCode()).getName()).isEqualTo(existing.getName());
+        assertThat(asset(existing.getAssetCode()).getPurchaseCost()).isEqualByComparingTo("5000000");
+
+        FixedAsset residual = newAsset(straightLine, "5000000", LocalDate.of(YEAR, 1, 10));
+        residual.setResidualValue(new BigDecimal("5000000"));
+        assertThatThrownBy(() -> fixedAssetService.create(residual))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Nilai residu harus lebih kecil dari nilai perolehan");
+        assertThat(fixedAssetRepository.existsByAssetCode(residual.getAssetCode())).isFalse();
+
+        FixedAsset noRate = newAsset(straightLine, "5000000", LocalDate.of(YEAR, 1, 10));
+        noRate.setDepreciationMethod(DepreciationMethod.DECLINING_BALANCE);
+        assertThatThrownBy(() -> fixedAssetService.create(noRate))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Tarif penyusutan wajib diisi untuk metode saldo menurun");
+        assertThat(fixedAssetRepository.existsByAssetCode(noRate.getAssetCode())).isFalse();
+
+        FixedAsset noFunding = newAsset(straightLine, "5000000", LocalDate.of(YEAR, 1, 10));
+        noFunding.setFundingAccount(null);
+        assertThatThrownBy(() -> fixedAssetService.create(noFunding))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Akun pendanaan aset belum dipilih (bank/hutang yang dipakai untuk pembelian)");
+        assertThat(fixedAssetRepository.existsByAssetCode(noFunding.getAssetCode())).isFalse();
+    }
+
+    @Test
+    @DisplayName("List totals and the pending counter move by exactly the new asset's cost and its posted depreciation; generation is idempotent")
+    void shouldMoveTotalsByCostAndPostedDepreciation() {
+        AssetCategory category = createCategory(DepreciationMethod.STRAIGHT_LINE, 48, null);
+        BigDecimal costBefore = fixedAssetService.getTotalPurchaseCost();
+        BigDecimal bookBefore = fixedAssetService.getTotalBookValue();
+        BigDecimal accumBefore = fixedAssetService.getTotalAccumulatedDepreciation();
+
+        FixedAsset asset = newAsset(category, "6000000", LocalDate.of(YEAR, 6, 10));
+        asset.setUsefulLifeMonths(12);
+        FixedAsset saved = fixedAssetService.create(asset);
+        assertThat(fixedAssetService.getTotalPurchaseCost().subtract(costBefore)).isEqualByComparingTo("6000000");
+        assertThat(fixedAssetService.getTotalBookValue().subtract(bookBefore)).isEqualByComparingTo("6000000");
+        assertThat(fixedAssetService.getTotalAccumulatedDepreciation()).isEqualByComparingTo(accumBefore);
+
+        YearMonth june = YearMonth.of(YEAR, 6);
+        long pendingBefore = fixedAssetService.countPendingDepreciationEntries();
+        int juneBefore = entryRepository.findByPeriodEndAndOptionalStatus(june.atEndOfMonth(), null).size();
+        fixedAssetService.generateDepreciationEntries(june);
+        int generated = entryRepository.findByPeriodEndAndOptionalStatus(june.atEndOfMonth(), null).size() - juneBefore;
+        assertThat(generated).isPositive();
+        assertThat(fixedAssetService.countPendingDepreciationEntries() - pendingBefore).isEqualTo(generated);
+
+        fixedAssetService.generateDepreciationEntries(june);
+        assertThat(entryRepository.findByPeriodEndAndOptionalStatus(june.atEndOfMonth(), null)).hasSize(juneBefore + generated);
+        assertThat(entryRepository.findByFixedAssetIdOrderByPeriodNumberAsc(saved.getId())).hasSize(1);
+
+        long pendingAfterGenerate = fixedAssetService.countPendingDepreciationEntries();
+        fixedAssetService.postDepreciationEntry(entry(saved, 1).getId(), "admin");
+        assertThat(fixedAssetService.countPendingDepreciationEntries()).isEqualTo(pendingAfterGenerate - 1);
+        assertThat(fixedAssetService.getTotalAccumulatedDepreciation().subtract(accumBefore)).isEqualByComparingTo("500000");
+        assertThat(fixedAssetService.getTotalBookValue().subtract(bookBefore)).isEqualByComparingTo("5500000");
+        assertThat(fixedAssetService.getTotalPurchaseCost().subtract(costBefore)).isEqualByComparingTo("6000000");
+    }
+
+    // ==================== helpers ====================
+
+    private AssetCategory createCategory(DepreciationMethod method, int months, BigDecimal rate) {
+        String code = "PC" + uid();
+        AssetCategory category = new AssetCategory();
+        category.setCode(code);
+        category.setName("Kategori " + code);
+        category.setDepreciationMethod(method);
+        category.setUsefulLifeMonths(months);
+        category.setDepreciationRate(rate);
+        category.setAssetAccount(account(OFFICE_ASSET));
+        category.setAccumulatedDepreciationAccount(account(OFFICE_ACCUM));
+        category.setDepreciationExpenseAccount(account(DEPRECIATION_EXPENSE));
+        return categoryService.create(category);
+    }
+
+    private FixedAsset newAsset(AssetCategory category, String cost, LocalDate purchaseDate) {
+        String code = "PS-" + uid();
         FixedAsset asset = new FixedAsset();
-        asset.setAssetCode(uniqueCode);
-        asset.setName("Residual Value Test");
-        asset.setPurchaseDate(LocalDate.now());
-        asset.setPurchaseCost(new BigDecimal("1000000"));
-        asset.setResidualValue(new BigDecimal("2000000")); // Greater than cost
-        asset.setUsefulLifeMonths(24);
-        asset.setDepreciationMethod(DepreciationMethod.STRAIGHT_LINE);
-        asset.setFundingAccount(chartOfAccountRepository.findByAccountCode("1.1.02").orElseThrow());
-        asset.setCategory(categories.get(0));
-
-        assertThatThrownBy(() -> fixedAssetService.create(asset))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("Nilai residu");
+        asset.setAssetCode(code);
+        asset.setName("Aset " + code);
+        asset.setCategory(category);
+        asset.setPurchaseDate(purchaseDate);
+        asset.setPurchaseCost(new BigDecimal(cost));
+        asset.setFundingAccount(account(BANK));
+        return asset;
     }
 
-    // ==================== UI TESTS ====================
-
-    @Test
-    @DisplayName("Should display assets list page")
-    void shouldDisplayAssetsListPage() {
-        navigateTo("/assets");
-        waitForPageLoad();
-
-        assertThat(page.locator("#page-title")).containsText("Aset");
+    private List<String> postedLines(DepreciationEntry entry) {
+        UUID transactionId = new TransactionTemplate(transactionManager).execute(status ->
+                entryRepository.findById(entry.getId()).orElseThrow().getTransaction().getId());
+        return lines(transactionId);
     }
 
-    @Test
-    @DisplayName("Should display asset form page")
-    void shouldDisplayAssetFormPage() {
-        navigateTo("/assets/new");
-        waitForPageLoad();
-
-        assertThat(page.locator("#page-title")).isVisible();
-        assertThat(page.locator("#assetCode, input[name='assetCode']").first()).isVisible();
+    private List<String> lines(UUID transactionId) {
+        return journalEntryRepository.findByTransactionIdWithAccount(transactionId).stream()
+                .map(l -> l.getAccount().getAccountCode()
+                        + " D" + l.getDebitAmount().setScale(2, RoundingMode.UNNECESSARY).toPlainString()
+                        + " C" + l.getCreditAmount().setScale(2, RoundingMode.UNNECESSARY).toPlainString())
+                .toList();
     }
 
-    @Test
-    @DisplayName("Should display depreciation schedule page")
-    void shouldDisplayDepreciationSchedulePage() {
-        navigateTo("/assets/depreciation");
-        waitForPageLoad();
-
-        assertThat(page.locator("#page-title")).isVisible();
+    private DepreciationEntry entry(FixedAsset asset, int periodNumber) {
+        return entryRepository.findByFixedAssetIdOrderByPeriodNumberAsc(asset.getId()).stream()
+                .filter(e -> e.getPeriodNumber() == periodNumber)
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException(
+                        "Depreciation entry " + periodNumber + " missing for " + asset.getAssetCode()));
     }
 
-    @Test
-    @DisplayName("Should display asset categories page")
-    void shouldDisplayAssetCategoriesPage() {
-        navigateTo("/assets/categories");
-        waitForPageLoad();
-
-        assertThat(page.locator("#page-title")).isVisible();
+    private FixedAsset asset(String code) {
+        return fixedAssetRepository.findByAssetCode(code)
+                .orElseThrow(() -> new IllegalStateException("Fixed asset missing: " + code));
     }
 
-    @Test
-    @DisplayName("Should create asset via UI and verify in database")
-    void shouldCreateAssetViaUiAndVerifyInDatabase() {
-        navigateTo("/assets/new");
-        waitForPageLoad();
-
-        String uniqueCode = "UI-AST-" + System.currentTimeMillis();
-
-        // Fill form
-        var assetCodeInput = page.locator("#assetCode, input[name='assetCode']").first();
-        if (assetCodeInput.isVisible()) {
-            assetCodeInput.fill(uniqueCode);
-        }
-
-        var nameInput = page.locator("#name, input[name='name']").first();
-        if (nameInput.isVisible()) {
-            nameInput.fill("UI Created Asset Test");
-        }
-
-        // Select category if dropdown exists
-        var categorySelect = page.locator("select[name='category.id'], #categoryId").first();
-        if (categorySelect.isVisible()) {
-            var options = categorySelect.locator("option[value]");
-            if (options.count() > 1) {
-                categorySelect.selectOption(options.nth(1).getAttribute("value"));
-            }
-        }
-
-        // Fill purchase date
-        var purchaseDateInput = page.locator("#purchaseDate, input[name='purchaseDate']").first();
-        if (purchaseDateInput.isVisible()) {
-            purchaseDateInput.fill(LocalDate.now().toString());
-        }
-
-        // Fill purchase cost
-        var purchaseCostInput = page.locator("#purchaseCost, input[name='purchaseCost']").first();
-        if (purchaseCostInput.isVisible()) {
-            purchaseCostInput.fill("5000000");
-        }
-
-        // Fill useful life
-        var usefulLifeInput = page.locator("#usefulLifeMonths, input[name='usefulLifeMonths']").first();
-        if (usefulLifeInput.isVisible()) {
-            usefulLifeInput.fill("24");
-        }
-
-        // Submit form
-        var submitBtn = page.locator("button[type='submit']").first();
-        if (submitBtn.isVisible()) {
-            submitBtn.click();
-            waitForPageLoad();
-        }
-
-        // Verify in database
-        var fromDb = fixedAssetRepository.findByAssetCode(uniqueCode);
-        if (fromDb.isPresent()) {
-            assertThat(fromDb.get().getName()).isEqualTo("UI Created Asset Test");
-        }
+    private ChartOfAccount account(String code) {
+        return accountRepository.findByAccountCode(code)
+                .orElseThrow(() -> new IllegalStateException("Seeded account missing: " + code));
     }
 
-    @Test
-    @DisplayName("Should filter assets by status via UI")
-    void shouldFilterAssetsByStatusViaUi() {
-        navigateTo("/assets?status=ACTIVE");
-        waitForPageLoad();
-
-        assertThat(page.locator("#page-title")).isVisible();
+    private static String uid() {
+        return UUID.randomUUID().toString().substring(0, 8).toUpperCase();
     }
 }
