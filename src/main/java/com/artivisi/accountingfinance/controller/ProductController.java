@@ -11,6 +11,7 @@ import com.artivisi.accountingfinance.service.ProductService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +34,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -78,7 +80,12 @@ public class ProductController {
         private CostingMethod costingMethod;
 
         private boolean trackInventory;
+
+        @NotNull(message = "Stok minimum wajib diisi")
+        @PositiveOrZero(message = "Stok minimum tidak boleh negatif")
         private BigDecimal minimumStock;
+
+        @PositiveOrZero(message = "Harga jual tidak boleh negatif")
         private BigDecimal sellingPrice;
         private boolean active;
 
@@ -93,18 +100,21 @@ public class ProductController {
         Product entity = new Product();
         BeanUtils.copyProperties(form, entity, "id", "category", "inventoryAccount", "cogsAccount", "salesAccount");
         if (form.getCategory() != null) {
-            entity.setCategory(categoryService.findById(form.getCategory()).orElse(null));
+            entity.setCategory(categoryService.findById(form.getCategory())
+                    .orElseThrow(() -> new IllegalArgumentException("Kategori produk tidak ditemukan: " + form.getCategory())));
         }
-        if (form.getInventoryAccount() != null) {
-            entity.setInventoryAccount(chartOfAccountRepository.findById(form.getInventoryAccount()).orElse(null));
-        }
-        if (form.getCogsAccount() != null) {
-            entity.setCogsAccount(chartOfAccountRepository.findById(form.getCogsAccount()).orElse(null));
-        }
-        if (form.getSalesAccount() != null) {
-            entity.setSalesAccount(chartOfAccountRepository.findById(form.getSalesAccount()).orElse(null));
-        }
+        entity.setInventoryAccount(findAccount(form.getInventoryAccount()));
+        entity.setCogsAccount(findAccount(form.getCogsAccount()));
+        entity.setSalesAccount(findAccount(form.getSalesAccount()));
         return entity;
+    }
+
+    private ChartOfAccount findAccount(UUID id) {
+        if (id == null) {
+            return null;
+        }
+        return chartOfAccountRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Akun tidak ditemukan: " + id));
     }
 
     private ProductForm toForm(Product entity) {
@@ -184,9 +194,10 @@ public class ProductController {
         form.setCostingMethod(CostingMethod.WEIGHTED_AVERAGE);
         form.setTrackInventory(true);
         form.setActive(true);
+        form.setMinimumStock(BigDecimal.ZERO);
 
         model.addAttribute(ATTR_PRODUCT, form);
-        addFormAttributes(model);
+        addFormAttributes(model, null);
         return VIEW_FORM;
     }
 
@@ -199,7 +210,7 @@ public class ProductController {
             RedirectAttributes redirectAttributes) {
 
         if (bindingResult.hasErrors()) {
-            addFormAttributes(model);
+            addFormAttributes(model, form.getCategory());
             return VIEW_FORM;
         }
 
@@ -214,7 +225,7 @@ public class ProductController {
             } else {
                 bindingResult.reject("error", e.getMessage());
             }
-            addFormAttributes(model);
+            addFormAttributes(model, form.getCategory());
             return VIEW_FORM;
         }
     }
@@ -235,8 +246,9 @@ public class ProductController {
         Product existing = productService.findByIdWithDetails(id)
                 .orElseThrow(() -> new IllegalArgumentException("Produk tidak ditemukan: " + id));
 
-        model.addAttribute(ATTR_PRODUCT, toForm(existing));
-        addFormAttributes(model);
+        ProductForm form = toForm(existing);
+        model.addAttribute(ATTR_PRODUCT, form);
+        addFormAttributes(model, form.getCategory());
         return VIEW_FORM;
     }
 
@@ -251,7 +263,7 @@ public class ProductController {
 
         if (bindingResult.hasErrors()) {
             form.setId(id);
-            addFormAttributes(model);
+            addFormAttributes(model, form.getCategory());
             return VIEW_FORM;
         }
 
@@ -267,7 +279,7 @@ public class ProductController {
                 bindingResult.reject("error", e.getMessage());
             }
             form.setId(id);
-            addFormAttributes(model);
+            addFormAttributes(model, form.getCategory());
             return VIEW_FORM;
         }
     }
@@ -300,8 +312,11 @@ public class ProductController {
         return REDIRECT_PRODUCTS;
     }
 
-    private void addFormAttributes(Model model) {
-        List<ProductCategory> categories = categoryService.findAllActive();
+    private void addFormAttributes(Model model, UUID selectedCategoryId) {
+        List<ProductCategory> categories = new ArrayList<>(categoryService.findAllActive());
+        if (selectedCategoryId != null && categories.stream().noneMatch(c -> c.getId().equals(selectedCategoryId))) {
+            categoryService.findById(selectedCategoryId).ifPresent(categories::add);
+        }
         model.addAttribute("categories", categories);
         model.addAttribute("costingMethods", CostingMethod.values());
         model.addAttribute("inventoryAccounts", chartOfAccountRepository.findAssetAccounts());

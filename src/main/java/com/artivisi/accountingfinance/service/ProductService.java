@@ -22,6 +22,8 @@ public class ProductService {
 
     private static final String ERR_PRODUCT_NOT_FOUND = "Produk tidak ditemukan: ";
     private static final String ERR_PRODUCT_HAS_TRANSACTIONS = "Tidak dapat menghapus produk yang memiliki transaksi inventori";
+    private static final String ERR_PRODUCT_IN_BOM = "Tidak dapat menghapus produk yang digunakan di Bill of Materials";
+    private static final String ERR_PRODUCT_IN_DOCUMENTS = "Tidak dapat menghapus produk yang digunakan di invoice atau tagihan";
 
     private final ProductRepository productRepository;
     private final InventoryTransactionRepository inventoryTransactionRepository;
@@ -61,6 +63,14 @@ public class ProductService {
         // Check for inventory transactions before deleting
         if (inventoryTransactionRepository.countByProductId(id) > 0) {
             throw new IllegalStateException(ERR_PRODUCT_HAS_TRANSACTIONS);
+        }
+        if (productRepository.countBillOfMaterialsByProductId(id) > 0
+                || productRepository.countBillOfMaterialLinesByComponentId(id) > 0) {
+            throw new IllegalStateException(ERR_PRODUCT_IN_BOM);
+        }
+        if (productRepository.countInvoiceLinesByProductId(id) > 0
+                || productRepository.countBillLinesByProductId(id) > 0) {
+            throw new IllegalStateException(ERR_PRODUCT_IN_DOCUMENTS);
         }
 
         productRepository.delete(product);

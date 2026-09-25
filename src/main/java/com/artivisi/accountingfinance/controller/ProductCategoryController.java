@@ -26,6 +26,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -111,7 +112,7 @@ public class ProductCategoryController {
         form.setActive(true);
 
         model.addAttribute("category", form);
-        addFormAttributes(model);
+        addFormAttributes(model, null);
         return VIEW_FORM;
     }
 
@@ -124,7 +125,7 @@ public class ProductCategoryController {
             RedirectAttributes redirectAttributes) {
 
         if (bindingResult.hasErrors()) {
-            addFormAttributes(model);
+            addFormAttributes(model, form.getParent());
             return VIEW_FORM;
         }
 
@@ -139,7 +140,7 @@ public class ProductCategoryController {
             } else {
                 bindingResult.reject("error", e.getMessage());
             }
-            addFormAttributes(model);
+            addFormAttributes(model, form.getParent());
             return VIEW_FORM;
         }
     }
@@ -150,8 +151,9 @@ public class ProductCategoryController {
         ProductCategory category = categoryService.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Kategori produk tidak ditemukan: " + id));
 
-        model.addAttribute("category", toForm(category));
-        addFormAttributes(model);
+        ProductCategoryForm form = toForm(category);
+        model.addAttribute("category", form);
+        addFormAttributes(model, form.getParent());
         return VIEW_FORM;
     }
 
@@ -166,7 +168,7 @@ public class ProductCategoryController {
 
         if (bindingResult.hasErrors()) {
             form.setId(id);
-            addFormAttributes(model);
+            addFormAttributes(model, form.getParent());
             return VIEW_FORM;
         }
 
@@ -182,7 +184,7 @@ public class ProductCategoryController {
                 bindingResult.reject("error", e.getMessage());
             }
             form.setId(id);
-            addFormAttributes(model);
+            addFormAttributes(model, form.getParent());
             return VIEW_FORM;
         }
     }
@@ -199,8 +201,11 @@ public class ProductCategoryController {
         return REDIRECT_PRODUCT_CATEGORIES;
     }
 
-    private void addFormAttributes(Model model) {
-        List<ProductCategory> parentCategories = categoryService.findAllActive();
+    private void addFormAttributes(Model model, UUID selectedParentId) {
+        List<ProductCategory> parentCategories = new ArrayList<>(categoryService.findAllActive());
+        if (selectedParentId != null && parentCategories.stream().noneMatch(c -> c.getId().equals(selectedParentId))) {
+            categoryService.findById(selectedParentId).ifPresent(parentCategories::add);
+        }
         model.addAttribute("parentCategories", parentCategories);
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_PRODUCT_CATEGORIES);
     }

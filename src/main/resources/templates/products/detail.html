@@ -13,12 +13,12 @@
         <!-- Header with actions -->
         <div class="flex items-center justify-between">
             <div>
-                <h2 class="text-2xl font-bold text-gray-900" th:text="${product.name}">Nama Produk</h2>
+                <h2 class="text-2xl font-bold text-gray-900" th:text="${product.name}" data-testid="product-detail-heading">Nama Produk</h2>
                 <p class="text-gray-500" th:text="${product.code}">PRD001</p>
             </div>
             <div class="flex items-center gap-3">
-                <span th:if="${product.active}" class="px-3 py-1 text-sm font-medium rounded-full bg-green-100 text-green-800">Aktif</span>
-                <span th:unless="${product.active}" class="px-3 py-1 text-sm font-medium rounded-full bg-gray-100 text-gray-800">Nonaktif</span>
+                <span th:if="${product.active}" data-testid="product-detail-status" class="px-3 py-1 text-sm font-medium rounded-full bg-green-100 text-green-800">Aktif</span>
+                <span th:unless="${product.active}" data-testid="product-detail-status" class="px-3 py-1 text-sm font-medium rounded-full bg-gray-100 text-gray-800">Nonaktif</span>
                 <a sec:authorize="hasAuthority('PRODUCT_EDIT')" th:href="@{/products/{id}/edit(id=${product.id})}"
                    class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
                     Edit
@@ -32,23 +32,23 @@
             <dl class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <dt class="text-sm font-medium text-gray-500">Kode Produk</dt>
-                    <dd class="mt-1 text-sm text-gray-900" th:text="${product.code}">PRD001</dd>
+                    <dd class="mt-1 text-sm text-gray-900" th:text="${product.code}" data-testid="product-detail-code">PRD001</dd>
                 </div>
                 <div>
                     <dt class="text-sm font-medium text-gray-500">Nama Produk</dt>
-                    <dd class="mt-1 text-sm text-gray-900" th:text="${product.name}">Produk</dd>
+                    <dd class="mt-1 text-sm text-gray-900" th:text="${product.name}" data-testid="product-detail-name">Produk</dd>
                 </div>
                 <div>
                     <dt class="text-sm font-medium text-gray-500">Satuan</dt>
-                    <dd class="mt-1 text-sm text-gray-900" th:text="${product.unit}">pcs</dd>
+                    <dd class="mt-1 text-sm text-gray-900" th:text="${product.unit}" data-testid="product-detail-unit">pcs</dd>
                 </div>
                 <div>
                     <dt class="text-sm font-medium text-gray-500">Kategori</dt>
-                    <dd class="mt-1 text-sm text-gray-900" th:text="${product.category?.name ?: '-'}">-</dd>
+                    <dd class="mt-1 text-sm text-gray-900" th:text="${product.category?.name ?: '-'}" data-testid="product-detail-category">-</dd>
                 </div>
                 <div class="md:col-span-2">
                     <dt class="text-sm font-medium text-gray-500">Deskripsi</dt>
-                    <dd class="mt-1 text-sm text-gray-900" th:text="${product.description ?: '-'}">-</dd>
+                    <dd class="mt-1 text-sm text-gray-900" th:text="${product.description ?: '-'}" data-testid="product-detail-description">-</dd>
                 </div>
             </dl>
         </div>
@@ -59,22 +59,22 @@
             <dl class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <dt class="text-sm font-medium text-gray-500">Lacak Inventori</dt>
-                    <dd class="mt-1 text-sm text-gray-900">
+                    <dd class="mt-1 text-sm text-gray-900" data-testid="product-detail-track-inventory">
                         <span th:if="${product.trackInventory}" class="text-green-600">Ya</span>
                         <span th:unless="${product.trackInventory}" class="text-gray-500">Tidak</span>
                     </dd>
                 </div>
                 <div>
                     <dt class="text-sm font-medium text-gray-500">Metode Perhitungan Biaya</dt>
-                    <dd class="mt-1 text-sm text-gray-900" th:text="${product.costingMethod.displayName}">Weighted Average</dd>
+                    <dd class="mt-1 text-sm text-gray-900" th:text="${product.costingMethod.displayName}" data-testid="product-detail-costing-method">Weighted Average</dd>
                 </div>
                 <div>
                     <dt class="text-sm font-medium text-gray-500">Stok Minimum</dt>
-                    <dd class="mt-1 text-sm text-gray-900" th:text="${product.minimumStock != null ? #numbers.formatDecimal(product.minimumStock, 0, 'COMMA', 4, 'POINT') : '-'}">-</dd>
+                    <dd class="mt-1 text-sm text-gray-900" th:text="${product.minimumStock != null ? #numbers.formatDecimal(product.minimumStock, 1, 'COMMA', 4, 'POINT') : '-'}" data-testid="product-detail-minimum-stock">-</dd>
                 </div>
                 <div>
                     <dt class="text-sm font-medium text-gray-500">Harga Jual</dt>
-                    <dd class="mt-1 text-sm text-gray-900" th:text="${product.sellingPrice != null ? 'Rp ' + #numbers.formatDecimal(product.sellingPrice, 0, 'COMMA', 0, 'POINT') : '-'}">-</dd>
+                    <dd class="mt-1 text-sm text-gray-900" th:text="${product.sellingPrice != null ? 'Rp ' + #numbers.formatDecimal(product.sellingPrice, 1, 'COMMA', 0, 'POINT') : '-'}" data-testid="product-detail-selling-price">-</dd>
                 </div>
             </dl>
         </div>
@@ -85,15 +85,15 @@
             <dl class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                     <dt class="text-sm font-medium text-gray-500">Akun Inventori</dt>
-                    <dd class="mt-1 text-sm text-gray-900" th:text="${product.inventoryAccount != null ? product.inventoryAccount.accountCode + ' - ' + product.inventoryAccount.accountName : '-'}">-</dd>
+                    <dd class="mt-1 text-sm text-gray-900" th:text="${product.inventoryAccount != null ? product.inventoryAccount.accountCode + ' - ' + product.inventoryAccount.accountName : '-'}" data-testid="product-detail-inventory-account">-</dd>
                 </div>
                 <div>
                     <dt class="text-sm font-medium text-gray-500">Akun HPP</dt>
-                    <dd class="mt-1 text-sm text-gray-900" th:text="${product.cogsAccount != null ? product.cogsAccount.accountCode + ' - ' + product.cogsAccount.accountName : '-'}">-</dd>
+                    <dd class="mt-1 text-sm text-gray-900" th:text="${product.cogsAccount != null ? product.cogsAccount.accountCode + ' - ' + product.cogsAccount.accountName : '-'}" data-testid="product-detail-cogs-account">-</dd>
                 </div>
                 <div>
                     <dt class="text-sm font-medium text-gray-500">Akun Penjualan</dt>
-                    <dd class="mt-1 text-sm text-gray-900" th:text="${product.salesAccount != null ? product.salesAccount.accountCode + ' - ' + product.salesAccount.accountName : '-'}">-</dd>
+                    <dd class="mt-1 text-sm text-gray-900" th:text="${product.salesAccount != null ? product.salesAccount.accountCode + ' - ' + product.salesAccount.accountName : '-'}" data-testid="product-detail-sales-account">-</dd>
                 </div>
             </dl>
         </div>

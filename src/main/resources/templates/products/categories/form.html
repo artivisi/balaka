@@ -14,7 +14,7 @@
                   th:object="${category}" method="post" class="p-6 space-y-6">
 
                 <!-- Global Errors -->
-                <div th:if="${#fields.hasGlobalErrors()}" class="p-4 bg-red-50 border border-red-200 rounded-lg">
+                <div th:if="${#fields.hasGlobalErrors()}" data-testid="form-global-errors" class="p-4 bg-red-50 border border-red-200 rounded-lg">
                     <p th:each="err : ${#fields.globalErrors()}" th:text="${err}" class="text-sm text-red-600"></p>
                 </div>
 
@@ -24,7 +24,7 @@
                     <input type="text" id="code" th:field="*{code}" maxlength="20"
                            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-primary-500 focus:border-primary-500"
                            th:classappend="${#fields.hasErrors('code')} ? 'border-red-500'">
-                    <p th:if="${#fields.hasErrors('code')}" th:errors="*{code}" class="mt-1 text-sm text-red-600"></p>
+                    <p th:if="${#fields.hasErrors('code')}" th:errors="*{code}" data-testid="error-code" class="mt-1 text-sm text-red-600"></p>
                 </div>
 
                 <!-- Name -->
@@ -33,7 +33,7 @@
                     <input type="text" id="name" th:field="*{name}" maxlength="100"
                            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-primary-500 focus:border-primary-500"
                            th:classappend="${#fields.hasErrors('name')} ? 'border-red-500'">
-                    <p th:if="${#fields.hasErrors('name')}" th:errors="*{name}" class="mt-1 text-sm text-red-600"></p>
+                    <p th:if="${#fields.hasErrors('name')}" th:errors="*{name}" data-testid="error-name" class="mt-1 text-sm text-red-600"></p>
                 </div>
 
                 <!-- Description -->

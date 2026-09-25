@@ -29,9 +29,8 @@ class MfgMaterialsTest extends PlaywrightTestBase {
         // Take screenshot for user manual
         takeManualScreenshot("coffee/product-list");
 
-        // Verify coffee raw materials using data-testid
-        assertThat(page.locator("[data-testid='product-name-KOPI-ARABICA']")).containsText("Biji Kopi Arabica");
-        assertThat(page.locator("[data-testid='product-name-SUSU-SEGAR']")).containsText("Susu Segar");
+        assertProductListed("KOPI-ARABICA", "Biji Kopi Arabica");
+        assertProductListed("SUSU-SEGAR", "Susu Segar");
     }
 
     @Test
@@ -56,28 +55,20 @@ class MfgMaterialsTest extends PlaywrightTestBase {
     @DisplayName("Should display all coffee shop raw materials")
     void shouldDisplayAllRawMaterials() {
         loginAsAdmin();
-        navigateTo("/products");
-        waitForPageLoad();
 
-        // Verify all raw material categories are visible
-        // Coffee raw materials
-        assertThat(page.locator("[data-testid='product-name-KOPI-ARABICA']")).containsText("Biji Kopi Arabica");
-        assertThat(page.locator("[data-testid='product-name-SUSU-SEGAR']")).containsText("Susu Segar");
-        // Pastry raw materials
-        assertThat(page.locator("[data-testid='product-name-TEPUNG-TERIGU']")).containsText("Tepung Terigu");
-        assertThat(page.locator("[data-testid='product-name-BUTTER']")).containsText("Butter");
+        assertProductListed("KOPI-ARABICA", "Biji Kopi Arabica");
+        assertProductListed("SUSU-SEGAR", "Susu Segar");
+        assertProductListed("TEPUNG-TERIGU", "Tepung Terigu");
+        assertProductListed("BUTTER", "Butter");
     }
 
     @Test
     @DisplayName("Should display finished goods - pastries")
     void shouldDisplayFinishedGoodsPastries() {
         loginAsAdmin();
-        navigateTo("/products");
-        waitForPageLoad();
 
-        // Verify finished goods pastries using data-testid
-        assertThat(page.locator("[data-testid='product-name-CROISSANT']")).containsText("Croissant");
-        assertThat(page.locator("[data-testid='product-name-ROTI-COKLAT']")).containsText("Roti Bakar Coklat");
+        assertProductListed("CROISSANT", "Croissant");
+        assertProductListed("ROTI-COKLAT", "Roti Bakar Coklat");
     }
 
     @Test
@@ -109,5 +100,11 @@ class MfgMaterialsTest extends PlaywrightTestBase {
 
         // Take screenshot for user manual
         takeManualScreenshot("products-form");
+    }
+
+    private void assertProductListed(String code, String name) {
+        navigateTo("/products?search=" + code);
+        waitForPageLoad();
+        assertThat(page.locator("[data-testid='product-name-" + code + "']")).containsText(name);
     }
 }

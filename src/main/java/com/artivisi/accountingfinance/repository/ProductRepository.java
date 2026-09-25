@@ -28,15 +28,31 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
     @Query("SELECT p FROM Product p WHERE p.category.id = :categoryId ORDER BY p.name")
     List<Product> findByCategoryId(@Param("categoryId") UUID categoryId);
 
-    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.category WHERE " +
+    @Query(value = "SELECT p FROM Product p LEFT JOIN FETCH p.category WHERE " +
            "(COALESCE(:search, '') = '' OR LOWER(p.code) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) OR LOWER(p.name) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))) " +
            "AND (:categoryId IS NULL OR p.category.id = :categoryId) " +
            "AND (:active IS NULL OR p.active = :active) " +
-           "ORDER BY p.code")
+           "ORDER BY p.code",
+           countQuery = "SELECT COUNT(p) FROM Product p WHERE " +
+           "(COALESCE(:search, '') = '' OR LOWER(p.code) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) OR LOWER(p.name) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))) " +
+           "AND (:categoryId IS NULL OR p.category.id = :categoryId) " +
+           "AND (:active IS NULL OR p.active = :active)")
     Page<Product> findByFilters(@Param("search") String search,
                                 @Param("categoryId") UUID categoryId,
                                 @Param("active") Boolean active,
                                 Pageable pageable);
+
+    @Query("SELECT COUNT(b) FROM BillOfMaterial b WHERE b.product.id = :productId")
+    long countBillOfMaterialsByProductId(@Param("productId") UUID productId);
+
+    @Query("SELECT COUNT(l) FROM BillOfMaterialLine l WHERE l.component.id = :productId")
+    long countBillOfMaterialLinesByComponentId(@Param("productId") UUID productId);
+
+    @Query("SELECT COUNT(l) FROM InvoiceLine l WHERE l.product.id = :productId")
+    long countInvoiceLinesByProductId(@Param("productId") UUID productId);
+
+    @Query("SELECT COUNT(l) FROM BillLine l WHERE l.product.id = :productId")
+    long countBillLinesByProductId(@Param("productId") UUID productId);
 
     @Query("SELECT p FROM Product p WHERE p.trackInventory = true AND p.active = true ORDER BY p.name")
     List<Product> findTrackableProducts();
