@@ -85,6 +85,7 @@ public class InvoiceService {
         return invoiceRepository.findOverdueInvoices(LocalDate.now());
     }
 
+    @Transactional
     public Invoice create(Invoice invoice) {
         return self.create(invoice, List.of());
     }

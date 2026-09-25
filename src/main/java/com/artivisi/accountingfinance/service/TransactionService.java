@@ -116,10 +116,11 @@ public class TransactionService {
                 .orElseThrow(() -> new EntityNotFoundException(ERR_TRANSACTION_NOT_FOUND + id));
     }
 
-    // Delegates to the full create method which handles the transaction
-    // No @Transactional needed - participates in caller's transaction or the delegated method's transaction
-    // Internal call is intentional - this is a convenience overload, not a transactional boundary
+    // Self-invocation bypasses the proxy, so the 3-arg method's @Transactional does not apply here.
+    // Without its own read-write boundary this overload inherits the class-level readOnly=true and,
+    // when called outside a caller's transaction, the insert is never flushed.
     @SuppressWarnings("java:S6809")
+    @Transactional
     public Transaction create(Transaction transaction, Map<UUID, UUID> accountMappings) {
         return create(transaction, accountMappings, null);
     }
