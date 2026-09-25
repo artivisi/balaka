@@ -160,7 +160,7 @@ failures indistinguishable from real ones; `run-tests.sh` flags it, and
 ## Database
 
 - PostgreSQL via Testcontainers (tests)
-- Production migrations: V001-V005 (V001 security, V002 core schema, V003 feature schema, V004 seed data, V005 tax filing register, V006 API scope columns widened + new scopes for existing device tokens — not yet deployed)
+- Production migrations: V001-V006 (V001 security, V002 core schema, V003 feature schema, V004 seed data, V005 tax filing register, V006 API scope columns widened + new scopes for existing device tokens — not yet deployed)
 - **Migration caveat:** Modifying already-applied migrations requires manual schema fix on production + checksum update in `flyway_schema_history`. See `docs/03-operations-guide.md` Troubleshooting section.
 - Test data:
   - Functional tests: NO migrations - all data loaded via `@TestConfiguration` initializers from industry-seed/ packs
