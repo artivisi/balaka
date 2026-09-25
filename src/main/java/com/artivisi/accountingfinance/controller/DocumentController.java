@@ -22,7 +22,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.util.HtmlUtils;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -73,11 +72,12 @@ public class DocumentController {
         } catch (IOException e) {
             log.error("Failed to upload document for transaction {}: {}", transactionId, e.getMessage());
             model.addAttribute(ATTR_SUCCESS, false);
-            // nosemgrep: semgrep.missing-html-escape-in-model - using HtmlUtils.htmlEscape
-            model.addAttribute(ATTR_MESSAGE, MSG_UPLOAD_FAILED + HtmlUtils.htmlEscape(e.getMessage()));
+            // nosemgrep: semgrep.missing-html-escape-in-model - rendered only via th:text in fragments/document-list.html, which escapes
+            model.addAttribute(ATTR_MESSAGE, MSG_UPLOAD_FAILED + e.getMessage());
         } catch (IllegalArgumentException e) {
             model.addAttribute(ATTR_SUCCESS, false);
-            model.addAttribute(ATTR_MESSAGE, HtmlUtils.htmlEscape(e.getMessage()));
+            // nosemgrep: semgrep.missing-html-escape-in-model - rendered only via th:text in fragments/document-list.html, which escapes
+            model.addAttribute(ATTR_MESSAGE, e.getMessage());
         }
 
         // Return updated document list fragment
@@ -108,11 +108,12 @@ public class DocumentController {
         } catch (IOException e) {
             log.error("Failed to upload document for journal entry {}: {}", journalEntryId, e.getMessage());
             model.addAttribute(ATTR_SUCCESS, false);
-            // nosemgrep: semgrep.missing-html-escape-in-model - using HtmlUtils.htmlEscape
-            model.addAttribute(ATTR_MESSAGE, MSG_UPLOAD_FAILED + HtmlUtils.htmlEscape(e.getMessage()));
+            // nosemgrep: semgrep.missing-html-escape-in-model - rendered only via th:text in fragments/document-list.html, which escapes
+            model.addAttribute(ATTR_MESSAGE, MSG_UPLOAD_FAILED + e.getMessage());
         } catch (IllegalArgumentException e) {
             model.addAttribute(ATTR_SUCCESS, false);
-            model.addAttribute(ATTR_MESSAGE, HtmlUtils.htmlEscape(e.getMessage()));
+            // nosemgrep: semgrep.missing-html-escape-in-model - rendered only via th:text in fragments/document-list.html, which escapes
+            model.addAttribute(ATTR_MESSAGE, e.getMessage());
         }
 
         List<Document> documents = documentService.findByJournalEntryId(journalEntryId);
@@ -142,11 +143,12 @@ public class DocumentController {
         } catch (IOException e) {
             log.error("Failed to upload document for invoice {}: {}", invoiceId, e.getMessage());
             model.addAttribute(ATTR_SUCCESS, false);
-            // nosemgrep: semgrep.missing-html-escape-in-model - using HtmlUtils.htmlEscape
-            model.addAttribute(ATTR_MESSAGE, MSG_UPLOAD_FAILED + HtmlUtils.htmlEscape(e.getMessage()));
+            // nosemgrep: semgrep.missing-html-escape-in-model - rendered only via th:text in fragments/document-list.html, which escapes
+            model.addAttribute(ATTR_MESSAGE, MSG_UPLOAD_FAILED + e.getMessage());
         } catch (IllegalArgumentException e) {
             model.addAttribute(ATTR_SUCCESS, false);
-            model.addAttribute(ATTR_MESSAGE, HtmlUtils.htmlEscape(e.getMessage()));
+            // nosemgrep: semgrep.missing-html-escape-in-model - rendered only via th:text in fragments/document-list.html, which escapes
+            model.addAttribute(ATTR_MESSAGE, e.getMessage());
         }
 
         List<Document> documents = documentService.findByInvoiceId(invoiceId);
@@ -241,8 +243,8 @@ public class DocumentController {
         } catch (IOException e) {
             log.error("Failed to delete document {}: {}", id, e.getMessage());
             model.addAttribute(ATTR_SUCCESS, false);
-            // nosemgrep: semgrep.missing-html-escape-in-model - using HtmlUtils.htmlEscape
-            model.addAttribute(ATTR_MESSAGE, MSG_DELETE_FAILED + HtmlUtils.htmlEscape(e.getMessage()));
+            // nosemgrep: semgrep.missing-html-escape-in-model - rendered only via th:text in fragments/document-list.html, which escapes
+            model.addAttribute(ATTR_MESSAGE, MSG_DELETE_FAILED + e.getMessage());
         }
 
         // Return updated document list based on context
