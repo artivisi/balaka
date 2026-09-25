@@ -113,7 +113,7 @@ public class BankStatementImportService {
                 .setQuote('"')
                 .setIgnoreEmptyLines(true)
                 .setTrim(true)
-                .build();
+                .get();
 
         Charset charset = Charset.forName(config.getEncoding());
 
