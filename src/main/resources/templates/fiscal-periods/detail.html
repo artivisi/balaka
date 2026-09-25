@@ -11,10 +11,10 @@
 
     <section class="space-y-6" data-testid="period-detail">
         <!-- Flash Messages -->
-        <div th:if="${successMessage}" class="p-4 bg-green-50 border border-green-200 rounded-lg">
+        <div th:if="${successMessage}" data-testid="flash-success" class="p-4 bg-green-50 border border-green-200 rounded-lg">
             <p class="text-sm text-green-800" th:text="${successMessage}"></p>
         </div>
-        <div th:if="${errorMessage}" class="p-4 bg-red-50 border border-red-200 rounded-lg">
+        <div th:if="${errorMessage}" data-testid="flash-error" class="p-4 bg-red-50 border border-red-200 rounded-lg">
             <p class="text-sm text-red-800" th:text="${errorMessage}"></p>
         </div>
 

@@ -9,6 +9,9 @@
     <h1 id="page-title">Periode Fiskal Baru</h1>
 
     <section class="max-w-md">
+        <div th:if="${errorMessage}" data-testid="flash-error"
+             class="mb-4 p-4 rounded-lg bg-red-50 border border-red-200 text-sm font-medium text-red-800"
+             th:text="${errorMessage}">Error</div>
         <div class="bg-white rounded-lg shadow p-6">
             <form th:action="@{/fiscal-periods/new}" method="post" class="space-y-6">
                 <!-- Year -->

@@ -165,7 +165,7 @@ class FiscalPeriodServiceTest {
             // Try to create duplicate
             assertThatThrownBy(() -> fiscalPeriodService.create(2097, 6))
                     .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("already exists");
+                    .hasMessage("Periode fiskal 2097-06 sudah ada");
         }
 
         @Test

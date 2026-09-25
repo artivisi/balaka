@@ -63,7 +63,7 @@ public class FiscalPeriodService {
     @Transactional
     public FiscalPeriod create(Integer year, Integer month) {
         if (fiscalPeriodRepository.existsByYearAndMonth(year, month)) {
-            throw new IllegalArgumentException("Fiscal period already exists for " + year + "-" + month);
+            throw new IllegalArgumentException(String.format("Periode fiskal %04d-%02d sudah ada", year, month));
         }
 
         FiscalPeriod period = new FiscalPeriod();
