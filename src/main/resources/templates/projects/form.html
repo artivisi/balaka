@@ -10,7 +10,7 @@
 
     <section class="max-w-2xl">
         <div class="bg-white rounded-lg shadow p-6">
-            <form th:action="${project.id != null} ? @{/projects/{code}(code=${project.code})} : @{/projects/new}"
+            <form th:action="${project.id != null} ? @{/projects/{code}(code=${projectCode})} : @{/projects/new}"
                   th:object="${project}"
                   method="post" class="space-y-6">
 
@@ -111,7 +111,7 @@
 
                 <!-- Actions -->
                 <div class="flex items-center justify-end gap-3 pt-4 border-t">
-                    <a th:href="${project.id != null} ? @{/projects/{code}(code=${project.code})} : @{/projects}"
+                    <a th:href="${project.id != null} ? @{/projects/{code}(code=${projectCode})} : @{/projects}"
                        class="px-4 py-2 text-gray-600 hover:text-gray-900">Batal</a>
                     <button id="btn-simpan" type="submit"
                             class="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">

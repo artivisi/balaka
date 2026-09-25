@@ -345,6 +345,41 @@ class ProjectControllerFunctionalTest extends PlaywrightTestBase {
     }
 
     @Test
+    @DisplayName("Should reject update to another project's code and keep the form bound to the edited project")
+    void shouldRejectUpdateToDuplicateCode() {
+        Project project = createProject("Ubah " + shortId(), MANDIRI);
+        Project other = createProject("Lain " + shortId(), TELKOM);
+        String fixedCode = "PC-" + shortId();
+        String newName = "Diperbaiki " + shortId();
+
+        navigateTo("/projects/" + project.getCode() + "/edit");
+        waitForPageLoad();
+        page.locator("#code").fill(other.getCode());
+        submit();
+
+        assertThat(page.locator("#page-title")).hasText("Edit Proyek");
+        assertThat(page.locator("#code + p.text-red-500"))
+                .hasText("Project code already exists: " + other.getCode());
+        assertThat(page.locator("#code")).hasValue(other.getCode());
+        assertThat(form()).hasAttribute("action", "/projects/" + project.getCode());
+        assertThat(form().locator("a:text-is('Batal')")).hasAttribute("href", "/projects/" + project.getCode());
+
+        page.locator("#code").fill(fixedCode);
+        page.locator("#name").fill(newName);
+        submit();
+
+        assertEquals(baseUrl() + "/projects/" + fixedCode, page.url());
+        Project updated = projectRepository.findByCode(fixedCode).orElseThrow();
+        assertEquals(project.getId(), updated.getId());
+        assertEquals(newName, updated.getName());
+        assertFalse(projectRepository.existsByCode(project.getCode()), "Edited project kept its old code");
+        Project untouched = projectRepository.findByCode(other.getCode()).orElseThrow();
+        assertEquals(other.getId(), untouched.getId());
+        assertEquals(other.getName(), untouched.getName());
+        assertEquals(seededClient(TELKOM).getId(), untouched.getClient().getId());
+    }
+
+    @Test
     @DisplayName("Should keep project active when complete confirmation is dismissed")
     void shouldKeepProjectActiveWhenCompleteDismissed() {
         Project project = createProject("Dismiss " + shortId(), MANDIRI);

@@ -39,6 +39,7 @@ import static com.artivisi.accountingfinance.controller.ViewConstants.*;
 public class ProjectController {
 
     private static final String ATTR_PROJECT = "project";
+    private static final String ATTR_PROJECT_CODE = "projectCode";
     private static final String ATTR_SUCCESS_MESSAGE = "successMessage";
     private static final String REDIRECT_PROJECTS_PREFIX = "redirect:/projects/";
     private static final String VIEW_FORM = "projects/form";
@@ -180,6 +181,7 @@ public class ProjectController {
     public String editForm(@PathVariable String code, Model model) {
         Project existing = projectService.findByCode(code);
         model.addAttribute(ATTR_PROJECT, toForm(existing));
+        model.addAttribute(ATTR_PROJECT_CODE, code);
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_PROJECTS);
         return VIEW_FORM;
     }
@@ -196,6 +198,7 @@ public class ProjectController {
         if (bindingResult.hasErrors()) {
             Project existing = projectService.findByCode(code);
             form.setId(existing.getId());
+            model.addAttribute(ATTR_PROJECT_CODE, code);
             return rerenderForm(form, clientId, model);
         }
 
@@ -209,6 +212,7 @@ public class ProjectController {
             bindingResult.rejectValue("code", "duplicate", e.getMessage());
             Project existing = projectService.findByCode(code);
             form.setId(existing.getId());
+            model.addAttribute(ATTR_PROJECT_CODE, code);
             return rerenderForm(form, clientId, model);
         }
     }
