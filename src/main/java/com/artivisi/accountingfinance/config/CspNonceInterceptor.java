@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.ModelAndView;
+import org.springframework.web.servlet.view.RedirectView;
 
 /**
  * Exposes CSP nonce to Thymeleaf templates as a model attribute.
@@ -23,11 +24,18 @@ public class CspNonceInterceptor implements HandlerInterceptor {
     @Override
     public void postHandle(HttpServletRequest request, HttpServletResponse response,
                           Object handler, ModelAndView modelAndView) {
-        if (modelAndView != null) {
+        if (modelAndView != null && !isRedirect(modelAndView)) {
             String nonce = (String) request.getAttribute(CspNonceFilter.CSP_NONCE_ATTRIBUTE);
             if (nonce != null) {
                 modelAndView.addObject("cspNonce", nonce);
             }
         }
+    }
+
+    /** Attributes added to a redirect's model are appended to the Location URL as query parameters. */
+    private static boolean isRedirect(ModelAndView modelAndView) {
+        String viewName = modelAndView.getViewName();
+        return (viewName != null && viewName.startsWith("redirect:"))
+                || modelAndView.getView() instanceof RedirectView;
     }
 }

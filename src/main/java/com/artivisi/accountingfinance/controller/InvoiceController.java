@@ -96,7 +96,7 @@ public class InvoiceController {
         @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
         private LocalDate dueDate;
 
-        @NotNull(message = "Jumlah wajib diisi")
+        // Required only when the invoice has no line items; lines determine the amount otherwise.
         private BigDecimal amount;
 
         private String notes;
@@ -181,6 +181,7 @@ public class InvoiceController {
             RedirectAttributes redirectAttributes) {
 
         List<InvoiceLine> lines = buildInvoiceLines(descriptions, quantities, unitPrices, taxRates, productIds);
+        validateClientAndAmount(form, lines, bindingResult);
 
         if (bindingResult.hasErrors()) {
             populateFormModel(model, lines);
@@ -237,6 +238,7 @@ public class InvoiceController {
             RedirectAttributes redirectAttributes) {
 
         List<InvoiceLine> lines = buildInvoiceLines(descriptions, quantities, unitPrices, taxRates, productIds);
+        validateClientAndAmount(form, lines, bindingResult);
 
         if (bindingResult.hasErrors()) {
             Invoice existing = invoiceService.findByInvoiceNumber(invoiceNumber);
@@ -363,7 +365,7 @@ public class InvoiceController {
         model.addAttribute(ATTR_INVOICE, invoice);
         model.addAttribute("company", company);
         model.addAttribute("bankAccount", bankAccount);
-        model.addAttribute("amountInWords", AmountToWordsUtil.toWords(invoice.getAmount()));
+        model.addAttribute("amountInWords", AmountToWordsUtil.toWords(invoice.getTotalAmount()));
 
         return "invoices/print";
     }
@@ -380,6 +382,15 @@ public class InvoiceController {
             return c.getCode() + " - " + c.getName();
         } catch (jakarta.persistence.EntityNotFoundException _) {
             return clientId.toString();
+        }
+    }
+
+    private static void validateClientAndAmount(InvoiceForm form, List<InvoiceLine> lines, BindingResult bindingResult) {
+        if (form.getClient() == null || form.getClient().getId() == null) {
+            bindingResult.rejectValue("client", "required", "Klien wajib diisi");
+        }
+        if (lines.isEmpty() && form.getAmount() == null) {
+            bindingResult.rejectValue("amount", "required", "Jumlah wajib diisi");
         }
     }
 

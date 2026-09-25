@@ -569,7 +569,7 @@
         <div class="amount-section">
             <div class="amount-header">
                 <span class="amount-label">Total Tagihan</span>
-                <span class="amount-value" th:text="'Rp ' + ${#numbers.formatDecimal(invoice.amount, 0, 'COMMA', 0, 'POINT')}">Rp 10.000.000</span>
+                <span class="amount-value" th:text="'Rp ' + ${#numbers.formatDecimal(invoice.totalAmount, 0, 'COMMA', 0, 'POINT')}">Rp 10.000.000</span>
             </div>
             <div class="amount-words" th:text="${amountInWords}">Sepuluh juta rupiah</div>
         </div>
