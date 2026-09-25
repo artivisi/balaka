@@ -8,11 +8,13 @@ import com.artivisi.accountingfinance.service.ProjectService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import org.springframework.beans.BeanUtils;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -57,9 +59,11 @@ public class MilestoneController {
 
         private String description;
 
+        @NotNull(message = "Bobot wajib diisi")
         @Min(value = 0, message = "Bobot minimal 0")
         private Integer weightPercent;
 
+        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
         private LocalDate targetDate;
         private MilestoneStatus status;
     }
@@ -139,6 +143,10 @@ public class MilestoneController {
             BindingResult bindingResult,
             Model model,
             RedirectAttributes redirectAttributes) {
+
+        if (form.getSequence() == null) {
+            bindingResult.rejectValue("sequence", "required", "Urutan wajib diisi");
+        }
 
         if (bindingResult.hasErrors()) {
             Project project = projectService.findByCode(projectCode);

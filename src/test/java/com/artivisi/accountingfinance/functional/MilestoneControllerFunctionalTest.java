@@ -1,467 +1,483 @@
 package com.artivisi.accountingfinance.functional;
 
+import com.artivisi.accountingfinance.entity.Project;
+import com.artivisi.accountingfinance.entity.ProjectMilestone;
+import com.artivisi.accountingfinance.enums.MilestoneStatus;
 import com.artivisi.accountingfinance.functional.service.ServiceTestDataInitializer;
+import com.artivisi.accountingfinance.repository.ClientRepository;
 import com.artivisi.accountingfinance.repository.ProjectMilestoneRepository;
-import com.artivisi.accountingfinance.repository.ProjectRepository;
+import com.artivisi.accountingfinance.service.ProjectMilestoneService;
+import com.artivisi.accountingfinance.service.ProjectService;
 import com.artivisi.accountingfinance.ui.PlaywrightTestBase;
+import com.microsoft.playwright.Locator;
+import com.microsoft.playwright.Response;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Locale;
+import java.util.UUID;
+
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Functional tests for MilestoneController.
- * Tests project milestone CRUD operations.
+ * MilestoneController: new/edit form, create/update with validation, start/complete/reset
+ * status transitions and delete, all driven from the project detail page.
+ *
+ * Each test creates its own project (unique code), so sequences and milestone lists are
+ * exact regardless of what other test classes add to the shared database. Progress
+ * calculation, overdue badges and payment-term linkage are covered by
+ * ServiceMilestonePaymentTermTest.
  */
 @DisplayName("Milestone Controller Tests")
 @Import(ServiceTestDataInitializer.class)
 class MilestoneControllerFunctionalTest extends PlaywrightTestBase {
 
+    // From src/test/resources/testdata/service/clients.csv
+    private static final String CLIENT_CODE = "MANDIRI";
+    private static final DateTimeFormatter DISPLAY_DATE =
+            DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.forLanguageTag("id-ID"));
+
     @Autowired
-    private ProjectRepository projectRepository;
+    private ProjectService projectService;
+
+    @Autowired
+    private ClientRepository clientRepository;
+
+    @Autowired
+    private ProjectMilestoneService milestoneService;
 
     @Autowired
     private ProjectMilestoneRepository milestoneRepository;
 
+    private Project project;
+
     @BeforeEach
     void setupAndLogin() {
+        project = createProject();
         loginAsAdmin();
     }
 
     @Test
-    @DisplayName("Should display new milestone form")
+    @DisplayName("Should open empty new milestone form from project detail")
     void shouldDisplayNewMilestoneForm() {
-        var project = projectRepository.findAll().stream().findFirst();
-        if (project.isEmpty()) {
-            return;
-        }
-
-        navigateTo("/projects/" + project.get().getCode() + "/milestones/new");
+        openProjectDetail();
+        page.locator("#btn-new-milestone").click();
         waitForPageLoad();
 
-        assertThat(page.locator("body")).isVisible();
+        assertEquals(baseUrl() + "/projects/" + project.getCode() + "/milestones/new", page.url());
+        assertThat(page.locator("#page-title")).hasText("Milestone Baru");
+        assertThat(page.locator("nav a[href='/projects/" + project.getCode() + "']")).hasText(project.getName());
+        assertThat(page.locator("form:has(#btn-simpan)")).hasAttribute("action", "/projects/" + project.getCode() + "/milestones/new");
+        assertThat(page.locator("#sequence")).hasValue("");
+        assertThat(page.locator("text=Kosongkan untuk urutan otomatis")).hasCount(1);
+        assertThat(page.locator("#name")).hasValue("");
+        assertThat(page.locator("#weightPercent")).hasValue("");
+        assertThat(page.locator("#targetDate")).hasValue("");
+        assertThat(page.locator("#description")).hasValue("");
+        assertThat(page.locator("a:text-is('Batal')")).hasAttribute("href", "/projects/" + project.getCode());
     }
 
     @Test
-    @DisplayName("Should have name input field")
-    void shouldHaveNameInputField() {
-        var project = projectRepository.findAll().stream().findFirst();
-        if (project.isEmpty()) {
-            return;
-        }
+    @DisplayName("Should create milestone with all fields and show it on project detail")
+    void shouldCreateMilestoneWithAllFields() {
+        String name = "Analisis Kebutuhan " + shortId();
+        LocalDate targetDate = LocalDate.of(2027, 3, 15);
 
-        navigateTo("/projects/" + project.get().getCode() + "/milestones/new");
-        waitForPageLoad();
+        openNewForm();
+        page.locator("#sequence").fill("3");
+        page.locator("#name").fill(name);
+        page.locator("#weightPercent").fill("40");
+        page.locator("#targetDate").fill(targetDate.toString());
+        page.locator("#description").fill("Workshop dan dokumen kebutuhan");
+        submit();
 
-        var nameInput = page.locator("input[name='name']").first();
-        if (nameInput.isVisible()) {
-            assertThat(nameInput).isVisible();
-        }
+        assertEquals(baseUrl() + "/projects/" + project.getCode(), page.url());
+        assertThat(page.locator("[data-testid='flash-success']")).hasText("Milestone berhasil ditambahkan");
+
+        ProjectMilestone saved = singleMilestone();
+        assertEquals(3, saved.getSequence());
+        assertEquals(name, saved.getName());
+        assertEquals(40, saved.getWeightPercent());
+        assertEquals(targetDate, saved.getTargetDate());
+        assertEquals("Workshop dan dokumen kebutuhan", saved.getDescription());
+        assertEquals(MilestoneStatus.PENDING, saved.getStatus());
+        assertNull(saved.getActualDate());
+
+        Locator row = milestoneRow(saved.getId());
+        assertThat(row.locator("p.font-medium")).hasText(name);
+        assertThat(row).containsText("40%");
+        assertThat(row).containsText("Target: " + DISPLAY_DATE.format(targetDate));
+        assertThat(row.locator("span:text-is('Pending')")).hasCount(1);
+        assertThat(row.locator("form[action$='/start']")).hasCount(1);
     }
 
     @Test
-    @DisplayName("Should have sequence input field")
-    void shouldHaveSequenceInputField() {
-        var project = projectRepository.findAll().stream().findFirst();
-        if (project.isEmpty()) {
-            return;
-        }
+    @DisplayName("Should assign next sequence when sequence is left blank")
+    void shouldAutoAssignSequenceWhenBlank() {
+        createMilestone(5, "Existing " + shortId(), 20);
+        String name = "Auto Sequence " + shortId();
 
-        navigateTo("/projects/" + project.get().getCode() + "/milestones/new");
-        waitForPageLoad();
+        openNewForm();
+        page.locator("#name").fill(name);
+        page.locator("#weightPercent").fill("10");
+        submit();
 
-        var sequenceInput = page.locator("input[name='sequence']").first();
-        if (sequenceInput.isVisible()) {
-            assertThat(sequenceInput).isVisible();
-        }
+        assertThat(page.locator("[data-testid='flash-success']")).hasText("Milestone berhasil ditambahkan");
+        ProjectMilestone saved = milestones().stream()
+                .filter(m -> name.equals(m.getName()))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("Milestone not persisted: " + name));
+        assertEquals(6, saved.getSequence());
+        assertThat(milestoneRow(saved.getId()).locator("span.rounded-full").first()).hasText("6");
     }
 
     @Test
-    @DisplayName("Should create new milestone")
-    void shouldCreateNewMilestone() {
-        var project = projectRepository.findAll().stream().findFirst();
-        if (project.isEmpty()) {
-            return;
-        }
+    @DisplayName("Should reject milestone without name and persist nothing")
+    void shouldRejectMilestoneWithoutName() {
+        openNewForm();
+        disableBrowserValidation();
+        page.locator("#sequence").fill("1");
+        page.locator("#weightPercent").fill("10");
+        submit();
 
-        navigateTo("/projects/" + project.get().getCode() + "/milestones/new");
-        waitForPageLoad();
-
-        var nameInput = page.locator("input[name='name']").first();
-        if (nameInput.isVisible()) {
-            nameInput.fill("Test Milestone " + System.currentTimeMillis());
-        }
-
-        var sequenceInput = page.locator("input[name='sequence']").first();
-        if (sequenceInput.isVisible()) {
-            sequenceInput.fill("99");
-        }
-
-        var submitBtn = page.locator("button[type='submit'], #btn-simpan").first();
-        if (submitBtn.isVisible()) {
-            submitBtn.click();
-            waitForPageLoad();
-        }
-
-        assertThat(page.locator("body")).isVisible();
+        assertThat(page.locator("#page-title")).hasText("Milestone Baru");
+        assertThat(page.locator("#name + p.text-red-500")).hasText("Nama milestone wajib diisi");
+        assertTrue(milestones().isEmpty(), "Milestone persisted despite blank name");
     }
 
     @Test
-    @DisplayName("Should display edit milestone form")
-    void shouldDisplayEditMilestoneForm() {
-        var milestone = milestoneRepository.findAll().stream().findFirst();
-        if (milestone.isEmpty()) {
-            return;
-        }
+    @DisplayName("Should reject sequence below 1 and persist nothing")
+    void shouldRejectZeroSequence() {
+        openNewForm();
+        disableBrowserValidation();
+        page.locator("#sequence").fill("0");
+        page.locator("#name").fill("Invalid Sequence");
+        page.locator("#weightPercent").fill("10");
+        submit();
 
-        // Get project separately to avoid LazyInitializationException
-        var projectId = milestone.get().getProject().getId();
-        var project = projectRepository.findById(projectId);
-        if (project.isEmpty()) {
-            return;
-        }
-        var projectCode = project.get().getCode();
-        navigateTo("/projects/" + projectCode + "/milestones/" + milestone.get().getId() + "/edit");
-        waitForPageLoad();
-
-        assertThat(page.locator("body")).isVisible();
+        assertThat(page.locator("#page-title")).hasText("Milestone Baru");
+        assertThat(sequenceError()).hasText("Urutan minimal 1");
+        assertThat(page.locator("#name")).hasValue("Invalid Sequence");
+        assertTrue(milestones().isEmpty(), "Milestone persisted despite sequence 0");
     }
 
     @Test
-    @DisplayName("Should update milestone")
+    @DisplayName("Should reject milestone without weight and persist nothing")
+    void shouldRejectMilestoneWithoutWeight() {
+        openNewForm();
+        assertThat(page.locator("#weightPercent")).hasAttribute("required", "");
+        disableBrowserValidation();
+        page.locator("#name").fill("No Weight");
+        submit();
+
+        assertThat(page.locator("#page-title")).hasText("Milestone Baru");
+        assertThat(page.locator("#weightPercent ~ p.text-red-500")).hasText("Bobot wajib diisi");
+        assertThat(page.locator("#name")).hasValue("No Weight");
+        assertTrue(milestones().isEmpty(), "Milestone persisted despite blank weight");
+    }
+
+    @Test
+    @DisplayName("Should reject duplicate sequence on create and keep existing milestone only")
+    void shouldRejectDuplicateSequenceOnCreate() {
+        ProjectMilestone existing = createMilestone(1, "Kickoff " + shortId(), 10);
+
+        openNewForm();
+        page.locator("#sequence").fill("1");
+        page.locator("#name").fill("Duplicate Sequence");
+        page.locator("#weightPercent").fill("10");
+        submit();
+
+        assertThat(page.locator("#page-title")).hasText("Milestone Baru");
+        assertThat(sequenceError()).hasText("Milestone with sequence 1 already exists");
+        List<ProjectMilestone> all = milestones();
+        assertEquals(1, all.size());
+        assertEquals(existing.getId(), all.get(0).getId());
+    }
+
+    @Test
+    @DisplayName("Should open edit form prefilled with milestone values")
+    void shouldDisplayEditFormPrefilled() {
+        ProjectMilestone milestone = createMilestone(2, "Desain " + shortId(), 35,
+                LocalDate.of(2027, 6, 30), "Desain arsitektur");
+
+        openProjectDetail();
+        milestoneRow(milestone.getId()).locator("a[title='Edit']").click();
+        waitForPageLoad();
+
+        assertEquals(baseUrl() + "/projects/" + project.getCode() + "/milestones/" + milestone.getId() + "/edit",
+                page.url());
+        assertThat(page.locator("#page-title")).hasText("Edit Milestone");
+        assertThat(page.locator("form:has(#btn-simpan)")).hasAttribute("action",
+                "/projects/" + project.getCode() + "/milestones/" + milestone.getId());
+        assertThat(page.locator("#sequence")).hasValue("2");
+        assertThat(page.locator("#name")).hasValue(milestone.getName());
+        assertThat(page.locator("#weightPercent")).hasValue("35");
+        assertThat(page.locator("#targetDate")).hasValue("2027-06-30");
+        assertThat(page.locator("#description")).hasValue("Desain arsitektur");
+    }
+
+    @Test
+    @DisplayName("Should update all milestone fields")
     void shouldUpdateMilestone() {
-        var milestone = milestoneRepository.findAll().stream().findFirst();
-        if (milestone.isEmpty()) {
-            return;
-        }
+        ProjectMilestone milestone = createMilestone(1, "Draft " + shortId(), 10);
+        String newName = "Implementasi " + shortId();
 
-        // Get project separately to avoid LazyInitializationException
-        var projectId = milestone.get().getProject().getId();
-        var project = projectRepository.findById(projectId);
-        if (project.isEmpty()) {
-            return;
-        }
-        var projectCode = project.get().getCode();
-        navigateTo("/projects/" + projectCode + "/milestones/" + milestone.get().getId() + "/edit");
-        waitForPageLoad();
+        openEditForm(milestone.getId());
+        page.locator("#sequence").fill("4");
+        page.locator("#name").fill(newName);
+        page.locator("#weightPercent").fill("50");
+        page.locator("#targetDate").fill("2027-09-01");
+        page.locator("#description").fill("Deskripsi baru");
+        submit();
 
-        var nameInput = page.locator("input[name='name']").first();
-        if (nameInput.isVisible()) {
-            nameInput.fill("Updated Milestone " + System.currentTimeMillis());
-        }
+        assertEquals(baseUrl() + "/projects/" + project.getCode(), page.url());
+        assertThat(page.locator("[data-testid='flash-success']")).hasText("Milestone berhasil diperbarui");
 
-        var submitBtn = page.locator("button[type='submit'], #btn-simpan").first();
-        if (submitBtn.isVisible()) {
-            submitBtn.click();
-            waitForPageLoad();
-        }
+        ProjectMilestone updated = milestoneRepository.findById(milestone.getId()).orElseThrow();
+        assertEquals(4, updated.getSequence());
+        assertEquals(newName, updated.getName());
+        assertEquals(50, updated.getWeightPercent());
+        assertEquals(LocalDate.of(2027, 9, 1), updated.getTargetDate());
+        assertEquals("Deskripsi baru", updated.getDescription());
+        assertEquals(MilestoneStatus.PENDING, updated.getStatus());
 
-        assertThat(page.locator("body")).isVisible();
+        Locator row = milestoneRow(milestone.getId());
+        assertThat(row.locator("p.font-medium")).hasText(newName);
+        assertThat(row).containsText("50%");
+        assertThat(row).containsText("Target: " + DISPLAY_DATE.format(LocalDate.of(2027, 9, 1)));
     }
 
     @Test
-    @DisplayName("Should start milestone")
+    @DisplayName("Should reject update to a sequence used by another milestone")
+    void shouldRejectDuplicateSequenceOnUpdate() {
+        createMilestone(1, "First " + shortId(), 10);
+        ProjectMilestone second = createMilestone(2, "Second " + shortId(), 10);
+
+        openEditForm(second.getId());
+        page.locator("#sequence").fill("1");
+        page.locator("#name").fill("Renamed");
+        submit();
+
+        assertThat(page.locator("#page-title")).hasText("Edit Milestone");
+        assertThat(sequenceError()).hasText("Milestone with sequence 1 already exists");
+        assertThat(page.locator("form:has(#btn-simpan)")).hasAttribute("action",
+                "/projects/" + project.getCode() + "/milestones/" + second.getId());
+
+        ProjectMilestone unchanged = milestoneRepository.findById(second.getId()).orElseThrow();
+        assertEquals(2, unchanged.getSequence());
+        assertEquals(second.getName(), unchanged.getName());
+    }
+
+    @Test
+    @DisplayName("Should reject update with blank sequence")
+    void shouldRejectBlankSequenceOnUpdate() {
+        ProjectMilestone milestone = createMilestone(3, "Keep Sequence " + shortId(), 10);
+
+        openEditForm(milestone.getId());
+        assertThat(page.locator("text=Kosongkan untuk urutan otomatis")).hasCount(0);
+        page.locator("#sequence").fill("");
+        page.locator("#name").fill("Renamed");
+        submit();
+
+        assertThat(page.locator("#page-title")).hasText("Edit Milestone");
+        assertThat(sequenceError()).hasText("Urutan wajib diisi");
+
+        ProjectMilestone unchanged = milestoneRepository.findById(milestone.getId()).orElseThrow();
+        assertEquals(3, unchanged.getSequence());
+        assertEquals(milestone.getName(), unchanged.getName());
+    }
+
+    @Test
+    @DisplayName("Should start pending milestone")
     void shouldStartMilestone() {
-        var milestone = milestoneRepository.findAll().stream()
-                .filter(m -> m.getStatus() == null || "NOT_STARTED".equals(m.getStatus().name()))
-                .findFirst();
-        if (milestone.isEmpty()) {
-            return;
-        }
+        ProjectMilestone milestone = createMilestone(1, "Start " + shortId(), 10);
 
-        // Get project separately to avoid LazyInitializationException
-        var projectId = milestone.get().getProject().getId();
-        var project = projectRepository.findById(projectId);
-        if (project.isEmpty()) {
-            return;
-        }
-        var projectCode = project.get().getCode();
-        navigateTo("/projects/" + projectCode);
+        openProjectDetail();
+        milestoneRow(milestone.getId()).locator("form[action$='/start'] button").click();
         waitForPageLoad();
 
-        var startBtn = page.locator("form[action*='/start'] button[type='submit']").first();
-        if (startBtn.isVisible()) {
-            startBtn.click();
-            waitForPageLoad();
-        }
+        assertEquals(baseUrl() + "/projects/" + project.getCode(), page.url());
+        assertThat(page.locator("[data-testid='flash-success']")).hasText("Milestone dimulai");
+        Locator row = milestoneRow(milestone.getId());
+        assertThat(row.locator("span:text-is('Proses')")).hasCount(1);
+        assertThat(row.locator("form[action$='/start']")).hasCount(0);
+        assertThat(row.locator("form[action$='/complete']")).hasCount(1);
 
-        assertThat(page.locator("body")).isVisible();
+        ProjectMilestone started = milestoneRepository.findById(milestone.getId()).orElseThrow();
+        assertEquals(MilestoneStatus.IN_PROGRESS, started.getStatus());
+        assertNull(started.getActualDate());
     }
 
     @Test
-    @DisplayName("Should complete milestone")
+    @DisplayName("Should complete in-progress milestone and record actual date")
     void shouldCompleteMilestone() {
-        var milestone = milestoneRepository.findAll().stream()
-                .filter(m -> m.getStatus() != null && "IN_PROGRESS".equals(m.getStatus().name()))
-                .findFirst();
-        if (milestone.isEmpty()) {
-            return;
-        }
+        ProjectMilestone milestone = createMilestone(1, "Complete " + shortId(), 10);
+        milestoneService.startMilestone(milestone.getId());
 
-        // Get project separately to avoid LazyInitializationException
-        var projectId = milestone.get().getProject().getId();
-        var project = projectRepository.findById(projectId);
-        if (project.isEmpty()) {
-            return;
-        }
-        var projectCode = project.get().getCode();
-        navigateTo("/projects/" + projectCode);
+        openProjectDetail();
+        milestoneRow(milestone.getId()).locator("form[action$='/complete'] button").click();
         waitForPageLoad();
 
-        var completeBtn = page.locator("form[action*='/complete'] button[type='submit']").first();
-        if (completeBtn.isVisible()) {
-            completeBtn.click();
-            waitForPageLoad();
-        }
+        assertThat(page.locator("[data-testid='flash-success']")).hasText("Milestone selesai");
+        Locator row = milestoneRow(milestone.getId());
+        assertThat(row.locator("span:text-is('Selesai')")).hasCount(1);
+        assertThat(row).containsText("Selesai: " + DISPLAY_DATE.format(LocalDate.now()));
+        assertThat(row.locator("form[action$='/complete']")).hasCount(0);
+        assertThat(row.locator("form[action$='/reset']")).hasCount(1);
 
-        assertThat(page.locator("body")).isVisible();
+        ProjectMilestone completed = milestoneRepository.findById(milestone.getId()).orElseThrow();
+        assertEquals(MilestoneStatus.COMPLETED, completed.getStatus());
+        assertEquals(LocalDate.now(), completed.getActualDate());
     }
 
     @Test
-    @DisplayName("Should reset milestone")
+    @DisplayName("Should reset completed milestone to pending and clear actual date")
     void shouldResetMilestone() {
-        var milestone = milestoneRepository.findAll().stream()
-                .filter(m -> m.getStatus() != null &&
-                        ("IN_PROGRESS".equals(m.getStatus().name()) || "COMPLETED".equals(m.getStatus().name())))
-                .findFirst();
-        if (milestone.isEmpty()) {
-            return;
-        }
+        ProjectMilestone milestone = createMilestone(1, "Reset " + shortId(), 10);
+        milestoneService.startMilestone(milestone.getId());
+        milestoneService.completeMilestone(milestone.getId());
 
-        // Get project separately to avoid LazyInitializationException
-        var projectId = milestone.get().getProject().getId();
-        var project = projectRepository.findById(projectId);
-        if (project.isEmpty()) {
-            return;
-        }
-        var projectCode = project.get().getCode();
-        navigateTo("/projects/" + projectCode);
+        openProjectDetail();
+        milestoneRow(milestone.getId()).locator("form[action$='/reset'] button").click();
         waitForPageLoad();
 
-        var resetBtn = page.locator("form[action*='/reset'] button[type='submit']").first();
-        if (resetBtn.isVisible()) {
-            resetBtn.click();
-            waitForPageLoad();
-        }
+        assertThat(page.locator("[data-testid='flash-success']")).hasText("Milestone direset");
+        Locator row = milestoneRow(milestone.getId());
+        assertThat(row.locator("span:text-is('Pending')")).hasCount(1);
+        assertThat(row).not().containsText("Selesai:");
+        assertThat(row.locator("form[action$='/start']")).hasCount(1);
 
-        assertThat(page.locator("body")).isVisible();
+        ProjectMilestone reset = milestoneRepository.findById(milestone.getId()).orElseThrow();
+        assertEquals(MilestoneStatus.PENDING, reset.getStatus());
+        assertNull(reset.getActualDate());
     }
 
     @Test
-    @DisplayName("Should delete milestone")
+    @DisplayName("Should keep milestone when delete confirmation is dismissed")
+    void shouldKeepMilestoneWhenDeleteDismissed() {
+        ProjectMilestone milestone = createMilestone(1, "Keep " + shortId(), 10);
+
+        openProjectDetail();
+        page.onceDialog(dialog -> {
+            assertEquals("Hapus milestone ini?", dialog.message());
+            dialog.dismiss();
+        });
+        milestoneRow(milestone.getId()).locator("form[action$='/delete'] button").click();
+
+        assertThat(milestoneRow(milestone.getId())).hasCount(1);
+        assertTrue(milestoneRepository.findById(milestone.getId()).isPresent(),
+                "Milestone deleted although confirmation was dismissed");
+    }
+
+    @Test
+    @DisplayName("Should delete milestone after confirmation")
     void shouldDeleteMilestone() {
-        var milestone = milestoneRepository.findAll().stream()
-                .filter(m -> m.getStatus() == null || "NOT_STARTED".equals(m.getStatus().name()))
-                .findFirst();
-        if (milestone.isEmpty()) {
-            return;
-        }
+        ProjectMilestone milestone = createMilestone(1, "Delete " + shortId(), 10);
 
-        // Get project separately to avoid LazyInitializationException
-        var projectId = milestone.get().getProject().getId();
-        var project = projectRepository.findById(projectId);
-        if (project.isEmpty()) {
-            return;
-        }
-        var projectCode = project.get().getCode();
-        navigateTo("/projects/" + projectCode);
+        openProjectDetail();
+        page.onceDialog(dialog -> dialog.accept());
+        milestoneRow(milestone.getId()).locator("form[action$='/delete'] button").click();
         waitForPageLoad();
 
-        var deleteBtn = page.locator("form[action*='/delete'] button[type='submit']").first();
-        if (deleteBtn.isVisible()) {
-            deleteBtn.click();
-            waitForPageLoad();
-        }
-
-        assertThat(page.locator("body")).isVisible();
-    }
-
-    // ==================== ADDITIONAL COVERAGE TESTS ====================
-
-    @Test
-    @DisplayName("Should show validation error when creating milestone without name")
-    void shouldShowValidationErrorWhenCreatingWithoutName() {
-        var project = projectRepository.findAll().stream().findFirst();
-        if (project.isEmpty()) {
-            return;
-        }
-
-        navigateTo("/projects/" + project.get().getCode() + "/milestones/new");
-        waitForPageLoad();
-
-        // Only fill sequence, leave name empty
-        var sequenceInput = page.locator("input[name='sequence']").first();
-        if (sequenceInput.isVisible()) {
-            sequenceInput.fill("1");
-        }
-
-        var submitBtn = page.locator("button[type='submit'], #btn-simpan").first();
-        if (submitBtn.isVisible()) {
-            submitBtn.click();
-            waitForPageLoad();
-        }
-
-        // Should stay on form page with validation error
-        assertThat(page.locator("body")).isVisible();
+        assertThat(page.locator("[data-testid='flash-success']")).hasText("Milestone berhasil dihapus");
+        assertThat(milestoneRow(milestone.getId())).hasCount(0);
+        assertThat(page.locator("[data-testid='milestone-section']")).containsText("Belum ada milestone");
+        assertTrue(milestoneRepository.findById(milestone.getId()).isEmpty(), "Milestone still persisted");
     }
 
     @Test
-    @DisplayName("Should show validation error when creating milestone with zero sequence")
-    void shouldShowValidationErrorWithZeroSequence() {
-        var project = projectRepository.findAll().stream().findFirst();
-        if (project.isEmpty()) {
-            return;
-        }
+    @DisplayName("Should return 404 for unknown milestone")
+    void shouldReturn404ForUnknownMilestone() {
+        Response response = page.navigate(baseUrl() + "/projects/" + project.getCode()
+                + "/milestones/" + UUID.randomUUID() + "/edit");
 
-        navigateTo("/projects/" + project.get().getCode() + "/milestones/new");
-        waitForPageLoad();
-
-        var nameInput = page.locator("input[name='name']").first();
-        if (nameInput.isVisible()) {
-            nameInput.fill("Invalid Milestone");
-        }
-
-        var sequenceInput = page.locator("input[name='sequence']").first();
-        if (sequenceInput.isVisible()) {
-            sequenceInput.fill("0");
-        }
-
-        var submitBtn = page.locator("button[type='submit'], #btn-simpan").first();
-        if (submitBtn.isVisible()) {
-            submitBtn.click();
-            waitForPageLoad();
-        }
-
-        assertThat(page.locator("body")).isVisible();
+        assertEquals(404, response.status());
     }
 
-    @Test
-    @DisplayName("Should create milestone with description and weight")
-    void shouldCreateMilestoneWithDescriptionAndWeight() {
-        var project = projectRepository.findAll().stream().findFirst();
-        if (project.isEmpty()) {
-            return;
-        }
+    // ==================== helpers ====================
 
-        navigateTo("/projects/" + project.get().getCode() + "/milestones/new");
-        waitForPageLoad();
-
-        var nameInput = page.locator("input[name='name']").first();
-        if (nameInput.isVisible()) {
-            nameInput.fill("Full Milestone " + System.currentTimeMillis());
-        }
-
-        var sequenceInput = page.locator("input[name='sequence']").first();
-        if (sequenceInput.isVisible()) {
-            sequenceInput.fill("98");
-        }
-
-        var descInput = page.locator("textarea[name='description'], input[name='description']").first();
-        if (descInput.isVisible()) {
-            descInput.fill("Test milestone description");
-        }
-
-        var weightInput = page.locator("input[name='weightPercent']").first();
-        if (weightInput.isVisible()) {
-            weightInput.fill("25");
-        }
-
-        var targetDateInput = page.locator("input[name='targetDate']").first();
-        if (targetDateInput.isVisible()) {
-            targetDateInput.fill("2026-12-31");
-        }
-
-        var submitBtn = page.locator("button[type='submit'], #btn-simpan").first();
-        if (submitBtn.isVisible()) {
-            submitBtn.click();
-            waitForPageLoad();
-        }
-
-        assertThat(page.locator("body")).isVisible();
+    private Project createProject() {
+        Project p = new Project();
+        p.setCode("MS-" + shortId());
+        p.setName("Proyek Milestone " + shortId());
+        p.setContractValue(new BigDecimal("100000000"));
+        UUID clientId = clientRepository.findByCode(CLIENT_CODE)
+                .orElseThrow(() -> new IllegalStateException("Seeded client missing: " + CLIENT_CODE))
+                .getId();
+        return projectService.create(p, clientId);
     }
 
-    @Test
-    @DisplayName("Should display project detail page with milestones section")
-    void shouldDisplayProjectDetailWithMilestones() {
-        var project = projectRepository.findAll().stream().findFirst();
-        if (project.isEmpty()) {
-            return;
-        }
-
-        navigateTo("/projects/" + project.get().getCode());
-        waitForPageLoad();
-
-        assertThat(page.locator("#page-title, h1, h2").first()).isVisible();
+    private ProjectMilestone createMilestone(int sequence, String name, int weight) {
+        return createMilestone(sequence, name, weight, null, null);
     }
 
-    @Test
-    @DisplayName("Should display edit form with pre-populated data")
-    void shouldDisplayEditFormWithPrePopulatedData() {
-        var milestone = milestoneRepository.findAll().stream().findFirst();
-        if (milestone.isEmpty()) {
-            return;
-        }
-
-        var projectId = milestone.get().getProject().getId();
-        var project = projectRepository.findById(projectId);
-        if (project.isEmpty()) {
-            return;
-        }
-        var projectCode = project.get().getCode();
-        navigateTo("/projects/" + projectCode + "/milestones/" + milestone.get().getId() + "/edit");
-        waitForPageLoad();
-
-        // Verify the name field is pre-populated
-        var nameInput = page.locator("input[name='name']").first();
-        if (nameInput.isVisible()) {
-            var value = nameInput.inputValue();
-            org.assertj.core.api.Assertions.assertThat(value)
-                .as("Name input should be pre-populated")
-                .isNotEmpty();
-        }
+    private ProjectMilestone createMilestone(int sequence, String name, int weight, LocalDate targetDate,
+                                             String description) {
+        ProjectMilestone m = new ProjectMilestone();
+        m.setSequence(sequence);
+        m.setName(name);
+        m.setWeightPercent(weight);
+        m.setTargetDate(targetDate);
+        m.setDescription(description);
+        return milestoneService.create(project.getId(), m);
     }
 
-    @Test
-    @DisplayName("Should update milestone with all fields")
-    void shouldUpdateMilestoneWithAllFields() {
-        var milestone = milestoneRepository.findAll().stream().findFirst();
-        if (milestone.isEmpty()) {
-            return;
-        }
+    private List<ProjectMilestone> milestones() {
+        return milestoneRepository.findByProjectIdOrderBySequenceAsc(project.getId());
+    }
 
-        var projectId = milestone.get().getProject().getId();
-        var project = projectRepository.findById(projectId);
-        if (project.isEmpty()) {
-            return;
-        }
-        var projectCode = project.get().getCode();
-        navigateTo("/projects/" + projectCode + "/milestones/" + milestone.get().getId() + "/edit");
+    private ProjectMilestone singleMilestone() {
+        List<ProjectMilestone> all = milestones();
+        assertEquals(1, all.size(), "Expected exactly one milestone on " + project.getCode());
+        return all.get(0);
+    }
+
+    private void openProjectDetail() {
+        navigateTo("/projects/" + project.getCode());
         waitForPageLoad();
+        assertThat(page.locator("[data-testid='milestone-section']")).isVisible();
+    }
 
-        var nameInput = page.locator("input[name='name']").first();
-        if (nameInput.isVisible()) {
-            nameInput.fill("Full Update Milestone " + System.currentTimeMillis());
-        }
+    private void openNewForm() {
+        navigateTo("/projects/" + project.getCode() + "/milestones/new");
+        waitForPageLoad();
+        assertThat(page.locator("#page-title")).hasText("Milestone Baru");
+    }
 
-        var descInput = page.locator("textarea[name='description'], input[name='description']").first();
-        if (descInput.isVisible()) {
-            descInput.fill("Updated description");
-        }
+    private void openEditForm(UUID milestoneId) {
+        navigateTo("/projects/" + project.getCode() + "/milestones/" + milestoneId + "/edit");
+        waitForPageLoad();
+        assertThat(page.locator("#page-title")).hasText("Edit Milestone");
+    }
 
-        var weightInput = page.locator("input[name='weightPercent']").first();
-        if (weightInput.isVisible()) {
-            weightInput.fill("50");
-        }
+    private void disableBrowserValidation() {
+        page.locator("#btn-simpan").evaluate("b => b.form.noValidate = true");
+    }
 
-        var submitBtn = page.locator("button[type='submit'], #btn-simpan").first();
-        if (submitBtn.isVisible()) {
-            submitBtn.click();
-            waitForPageLoad();
-        }
+    private void submit() {
+        page.locator("#btn-simpan").click();
+        waitForPageLoad();
+    }
 
-        assertThat(page.locator("body")).isVisible();
+    private Locator sequenceError() {
+        return page.locator("#sequence ~ p.text-red-500");
+    }
+
+    private Locator milestoneRow(UUID milestoneId) {
+        return page.locator("[data-milestone-id='" + milestoneId + "']");
+    }
+
+    private static String shortId() {
+        return UUID.randomUUID().toString().substring(0, 8);
     }
 }

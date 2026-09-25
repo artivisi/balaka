@@ -9,6 +9,13 @@
     <h1 id="page-title">Detail Proyek</h1>
 
     <section class="space-y-6" data-testid="project-detail">
+        <div th:if="${successMessage}" data-testid="flash-success"
+             class="p-4 rounded-lg bg-green-50 border border-green-200 text-sm font-medium text-green-800"
+             th:text="${successMessage}">Success</div>
+        <div th:if="${errorMessage}" data-testid="flash-error"
+             class="p-4 rounded-lg bg-red-50 border border-red-200 text-sm font-medium text-red-800"
+             th:text="${errorMessage}">Error</div>
+
         <!-- Header -->
         <div class="flex items-start justify-between">
             <div>
@@ -39,7 +46,7 @@
                 </div>
                 <div>
                     <p class="text-gray-500">Progress</p>
-                    <p class="font-medium" th:text="${project.progressPercent + '%'}">0%</p>
+                    <p class="font-medium" data-testid="project-progress" th:text="${project.progressPercent + '%'}">0%</p>
                 </div>
                 <div>
                     <p class="text-gray-500">Tanggal Mulai</p>

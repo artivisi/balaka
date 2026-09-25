@@ -17,6 +17,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import org.springframework.beans.BeanUtils;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -74,6 +75,7 @@ public class PaymentTermController {
 
         private BigDecimal percentage;
         private BigDecimal amount;
+        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
         private LocalDate dueDate;
 
         // Nested ref for th:field="*{milestone.id}"
