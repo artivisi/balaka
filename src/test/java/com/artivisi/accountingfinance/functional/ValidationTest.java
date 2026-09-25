@@ -1,379 +1,181 @@
 package com.artivisi.accountingfinance.functional;
 
+import com.artivisi.accountingfinance.entity.AssetCategory;
+import com.artivisi.accountingfinance.entity.Client;
 import com.artivisi.accountingfinance.functional.service.ServiceTestDataInitializer;
-import com.artivisi.accountingfinance.repository.PayrollRunRepository;
+import com.artivisi.accountingfinance.repository.AssetCategoryRepository;
+import com.artivisi.accountingfinance.repository.ClientRepository;
+import com.artivisi.accountingfinance.repository.EmployeeRepository;
+import com.artivisi.accountingfinance.repository.FixedAssetRepository;
+import com.artivisi.accountingfinance.repository.InvoiceRepository;
 import com.artivisi.accountingfinance.repository.ProjectRepository;
 import com.artivisi.accountingfinance.ui.PlaywrightTestBase;
+import com.microsoft.playwright.Locator;
+import com.microsoft.playwright.Page;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
 
-import org.assertj.core.api.Assertions;
+import java.time.LocalDate;
+import java.util.UUID;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Validation tests to exercise error paths in controllers.
- * These tests submit forms with invalid data to verify validation works.
- *
- * Note: Uses strict ID-based locators for submit buttons to ensure reliability.
- * Each form has a unique submit button ID defined in the template.
+ * Server-side validation of form fields not covered by the per-feature controller tests.
+ * Browser constraint validation is switched off before submitting so the request reaches
+ * the server; each test asserts the rendered message and that nothing was persisted.
  */
 @DisplayName("Validation Tests")
 @Import(ServiceTestDataInitializer.class)
 class ValidationTest extends PlaywrightTestBase {
 
     @Autowired
-    private PayrollRunRepository payrollRunRepository;
+    private EmployeeRepository employeeRepository;
 
     @Autowired
     private ProjectRepository projectRepository;
+
+    @Autowired
+    private ClientRepository clientRepository;
+
+    @Autowired
+    private InvoiceRepository invoiceRepository;
+
+    @Autowired
+    private FixedAssetRepository fixedAssetRepository;
+
+    @Autowired
+    private AssetCategoryRepository assetCategoryRepository;
 
     @BeforeEach
     void setupAndLogin() {
         loginAsAdmin();
     }
 
-    // ==================== PAYROLL VALIDATION ====================
-
     @Test
-    @DisplayName("Should show validation error when submitting payroll form with empty period")
-    void shouldShowValidationErrorForEmptyPayrollPeriod() {
-        navigateTo("/payroll/new");
-        waitForPageLoad();
-
-        var periodInput = page.locator("#period");
-        assertThat(periodInput).isVisible();
-        periodInput.clear();
-
-        // payroll/form.html uses id="btn-submit"
-        var submitBtn = page.locator("#btn-submit");
-        assertThat(submitBtn).isVisible();
-        submitBtn.click();
-        waitForPageLoad();
-
-        // Should stay on form page (URL contains /new or /payroll)
-        Assertions.assertThat(page.url()).contains("/payroll");
-    }
-
-    @Test
-    @DisplayName("Should show error when creating duplicate payroll period")
-    void shouldShowErrorForDuplicatePayrollPeriod() {
-        var existingPayroll = payrollRunRepository.findAll().stream().findFirst();
-        if (existingPayroll.isEmpty()) {
-            return; // No test data available
-        }
-
-        String existingPeriod = existingPayroll.get().getPayrollPeriod();
-
-        navigateTo("/payroll/new");
-        waitForPageLoad();
-
-        var periodInput = page.locator("#period");
-        assertThat(periodInput).isVisible();
-        periodInput.fill(existingPeriod);
-
-        var submitBtn = page.locator("#btn-submit");
-        assertThat(submitBtn).isVisible();
-        submitBtn.click();
-        waitForPageLoad();
-
-        // Should show error - either stay on form or show error message
-        Assertions.assertThat(page.url()).contains("/payroll");
-    }
-
-    // ==================== EMPLOYEE VALIDATION ====================
-
-    @Test
-    @DisplayName("Should show validation error when submitting employee form with empty name")
-    void shouldShowValidationErrorForEmptyEmployeeName() {
+    @DisplayName("Employee form rejects a malformed email and persists nothing")
+    void employeeFormRejectsMalformedEmail() {
+        String employeeId = "VAL-" + uid();
         navigateTo("/employees/new");
         waitForPageLoad();
+        disableBrowserValidation();
+        page.locator("#employeeId").fill(employeeId);
+        page.locator("#name").fill("Validasi " + employeeId);
+        page.locator("#email").fill("invalid-email");
+        page.locator("#hireDate").fill("2024-01-02");
+        submit();
 
-        var nameInput = page.locator("#name");
-        assertThat(nameInput).isVisible();
-        nameInput.clear();
-
-        // employees/form.html uses id="btn-simpan"
-        var submitBtn = page.locator("#btn-simpan");
-        assertThat(submitBtn).isVisible();
-        submitBtn.click();
-        waitForPageLoad();
-
-        // Should stay on form page
-        Assertions.assertThat(page.url()).contains("/employees");
+        assertThat(page.locator("#page-title")).hasText("Karyawan Baru");
+        assertThat(page.locator("#email + p.text-red-500")).hasText("Format email tidak valid");
+        assertThat(page.locator("#email")).hasValue("invalid-email");
+        assertThat(page.locator("#employeeId")).hasValue(employeeId);
+        assertThat(employeeRepository.existsByEmployeeId(employeeId)).isFalse();
     }
 
     @Test
-    @DisplayName("Should show validation error for invalid employee email format")
-    void shouldShowValidationErrorForInvalidEmployeeEmail() {
-        navigateTo("/employees/new");
-        waitForPageLoad();
-
-        var emailInput = page.locator("#email");
-        assertThat(emailInput).isVisible();
-        emailInput.fill("invalid-email");
-
-        var submitBtn = page.locator("#btn-simpan");
-        assertThat(submitBtn).isVisible();
-        submitBtn.click();
-        waitForPageLoad();
-
-        // Should stay on form due to validation
-        Assertions.assertThat(page.url()).contains("/employees");
-    }
-
-    // ==================== CLIENT VALIDATION ====================
-
-    @Test
-    @DisplayName("Should show validation error when submitting client form with empty name")
-    void shouldShowValidationErrorForEmptyClientName() {
-        navigateTo("/clients/new");
-        waitForPageLoad();
-
-        var nameInput = page.locator("#name");
-        assertThat(nameInput).isVisible();
-        nameInput.clear();
-
-        // clients/form.html uses id="btn-simpan"
-        var submitBtn = page.locator("#btn-simpan");
-        assertThat(submitBtn).isVisible();
-        submitBtn.click();
-        waitForPageLoad();
-
-        // Should stay on form page
-        Assertions.assertThat(page.url()).contains("/clients");
-    }
-
-    @Test
-    @DisplayName("Should show validation error for invalid client NPWP format")
-    void shouldShowValidationErrorForInvalidClientNpwp() {
-        navigateTo("/clients/new");
-        waitForPageLoad();
-
-        var npwpInput = page.locator("#npwp");
-        assertThat(npwpInput).isVisible();
-        npwpInput.fill("invalid-npwp");
-
-        var submitBtn = page.locator("#btn-simpan");
-        assertThat(submitBtn).isVisible();
-        submitBtn.click();
-        waitForPageLoad();
-
-        // Should stay on form due to validation
-        Assertions.assertThat(page.url()).contains("/clients");
-    }
-
-    // ==================== PROJECT VALIDATION ====================
-
-    @Test
-    @DisplayName("Should show validation error when submitting project form with empty code")
-    void shouldShowValidationErrorForEmptyProjectCode() {
+    @DisplayName("Project form rejects a blank code and persists nothing")
+    void projectFormRejectsBlankCode() {
+        String name = "Validasi Proyek " + uid();
         navigateTo("/projects/new");
         waitForPageLoad();
+        disableBrowserValidation();
+        page.locator("#name").fill(name);
+        submit();
 
-        var codeInput = page.locator("#code");
-        assertThat(codeInput).isVisible();
-        codeInput.clear();
-
-        // projects/form.html uses id="btn-simpan"
-        var submitBtn = page.locator("#btn-simpan");
-        assertThat(submitBtn).isVisible();
-        submitBtn.click();
-        waitForPageLoad();
-
-        // Should stay on form page
-        Assertions.assertThat(page.url()).contains("/projects");
+        assertThat(page.locator("#page-title")).hasText("Proyek Baru");
+        assertThat(page.locator("#code + p.text-red-500")).hasText("Kode proyek wajib diisi");
+        assertThat(page.locator("#name")).hasValue(name);
+        assertThat(projectRepository.findAll()).noneMatch(p -> name.equals(p.getName()));
     }
 
     @Test
-    @DisplayName("Should show error when creating duplicate project code")
-    void shouldShowErrorForDuplicateProjectCode() {
-        var existingProject = projectRepository.findAll().stream().findFirst();
-        if (existingProject.isEmpty()) {
-            return; // No test data available
-        }
+    @DisplayName("Invoice form rejects a negative amount and persists nothing")
+    void invoiceFormRejectsNegativeAmount() {
+        Client client = new Client();
+        client.setCode("VAL-" + uid());
+        client.setName("Klien Validasi " + client.getCode());
+        client = clientRepository.save(client);
 
-        String existingCode = existingProject.get().getCode();
-
-        navigateTo("/projects/new");
-        waitForPageLoad();
-
-        var codeInput = page.locator("#code");
-        assertThat(codeInput).isVisible();
-        codeInput.fill(existingCode);
-
-        var submitBtn = page.locator("#btn-simpan");
-        assertThat(submitBtn).isVisible();
-        submitBtn.click();
-        waitForPageLoad();
-
-        // Should show error - stay on form or show error message
-        Assertions.assertThat(page.url()).contains("/projects");
-    }
-
-    // ==================== USER VALIDATION ====================
-
-    @Test
-    @DisplayName("Should show validation error when submitting user form with empty username")
-    void shouldShowValidationErrorForEmptyUsername() {
-        navigateTo("/users/new");
-        waitForPageLoad();
-
-        var usernameInput = page.locator("#username");
-        assertThat(usernameInput).isVisible();
-        usernameInput.clear();
-
-        // users/form.html uses id="btn-save"
-        var submitBtn = page.locator("#btn-save");
-        assertThat(submitBtn).isVisible();
-        submitBtn.click();
-        waitForPageLoad();
-
-        // Should stay on form page
-        Assertions.assertThat(page.url()).contains("/users");
-    }
-
-    @Test
-    @DisplayName("Should show validation error for weak password")
-    void shouldShowValidationErrorForWeakPassword() {
-        navigateTo("/users/new");
-        waitForPageLoad();
-
-        var passwordInput = page.locator("#password");
-        assertThat(passwordInput).isVisible();
-        passwordInput.fill("weak");
-
-        var submitBtn = page.locator("#btn-save");
-        assertThat(submitBtn).isVisible();
-        submitBtn.click();
-        waitForPageLoad();
-
-        // Should stay on form due to validation
-        Assertions.assertThat(page.url()).contains("/users");
-    }
-
-    // ==================== INVOICE VALIDATION ====================
-
-    @Test
-    @DisplayName("Should show validation error when submitting invoice with no client")
-    void shouldShowValidationErrorForInvoiceWithNoClient() {
         navigateTo("/invoices/new");
         waitForPageLoad();
+        Locator clientInput = page.locator("#clientLabel");
+        clientInput.click();
+        clientInput.fill(client.getCode());
+        Locator result = page.locator("[data-testid='client-picker-result']",
+                new Page.LocatorOptions().setHasText(client.getCode()));
+        assertThat(result).hasCount(1);
+        result.click();
+        page.locator("#invoiceDate").fill("2024-02-01");
+        page.locator("#dueDate").fill("2024-03-02");
+        page.locator("#amount").fill("-1000");
+        disableBrowserValidation();
+        submit();
 
-        // invoices/form.html uses id="btn-simpan"
-        var submitBtn = page.locator("#btn-simpan");
-        assertThat(submitBtn).isVisible();
-        submitBtn.click();
-        waitForPageLoad();
-
-        // Should stay on form due to validation
-        Assertions.assertThat(page.url()).contains("/invoices");
+        assertThat(page).hasURL(baseUrl() + "/invoices/new");
+        assertThat(page.locator("form li")).hasText("Jumlah tidak boleh negatif");
+        assertThat(page.locator("#amount")).hasValue("-1000");
+        assertThat(invoiceRepository.findByClientId(client.getId())).isEmpty();
     }
 
     @Test
-    @DisplayName("Should show validation error for negative invoice amount")
-    void shouldShowValidationErrorForNegativeInvoiceAmount() {
-        navigateTo("/invoices/new");
-        waitForPageLoad();
+    @DisplayName("Asset form rejects a blank name and persists nothing")
+    void assetFormRejectsBlankName() {
+        String code = "VAL-" + uid();
+        fillAssetForm(code, "", "5000000");
+        submit();
 
-        var amountInput = page.locator("#amount");
-        assertThat(amountInput).isVisible();
-        amountInput.fill("-1000");
-
-        var submitBtn = page.locator("#btn-simpan");
-        assertThat(submitBtn).isVisible();
-        submitBtn.click();
-        waitForPageLoad();
-
-        // Should stay on form due to validation
-        Assertions.assertThat(page.url()).contains("/invoices");
+        assertThat(page.locator("#page-title")).hasText("Aset Baru");
+        assertThat(page.locator("#name ~ p.text-red-500")).hasText("Nama aset wajib diisi");
+        assertThat(page.locator("#assetCode")).hasValue(code);
+        assertThat(fixedAssetRepository.findByAssetCode(code)).isEmpty();
     }
 
-    // ==================== FIXED ASSET VALIDATION ====================
-    // Note: Controller is at /assets (not /fixed-assets)
-
     @Test
-    @DisplayName("Should show validation error when submitting asset with empty name")
-    void shouldShowValidationErrorForEmptyAssetName() {
+    @DisplayName("Asset form rejects a zero purchase cost (residual not below cost) and persists nothing")
+    void assetFormRejectsZeroPurchaseCost() {
+        String code = "VAL-" + uid();
+        fillAssetForm(code, "Aset Nol " + code, "0");
+        submit();
+
+        assertThat(page.locator("#page-title")).hasText("Aset Baru");
+        assertThat(page.locator("form:has(#btn-simpan) ul li"))
+                .hasText(new String[]{"Nilai residu harus lebih kecil dari nilai perolehan"});
+        assertThat(page.locator("#assetCode")).hasValue(code);
+        assertThat(fixedAssetRepository.findByAssetCode(code)).isEmpty();
+    }
+
+    private void fillAssetForm(String code, String name, String cost) {
+        AssetCategory category = assetCategoryRepository.findByCode("KOMPUTER")
+                .orElseThrow(() -> new IllegalStateException("Seeded asset category KOMPUTER missing"));
         navigateTo("/assets/new");
         waitForPageLoad();
-
-        var nameInput = page.locator("#name");
-        assertThat(nameInput).isVisible();
-        nameInput.clear();
-
-        // assets/form.html uses id="btn-simpan"
-        var submitBtn = page.locator("#btn-simpan");
-        assertThat(submitBtn).isVisible();
-        submitBtn.click();
-        waitForPageLoad();
-
-        // Should stay on form page
-        Assertions.assertThat(page.url()).contains("/assets");
+        disableBrowserValidation();
+        page.locator("#assetCode").fill(code);
+        page.locator("#name").fill(name);
+        page.locator("#category").selectOption(category.getId().toString());
+        page.locator("#fundingAccount").pressSequentially("1.1.02");
+        page.locator("[data-testid='account-picker-result']:has-text('Bank BCA')").click();
+        assertThat(page.locator("#fundingAccount")).hasValue("1.1.02 - Bank BCA");
+        page.locator("#purchaseDate").fill(LocalDate.of(2024, 1, 10).toString());
+        page.locator("#purchaseCost").fill(cost);
+        page.locator("#depreciationStartDate").fill(LocalDate.of(2024, 1, 1).toString());
+        page.locator("#usefulLifeMonths").fill("24");
     }
 
-    @Test
-    @DisplayName("Should show validation error for zero purchase cost")
-    void shouldShowValidationErrorForZeroPurchaseCost() {
-        navigateTo("/assets/new");
-        waitForPageLoad();
-
-        // Field is called purchaseCost (not acquisitionCost)
-        var costInput = page.locator("#purchaseCost");
-        assertThat(costInput).isVisible();
-        costInput.fill("0");
-
-        var submitBtn = page.locator("#btn-simpan");
-        assertThat(submitBtn).isVisible();
-        submitBtn.click();
-        waitForPageLoad();
-
-        // Should stay on form due to validation
-        Assertions.assertThat(page.url()).contains("/assets");
+    private void disableBrowserValidation() {
+        page.locator("#btn-simpan").evaluate("b => b.form.noValidate = true");
     }
 
-    // ==================== PRODUCT VALIDATION ====================
-
-    @Test
-    @DisplayName("Should show validation error when submitting product with empty code")
-    void shouldShowValidationErrorForEmptyProductCode() {
-        navigateTo("/products/new");
+    private void submit() {
+        page.locator("#btn-simpan").click();
         waitForPageLoad();
-
-        var codeInput = page.locator("#code");
-        assertThat(codeInput).isVisible();
-        codeInput.clear();
-
-        // products/form.html uses id="btn-simpan"
-        var submitBtn = page.locator("#btn-simpan");
-        assertThat(submitBtn).isVisible();
-        submitBtn.click();
-        waitForPageLoad();
-
-        // Should stay on form page
-        Assertions.assertThat(page.url()).contains("/products");
     }
 
-    @Test
-    @DisplayName("Should show validation error for negative product price")
-    void shouldShowValidationErrorForNegativeProductPrice() {
-        navigateTo("/products/new");
-        waitForPageLoad();
-
-        var priceInput = page.locator("#sellingPrice");
-        assertThat(priceInput).isVisible();
-        priceInput.fill("-100");
-
-        var submitBtn = page.locator("#btn-simpan");
-        assertThat(submitBtn).isVisible();
-        submitBtn.click();
-        waitForPageLoad();
-
-        // Should stay on form due to validation
-        Assertions.assertThat(page.url()).contains("/products");
+    private static String uid() {
+        return UUID.randomUUID().toString().substring(0, 8);
     }
-
 }

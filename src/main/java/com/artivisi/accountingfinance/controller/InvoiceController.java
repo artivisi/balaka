@@ -403,6 +403,8 @@ public class InvoiceController {
         }
         if (lines.isEmpty() && form.getAmount() == null) {
             bindingResult.rejectValue("amount", "required", "Jumlah wajib diisi");
+        } else if (lines.isEmpty() && form.getAmount().signum() < 0) {
+            bindingResult.rejectValue("amount", "negative", "Jumlah tidak boleh negatif");
         }
     }
 
