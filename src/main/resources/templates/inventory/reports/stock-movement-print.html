@@ -34,15 +34,15 @@
     <div class="summary">
         <div class="summary-item">
             <div class="summary-label">Total Masuk</div>
-            <div class="summary-value text-green" th:text="${'Rp ' + #numbers.formatDecimal(report.totalInboundValue(), 0, 'COMMA', 0, 'POINT')}">Rp 0</div>
+            <div class="summary-value text-green" th:text="${'Rp ' + #numbers.formatDecimal(report.totalInboundValue(), 1, 'COMMA', 0, 'POINT')}">Rp 0</div>
         </div>
         <div class="summary-item">
             <div class="summary-label">Total Keluar</div>
-            <div class="summary-value text-red" th:text="${'Rp ' + #numbers.formatDecimal(report.totalOutboundValue(), 0, 'COMMA', 0, 'POINT')}">Rp 0</div>
+            <div class="summary-value text-red" th:text="${'Rp ' + #numbers.formatDecimal(report.totalOutboundValue(), 1, 'COMMA', 0, 'POINT')}">Rp 0</div>
         </div>
         <div class="summary-item">
             <div class="summary-label">Selisih</div>
-            <div class="summary-value" th:text="${'Rp ' + #numbers.formatDecimal(report.totalInboundValue() - report.totalOutboundValue(), 0, 'COMMA', 0, 'POINT')}">Rp 0</div>
+            <div class="summary-value" th:text="${'Rp ' + #numbers.formatDecimal(report.totalInboundValue() - report.totalOutboundValue(), 1, 'COMMA', 0, 'POINT')}">Rp 0</div>
         </div>
     </div>
 
@@ -69,11 +69,11 @@
                     <span th:class="${item.transactionType().name().contains('IN') || item.transactionType().name() == 'PURCHASE' ? 'badge badge-green' : 'badge badge-red'}"
                           th:text="${item.transactionTypeLabel()}">Pembelian</span>
                 </td>
-                <td class="text-right" th:classappend="${item.transactionType().name().contains('IN') || item.transactionType().name() == 'PURCHASE' ? 'text-green' : 'text-red'}" th:text="${#numbers.formatDecimal(item.quantity(), 0, 'COMMA', 2, 'POINT')}">0</td>
-                <td class="text-right" th:text="${#numbers.formatDecimal(item.unitCost(), 0, 'COMMA', 0, 'POINT')}">0</td>
-                <td class="text-right font-bold" th:text="${#numbers.formatDecimal(item.totalCost(), 0, 'COMMA', 0, 'POINT')}">0</td>
+                <td class="text-right" th:classappend="${item.transactionType().name().contains('IN') || item.transactionType().name() == 'PURCHASE' ? 'text-green' : 'text-red'}" th:text="${#numbers.formatDecimal(item.quantity(), 1, 'COMMA', 2, 'POINT')}">0</td>
+                <td class="text-right" th:text="${#numbers.formatDecimal(item.unitCost(), 1, 'COMMA', 0, 'POINT')}">0</td>
+                <td class="text-right font-bold" th:text="${#numbers.formatDecimal(item.totalCost(), 1, 'COMMA', 0, 'POINT')}">0</td>
                 <td th:text="${item.referenceNumber() ?: '-'}">REF001</td>
-                <td class="text-right" th:text="${#numbers.formatDecimal(item.balanceAfter(), 0, 'COMMA', 2, 'POINT')}">0</td>
+                <td class="text-right" th:text="${#numbers.formatDecimal(item.balanceAfter(), 1, 'COMMA', 2, 'POINT')}">0</td>
             </tr>
         </tbody>
     </table>

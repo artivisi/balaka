@@ -61,7 +61,7 @@
                 </div>
                 <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
                     <div class="text-sm text-gray-500">Total Nilai Persediaan</div>
-                    <div th:id="total-stock-value" class="text-2xl font-bold text-primary-600" th:text="${'Rp ' + #numbers.formatDecimal(report.totalValue(), 0, 'COMMA', 0, 'POINT')}">Rp 0</div>
+                    <div th:id="total-stock-value" class="text-2xl font-bold text-primary-600" th:text="${'Rp ' + #numbers.formatDecimal(report.totalValue(), 1, 'COMMA', 0, 'POINT')}">Rp 0</div>
                 </div>
             </div>
 
@@ -88,14 +88,14 @@
                                 <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900" th:text="${item.productCode()}">SKU001</td>
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900" th:text="${item.productName()}">Produk A</td>
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500" th:text="${item.categoryName()}">Kategori</td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-right" th:text="${#numbers.formatDecimal(item.quantity(), 0, 'COMMA', 2, 'POINT')}">0</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-right" th:text="${#numbers.formatDecimal(item.quantity(), 1, 'COMMA', 2, 'POINT')}">0</td>
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500" th:text="${item.unit()}">pcs</td>
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-center">
                                     <span th:class="${item.costingMethod() == 'FIFO' ? 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800' : 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800'}"
                                           th:text="${item.costingMethod()}">FIFO</span>
                                 </td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-right" th:text="${#numbers.formatDecimal(item.averageCost(), 0, 'COMMA', 0, 'POINT')}">0</td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-right font-medium" th:text="${#numbers.formatDecimal(item.totalValue(), 0, 'COMMA', 0, 'POINT')}">0</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-right" th:text="${#numbers.formatDecimal(item.averageCost(), 1, 'COMMA', 0, 'POINT')}">0</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-right font-medium" th:text="${#numbers.formatDecimal(item.totalValue(), 1, 'COMMA', 0, 'POINT')}">0</td>
                             </tr>
                             <tr th:if="${#lists.isEmpty(report.items())}">
                                 <td colspan="9" class="px-4 py-8 text-center text-gray-500">Tidak ada data persediaan</td>
@@ -104,7 +104,7 @@
                         <tfoot th:if="${!#lists.isEmpty(report.items())}" class="bg-gray-100">
                             <tr>
                                 <td colspan="8" class="px-4 py-3 text-sm font-bold text-gray-900 text-right">Total Nilai Persediaan:</td>
-                                <td class="px-4 py-3 text-sm font-bold text-primary-600 text-right" th:text="${'Rp ' + #numbers.formatDecimal(report.totalValue(), 0, 'COMMA', 0, 'POINT')}">Rp 0</td>
+                                <td class="px-4 py-3 text-sm font-bold text-primary-600 text-right" th:text="${'Rp ' + #numbers.formatDecimal(report.totalValue(), 1, 'COMMA', 0, 'POINT')}">Rp 0</td>
                             </tr>
                         </tfoot>
                     </table>

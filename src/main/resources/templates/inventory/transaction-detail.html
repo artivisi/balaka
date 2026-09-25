@@ -10,7 +10,7 @@
 
     <section class="max-w-3xl space-y-6">
         <!-- Success Message -->
-        <div th:if="${success}" class="bg-green-50 border border-green-200 rounded-lg p-4">
+        <div th:if="${success}" data-testid="flash-success" class="bg-green-50 border border-green-200 rounded-lg p-4">
             <div class="flex items-center gap-2 text-green-800">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
@@ -23,7 +23,7 @@
         <div class="bg-white rounded-lg shadow p-6">
             <div class="flex items-center justify-between mb-6">
                 <div>
-                    <span class="px-3 py-1 text-sm rounded-full"
+                    <span data-testid="transaction-type" class="px-3 py-1 text-sm rounded-full"
                           th:classappend="${transaction.inbound} ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'"
                           th:text="${transaction.transactionType.displayName}">Pembelian</span>
                 </div>
@@ -50,7 +50,7 @@
                     <h3 class="text-sm font-medium text-gray-500 mb-1">Kuantitas</h3>
                     <p class="text-lg">
                         <span th:classappend="${transaction.inbound} ? 'text-green-600' : 'text-red-600'"
-                              th:text="${(transaction.inbound ? '+' : '-') + #numbers.formatDecimal(transaction.quantity, 0, 'COMMA', 2, 'POINT')}">+100</span>
+                              th:text="${(transaction.inbound ? '+' : '-') + #numbers.formatDecimal(transaction.quantity, 1, 'COMMA', 2, 'POINT')}">+100</span>
                         <span class="text-gray-500" th:text="${transaction.product.unit}">pcs</span>
                     </p>
                 </div>
@@ -58,25 +58,25 @@
                 <!-- Unit Cost -->
                 <div>
                     <h3 class="text-sm font-medium text-gray-500 mb-1">Harga Satuan</h3>
-                    <p class="text-lg" th:text="'Rp ' + ${#numbers.formatDecimal(transaction.unitCost, 0, 'COMMA', 2, 'POINT')}">Rp 10,000.00</p>
+                    <p class="text-lg" th:text="'Rp ' + ${#numbers.formatDecimal(transaction.unitCost, 1, 'COMMA', 2, 'POINT')}">Rp 10,000.00</p>
                 </div>
 
                 <!-- Total Cost -->
                 <div>
                     <h3 class="text-sm font-medium text-gray-500 mb-1">Total Biaya</h3>
-                    <p class="text-xl font-bold" th:text="'Rp ' + ${#numbers.formatDecimal(transaction.totalCost, 0, 'COMMA', 0, 'POINT')}">Rp 1,000,000</p>
+                    <p class="text-xl font-bold" th:text="'Rp ' + ${#numbers.formatDecimal(transaction.totalCost, 1, 'COMMA', 0, 'POINT')}">Rp 1,000,000</p>
                 </div>
 
                 <!-- Unit Price (for sales) -->
                 <div th:if="${transaction.unitPrice != null}">
                     <h3 class="text-sm font-medium text-gray-500 mb-1">Harga Jual</h3>
-                    <p class="text-lg" th:text="'Rp ' + ${#numbers.formatDecimal(transaction.unitPrice, 0, 'COMMA', 2, 'POINT')}">Rp 15,000.00</p>
+                    <p class="text-lg" th:text="'Rp ' + ${#numbers.formatDecimal(transaction.unitPrice, 1, 'COMMA', 2, 'POINT')}">Rp 15,000.00</p>
                 </div>
 
                 <!-- Sales Revenue (for sales) -->
                 <div th:if="${transaction.unitPrice != null}">
                     <h3 class="text-sm font-medium text-gray-500 mb-1">Total Pendapatan</h3>
-                    <p class="text-lg font-semibold text-green-600" th:text="'Rp ' + ${#numbers.formatDecimal(transaction.quantity * transaction.unitPrice, 0, 'COMMA', 0, 'POINT')}">Rp 1,500,000</p>
+                    <p class="text-lg font-semibold text-green-600" th:text="'Rp ' + ${#numbers.formatDecimal(transaction.quantity * transaction.unitPrice, 1, 'COMMA', 0, 'POINT')}">Rp 1,500,000</p>
                 </div>
 
                 <!-- Margin (for sales) -->
@@ -85,8 +85,8 @@
                     <th:block th:with="marginAmount=${(transaction.unitPrice - transaction.unitCost) * transaction.quantity}, marginPercent=${transaction.unitPrice > 0 ? ((transaction.unitPrice - transaction.unitCost) / transaction.unitPrice * 100) : 0}">
                         <p class="text-lg">
                             <span class="font-semibold" th:classappend="${marginAmount >= 0} ? 'text-green-600' : 'text-red-600'"
-                                  th:text="'Rp ' + ${#numbers.formatDecimal(marginAmount, 0, 'COMMA', 0, 'POINT')}">Rp 500,000</span>
-                            <span class="text-sm text-gray-500" th:text="'(' + ${#numbers.formatDecimal(marginPercent, 0, 'COMMA', 1, 'POINT')} + '%)'"> (33.3%)</span>
+                                  th:text="'Rp ' + ${#numbers.formatDecimal(marginAmount, 1, 'COMMA', 0, 'POINT')}">Rp 500,000</span>
+                            <span class="text-sm text-gray-500" th:text="'(' + ${#numbers.formatDecimal(marginPercent, 1, 'COMMA', 1, 'POINT')} + '%)'"> (33.3%)</span>
                         </p>
                     </th:block>
                 </div>
@@ -101,7 +101,7 @@
                 <div>
                     <h3 class="text-sm font-medium text-gray-500 mb-1">Saldo Setelah Transaksi</h3>
                     <p class="text-lg">
-                        <span th:text="${#numbers.formatDecimal(transaction.balanceAfter, 0, 'COMMA', 2, 'POINT')}">200</span>
+                        <span th:text="${#numbers.formatDecimal(transaction.balanceAfter, 1, 'COMMA', 2, 'POINT')}">200</span>
                         <span class="text-gray-500" th:text="${transaction.product.unit}">pcs</span>
                     </p>
                 </div>

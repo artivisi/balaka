@@ -36,11 +36,11 @@
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-right">
                     <span th:classappend="${tx.inbound} ? 'text-green-600' : 'text-red-600'"
-                          th:text="${(tx.inbound ? '+' : '-') + #numbers.formatDecimal(tx.quantity, 0, 'COMMA', 2, 'POINT')}">+100</span>
+                          th:text="${(tx.inbound ? '+' : '-') + #numbers.formatDecimal(tx.quantity, 1, 'COMMA', 2, 'POINT')}">+100</span>
                     <span class="text-gray-500" th:text="${tx.product.unit}">pcs</span>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-right" th:text="${#numbers.formatDecimal(tx.unitCost, 0, 'COMMA', 2, 'POINT')}">10,000</td>
-                <td class="px-6 py-4 whitespace-nowrap text-right font-medium" th:text="${#numbers.formatDecimal(tx.totalCost, 0, 'COMMA', 0, 'POINT')}">1,000,000</td>
+                <td class="px-6 py-4 whitespace-nowrap text-right" th:text="${#numbers.formatDecimal(tx.unitCost, 1, 'COMMA', 2, 'POINT')}">10,000</td>
+                <td class="px-6 py-4 whitespace-nowrap text-right font-medium" th:text="${#numbers.formatDecimal(tx.totalCost, 1, 'COMMA', 0, 'POINT')}">1,000,000</td>
                 <td class="px-6 py-4 whitespace-nowrap text-gray-500" th:text="${tx.referenceNumber ?: '-'}">INV001</td>
                 <td class="px-6 py-4 whitespace-nowrap text-center">
                     <a th:href="@{/inventory/transactions/{id}(id=${tx.id})}"

@@ -14,7 +14,7 @@
         <div class="bg-white rounded-lg shadow p-6">
             <div class="flex items-start justify-between">
                 <div>
-                    <h2 class="text-2xl font-bold" th:text="${product.name}">Produk A</h2>
+                    <h2 data-testid="stock-card-product-name" class="text-2xl font-bold" th:text="${product.name}">Produk A</h2>
                     <p class="text-gray-500" th:text="${product.code}">PRD001</p>
                 </div>
                 <div class="text-right">
@@ -39,7 +39,7 @@
                 </div>
                 <div>
                     <div class="text-sm text-gray-500">Stok Minimum</div>
-                    <div class="font-medium" th:text="${product.minimumStock != null ? #numbers.formatDecimal(product.minimumStock, 0, 'COMMA', 2, 'POINT') : '-'}">10</div>
+                    <div class="font-medium" th:text="${product.minimumStock != null ? #numbers.formatDecimal(product.minimumStock, 1, 'COMMA', 2, 'POINT') : '-'}">10</div>
                 </div>
             </div>
         </div>
@@ -49,17 +49,17 @@
             <div class="bg-white rounded-lg shadow p-4">
                 <div class="text-sm text-gray-500">Stok Saat Ini</div>
                 <div class="text-2xl font-bold text-primary-600">
-                    <span th:text="${balance != null ? #numbers.formatDecimal(balance.quantity, 0, 'COMMA', 2, 'POINT') : '0'}">100</span>
+                    <span th:text="${balance != null ? #numbers.formatDecimal(balance.quantity, 1, 'COMMA', 2, 'POINT') : '0'}">100</span>
                     <span class="text-base font-normal text-gray-500" th:text="${product.unit}">pcs</span>
                 </div>
             </div>
             <div class="bg-white rounded-lg shadow p-4">
                 <div class="text-sm text-gray-500">Biaya Rata-rata</div>
-                <div class="text-2xl font-bold text-gray-600" th:text="'Rp ' + ${balance != null ? #numbers.formatDecimal(balance.averageCost, 0, 'COMMA', 2, 'POINT') : '0'}">Rp 10,000</div>
+                <div class="text-2xl font-bold text-gray-600" th:text="'Rp ' + ${balance != null ? #numbers.formatDecimal(balance.averageCost, 1, 'COMMA', 2, 'POINT') : '0'}">Rp 10,000</div>
             </div>
             <div class="bg-white rounded-lg shadow p-4">
                 <div class="text-sm text-gray-500">Total Nilai</div>
-                <div class="text-2xl font-bold text-green-600" th:text="'Rp ' + ${balance != null ? #numbers.formatDecimal(balance.totalCost, 0, 'COMMA', 0, 'POINT') : '0'}">Rp 1,000,000</div>
+                <div class="text-2xl font-bold text-green-600" th:text="'Rp ' + ${balance != null ? #numbers.formatDecimal(balance.totalCost, 1, 'COMMA', 0, 'POINT') : '0'}">Rp 1,000,000</div>
             </div>
         </div>
 
@@ -95,10 +95,10 @@
                 <tbody class="divide-y divide-gray-200">
                     <tr th:each="layer : ${fifoLayers}" class="hover:bg-gray-50">
                         <td class="px-6 py-4" th:text="${#temporals.format(layer.layerDate, 'dd/MM/yyyy')}">01/01/2024</td>
-                        <td class="px-6 py-4 text-right" th:text="${#numbers.formatDecimal(layer.originalQuantity, 0, 'COMMA', 2, 'POINT')}">100</td>
-                        <td class="px-6 py-4 text-right" th:text="${#numbers.formatDecimal(layer.remainingQuantity, 0, 'COMMA', 2, 'POINT')}">50</td>
-                        <td class="px-6 py-4 text-right" th:text="${#numbers.formatDecimal(layer.unitCost, 0, 'COMMA', 2, 'POINT')}">10,000</td>
-                        <td class="px-6 py-4 text-right font-medium" th:text="${#numbers.formatDecimal(layer.remainingQuantity * layer.unitCost, 0, 'COMMA', 0, 'POINT')}">500,000</td>
+                        <td class="px-6 py-4 text-right" th:text="${#numbers.formatDecimal(layer.originalQuantity, 1, 'COMMA', 2, 'POINT')}">100</td>
+                        <td class="px-6 py-4 text-right" th:text="${#numbers.formatDecimal(layer.remainingQuantity, 1, 'COMMA', 2, 'POINT')}">50</td>
+                        <td class="px-6 py-4 text-right" th:text="${#numbers.formatDecimal(layer.unitCost, 1, 'COMMA', 2, 'POINT')}">10,000</td>
+                        <td class="px-6 py-4 text-right font-medium" th:text="${#numbers.formatDecimal(layer.remainingQuantity * layer.unitCost, 1, 'COMMA', 0, 'POINT')}">500,000</td>
                         <td class="px-6 py-4 text-center">
                             <span th:if="${layer.fullyConsumed}" class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">Habis</span>
                             <span th:unless="${layer.fullyConsumed}" class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">Tersedia</span>
@@ -146,11 +146,11 @@
                         </td>
                         <td class="px-6 py-4 text-right">
                             <span th:classappend="${tx.inbound} ? 'text-green-600' : 'text-red-600'"
-                                  th:text="${(tx.inbound ? '+' : '-') + #numbers.formatDecimal(tx.quantity, 0, 'COMMA', 2, 'POINT')}">+100</span>
+                                  th:text="${(tx.inbound ? '+' : '-') + #numbers.formatDecimal(tx.quantity, 1, 'COMMA', 2, 'POINT')}">+100</span>
                         </td>
-                        <td class="px-6 py-4 text-right" th:text="${#numbers.formatDecimal(tx.unitCost, 0, 'COMMA', 2, 'POINT')}">10,000</td>
-                        <td class="px-6 py-4 text-right font-medium" th:text="${#numbers.formatDecimal(tx.totalCost, 0, 'COMMA', 0, 'POINT')}">1,000,000</td>
-                        <td class="px-6 py-4 text-right" th:text="${#numbers.formatDecimal(tx.balanceAfter, 0, 'COMMA', 2, 'POINT')}">200</td>
+                        <td class="px-6 py-4 text-right" th:text="${#numbers.formatDecimal(tx.unitCost, 1, 'COMMA', 2, 'POINT')}">10,000</td>
+                        <td class="px-6 py-4 text-right font-medium" th:text="${#numbers.formatDecimal(tx.totalCost, 1, 'COMMA', 0, 'POINT')}">1,000,000</td>
+                        <td class="px-6 py-4 text-right" th:text="${#numbers.formatDecimal(tx.balanceAfter, 1, 'COMMA', 2, 'POINT')}">200</td>
                     </tr>
                 </tbody>
             </table>

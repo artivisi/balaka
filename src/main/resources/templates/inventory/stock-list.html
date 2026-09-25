@@ -14,7 +14,7 @@
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div class="bg-white rounded-lg shadow p-4">
                 <div class="text-sm text-gray-500">Total Nilai Persediaan</div>
-                <div class="text-2xl font-bold text-primary-600" th:text="${#numbers.formatDecimal(totalInventoryValue, 0, 'COMMA', 0, 'POINT')}">0</div>
+                <div class="text-2xl font-bold text-primary-600" th:text="${#numbers.formatDecimal(totalInventoryValue, 1, 'COMMA', 0, 'POINT')}">0</div>
             </div>
             <div class="bg-white rounded-lg shadow p-4">
                 <div class="text-sm text-gray-500">Produk dengan Stok</div>
@@ -35,16 +35,16 @@
                 Produk di bawah stok minimum
             </div>
             <div class="space-y-1">
-                <div th:each="item : ${lowStockProducts}" class="flex justify-between text-sm">
+                <div th:each="item : ${lowStockProducts}" class="flex justify-between text-sm" th:data-testid="'low-stock-' + ${item.product.code}">
                     <span th:text="${item.product.code + ' - ' + item.product.name}">Product</span>
-                    <span class="text-red-600" th:text="${item.quantity + ' ' + item.product.unit + ' (min: ' + item.product.minimumStock + ')'}">Qty</span>
+                    <span class="text-red-600" th:text="|${#numbers.formatDecimal(item.quantity, 1, 'COMMA', 2, 'POINT')} ${item.product.unit} (min: ${#numbers.formatDecimal(item.product.minimumStock, 1, 'COMMA', 2, 'POINT')})|">Qty</span>
                 </div>
             </div>
         </div>
 
         <!-- Header -->
         <div class="flex items-center justify-between flex-wrap gap-4">
-            <div class="flex items-center gap-4 flex-wrap">
+            <div id="stock-filters" class="flex items-center gap-4 flex-wrap">
                 <!-- Search -->
                 <div class="relative">
                     <label for="search-input" class="sr-only">Cari produk</label>
@@ -57,6 +57,7 @@
                            hx-get="/inventory/stock/table"
                            hx-trigger="keyup changed delay:300ms"
                            hx-target="#stock-table"
+                        hx-sync="#stock-filters:replace"
                            hx-swap="outerHTML"
                            hx-include="[name='categoryId']">
                     <svg class="absolute left-3 top-2.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -72,6 +73,7 @@
                         hx-get="/inventory/stock/table"
                         hx-trigger="change"
                         hx-target="#stock-table"
+                        hx-sync="#stock-filters:replace"
                         hx-swap="outerHTML"
                         hx-include="[name='search']">
                     <option value="" th:selected="${categoryId == null}">Semua Kategori</option>

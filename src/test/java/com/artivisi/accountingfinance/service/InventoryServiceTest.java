@@ -4,6 +4,9 @@ import com.artivisi.accountingfinance.TestcontainersConfiguration;
 import com.artivisi.accountingfinance.entity.InventoryBalance;
 import com.artivisi.accountingfinance.entity.InventoryTransaction;
 import com.artivisi.accountingfinance.entity.Product;
+import com.artivisi.accountingfinance.entity.Transaction;
+import com.artivisi.accountingfinance.enums.TransactionStatus;
+import com.artivisi.accountingfinance.repository.ChartOfAccountRepository;
 import com.artivisi.accountingfinance.repository.ProductRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,6 +18,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,6 +47,12 @@ class InventoryServiceTest {
 
     @Autowired
     private ProductRepository productRepository;
+
+    @Autowired
+    private ChartOfAccountRepository accountRepository;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     // Test product IDs from V911__inventory_report_test_data.sql
     private static final UUID TEST_PRODUCT_ID = UUID.fromString("d0911002-0000-0000-0000-000000000001");
@@ -166,6 +176,53 @@ class InventoryServiceTest {
             assertThat(transaction).isNotNull();
             assertThat(transaction.getId()).isNotNull();
             assertThat(transaction.getQuantity()).isEqualByComparingTo(BigDecimal.TEN);
+        }
+    }
+
+    @Nested
+    @DisplayName("Journal Template Resolution")
+    class JournalTemplateResolutionTests {
+
+        @Test
+        @WithMockUser(username = "admin")
+        @DisplayName("Should draft the purchase journal for a product with an inventory account")
+        void shouldDraftPurchaseJournal() {
+            Product product = productWithInventoryAccount();
+
+            InventoryTransaction transaction = inventoryService.recordPurchase(product.getId(),
+                    LocalDate.of(2048, 3, 2), new BigDecimal("4"), new BigDecimal("2500"), "REF-JT", "Jurnal");
+
+            Transaction journal = transaction.getTransaction();
+            assertThat(journal).isNotNull();
+            assertThat(journal.getStatus()).isEqualTo(TransactionStatus.DRAFT);
+            assertThat(journal.getJournalTemplate().getTemplateName()).isEqualTo("Pembelian Persediaan");
+            assertThat(journal.getAmount()).isEqualByComparingTo("10000");
+            assertThat(journal.getAccountMappings()).singleElement()
+                    .satisfies(m -> assertThat(m.getAccount().getAccountCode()).isEqualTo("1.4.01"));
+        }
+
+        @Test
+        @WithMockUser(username = "admin")
+        @DisplayName("Should refuse a movement of a product with an inventory account when its journal template is missing")
+        void shouldRefuseMovementWithoutJournalTemplate() {
+            Product product = productWithInventoryAccount();
+            jdbcTemplate.update("UPDATE journal_templates SET template_name = 'Pembelian Persediaan (lama)' "
+                    + "WHERE template_name = 'Pembelian Persediaan'");
+
+            assertThatThrownBy(() -> inventoryService.recordPurchase(product.getId(), LocalDate.of(2048, 3, 2),
+                    new BigDecimal("4"), new BigDecimal("2500"), "REF-JT", "Jurnal"))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessage("Template jurnal 'Pembelian Persediaan' tidak ditemukan. Produk " + product.getCode()
+                            + " memiliki akun persediaan, sehingga transaksi persediaan wajib dijurnal.");
+        }
+
+        private Product productWithInventoryAccount() {
+            Product product = new Product();
+            product.setCode("JT-" + UUID.randomUUID().toString().substring(0, 8));
+            product.setName("Produk Jurnal");
+            product.setUnit("pcs");
+            product.setInventoryAccount(accountRepository.findByAccountCode("1.4.01").orElseThrow());
+            return productRepository.save(product);
         }
     }
 

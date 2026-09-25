@@ -64,7 +64,7 @@
                 </div>
                 <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
                     <div class="text-sm text-gray-500">Total Nilai Persediaan</div>
-                    <div th:id="total-stock-value" class="text-xl font-bold text-primary-600" th:text="${'Rp ' + #numbers.formatDecimal(report.totalValue(), 0, 'COMMA', 0, 'POINT')}">Rp 0</div>
+                    <div th:id="total-stock-value" class="text-xl font-bold text-primary-600" th:text="${'Rp ' + #numbers.formatDecimal(report.totalValue(), 1, 'COMMA', 0, 'POINT')}">Rp 0</div>
                 </div>
             </div>
 
@@ -91,10 +91,10 @@
                                 <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900" th:text="${item.productCode()}">SKU001</td>
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900" th:text="${item.productName()}">Produk A</td>
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500" th:text="${item.categoryName()}">Kategori</td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-right" th:classappend="${item.belowMinimum() ? 'text-red-600 font-semibold' : 'text-gray-900'}" th:text="${#numbers.formatDecimal(item.quantity(), 0, 'COMMA', 2, 'POINT')}">0</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-right" th:classappend="${item.belowMinimum() ? 'text-red-600 font-semibold' : 'text-gray-900'}" th:text="${#numbers.formatDecimal(item.quantity(), 1, 'COMMA', 2, 'POINT')}">0</td>
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500" th:text="${item.unit()}">pcs</td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-right" th:text="${#numbers.formatDecimal(item.averageCost(), 0, 'COMMA', 0, 'POINT')}">0</td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-right font-medium" th:text="${#numbers.formatDecimal(item.totalValue(), 0, 'COMMA', 0, 'POINT')}">0</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-right" th:text="${#numbers.formatDecimal(item.averageCost(), 1, 'COMMA', 0, 'POINT')}">0</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-right font-medium" th:text="${#numbers.formatDecimal(item.totalValue(), 1, 'COMMA', 0, 'POINT')}">0</td>
                                 <td class="px-4 py-3 whitespace-nowrap text-center">
                                     <span th:if="${item.belowMinimum()}" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
                                         Stok Rendah
@@ -111,7 +111,7 @@
                         <tfoot th:if="${!#lists.isEmpty(report.items())}" class="bg-gray-100">
                             <tr>
                                 <td colspan="7" class="px-4 py-3 text-sm font-bold text-gray-900 text-right">Total:</td>
-                                <td class="px-4 py-3 text-sm font-bold text-gray-900 text-right" th:text="${#numbers.formatDecimal(report.totalValue(), 0, 'COMMA', 0, 'POINT')}">0</td>
+                                <td class="px-4 py-3 text-sm font-bold text-gray-900 text-right" th:text="${#numbers.formatDecimal(report.totalValue(), 1, 'COMMA', 0, 'POINT')}">0</td>
                                 <td></td>
                             </tr>
                         </tfoot>

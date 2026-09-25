@@ -12,7 +12,7 @@
     <section class="space-y-6">
         <!-- Header -->
         <div class="flex items-center justify-between flex-wrap gap-4">
-            <div class="flex items-center gap-4 flex-wrap">
+            <div id="transaction-filters" class="flex items-center gap-4 flex-wrap">
                 <!-- Filter Product -->
                 <label for="product-filter" class="sr-only">Filter produk</label>
                 <select id="product-filter"
@@ -21,6 +21,7 @@
                         hx-get="/inventory/transactions/table"
                         hx-trigger="change"
                         hx-target="#transaction-table"
+                        hx-sync="#transaction-filters:replace"
                         hx-swap="outerHTML"
                         hx-include="[name='transactionType'], [name='startDate'], [name='endDate']">
                     <option value="" th:selected="${productId == null}">Semua Produk</option>
@@ -38,6 +39,7 @@
                         hx-get="/inventory/transactions/table"
                         hx-trigger="change"
                         hx-target="#transaction-table"
+                        hx-sync="#transaction-filters:replace"
                         hx-swap="outerHTML"
                         hx-include="[name='productId'], [name='startDate'], [name='endDate']">
                     <option value="" th:selected="${transactionType == null}">Semua Tipe</option>
@@ -57,6 +59,7 @@
                        hx-get="/inventory/transactions/table"
                        hx-trigger="change"
                        hx-target="#transaction-table"
+                        hx-sync="#transaction-filters:replace"
                        hx-swap="outerHTML"
                        hx-include="[name='productId'], [name='transactionType'], [name='endDate']">
                 <span class="text-gray-500">s/d</span>
@@ -69,6 +72,7 @@
                        hx-get="/inventory/transactions/table"
                        hx-trigger="change"
                        hx-target="#transaction-table"
+                        hx-sync="#transaction-filters:replace"
                        hx-swap="outerHTML"
                        hx-include="[name='productId'], [name='transactionType'], [name='startDate']">
             </div>
@@ -77,8 +81,9 @@
                 <a th:href="@{/inventory/stock}" class="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">
                     Stok Barang
                 </a>
-                <div class="relative" x-data="toggleState">
-                    <button @click="toggle" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2">
+                <div class="relative" x-data="toggleState" @click.outside="close"
+                     sec:authorize="hasAnyAuthority('INVENTORY_PURCHASE', 'INVENTORY_SALE', 'INVENTORY_ADJUST')">
+                    <button id="btn-new-transaction" type="button" @click="toggle" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                         </svg>
@@ -87,17 +92,17 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                         </svg>
                     </button>
-                    <div :class="{ 'hidden': !open }" @click.outside="close"
+                    <div id="new-transaction-menu" :class="{ 'hidden': !open }"
                          class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
-                        <a sec:authorize="hasAuthority('INVENTORY_PURCHASE')" th:href="@{/inventory/purchase}"
+                        <a sec:authorize="hasAuthority('INVENTORY_PURCHASE')" id="menu-purchase" th:href="@{/inventory/purchase}"
                            class="block px-4 py-2 hover:bg-gray-50 text-gray-700">
                             Pembelian
                         </a>
-                        <a sec:authorize="hasAuthority('INVENTORY_SALE')" th:href="@{/inventory/sale}"
+                        <a sec:authorize="hasAuthority('INVENTORY_SALE')" id="menu-sale" th:href="@{/inventory/sale}"
                            class="block px-4 py-2 hover:bg-gray-50 text-gray-700">
                             Penjualan
                         </a>
-                        <a sec:authorize="hasAuthority('INVENTORY_ADJUST')" th:href="@{/inventory/adjustment}"
+                        <a sec:authorize="hasAuthority('INVENTORY_ADJUST')" id="menu-adjustment" th:href="@{/inventory/adjustment}"
                            class="block px-4 py-2 hover:bg-gray-50 text-gray-700">
                             Penyesuaian
                         </a>

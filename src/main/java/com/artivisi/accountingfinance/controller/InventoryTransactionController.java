@@ -10,11 +10,15 @@ import com.artivisi.accountingfinance.security.Permission;
 import com.artivisi.accountingfinance.service.InventoryService;
 import com.artivisi.accountingfinance.service.ProductCategoryService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -192,6 +196,7 @@ public class InventoryTransactionController {
             Model model,
             RedirectAttributes redirectAttributes) {
 
+        rejectMissingUnitCost(form, bindingResult);
         if (bindingResult.hasErrors()) {
             model.addAttribute(ATTR_PRODUCTS, productRepository.findAllActiveOrderByCode());
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_INVENTORY_PURCHASE);
@@ -290,6 +295,12 @@ public class InventoryTransactionController {
             Model model,
             RedirectAttributes redirectAttributes) {
 
+        if (form.isInbound()) {
+            rejectMissingUnitCost(form, bindingResult);
+        }
+        if (form.getNotes() == null || form.getNotes().isBlank()) {
+            bindingResult.rejectValue("notes", "required", "Alasan penyesuaian wajib diisi");
+        }
         if (bindingResult.hasErrors()) {
             model.addAttribute(ATTR_PRODUCTS, productRepository.findAllActiveOrderByCode());
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_INVENTORY_ADJUSTMENT);
@@ -353,15 +364,32 @@ public class InventoryTransactionController {
         return "inventory/stock-card";
     }
 
+    private void rejectMissingUnitCost(InventoryTransactionForm form, BindingResult bindingResult) {
+        if (form.getUnitCost() == null && !bindingResult.hasFieldErrors("unitCost")) {
+            bindingResult.rejectValue("unitCost", "required", "Harga satuan wajib diisi");
+        }
+    }
+
     // ============================================
     // Form DTO
     // ============================================
 
     public static class InventoryTransactionForm {
+        @NotNull(message = "Produk wajib dipilih")
         private UUID productId;
+
+        @NotNull(message = "Tanggal transaksi wajib diisi")
+        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
         private LocalDate transactionDate = LocalDate.now();
+
+        @NotNull(message = "Kuantitas wajib diisi")
+        @Positive(message = "Kuantitas harus lebih dari 0")
         private BigDecimal quantity;
+
+        @PositiveOrZero(message = "Harga satuan tidak boleh negatif")
         private BigDecimal unitCost;
+
+        @PositiveOrZero(message = "Harga jual tidak boleh negatif")
         private BigDecimal unitPrice;
         private String referenceNumber;
         private String notes;

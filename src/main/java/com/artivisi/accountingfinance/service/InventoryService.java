@@ -448,13 +448,11 @@ public class InventoryService {
             return null;
         }
 
-        Optional<JournalTemplate> templateOpt = journalTemplateRepository.findByTemplateNameWithLines(templateName);
-        if (templateOpt.isEmpty()) {
-            log.warn("Journal template not found: {}", templateName);
-            return null;
-        }
-
-        JournalTemplate template = templateOpt.get();
+        JournalTemplate template = journalTemplateRepository.findByTemplateNameWithLines(templateName)
+                .orElseThrow(() -> new IllegalStateException(String.format(
+                        "Template jurnal '%s' tidak ditemukan. Produk %s memiliki akun persediaan, "
+                                + "sehingga transaksi persediaan wajib dijurnal.",
+                        templateName, product.getCode())));
         FormulaContext context = buildFormulaContext(invTransaction);
         String description = buildJournalDescription(invTransaction, product);
         Map<UUID, UUID> accountMappings = buildAccountMappings(template, product);

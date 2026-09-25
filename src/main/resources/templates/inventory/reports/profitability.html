@@ -72,19 +72,19 @@
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                 <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
                     <div class="text-sm text-gray-500">Total Pendapatan</div>
-                    <div th:id="total-revenue" class="text-xl font-bold text-blue-600" th:text="${'Rp ' + #numbers.formatDecimal(report.totalRevenue(), 0, 'COMMA', 0, 'POINT')}">Rp 0</div>
+                    <div th:id="total-revenue" class="text-xl font-bold text-blue-600" th:text="${'Rp ' + #numbers.formatDecimal(report.totalRevenue(), 1, 'COMMA', 0, 'POINT')}">Rp 0</div>
                 </div>
                 <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
                     <div class="text-sm text-gray-500">Total HPP</div>
-                    <div th:id="total-cogs" class="text-xl font-bold text-red-600" th:text="${'Rp ' + #numbers.formatDecimal(report.totalCogs(), 0, 'COMMA', 0, 'POINT')}">Rp 0</div>
+                    <div th:id="total-cogs" class="text-xl font-bold text-red-600" th:text="${'Rp ' + #numbers.formatDecimal(report.totalCogs(), 1, 'COMMA', 0, 'POINT')}">Rp 0</div>
                 </div>
                 <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
                     <div class="text-sm text-gray-500">Total Margin</div>
-                    <div th:id="total-gross-profit" class="text-xl font-bold" th:classappend="${report.totalMargin() >= 0} ? 'text-green-600' : 'text-red-600'" th:text="${'Rp ' + #numbers.formatDecimal(report.totalMargin(), 0, 'COMMA', 0, 'POINT')}">Rp 0</div>
+                    <div th:id="total-gross-profit" class="text-xl font-bold" th:classappend="${report.totalMargin() >= 0} ? 'text-green-600' : 'text-red-600'" th:text="${'Rp ' + #numbers.formatDecimal(report.totalMargin(), 1, 'COMMA', 0, 'POINT')}">Rp 0</div>
                 </div>
                 <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
                     <div class="text-sm text-gray-500">Margin %</div>
-                    <div th:id="gross-margin-percent" class="text-xl font-bold" th:classappend="${report.totalMarginPercent >= 0} ? 'text-green-600' : 'text-red-600'" th:text="${#numbers.formatDecimal(report.totalMarginPercent, 0, 'COMMA', 1, 'POINT') + '%'}">0%</div>
+                    <div th:id="gross-margin-percent" class="text-xl font-bold" th:classappend="${report.totalMarginPercent >= 0} ? 'text-green-600' : 'text-red-600'" th:text="${#numbers.formatDecimal(report.totalMarginPercent, 1, 'COMMA', 1, 'POINT') + '%'}">0%</div>
                 </div>
             </div>
 
@@ -111,13 +111,13 @@
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900" th:text="${item.productName()}">Produk A</td>
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500" th:text="${item.categoryName()}">Kategori</td>
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-right">
-                                    <span th:text="${#numbers.formatDecimal(item.quantitySold(), 0, 'COMMA', 2, 'POINT')}">0</span>
+                                    <span th:text="${#numbers.formatDecimal(item.quantitySold(), 1, 'COMMA', 2, 'POINT')}">0</span>
                                     <span class="text-gray-500" th:text="${item.unit()}">pcs</span>
                                 </td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-blue-600 text-right font-medium" th:text="${'Rp ' + #numbers.formatDecimal(item.revenue(), 0, 'COMMA', 0, 'POINT')}">Rp 0</td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-red-600 text-right" th:text="${'Rp ' + #numbers.formatDecimal(item.cogs(), 0, 'COMMA', 0, 'POINT')}">Rp 0</td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-bold" th:classappend="${item.margin() >= 0} ? 'text-green-600' : 'text-red-600'" th:text="${'Rp ' + #numbers.formatDecimal(item.margin(), 0, 'COMMA', 0, 'POINT')}">Rp 0</td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-right" th:classappend="${item.marginPercent() >= 0} ? 'text-green-600' : 'text-red-600'" th:text="${#numbers.formatDecimal(item.marginPercent(), 0, 'COMMA', 1, 'POINT') + '%'}">0%</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-blue-600 text-right font-medium" th:text="${'Rp ' + #numbers.formatDecimal(item.revenue(), 1, 'COMMA', 0, 'POINT')}">Rp 0</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-red-600 text-right" th:text="${'Rp ' + #numbers.formatDecimal(item.cogs(), 1, 'COMMA', 0, 'POINT')}">Rp 0</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-bold" th:classappend="${item.margin() >= 0} ? 'text-green-600' : 'text-red-600'" th:text="${'Rp ' + #numbers.formatDecimal(item.margin(), 1, 'COMMA', 0, 'POINT')}">Rp 0</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-right" th:classappend="${item.marginPercent() >= 0} ? 'text-green-600' : 'text-red-600'" th:text="${#numbers.formatDecimal(item.marginPercent(), 1, 'COMMA', 1, 'POINT') + '%'}">0%</td>
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 text-right" th:text="${item.transactionCount()}">0</td>
                             </tr>
                             <tr th:if="${#lists.isEmpty(report.items())}">
@@ -127,11 +127,11 @@
                         <tfoot th:if="${!#lists.isEmpty(report.items())}" class="bg-gray-100">
                             <tr class="font-bold">
                                 <td colspan="3" class="px-4 py-3 text-sm text-gray-900 text-right">Total:</td>
-                                <td class="px-4 py-3 text-sm text-gray-900 text-right" th:text="${#numbers.formatDecimal(report.totalQuantitySold(), 0, 'COMMA', 2, 'POINT')}">0</td>
-                                <td class="px-4 py-3 text-sm text-blue-600 text-right" th:text="${'Rp ' + #numbers.formatDecimal(report.totalRevenue(), 0, 'COMMA', 0, 'POINT')}">Rp 0</td>
-                                <td class="px-4 py-3 text-sm text-red-600 text-right" th:text="${'Rp ' + #numbers.formatDecimal(report.totalCogs(), 0, 'COMMA', 0, 'POINT')}">Rp 0</td>
-                                <td class="px-4 py-3 text-sm text-right" th:classappend="${report.totalMargin() >= 0} ? 'text-green-600' : 'text-red-600'" th:text="${'Rp ' + #numbers.formatDecimal(report.totalMargin(), 0, 'COMMA', 0, 'POINT')}">Rp 0</td>
-                                <td class="px-4 py-3 text-sm text-right" th:classappend="${report.totalMarginPercent >= 0} ? 'text-green-600' : 'text-red-600'" th:text="${#numbers.formatDecimal(report.totalMarginPercent, 0, 'COMMA', 1, 'POINT') + '%'}">0%</td>
+                                <td class="px-4 py-3 text-sm text-gray-900 text-right" th:text="${#numbers.formatDecimal(report.totalQuantitySold(), 1, 'COMMA', 2, 'POINT')}">0</td>
+                                <td class="px-4 py-3 text-sm text-blue-600 text-right" th:text="${'Rp ' + #numbers.formatDecimal(report.totalRevenue(), 1, 'COMMA', 0, 'POINT')}">Rp 0</td>
+                                <td class="px-4 py-3 text-sm text-red-600 text-right" th:text="${'Rp ' + #numbers.formatDecimal(report.totalCogs(), 1, 'COMMA', 0, 'POINT')}">Rp 0</td>
+                                <td class="px-4 py-3 text-sm text-right" th:classappend="${report.totalMargin() >= 0} ? 'text-green-600' : 'text-red-600'" th:text="${'Rp ' + #numbers.formatDecimal(report.totalMargin(), 1, 'COMMA', 0, 'POINT')}">Rp 0</td>
+                                <td class="px-4 py-3 text-sm text-right" th:classappend="${report.totalMarginPercent >= 0} ? 'text-green-600' : 'text-red-600'" th:text="${#numbers.formatDecimal(report.totalMarginPercent, 1, 'COMMA', 1, 'POINT') + '%'}">0%</td>
                                 <td class="px-4 py-3 text-sm text-gray-500 text-right" th:text="${#lists.size(report.items())}">0</td>
                             </tr>
                         </tfoot>

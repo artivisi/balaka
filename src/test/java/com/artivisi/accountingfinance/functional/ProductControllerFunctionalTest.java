@@ -485,8 +485,6 @@ class ProductControllerFunctionalTest extends PlaywrightTestBase {
     @DisplayName("Should refuse to delete a product with inventory transactions or used in a BOM")
     void shouldRefuseToDeleteProductInUse() {
         Product stocked = createProduct("PRD-STK-" + uid(), "Produk Berstok", null, "kg", null, true);
-        stocked.setInventoryAccount(account("1.1.15"));
-        productRepository.save(stocked);
         inventoryService.recordPurchase(stocked.getId(), LocalDate.of(2030, 6, 15), new BigDecimal("2"),
                 new BigDecimal("10000"), "REF-" + stocked.getCode(), "Pembelian uji");
         Product finished = createProduct("PRD-FIN-" + uid(), "Produk Jadi", null, "pcs", null, true);

@@ -10,7 +10,7 @@
 
     <section class="max-w-2xl">
         <!-- Error Message -->
-        <div th:if="${error}" class="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+        <div th:if="${error}" data-testid="flash-error" class="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
             <div class="flex items-center gap-2 text-red-800">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -98,6 +98,7 @@
                            step="0.01"
                            min="0"
                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
+                    <p th:if="${#fields.hasErrors('unitCost')}" th:errors="*{unitCost}" class="mt-1 text-sm text-red-600"></p>
                     <p class="mt-1 text-xs text-gray-500">Wajib diisi untuk penambahan stok</p>
                 </div>
             </div>
@@ -127,6 +128,7 @@
                           required
                           placeholder="Contoh: Stock opname, barang rusak, kadaluarsa, koreksi kesalahan input"
                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"></textarea>
+                <p th:if="${#fields.hasErrors('notes')}" th:errors="*{notes}" class="mt-1 text-sm text-red-600"></p>
             </div>
 
             <!-- Actions -->

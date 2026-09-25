@@ -47,10 +47,10 @@
                 <td th:text="${item.productCode()}">SKU001</td>
                 <td th:text="${item.productName()}">Produk A</td>
                 <td th:text="${item.categoryName()}">Kategori</td>
-                <td class="text-right" th:classappend="${item.belowMinimum() ? 'text-red font-bold' : ''}" th:text="${#numbers.formatDecimal(item.quantity(), 0, 'COMMA', 2, 'POINT')}">0</td>
+                <td class="text-right" th:classappend="${item.belowMinimum() ? 'text-red font-bold' : ''}" th:text="${#numbers.formatDecimal(item.quantity(), 1, 'COMMA', 2, 'POINT')}">0</td>
                 <td th:text="${item.unit()}">pcs</td>
-                <td class="text-right" th:text="${#numbers.formatDecimal(item.averageCost(), 0, 'COMMA', 0, 'POINT')}">0</td>
-                <td class="text-right font-bold" th:text="${#numbers.formatDecimal(item.totalValue(), 0, 'COMMA', 0, 'POINT')}">0</td>
+                <td class="text-right" th:text="${#numbers.formatDecimal(item.averageCost(), 1, 'COMMA', 0, 'POINT')}">0</td>
+                <td class="text-right font-bold" th:text="${#numbers.formatDecimal(item.totalValue(), 1, 'COMMA', 0, 'POINT')}">0</td>
                 <td class="text-center">
                     <span th:if="${item.belowMinimum()}" class="badge badge-red">Stok Rendah</span>
                     <span th:unless="${item.belowMinimum()}" class="badge badge-green">Normal</span>
@@ -60,7 +60,7 @@
         <tfoot th:if="${!#lists.isEmpty(report.items())}">
             <tr class="bg-gray font-bold">
                 <td colspan="7" class="text-right">Total:</td>
-                <td class="text-right" th:text="${#numbers.formatDecimal(report.totalValue(), 0, 'COMMA', 0, 'POINT')}">0</td>
+                <td class="text-right" th:text="${#numbers.formatDecimal(report.totalValue(), 1, 'COMMA', 0, 'POINT')}">0</td>
                 <td></td>
             </tr>
         </tfoot>

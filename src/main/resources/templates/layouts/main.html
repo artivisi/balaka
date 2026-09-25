@@ -241,12 +241,15 @@
                             <a sec:authorize="hasAuthority('PRODUCT_VIEW')" id="nav-products" th:href="@{/products}"
                                th:classappend="${#strings.equals(currentPage, 'products')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
                                class="flex items-center px-3 py-2 rounded-lg transition-colors">Produk</a>
-                            <a sec:authorize="hasAuthority('INVENTORY_VIEW')" id="nav-inventory" th:href="@{/inventory}"
-                               th:classappend="${#strings.equals(currentPage, 'inventory')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
+                            <a sec:authorize="hasAuthority('INVENTORY_VIEW')" id="nav-inventory" th:href="@{/inventory/transactions}"
+                               th:classappend="${#strings.equals(currentPage, 'inventory-transactions')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
                                class="flex items-center px-3 py-2 rounded-lg transition-colors">Transaksi Stok</a>
                             <a sec:authorize="hasAuthority('INVENTORY_VIEW')" id="nav-stock" th:href="@{/inventory/stock}"
-                               th:classappend="${#strings.equals(currentPage, 'stock')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
+                               th:classappend="${#strings.equals(currentPage, 'inventory-stock')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
                                class="flex items-center px-3 py-2 rounded-lg transition-colors">Stok Barang</a>
+                            <a sec:authorize="hasAuthority('INVENTORY_VIEW')" id="nav-inventory-reports" th:href="@{/inventory/reports}"
+                               th:classappend="${#strings.equals(currentPage, 'inventory-reports')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
+                               class="flex items-center px-3 py-2 rounded-lg transition-colors">Laporan Persediaan</a>
                             <a sec:authorize="hasAuthority('INVENTORY_VIEW')" id="nav-bom" th:href="@{/inventory/bom}"
                                th:classappend="${#strings.equals(currentPage, 'bom')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
                                class="flex items-center px-3 py-2 rounded-lg transition-colors">Bill of Materials</a>
@@ -534,10 +537,12 @@
                         <div class="pl-4 space-y-1">
                             <a sec:authorize="hasAuthority('PRODUCT_VIEW')" th:href="@{/products}"
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Produk</a>
-                            <a sec:authorize="hasAuthority('INVENTORY_VIEW')" th:href="@{/inventory}"
+                            <a sec:authorize="hasAuthority('INVENTORY_VIEW')" th:href="@{/inventory/transactions}"
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Transaksi Stok</a>
                             <a sec:authorize="hasAuthority('INVENTORY_VIEW')" th:href="@{/inventory/stock}"
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Stok Barang</a>
+                            <a sec:authorize="hasAuthority('INVENTORY_VIEW')" th:href="@{/inventory/reports}"
+                               class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Laporan Persediaan</a>
                             <a sec:authorize="hasAuthority('INVENTORY_VIEW')" th:href="@{/inventory/bom}"
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Bill of Materials</a>
                             <a sec:authorize="hasAuthority('INVENTORY_VIEW')" th:href="@{/inventory/production}"
