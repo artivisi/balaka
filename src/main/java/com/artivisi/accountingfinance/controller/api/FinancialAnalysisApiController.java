@@ -2,7 +2,6 @@ package com.artivisi.accountingfinance.controller.api;
 
 import com.artivisi.accountingfinance.entity.ChartOfAccount;
 import com.artivisi.accountingfinance.entity.CompanyConfig;
-import com.artivisi.accountingfinance.enums.AccountType;
 import com.artivisi.accountingfinance.enums.AuditEventType;
 import com.artivisi.accountingfinance.enums.TaxFilingStatus;
 import com.artivisi.accountingfinance.enums.TaxFilingType;
@@ -326,11 +325,11 @@ public class FinancialAnalysisApiController {
             @RequestParam String asOfDate) {
 
         LocalDate date = LocalDate.parse(asOfDate);
+        ChartOfAccount payableAccount = companyConfigService.requirePayableAccount();
         ReportService.TrialBalanceReport report = reportService.generateTrialBalance(date);
 
         List<LineItemDto> items = report.items().stream()
-                .filter(i -> i.account().getAccountType() == AccountType.LIABILITY
-                        && i.account().getAccountCode().startsWith("2.1.01"))
+                .filter(i -> i.account().getId().equals(payableAccount.getId()))
                 .map(i -> new LineItemDto(
                         i.account().getAccountCode(), i.account().getAccountName(),
                         i.creditBalance()))
@@ -350,7 +349,8 @@ public class FinancialAnalysisApiController {
                 data,
                 Map.of(META_CURRENCY, META_CURRENCY_IDR,
                         META_DESCRIPTION, "Accounts payable (Hutang Usaha) as of " + asOfDate
-                                + ". LIABILITY accounts with code prefix 2.1.01.")));
+                                + ". Payable account configured in company settings: "
+                                + payableAccount.getAccountCode() + " " + payableAccount.getAccountName() + ".")));
     }
 
     /**

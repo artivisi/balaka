@@ -1,6 +1,7 @@
 package com.artivisi.accountingfinance.functional;
 
 import com.artivisi.accountingfinance.dto.JournalEntryRequest;
+import com.artivisi.accountingfinance.entity.Bill;
 import com.artivisi.accountingfinance.entity.ChartOfAccount;
 import com.artivisi.accountingfinance.entity.CompanyConfig;
 import com.artivisi.accountingfinance.entity.JournalTemplate;
@@ -10,9 +11,14 @@ import com.artivisi.accountingfinance.functional.service.ServiceTestDataInitiali
 import com.artivisi.accountingfinance.repository.ChartOfAccountRepository;
 import com.artivisi.accountingfinance.repository.CompanyConfigRepository;
 import com.artivisi.accountingfinance.repository.JournalTemplateRepository;
+import com.artivisi.accountingfinance.repository.ProductRepository;
 import com.artivisi.accountingfinance.repository.TransactionRepository;
+import com.artivisi.accountingfinance.service.BillService;
+import com.artivisi.accountingfinance.service.ClientService;
+import com.artivisi.accountingfinance.service.InvoiceService;
 import com.artivisi.accountingfinance.service.TransactionApiService;
 import com.artivisi.accountingfinance.service.TransactionService;
+import com.artivisi.accountingfinance.service.VendorService;
 import com.artivisi.accountingfinance.ui.PlaywrightTestBase;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -67,6 +73,7 @@ class FinancialAnalysisApiTest extends PlaywrightTestBase {
     private static final String MAR_START = YEAR + "-03-01";
     private static final String MAR_END = YEAR + "-03-31";
     private static final int RECEIVABLE_YEAR = 2109;
+    private static final int PAYABLE_YEAR = 2111;
 
     @Autowired private TransactionRepository transactionRepository;
     @Autowired private TransactionService transactionService;
@@ -74,6 +81,11 @@ class FinancialAnalysisApiTest extends PlaywrightTestBase {
     @Autowired private JournalTemplateRepository templateRepository;
     @Autowired private ChartOfAccountRepository accountRepository;
     @Autowired private CompanyConfigRepository companyConfigRepository;
+    @Autowired private ClientService clientService;
+    @Autowired private VendorService vendorService;
+    @Autowired private InvoiceService invoiceService;
+    @Autowired private BillService billService;
+    @Autowired private ProductRepository productRepository;
 
     private APIRequestContext apiContext;
     private ObjectMapper objectMapper;
@@ -276,6 +288,40 @@ class FinancialAnalysisApiTest extends PlaywrightTestBase {
         assertThat(item.get("accountName").asText()).isEqualTo("Hutang Usaha");
         assertThat(march.get("items")).allSatisfy(i -> assertThat(i.get("accountCode").asText()).startsWith("2.1.01"));
         assertAmount(delta(march.get("totalBalance"), february.get("totalBalance")), "5550000");
+    }
+
+    @Test
+    @DisplayName("GET /api/analysis/payables and snapshot payablesBalance follow the configured payable account for a posted vendor bill")
+    void testPayablesFollowConfiguredAccount() throws Exception {
+        assertThat(transactionRepository.findByTransactionDateBetweenOrderByTransactionDateDesc(
+                LocalDate.of(PAYABLE_YEAR, 1, 1), LocalDate.of(PAYABLE_YEAR, 12, 31)))
+                .as("Another test posted into reserved payable year " + PAYABLE_YEAR).isEmpty();
+        assertThat(companyConfigRepository.findFirst().map(CompanyConfig::getPayableAccountId))
+                .contains(account("2.1.01").getId());
+
+        String before = (PAYABLE_YEAR - 1) + "-12-31";
+        String after = PAYABLE_YEAR + "-01-31";
+        JsonNode payablesBefore = ok("/api/analysis/payables?asOfDate=" + before).get("data");
+        JsonNode snapshotBefore = ok("/api/analysis/snapshot?month=" + (PAYABLE_YEAR - 1) + "-12").get("data");
+
+        ArApFixture fixture = new ArApFixture(clientService, vendorService, invoiceService, billService,
+                productRepository, accountRepository);
+        Bill bill = fixture.approvedBill(fixture.vendor("Vendor Hutang Analisis"), LocalDate.of(PAYABLE_YEAR, 1, 10),
+                LocalDate.of(PAYABLE_YEAR, 2, 10), "4000000", "11");
+        List<Transaction> drafts = transactionRepository
+                .findBySourceDocumentTypeAndSourceDocumentIdOrderByTransactionDateAsc("BILL", bill.getId());
+        assertThat(drafts).hasSize(1);
+        transactionService.post(drafts.getFirst().getId(), "admin");
+
+        JsonNode payables = ok("/api/analysis/payables?asOfDate=" + after).get("data");
+        JsonNode snapshot = ok("/api/analysis/snapshot?month=" + PAYABLE_YEAR + "-01").get("data");
+        JsonNode trialBalance = ok("/api/analysis/trial-balance?asOfDate=" + after).get("data");
+
+        assertThat(lines(payables.get("items"))).containsExactly(
+                "2.1.01 Hutang Usaha " + plain(item(trialBalance.get("items"), "accountCode", "2.1.01").get("creditBalance")));
+        assertAmount(delta(payables.get("totalBalance"), payablesBefore.get("totalBalance")), "4440000");
+        assertAmount(delta(snapshot.get("payablesBalance"), snapshotBefore.get("payablesBalance")), "4440000");
+        assertAmount(snapshot.get("payablesBalance"), payables.get("totalBalance").asText());
     }
 
     @Test

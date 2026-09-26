@@ -32,9 +32,6 @@ public class DashboardService {
     private final JournalTemplateRepository journalTemplateRepository;
     private final CompanyConfigService companyConfigService;
 
-    // Account codes for specific KPIs
-    private static final String HUTANG_USAHA_CODE = "2.1.01";
-
     public DashboardKPI calculateKPIs(YearMonth month) {
         LocalDate startDate = month.atDay(1);
         LocalDate endDate = month.atEndOfMonth();
@@ -72,7 +69,8 @@ public class DashboardService {
         BigDecimal cashBalance = calculateCashBalance(endDate);
         BigDecimal receivablesBalance = calculateAccountBalanceByEntity(
                 companyConfigService.requireReceivableAccount(), endDate);
-        BigDecimal payablesBalance = calculateAccountBalance(HUTANG_USAHA_CODE, endDate);
+        BigDecimal payablesBalance = calculateAccountBalanceByEntity(
+                companyConfigService.requirePayableAccount(), endDate);
 
         // Transaction count for current month
         long transactionCount = transactionRepository.countByTransactionDateBetween(startDate, endDate);
@@ -152,12 +150,6 @@ public class DashboardService {
             total = total.add(calculateAccountBalanceByEntity(account, asOfDate));
         }
         return total;
-    }
-
-    private BigDecimal calculateAccountBalance(String accountCode, LocalDate asOfDate) {
-        return chartOfAccountRepository.findByAccountCode(accountCode)
-                .map(account -> calculateAccountBalanceByEntity(account, asOfDate))
-                .orElse(BigDecimal.ZERO);
     }
 
     private BigDecimal calculateAccountBalanceByEntity(ChartOfAccount account, LocalDate asOfDate) {

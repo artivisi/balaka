@@ -34,6 +34,15 @@ public class CompanyConfigService {
         return account;
     }
 
+    public ChartOfAccount requirePayableAccount() {
+        ChartOfAccount account = getConfig().getPayableAccount();
+        if (account == null) {
+            throw new MissingConfigurationException(
+                    "Akun Hutang Usaha belum dikonfigurasi di Pengaturan Perusahaan");
+        }
+        return account;
+    }
+
     public CompanyConfig findById(UUID id) {
         return companyConfigRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Company config not found with id: " + id));

@@ -51,6 +51,7 @@ class SellerAnalysisReportTest extends PlaywrightTestBase {
 
     private static final Locale ID = Locale.of("id", "ID");
     private static final int RECEIVABLE_YEAR = 2110;
+    private static final int PAYABLE_YEAR = 2112;
 
     @Autowired private TransactionApiService transactionApiService;
     @Autowired private TransactionService transactionService;
@@ -275,8 +276,8 @@ class SellerAnalysisReportTest extends PlaywrightTestBase {
         JsonNode receivablesBefore = getApi("/api/analysis/receivables?asOfDate=" + before).get("data");
         JsonNode snapshotBefore = getApi("/api/analysis/snapshot?month=" + (RECEIVABLE_YEAR - 1) + "-12").get("data");
 
-        postJournal("Saldo Tokopedia dicairkan belum", "1.1.04", "4.1.01", "3000000");
-        postJournal("Penjualan offline tempo", "1.1.10", "4.1.06", "2000000");
+        postJournal(RECEIVABLE_YEAR, "Saldo Tokopedia dicairkan belum", "1.1.04", "4.1.01", "3000000");
+        postJournal(RECEIVABLE_YEAR, "Penjualan offline tempo", "1.1.10", "4.1.06", "2000000");
 
         JsonNode receivables = getApi("/api/analysis/receivables?asOfDate=" + after).get("data");
         JsonNode snapshot = getApi("/api/analysis/snapshot?month=" + RECEIVABLE_YEAR + "-01").get("data");
@@ -291,10 +292,40 @@ class SellerAnalysisReportTest extends PlaywrightTestBase {
                 .compareTo(snapshot.get("receivablesBalance").decimalValue()));
     }
 
-    private void postJournal(String description, String debitCode, String creditCode, String amount) {
+    @Test
+    @DisplayName("Payables come from the configured payable account (2.1.02 Hutang Supplier), not from 2.1.01 Hutang Usaha")
+    void shouldReportConfiguredPayableAccountOnly() throws Exception {
+        assertEquals(List.of(), transactionRepository.findByTransactionDateBetweenOrderByTransactionDateDesc(
+                LocalDate.of(PAYABLE_YEAR, 1, 1), LocalDate.of(PAYABLE_YEAR, 12, 31)),
+                "Another test posted into reserved seller payable year " + PAYABLE_YEAR);
+        String before = (PAYABLE_YEAR - 1) + "-12-31";
+        String after = PAYABLE_YEAR + "-01-31";
+        JsonNode payablesBefore = getApi("/api/analysis/payables?asOfDate=" + before).get("data");
+        JsonNode snapshotBefore = getApi("/api/analysis/snapshot?month=" + (PAYABLE_YEAR - 1) + "-12").get("data");
+
+        postJournal(PAYABLE_YEAR, "Hutang usaha lain-lain", "5.1.01", "2.1.01", "3000000");
+        postJournal(PAYABLE_YEAR, "Pembelian stok tempo supplier", "5.1.01", "2.1.02", "2000000");
+
+        JsonNode payables = getApi("/api/analysis/payables?asOfDate=" + after);
+        JsonNode snapshot = getApi("/api/analysis/snapshot?month=" + PAYABLE_YEAR + "-01").get("data");
+        List<String> accounts = new ArrayList<>();
+        payables.get("data").get("items").forEach(i -> accounts.add(i.get("accountCode").asText() + " " + i.get("accountName").asText()));
+        assertEquals(List.of("2.1.02 Hutang Supplier"), accounts);
+        assertEquals("Accounts payable (Hutang Usaha) as of " + after
+                        + ". Payable account configured in company settings: 2.1.02 Hutang Supplier.",
+                payables.get("metadata").get("description").asText());
+        assertAmount(2_000_000L, payables.get("data").get("totalBalance").decimalValue()
+                .subtract(payablesBefore.get("totalBalance").decimalValue()));
+        assertAmount(2_000_000L, snapshot.get("payablesBalance").decimalValue()
+                .subtract(snapshotBefore.get("payablesBalance").decimalValue()));
+        assertEquals(0, payables.get("data").get("totalBalance").decimalValue()
+                .compareTo(snapshot.get("payablesBalance").decimalValue()));
+    }
+
+    private void postJournal(int year, String description, String debitCode, String creditCode, String amount) {
         BigDecimal value = new BigDecimal(amount);
         var created = transactionApiService.createJournalEntry(new JournalEntryRequest(
-                LocalDate.of(RECEIVABLE_YEAR, 1, 15), description, null, List.of(
+                LocalDate.of(year, 1, 15), description, null, List.of(
                         new JournalEntryRequest.JournalLineRequest(accountId(debitCode), value, BigDecimal.ZERO),
                         new JournalEntryRequest.JournalLineRequest(accountId(creditCode), BigDecimal.ZERO, value))),
                 "admin");
