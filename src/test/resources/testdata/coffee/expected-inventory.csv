@@ -1,13 +1,13 @@
 productCode,productName,expectedQuantity,expectedAverageCost,notes
-KOPI-ARABICA,Biji Kopi Arabica,8.2,180000,After purchases and sales
-SUSU-SEGAR,Susu Segar,38.4,18000,After purchases and production/sales
-GULA-AREN,Gula Aren Cair,17.6,45000,After purchases and sales
-ES-BATU,Es Batu,43,5000,After purchases and sales
-TEPUNG-TERIGU,Tepung Terigu,23.2,12000,After purchases and production
-BUTTER,Butter,17.2,35000,After purchases and production
-TELUR,Telur Ayam,90,2500,After purchases and production
-RAGI,Ragi Instan,46,3000,After purchases and production
-GARAM,Garam,19.94,8000,After purchases and production
-COKLAT,Coklat Blok,9.6,85000,After purchases and production
+KOPI-ARABICA,Biji Kopi Arabica,15,180000,10 + 5 purchased
+SUSU-SEGAR,Susu Segar,59.4,18000,50 purchased - 0.6 PROD-001 + 10 purchased
+GULA-AREN,Gula Aren Cair,20,45000,20 purchased
+ES-BATU,Es Batu,50,5000,50 purchased
+TEPUNG-TERIGU,Tepung Terigu,34.5,12000,30 purchased - 3 PROD-001 - 2.5 PROD-002 + 10 purchased
+BUTTER,Butter,17.5,35000,20 purchased - 1.5 PROD-001 - 1 PROD-002
+TELUR,Telur Ayam,98,2500,120 purchased - 12 PROD-001 - 10 PROD-002
+RAGI,Ragi Instan,42,3000,60 purchased - 10 PROD-001 - 8 PROD-002
+GARAM,Garam,19,8000,30 purchased - 6 PROD-001 - 5 PROD-002
+COKLAT,Coklat Blok,9.6,85000,10 purchased - 0.4 PROD-002
 CROISSANT,Croissant,9,4455,24 produced - 15 sold
 ROTI-COKLAT,Roti Bakar Coklat,8,4388,20 produced - 12 sold

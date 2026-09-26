@@ -8,103 +8,121 @@ import org.springframework.context.annotation.Import;
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 
 /**
- * Manufacturing Materials Tests
- * Tests raw material management for coffee shop.
- * Loads coffee shop seed data via CoffeeTestDataInitializer.
+ * Seeded coffee-shop product master (industry-seed/coffee-shop 35_product_categories.csv, 36_products.csv)
+ * and raw material stock (41_inventory_balances.csv).
  */
 @DisplayName("Manufacturing - Raw Materials")
 @Import(CoffeeTestDataInitializer.class)
 class MfgMaterialsTest extends PlaywrightTestBase {
 
     @Test
-    @DisplayName("Should display coffee shop raw materials")
+    @DisplayName("Product list shows the ten seeded raw materials with category, unit, zero selling price and status")
     void shouldDisplayCoffeeShopRawMaterials() {
         loginAsAdmin();
         navigateTo("/products");
         waitForPageLoad();
 
-        // Verify products page loads
-        assertThat(page.locator("h1")).containsText("Produk");
-
-        // Take screenshot for user manual
+        assertThat(page.locator("#page-title")).hasText("Daftar Produk");
         takeManualScreenshot("coffee/product-list");
 
-        assertProductListed("KOPI-ARABICA", "Biji Kopi Arabica");
-        assertProductListed("SUSU-SEGAR", "Susu Segar");
+        assertProductRow("KOPI-ARABICA", "Biji Kopi Arabica", "Bahan Baku Kopi", "kg", "0");
+        assertProductRow("SUSU-SEGAR", "Susu Segar", "Bahan Baku Kopi", "liter", "0");
+        assertProductRow("GULA-AREN", "Gula Aren Cair", "Bahan Baku Kopi", "liter", "0");
+        assertProductRow("ES-BATU", "Es Batu", "Bahan Baku Kopi", "kg", "0");
+        assertProductRow("TEPUNG-TERIGU", "Tepung Terigu", "Bahan Baku Roti", "kg", "0");
+        assertProductRow("BUTTER", "Butter", "Bahan Baku Roti", "kg", "0");
+        assertProductRow("TELUR", "Telur Ayam", "Bahan Baku Roti", "butir", "0");
+        assertProductRow("RAGI", "Ragi Instan", "Bahan Baku Roti", "gram", "0");
+        assertProductRow("GARAM", "Garam", "Bahan Baku Roti", "gram", "0");
+        assertProductRow("COKLAT", "Coklat Blok", "Bahan Baku Roti", "kg", "0");
     }
 
     @Test
-    @DisplayName("Should display raw material categories")
+    @DisplayName("Category list shows the seeded raw material and finished goods categories with their parents")
     void shouldDisplayRawMaterialCategories() {
         loginAsAdmin();
         navigateTo("/products/categories");
         waitForPageLoad();
 
-        // Verify categories page loads
-        assertThat(page.locator("h1")).containsText("Kategori");
-
-        // Take screenshot for user manual
+        assertThat(page.locator("#page-title")).hasText("Kategori Produk");
         takeManualScreenshot("coffee/product-category-list");
 
-        // Verify coffee shop categories using data-testid
-        assertThat(page.locator("[data-testid='category-name-CAT-BAHAN-KOPI']")).containsText("Bahan Baku Kopi");
-        assertThat(page.locator("[data-testid='category-name-CAT-BAHAN-ROTI']")).containsText("Bahan Baku Roti");
+        assertCategoryRow("CAT-BAHAN-KOPI", "Bahan Baku Kopi", "-");
+        assertCategoryRow("CAT-BAHAN-ROTI", "Bahan Baku Roti", "-");
+        assertCategoryRow("CAT-BARANG-JADI", "Barang Jadi", "-");
+        assertCategoryRow("CAT-MINUMAN", "Minuman", "Barang Jadi");
+        assertCategoryRow("CAT-ROTI", "Roti & Kue", "Barang Jadi");
     }
 
     @Test
-    @DisplayName("Should display all coffee shop raw materials")
-    void shouldDisplayAllRawMaterials() {
-        loginAsAdmin();
-
-        assertProductListed("KOPI-ARABICA", "Biji Kopi Arabica");
-        assertProductListed("SUSU-SEGAR", "Susu Segar");
-        assertProductListed("TEPUNG-TERIGU", "Tepung Terigu");
-        assertProductListed("BUTTER", "Butter");
-    }
-
-    @Test
-    @DisplayName("Should display finished goods - pastries")
+    @DisplayName("Product list shows the seeded pastries with their selling prices")
     void shouldDisplayFinishedGoodsPastries() {
         loginAsAdmin();
 
-        assertProductListed("CROISSANT", "Croissant");
-        assertProductListed("ROTI-COKLAT", "Roti Bakar Coklat");
+        assertProductRow("CROISSANT", "Croissant", "Roti & Kue", "pcs", "25,000");
+        assertProductRow("ROTI-COKLAT", "Roti Bakar Coklat", "Roti & Kue", "pcs", "20,000");
     }
 
     @Test
-    @DisplayName("Should display raw material stock after purchases")
+    @DisplayName("Stock list shows raw material balances and flags those below minimum stock")
     void shouldDisplayRawMaterialStockAfterPurchases() {
         loginAsAdmin();
         navigateTo("/inventory/stock");
         waitForPageLoad();
 
-        // Verify stock page loads
-        assertThat(page.locator("h1")).containsText("Stok Barang");
-
-        // Take screenshot for user manual
+        assertThat(page.locator("#page-title")).hasText("Stok Barang");
         takeManualScreenshot("coffee/inventory-stock-list");
 
-        // Verify raw materials have stock from purchases using data-testid
-        assertThat(page.locator("[data-testid='stock-product-name-KOPI-ARABICA']")).containsText("Biji Kopi Arabica");
+        assertStockRow("KOPI-ARABICA", "Biji Kopi Arabica", "Bahan Baku Kopi", "15.00 kg", "180,000.00", "2,700,000", "Normal");
+        assertStockRow("SUSU-SEGAR", "Susu Segar", "Bahan Baku Kopi", "59.40 liter", "18,000.00", "1,069,200", "Normal");
+        assertStockRow("TELUR", "Telur Ayam", "Bahan Baku Roti", "98.00 butir", "2,500.00", "245,000", "Stok Rendah");
+        assertStockRow("RAGI", "Ragi Instan", "Bahan Baku Roti", "42.00 gram", "3,000.00", "126,000", "Stok Rendah");
+        assertStockRow("GARAM", "Garam", "Bahan Baku Roti", "19.00 gram", "8,000.00", "152,000", "Stok Rendah");
+        assertStockRow("COKLAT", "Coklat Blok", "Bahan Baku Roti", "9.60 kg", "85,000.00", "816,000", "Normal");
     }
 
     @Test
-    @DisplayName("Should display product form")
+    @DisplayName("Product form offers the seeded categories and coffee-shop inventory, COGS and sales accounts")
     void shouldDisplayProductForm() {
         loginAsAdmin();
         navigateTo("/products/new");
         waitForPageLoad();
 
-        // Verify product form page loads
-        assertThat(page.locator("h1")).containsText("Produk");
-
-        // Take screenshot for user manual
+        assertThat(page.locator("#page-title")).hasText("Produk Baru");
         takeManualScreenshot("products-form");
+
+        for (String option : new String[]{"CAT-BAHAN-KOPI - Bahan Baku Kopi", "CAT-BAHAN-ROTI - Bahan Baku Roti",
+                "CAT-BARANG-JADI - Barang Jadi", "CAT-MINUMAN - Minuman", "CAT-ROTI - Roti & Kue"}) {
+            assertThat(page.locator("#category option:text-is('" + option + "')")).hasCount(1);
+        }
+        assertThat(page.locator("#inventoryAccount option:text-is('1.1.20 - Persediaan Bahan Baku')")).hasCount(1);
+        assertThat(page.locator("#inventoryAccount option:text-is('1.1.21 - Persediaan Barang Jadi')")).hasCount(1);
+        assertThat(page.locator("#cogsAccount option:text-is('5.1.01 - HPP Kopi')")).hasCount(1);
+        assertThat(page.locator("#cogsAccount option:text-is('5.2.01 - HPP Roti')")).hasCount(1);
+        assertThat(page.locator("#salesAccount option:text-is('4.1.01 - Pendapatan Penjualan Minuman')")).hasCount(1);
+        assertThat(page.locator("#salesAccount option:text-is('4.1.02 - Pendapatan Penjualan Roti & Kue')")).hasCount(1);
     }
 
-    private void assertProductListed(String code, String name) {
+    private void assertProductRow(String code, String name, String category, String unit, String price) {
         navigateTo("/products?search=" + code);
         waitForPageLoad();
-        assertThat(page.locator("[data-testid='product-name-" + code + "']")).containsText(name);
+        assertThat(page.locator("[data-testid='product-row-" + code + "'] td")).hasText(new String[]{
+                code, name, category, unit, price, "Aktif", "Detail Edit"});
+    }
+
+    private void assertCategoryRow(String code, String name, String parent) {
+        navigateTo("/products/categories?search=" + code);
+        waitForPageLoad();
+        assertThat(page.locator("[data-testid='category-name-" + code + "']")).hasText(name);
+        assertThat(page.locator("[data-testid='category-parent-" + code + "']")).hasText(parent);
+        assertThat(page.locator("[data-testid='category-status-" + code + "']")).hasText("Aktif");
+    }
+
+    private void assertStockRow(String code, String name, String category, String quantity,
+                                String averageCost, String totalCost, String status) {
+        navigateTo("/inventory/stock?search=" + code);
+        waitForPageLoad();
+        assertThat(page.locator("[data-testid='stock-row-" + code + "'] td")).hasText(new String[]{
+                code, name, category, quantity, averageCost, totalCost, status, ""});
     }
 }

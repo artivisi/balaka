@@ -550,7 +550,7 @@ Additive is ~3x simpler. Role switching only needed for strict audit trails or c
 - [x] Coffee shop industry seed pack (17 CSV files: COA, products, BOMs, production orders, inventory)
 - [x] DataImportService support for manufacturing data (products, categories, BOMs, production orders, transactions)
 - [x] Test data initializer (CoffeeTestDataInitializer)
-- [x] Functional tests (44 Playwright tests: MfgBomTest, MfgProductionTest, MfgCostingTest, MfgMaterialsTest, MfgCsvDrivenTest, MfgTransactionExecutionTest)
+- [x] Functional tests (44 Playwright tests: MfgBomTest, MfgProductionTest, MfgCostingTest, MfgMaterialsTest, MfgCsvDrivenTest, MfgInventoryReportTest)
 - [x] Test pattern: All tests using data-testid locators (zero text/CSS/positional locators)
 - [x] User manual (80-produksi-bom.md)
 

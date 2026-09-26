@@ -1,62 +1,43 @@
 package com.artivisi.accountingfinance.functional.manufacturing;
 
 import com.artivisi.accountingfinance.functional.util.CsvLoader;
-import org.springframework.test.annotation.DirtiesContext;
 import com.artivisi.accountingfinance.functional.util.ExpectedInventoryRow;
-import org.springframework.test.annotation.DirtiesContext;
 import com.artivisi.accountingfinance.functional.util.ProductionOrderRow;
-import org.springframework.test.annotation.DirtiesContext;
 import com.artivisi.accountingfinance.ui.PlaywrightTestBase;
-import org.springframework.test.annotation.DirtiesContext;
+import com.microsoft.playwright.Locator;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.DynamicTest;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
 import org.springframework.context.annotation.Import;
 
+import java.math.BigDecimal;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Stream;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * CSV-Driven Manufacturing Tests
- * Loads coffee shop seed data via CoffeeTestDataInitializer.
- * Executes test scenarios from CSV files as dynamic tests.
- * Validates production orders and inventory levels against expected values.
+ * Checks the seeded coffee-shop production orders and stock balances against
+ * testdata/coffee/production-orders.csv and testdata/coffee/expected-inventory.csv.
  */
 @DisplayName("Manufacturing - CSV-Driven Tests")
 @Import(CoffeeTestDataInitializer.class)
-@DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_CLASS)
 class MfgCsvDrivenTest extends PlaywrightTestBase {
 
-    @Test
-    @DisplayName("Should load production orders CSV")
-    void shouldLoadProductionOrdersCsv() {
-        List<ProductionOrderRow> orders = CsvLoader.loadProductionOrders("coffee/production-orders.csv");
-
-        // Verify CSV loads correctly
-        assertEquals(2, orders.size());
-        assertEquals("BOM-CRS", orders.get(0).bomCode());
-        assertEquals("BOM-RBC", orders.get(1).bomCode());
-    }
-
-    @Test
-    @DisplayName("Should load expected inventory CSV")
-    void shouldLoadExpectedInventoryCsv() {
-        List<ExpectedInventoryRow> inventory = CsvLoader.loadExpectedInventory("coffee/expected-inventory.csv");
-
-        // Verify CSV loads correctly
-        assertTrue(inventory.size() > 0);
-        assertTrue(inventory.stream().anyMatch(r -> r.productCode().equals("CROISSANT")));
-    }
+    private static final DateTimeFormatter LONG_DATE = DateTimeFormatter.ofPattern("dd MMMM yyyy", Locale.of("id", "ID"));
+    private static final DecimalFormatSymbols US = DecimalFormatSymbols.getInstance(Locale.US);
 
     @TestFactory
-    @DisplayName("Verify production orders from CSV")
+    @DisplayName("Seeded production orders match production-orders.csv")
     Stream<DynamicTest> verifyProductionOrdersFromCsv() {
         List<ProductionOrderRow> orders = CsvLoader.loadProductionOrders("coffee/production-orders.csv");
+        assertEquals(2, orders.size(), "coffee/production-orders.csv rows");
 
         return orders.stream()
             .map(order -> DynamicTest.dynamicTest(
@@ -66,19 +47,20 @@ class MfgCsvDrivenTest extends PlaywrightTestBase {
     }
 
     private void verifyProductionOrder(ProductionOrderRow order) {
+        String orderNumber = String.format("PROD-%03d", order.sequence());
         loginAsAdmin();
         navigateTo("/inventory/production");
         waitForPageLoad();
-
-        // Find and click on the production order using data-testid
-        String orderNumber = "PROD-00" + order.sequence();
         page.locator("[data-testid='order-detail-link-" + orderNumber + "']").click();
         waitForPageLoad();
 
-        // Verify order details match CSV using data-testid
-        assertThat(page.locator("[data-testid='order-number']")).containsText(orderNumber);
-        assertThat(page.locator("[data-testid='order-quantity']")).containsText(String.valueOf(order.quantity()));
-        assertThat(page.locator("[data-testid='order-status-completed']")).isVisible();
+        assertThat(page.locator("[data-testid='order-number']")).hasText(orderNumber);
+        assertThat(page.locator("[data-testid='order-status-completed']")).hasText("Selesai");
+        assertThat(page.locator("[data-testid='bom-name']")).containsText(order.bomCode() + " - ");
+        assertThat(page.locator("[data-testid='order-quantity']")).hasText(order.quantity() + ".00 pcs");
+        assertThat(page.locator("[data-testid='order-date']")).hasText(LocalDate.parse(order.orderDate()).format(LONG_DATE));
+        assertThat(info("Target Selesai")).hasText(LocalDate.parse(order.plannedCompletionDate()).format(LONG_DATE));
+        assertThat(info("Catatan")).hasText(order.notes());
 
         if (order.screenshot()) {
             takeManualScreenshot("coffee/production-" + order.bomCode().toLowerCase());
@@ -86,13 +68,12 @@ class MfgCsvDrivenTest extends PlaywrightTestBase {
     }
 
     @TestFactory
-    @DisplayName("Verify inventory levels from CSV")
+    @DisplayName("Seeded stock balances match expected-inventory.csv")
     Stream<DynamicTest> verifyInventoryLevelsFromCsv() {
         List<ExpectedInventoryRow> inventory = CsvLoader.loadExpectedInventory("coffee/expected-inventory.csv");
+        assertEquals(12, inventory.size(), "coffee/expected-inventory.csv rows");
 
-        // Only test finished goods (pastries) that show on stock page
         return inventory.stream()
-            .filter(item -> item.productCode().equals("CROISSANT") || item.productCode().equals("ROTI-COKLAT"))
             .map(item -> DynamicTest.dynamicTest(
                 "Inventory: " + item.productName() + " = " + item.expectedQuantity(),
                 () -> verifyInventoryLevel(item)
@@ -101,37 +82,23 @@ class MfgCsvDrivenTest extends PlaywrightTestBase {
 
     private void verifyInventoryLevel(ExpectedInventoryRow expected) {
         loginAsAdmin();
-        navigateTo("/inventory/stock");
+        navigateTo("/inventory/stock?search=" + expected.productCode());
         waitForPageLoad();
 
-        // Verify product is visible in stock list using data-testid
-        assertThat(page.locator("[data-testid='stock-product-name-" + expected.productCode() + "']")).containsText(expected.productName());
+        Locator cells = page.locator("[data-testid='stock-row-" + expected.productCode() + "'] td");
+        assertThat(page.locator("[data-testid='stock-product-name-" + expected.productCode() + "']"))
+                .hasText(expected.productName());
+        assertThat(page.locator("[data-testid='stock-quantity-" + expected.productCode() + "']"))
+                .hasText(format(expected.expectedQuantity(), "#,##0.00"));
+        assertThat(cells.nth(4)).hasText(format(expected.expectedAverageCost(), "#,##0.00"));
+        assertThat(cells.nth(5)).hasText(format(expected.expectedQuantity().multiply(expected.expectedAverageCost()), "#,##0"));
     }
 
-    @Test
-    @DisplayName("Verify total finished goods after production and sales")
-    void verifyTotalFinishedGoodsAfterProductionAndSales() {
-        loginAsAdmin();
-        navigateTo("/inventory/stock");
-        waitForPageLoad();
-
-        // Croissant: 24 produced - 15 sold = 9 remaining
-        assertThat(page.locator("[data-testid='stock-product-name-CROISSANT']")).containsText("Croissant");
-        assertThat(page.locator("[data-testid='stock-quantity-CROISSANT']")).containsText("9");
-
-        // Roti Bakar Coklat: 20 produced - 12 sold = 8 remaining
-        assertThat(page.locator("[data-testid='stock-product-name-ROTI-COKLAT']")).containsText("Roti Bakar Coklat");
-        assertThat(page.locator("[data-testid='stock-quantity-ROTI-COKLAT']")).containsText("8");
+    private Locator info(String label) {
+        return page.locator("dt:text-is('" + label + "') + dd").first();
     }
 
-    @Test
-    @DisplayName("Verify raw material consumption after production")
-    void verifyRawMaterialConsumptionAfterProduction() {
-        loginAsAdmin();
-        navigateTo("/inventory/transactions");
-        waitForPageLoad();
-
-        // Verify PRODUCTION_OUT transactions exist for components using data-testid
-        assertThat(page.locator("[data-testid='transaction-type-PRODUCTION_OUT']").first()).isVisible();
+    private static String format(BigDecimal value, String pattern) {
+        return new DecimalFormat(pattern, US).format(value);
     }
 }
