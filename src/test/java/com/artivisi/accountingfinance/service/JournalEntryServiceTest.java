@@ -353,16 +353,18 @@ class JournalEntryServiceTest {
             UUID postedTxId = UUID.fromString("a0000000-0000-0000-0000-000000000002");
             List<JournalEntry> entries = journalEntryService.findByTransactionId(postedTxId);
 
-            if (entries.isEmpty()) return;
+            assertThat(entries).as("V904 journal entries of TRX-TEST-0002").hasSize(2);
 
             List<JournalEntryService.AccountImpact> impacts =
                     journalEntryService.calculateAccountImpact(entries);
 
-            assertThat(impacts).isNotEmpty();
+            assertThat(impacts).extracting(i -> i.account().getAccountCode() + " " + i.debitMovement().toBigInteger()
+                            + "/" + i.creditMovement().toBigInteger())
+                    .containsExactlyInAnyOrder("1.1.02 15000000/0", "4.1.01 0/15000000");
             for (var impact : impacts) {
-                assertThat(impact.account()).isNotNull();
-                assertThat(impact.beforeBalance()).isNotNull();
-                assertThat(impact.afterBalance()).isNotNull();
+                assertThat(impact.afterBalance().subtract(impact.beforeBalance()))
+                        .as("balance change of %s", impact.account().getAccountCode())
+                        .isEqualByComparingTo("15000000");
             }
         }
     }

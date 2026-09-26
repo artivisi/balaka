@@ -196,20 +196,14 @@ class JournalTemplateServiceTest {
         @Test
         @DisplayName("update should throw for system template")
         void updateShouldThrowForSystemTemplate() {
-            // Find a system template from seed data
-            List<JournalTemplate> templates = journalTemplateRepository.findAll().stream()
-                .filter(JournalTemplate::getIsSystem)
-                .toList();
+            JournalTemplate systemTemplate = seededSystemTemplate();
+            JournalTemplate updateData = buildTestTemplate();
+            addTemplateLines(updateData);
 
-            if (!templates.isEmpty()) {
-                JournalTemplate systemTemplate = templates.get(0);
-                JournalTemplate updateData = buildTestTemplate();
-                addTemplateLines(updateData);
-
-                assertThatThrownBy(() -> journalTemplateService.update(systemTemplate.getId(), updateData))
-                    .isInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("Cannot modify system template");
-            }
+            assertThatThrownBy(() -> journalTemplateService.update(systemTemplate.getId(), updateData))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Cannot modify system template");
+            assertSystemTemplateUnchanged();
         }
     }
 
@@ -314,17 +308,12 @@ class JournalTemplateServiceTest {
         @Test
         @DisplayName("deactivate should throw for system template")
         void deactivateShouldThrowForSystemTemplate() {
-            List<JournalTemplate> templates = journalTemplateRepository.findAll().stream()
-                .filter(JournalTemplate::getIsSystem)
-                .toList();
+            JournalTemplate systemTemplate = seededSystemTemplate();
 
-            if (!templates.isEmpty()) {
-                JournalTemplate systemTemplate = templates.get(0);
-
-                assertThatThrownBy(() -> journalTemplateService.deactivate(systemTemplate.getId()))
-                    .isInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("Cannot deactivate system template");
-            }
+            assertThatThrownBy(() -> journalTemplateService.deactivate(systemTemplate.getId()))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Cannot deactivate system template");
+            assertSystemTemplateUnchanged();
         }
     }
 
@@ -346,17 +335,12 @@ class JournalTemplateServiceTest {
         @Test
         @DisplayName("delete should throw for system template")
         void deleteShouldThrowForSystemTemplate() {
-            List<JournalTemplate> templates = journalTemplateRepository.findAll().stream()
-                .filter(JournalTemplate::getIsSystem)
-                .toList();
+            JournalTemplate systemTemplate = seededSystemTemplate();
 
-            if (!templates.isEmpty()) {
-                JournalTemplate systemTemplate = templates.get(0);
-
-                assertThatThrownBy(() -> journalTemplateService.delete(systemTemplate.getId()))
-                    .isInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("Cannot delete system template");
-            }
+            assertThatThrownBy(() -> journalTemplateService.delete(systemTemplate.getId()))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Cannot delete system template");
+            assertSystemTemplateUnchanged();
         }
     }
 
@@ -644,5 +628,23 @@ class JournalTemplateServiceTest {
 
             assertThat(templates).isEmpty();
         }
+    }
+
+    // V900: system template "Pembelian Persediaan"
+    private static final UUID SYSTEM_TEMPLATE_ID = UUID.fromString("f5000000-0000-0000-0000-000000000001");
+
+    private JournalTemplate seededSystemTemplate() {
+        JournalTemplate template = journalTemplateRepository.findById(SYSTEM_TEMPLATE_ID)
+            .orElseThrow(() -> new IllegalStateException("Seeded system template missing: " + SYSTEM_TEMPLATE_ID));
+        assertThat(template.getIsSystem()).isTrue();
+        return template;
+    }
+
+    private void assertSystemTemplateUnchanged() {
+        JournalTemplate stored = journalTemplateRepository.findById(SYSTEM_TEMPLATE_ID)
+            .orElseThrow(() -> new AssertionError("System template was deleted"));
+        assertThat(stored.getTemplateName()).isEqualTo("Pembelian Persediaan");
+        assertThat(stored.getActive()).isTrue();
+        assertThat(stored.getIsSystem()).isTrue();
     }
 }

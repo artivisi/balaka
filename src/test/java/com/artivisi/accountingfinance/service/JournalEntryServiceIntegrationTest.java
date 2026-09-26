@@ -24,6 +24,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -57,22 +58,14 @@ class JournalEntryServiceIntegrationTest {
 
     @BeforeEach
     void setup() {
-        // Get test accounts from database
-        cashAccount = chartOfAccountRepository.findByAccountCode("1.1.01")
-                .orElseGet(() -> chartOfAccountRepository.findByAccountCode("1.1.02").orElse(null));
-        revenueAccount = chartOfAccountRepository.findByAccountCode("4.1.01")
-                .orElseGet(() -> chartOfAccountRepository.findByAccountCode("4.1.02").orElse(null));
-        expenseAccount = chartOfAccountRepository.findByAccountCode("5.1.01")
-                .orElseGet(() -> chartOfAccountRepository.findByAccountCode("5.1.02").orElse(null));
+        cashAccount = seededAccount("1.1.01");
+        revenueAccount = seededAccount("4.1.01");
+        expenseAccount = seededAccount("5.1.01");
     }
 
     @Test
     @DisplayName("Should validate balanced journal entries")
     void shouldValidateBalancedJournalEntries() {
-        if (cashAccount == null || revenueAccount == null) {
-            return; // Skip if no test accounts
-        }
-
         List<JournalEntry> entries = new ArrayList<>();
 
         JournalEntry debitEntry = new JournalEntry();
@@ -94,10 +87,6 @@ class JournalEntryServiceIntegrationTest {
     @Test
     @DisplayName("Should reject unbalanced journal entries")
     void shouldRejectUnbalancedJournalEntries() {
-        if (cashAccount == null || revenueAccount == null) {
-            return; // Skip if no test accounts
-        }
-
         List<JournalEntry> entries = new ArrayList<>();
 
         JournalEntry debitEntry = new JournalEntry();
@@ -122,10 +111,6 @@ class JournalEntryServiceIntegrationTest {
     @WithMockUser(username = "admin")
     @DisplayName("Should create manual journal entry")
     void shouldCreateManualJournalEntry() {
-        if (cashAccount == null || revenueAccount == null) {
-            return; // Skip if no test accounts
-        }
-
         Transaction transaction = new Transaction();
         transaction.setTransactionDate(LocalDate.now());
         transaction.setDescription("Test manual journal entry");
@@ -158,10 +143,6 @@ class JournalEntryServiceIntegrationTest {
     @WithMockUser(username = "admin")
     @DisplayName("Should reject journal entry with less than 2 lines")
     void shouldRejectJournalEntryWithLessThanTwoLines() {
-        if (cashAccount == null) {
-            return;
-        }
-
         Transaction transaction = new Transaction();
         transaction.setTransactionDate(LocalDate.now());
         transaction.setDescription("Invalid entry");
@@ -183,10 +164,6 @@ class JournalEntryServiceIntegrationTest {
     @WithMockUser(username = "admin")
     @DisplayName("Should post draft journal entry")
     void shouldPostDraftJournalEntry() {
-        if (cashAccount == null || revenueAccount == null) {
-            return;
-        }
-
         // Create draft entry first
         Transaction transaction = new Transaction();
         transaction.setTransactionDate(LocalDate.now());
@@ -223,20 +200,13 @@ class JournalEntryServiceIntegrationTest {
     @Test
     @DisplayName("Should find entries by transaction ID")
     void shouldFindEntriesByTransactionId() {
-        // Find existing transactions with journal entries
-        List<Transaction> postedTransactions = transactionRepository.findAll().stream()
-                .filter(Transaction::isPosted)
-                .toList();
+        UUID postedTransactionId = UUID.fromString("a0000000-0000-0000-0000-000000000002");
+        List<JournalEntry> entries = journalEntryService.findByTransactionId(postedTransactionId);
 
-        if (postedTransactions.isEmpty()) {
-            return;
-        }
-
-        Transaction tx = postedTransactions.get(0);
-        List<JournalEntry> entries = journalEntryService.findByTransactionId(tx.getId());
-
-        assertThat(entries).isNotEmpty();
-        entries.forEach(entry -> assertThat(entry.getTransaction().getId()).isEqualTo(tx.getId()));
+        assertThat(entries).extracting(JournalEntry::getId).containsExactlyInAnyOrder(
+                UUID.fromString("b0000000-0000-0000-0000-000000000001"),
+                UUID.fromString("b0000000-0000-0000-0000-000000000002"));
+        entries.forEach(entry -> assertThat(entry.getTransaction().getId()).isEqualTo(postedTransactionId));
     }
 
     @Test
@@ -255,10 +225,6 @@ class JournalEntryServiceIntegrationTest {
     @Test
     @DisplayName("Should generate general ledger for account")
     void shouldGenerateGeneralLedger() {
-        if (cashAccount == null) {
-            return;
-        }
-
         LocalDate startDate = LocalDate.now().minusMonths(6);
         LocalDate endDate = LocalDate.now().plusMonths(1);
 
@@ -276,10 +242,6 @@ class JournalEntryServiceIntegrationTest {
     @Test
     @DisplayName("Should generate paged general ledger")
     void shouldGeneratePagedGeneralLedger() {
-        if (cashAccount == null) {
-            return;
-        }
-
         LocalDate startDate = LocalDate.now().minusMonths(6);
         LocalDate endDate = LocalDate.now().plusMonths(1);
 
@@ -295,10 +257,6 @@ class JournalEntryServiceIntegrationTest {
     @Test
     @DisplayName("Should generate paged general ledger with search")
     void shouldGeneratePagedGeneralLedgerWithSearch() {
-        if (cashAccount == null) {
-            return;
-        }
-
         LocalDate startDate = LocalDate.now().minusMonths(6);
         LocalDate endDate = LocalDate.now().plusMonths(1);
 
@@ -323,10 +281,6 @@ class JournalEntryServiceIntegrationTest {
     @WithMockUser(username = "admin")
     @DisplayName("Should void posted journal entry")
     void shouldVoidPostedJournalEntry() {
-        if (cashAccount == null || expenseAccount == null) {
-            return;
-        }
-
         // Create and post an entry
         Transaction transaction = new Transaction();
         transaction.setTransactionDate(LocalDate.now());
@@ -368,10 +322,6 @@ class JournalEntryServiceIntegrationTest {
     @WithMockUser(username = "admin")
     @DisplayName("Should reject void without reason")
     void shouldRejectVoidWithoutReason() {
-        if (cashAccount == null || revenueAccount == null) {
-            return;
-        }
-
         // Create and post an entry
         Transaction transaction = new Transaction();
         transaction.setTransactionDate(LocalDate.now());
@@ -403,24 +353,16 @@ class JournalEntryServiceIntegrationTest {
     @Test
     @DisplayName("Should calculate account impact")
     void shouldCalculateAccountImpact() {
-        // Find existing posted entries
-        List<JournalEntry> existingEntries = journalEntryRepository.findAll().stream()
-                .filter(JournalEntry::isPosted)
-                .limit(2)
-                .toList();
-
-        if (existingEntries.isEmpty()) {
-            return;
-        }
+        List<JournalEntry> existingEntries = journalEntryService.findByTransactionId(
+                UUID.fromString("a0000000-0000-0000-0000-000000000002"));
+        assertThat(existingEntries).as("V904 journal entries of TRX-TEST-0002").hasSize(2);
 
         List<JournalEntryService.AccountImpact> impacts = journalEntryService.calculateAccountImpact(existingEntries);
 
-        assertThat(impacts).isNotEmpty();
-        impacts.forEach(impact -> {
-            assertThat(impact.account()).isNotNull();
-            assertThat(impact.beforeBalance()).isNotNull();
-            assertThat(impact.afterBalance()).isNotNull();
-        });
+        assertThat(impacts).extracting(i -> i.account().getAccountCode()).containsExactlyInAnyOrder("1.1.02", "4.1.01");
+        impacts.forEach(impact -> assertThat(impact.afterBalance().subtract(impact.beforeBalance()))
+                .as("balance change of %s", impact.account().getAccountCode())
+                .isEqualByComparingTo("15000000"));
     }
 
     @Test
@@ -436,10 +378,6 @@ class JournalEntryServiceIntegrationTest {
     @Test
     @DisplayName("Should find entries by account and date range")
     void shouldFindEntriesByAccountAndDateRange() {
-        if (cashAccount == null) {
-            return;
-        }
-
         LocalDate startDate = LocalDate.now().minusMonths(6);
         LocalDate endDate = LocalDate.now().plusMonths(1);
 
@@ -449,5 +387,10 @@ class JournalEntryServiceIntegrationTest {
         assertThat(entries).isNotNull();
         // All returned entries should be for the specified account
         entries.forEach(entry -> assertThat(entry.getAccount().getId()).isEqualTo(cashAccount.getId()));
+    }
+
+    private ChartOfAccount seededAccount(String code) {
+        return chartOfAccountRepository.findByAccountCode(code)
+                .orElseThrow(() -> new IllegalStateException("Seeded account missing: " + code));
     }
 }

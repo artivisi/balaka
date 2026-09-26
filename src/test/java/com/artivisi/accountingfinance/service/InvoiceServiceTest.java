@@ -36,6 +36,7 @@ import com.artivisi.accountingfinance.repository.InvoicePaymentRepository;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -815,21 +816,22 @@ class InvoiceServiceTest {
         @Test
         @DisplayName("findByProjectId should return invoices for project")
         void findByProjectIdShouldReturnInvoices() {
-            List<Project> projects = projectRepository.findAll();
-            if (projects.isEmpty()) return;
-
-            Project project = projects.get(0);
+            Project project = projectRepository.findByCode("PRJ-TEST-001")
+                    .orElseThrow(() -> new IllegalStateException("Seeded project missing: PRJ-TEST-001"));
+            List<UUID> before = invoiceService.findByProjectId(project.getId()).stream().map(Invoice::getId).toList();
             Invoice invoice = new Invoice();
             invoice.setClient(testClient);
             invoice.setProject(project);
             invoice.setInvoiceDate(LocalDate.now());
             invoice.setDueDate(LocalDate.now().plusDays(30));
             invoice.setAmount(new BigDecimal("10000000"));
-            invoiceService.create(invoice);
+            Invoice created = invoiceService.create(invoice);
 
             List<Invoice> invoices = invoiceService.findByProjectId(project.getId());
 
-            assertThat(invoices).isNotEmpty();
+            assertThat(invoices).extracting(Invoice::getId)
+                    .containsExactlyInAnyOrderElementsOf(concat(before, created.getId()));
+            assertThat(invoices).allMatch(i -> i.getProject().getId().equals(project.getId()));
         }
 
         @Test
@@ -856,5 +858,11 @@ class InvoiceServiceTest {
         invoice.setAmount(amount);
         invoice.setStatus(status);
         return invoiceRepository.save(invoice);
+    }
+
+    private static List<UUID> concat(List<UUID> ids, UUID id) {
+        List<UUID> all = new ArrayList<>(ids);
+        all.add(id);
+        return all;
     }
 }

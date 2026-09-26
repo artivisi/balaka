@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -258,14 +259,15 @@ class DraftTransactionServiceIntegrationTest {
     @Test
     @DisplayName("Should handle draft with suggested template")
     void shouldHandleDraftWithSuggestedTemplate() {
-        var template = journalTemplateRepository.findAll().stream().findFirst();
+        UUID templateId = UUID.fromString("e0000000-0000-0000-0000-000000000001");
+        var template = journalTemplateRepository.findById(templateId)
+                .orElseThrow(() -> new IllegalStateException("Seeded template missing: " + templateId));
 
-        if (template.isPresent()) {
-            testDraft.setSuggestedTemplate(template.get());
-            DraftTransaction saved = draftTransactionService.save(testDraft);
+        testDraft.setSuggestedTemplate(template);
+        DraftTransaction saved = draftTransactionService.save(testDraft);
 
-            assertThat(saved.getSuggestedTemplate()).isNotNull();
-            assertThat(saved.getSuggestedTemplate().getId()).isEqualTo(template.get().getId());
-        }
+        DraftTransaction stored = draftTransactionRepository.findById(saved.getId()).orElseThrow();
+        assertThat(stored.getSuggestedTemplate().getId()).isEqualTo(templateId);
+        assertThat(stored.getSuggestedTemplate().getTemplateName()).isEqualTo("Pendapatan Jasa Konsultasi");
     }
 }

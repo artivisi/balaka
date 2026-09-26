@@ -54,7 +54,7 @@ public class BankReconTestDataInitializer {
             log.info("IT Service seed imported: {} records in {}ms",
                 seedResult.totalRecords(), seedResult.durationMs());
 
-            // Step 2: Import test master data (Company Config, Fiscal Periods, Employees, Transactions)
+            // Step 2: Import test master data (Company Config, Clients, Projects, Fiscal Periods, Employees, Payroll)
             log.info("Importing bank reconciliation test master data...");
             byte[] testDataZip = createZipFromTestData("src/test/resources/testdata/service");
             DataImportService.ImportResult testResult = dataImportService.importAllData(testDataZip);
@@ -152,7 +152,6 @@ public class BankReconTestDataInitializer {
             addTestFileToZip(zos, testDir, "company-config.csv", "01_company_config.csv");
             addTestFileToZip(zos, testDir, "clients.csv", "07_clients.csv");
             addTestFileToZip(zos, testDir, "projects.csv", "08_projects.csv");
-            addTestFileToZip(zos, testDir, "transactions.csv", "09_transactions.csv");
             addTestFileToZip(zos, testDir, "fiscal-periods.csv", "11_fiscal_periods.csv");
             addTestFileToZip(zos, testDir, "employees.csv", "15_employees.csv");
             addTestFileToZip(zos, testDir, "21_payroll_runs.csv", "21_payroll_runs.csv");

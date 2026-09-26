@@ -207,14 +207,7 @@ class TransactionServiceTest {
         @DisplayName("create with project should associate project correctly")
         void createWithProjectShouldAssociateProject() {
             JournalTemplate template = journalTemplateService.findById(INCOME_CONSULTING_TEMPLATE_ID);
-            List<Project> projects = projectRepository.findAll();
-
-            // Skip if no projects in test data
-            if (projects.isEmpty()) {
-                return;
-            }
-
-            Project project = projects.get(0);
+            Project project = seededProject();
 
             Transaction transaction = new Transaction();
             transaction.setJournalTemplate(template);
@@ -378,13 +371,8 @@ class TransactionServiceTest {
         @Test
         @DisplayName("post should associate project with journal entries")
         void postShouldAssociateProjectWithJournalEntries() {
-            List<Project> projects = projectRepository.findAll();
-            if (projects.isEmpty()) {
-                return; // Skip if no projects
-            }
-
             JournalTemplate template = journalTemplateService.findById(INCOME_CONSULTING_TEMPLATE_ID);
-            Project project = projects.get(0);
+            Project project = seededProject();
 
             Transaction transaction = new Transaction();
             transaction.setJournalTemplate(template);
@@ -898,5 +886,10 @@ class TransactionServiceTest {
 
             assertThat(saved.getNotes()).isEqualTo("Updated via saveDirectly");
         }
+    }
+
+    private Project seededProject() {
+        return projectRepository.findByCode("PRJ-TEST-001")
+                .orElseThrow(() -> new IllegalStateException("Seeded project missing: PRJ-TEST-001"));
     }
 }
