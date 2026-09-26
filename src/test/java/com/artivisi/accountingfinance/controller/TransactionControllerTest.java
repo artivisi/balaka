@@ -1,5 +1,6 @@
 package com.artivisi.accountingfinance.controller;
 
+import com.artivisi.accountingfinance.security.CspNonceFilter;
 import com.artivisi.accountingfinance.TestcontainersConfiguration;
 import com.artivisi.accountingfinance.dto.TransactionDto;
 import com.artivisi.accountingfinance.dto.VoidTransactionDto;
@@ -82,6 +83,9 @@ class TransactionControllerTest {
     void setUp() {
         mockMvc = MockMvcBuilders
                 .webAppContextSetup(webApplicationContext)
+                // Servlet container registers CspNonceFilter ahead of Spring Security (WebMvcConfig);
+                // MockMvc only adds filters it is given.
+                .addFilters(webApplicationContext.getBean(CspNonceFilter.class))
                 .apply(springSecurity())
                 .build();
     }
