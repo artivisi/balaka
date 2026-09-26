@@ -1,432 +1,346 @@
 package com.artivisi.accountingfinance.functional;
 
+import com.artivisi.accountingfinance.entity.ChartOfAccount;
+import com.artivisi.accountingfinance.entity.JournalEntry;
+import com.artivisi.accountingfinance.entity.TaxTransactionDetail;
+import com.artivisi.accountingfinance.entity.Transaction;
+import com.artivisi.accountingfinance.enums.TaxType;
+import com.artivisi.accountingfinance.enums.TransactionStatus;
 import com.artivisi.accountingfinance.functional.service.ServiceTestDataInitializer;
+import com.artivisi.accountingfinance.repository.ChartOfAccountRepository;
+import com.artivisi.accountingfinance.repository.JournalEntryRepository;
+import com.artivisi.accountingfinance.repository.JournalTemplateRepository;
+import com.artivisi.accountingfinance.repository.TaxTransactionDetailRepository;
+import com.artivisi.accountingfinance.repository.TransactionRepository;
 import com.artivisi.accountingfinance.ui.PlaywrightTestBase;
+import com.microsoft.playwright.APIResponse;
+import org.apache.poi.ss.usermodel.DataFormatter;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.YearMonth;
-import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Consumer;
+import java.util.regex.Pattern;
 
+import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Functional tests for TaxExportController.
- * Tests Coretax export functionality for e-Faktur and Bupot.
+ * Coretax export page (/reports/tax-export) on tax details this class posts into {@link #YEAR}
+ * (reserved for it). The column contents of the Coretax workbooks are verified by
+ * CoretaxExportServiceTest and TaxExportApiTest; here the page's statistics, period selection and
+ * the downloads it links to.
+ *
+ * - 03-10 faktur keluaran DPP 20M / PPN 2.2M
+ * - 03-15 faktur masukan DPP 3M / PPN 0.33M
+ * - 03-20 PPh 23 bupot gross 6M / 120k
+ * - 03-28 faktur keluaran on a VOID transaction (excluded)
+ * - 04-05 faktur keluaran DPP 8M / PPN 0.88M
+ * - 04-12 PPh 23 bupot gross 2.5M / 50k
  */
-@DisplayName("Tax Export (Coretax) Tests")
+@DisplayName("Tax Export (Coretax) Page")
 @Import(ServiceTestDataInitializer.class)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TaxExportFunctionalTest extends PlaywrightTestBase {
 
-    private static final DateTimeFormatter MONTH_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM");
+    private static final int YEAR = 2094;
+    private static final String MARCH = YEAR + "-03";
+    private static final String APRIL = YEAR + "-04";
+    private static final String XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+    private static final DataFormatter FORMATTER = new DataFormatter();
+
+    @Autowired private TransactionRepository transactionRepository;
+    @Autowired private JournalEntryRepository journalEntryRepository;
+    @Autowired private JournalTemplateRepository templateRepository;
+    @Autowired private ChartOfAccountRepository accountRepository;
+    @Autowired private TaxTransactionDetailRepository taxDetailRepository;
+
+    private String fakturMarch;
+    private String fakturApril;
+    private String fakturVoided;
+    private String fakturMasukan;
+    private String bupotMarch;
+    private String bupotApril;
+
+    @BeforeAll
+    void postTaxData() {
+        assertThat(transactionRepository.findPostedTransactionsBetweenDates(
+                LocalDate.of(YEAR, 1, 1), LocalDate.of(YEAR, 12, 31)))
+                .as("Another test posted into reserved tax export year " + YEAR)
+                .isEmpty();
+
+        fakturMarch = faktur();
+        fakturApril = faktur();
+        fakturVoided = faktur();
+        fakturMasukan = faktur();
+        bupotMarch = "BP23-" + YEAR + "-" + digits(6);
+        bupotApril = "BP23-" + YEAR + "-" + digits(6);
+
+        Transaction sales = post(LocalDate.of(YEAR, 3, 10), "Pendapatan Jasa + PPN", TransactionStatus.POSTED,
+                line("1.1.02", "22200000", "0"), line("4.1.01", "0", "20000000"), line("2.1.03", "0", "2200000"));
+        detail(sales, TaxType.PPN_KELUARAN, d -> faktur(d, fakturMarch, LocalDate.of(YEAR, 3, 10), "20000000", "2200000"));
+
+        Transaction purchase = post(LocalDate.of(YEAR, 3, 15), "Pembelian dengan PPN", TransactionStatus.POSTED,
+                line("5.1.21", "3000000", "0"), line("1.1.25", "330000", "0"), line("1.1.02", "0", "3330000"));
+        detail(purchase, TaxType.PPN_MASUKAN, d -> faktur(d, fakturMasukan, LocalDate.of(YEAR, 3, 15), "3000000", "330000"));
+
+        Transaction service = post(LocalDate.of(YEAR, 3, 20), "Pembayaran Jasa dengan PPh 23", TransactionStatus.POSTED,
+                line("5.1.20", "6000000", "0"), line("1.1.02", "0", "5880000"), line("2.1.21", "0", "120000"));
+        detail(service, TaxType.PPH_23, d -> bupot(d, bupotMarch, "6000000", "120000"));
+
+        Transaction voided = post(LocalDate.of(YEAR, 3, 28), "Pendapatan Jasa + PPN", TransactionStatus.VOID,
+                line("1.1.02", "1110000", "0"), line("4.1.01", "0", "1000000"), line("2.1.03", "0", "110000"));
+        detail(voided, TaxType.PPN_KELUARAN, d -> faktur(d, fakturVoided, LocalDate.of(YEAR, 3, 28), "1000000", "110000"));
+
+        Transaction aprilSales = post(LocalDate.of(YEAR, 4, 5), "Pendapatan Jasa + PPN", TransactionStatus.POSTED,
+                line("1.1.02", "8880000", "0"), line("4.1.01", "0", "8000000"), line("2.1.03", "0", "880000"));
+        detail(aprilSales, TaxType.PPN_KELUARAN, d -> faktur(d, fakturApril, LocalDate.of(YEAR, 4, 5), "8000000", "880000"));
+
+        Transaction aprilService = post(LocalDate.of(YEAR, 4, 12), "Pembayaran Jasa dengan PPh 23", TransactionStatus.POSTED,
+                line("5.1.20", "2500000", "0"), line("1.1.02", "0", "2450000"), line("2.1.21", "0", "50000"));
+        detail(aprilService, TaxType.PPH_23, d -> bupot(d, bupotApril, "2500000", "50000"));
+    }
 
     @BeforeEach
-    void setupAndLogin() {
+    void login() {
         loginAsAdmin();
     }
 
-    @Nested
-    @DisplayName("Export Page Display")
-    class ExportPageDisplayTests {
+    @Test
+    @DisplayName("Without parameters the page shows the current month, selectable among the last 24 months, and links its downloads")
+    void shouldDefaultToCurrentMonth() {
+        navigateTo("/reports/tax-export");
+        waitForPageLoad();
 
-        @Test
-        @DisplayName("Should display tax export page with title")
-        void shouldDisplayTaxExportPage() {
-            navigateTo("/reports/tax-export");
-            waitForPageLoad();
-
-            assertThat(page.title())
-                .as("Page title should contain 'Export Data Pajak'")
-                .contains("Export Data Pajak");
-
-            assertThat(page.locator("#page-title").textContent())
-                .as("Page heading should show Export Data Pajak untuk Coretax")
-                .contains("Export Data Pajak untuk Coretax");
+        assertThat(page.locator("#page-title")).hasText("Export Data Pajak untuk Coretax");
+        YearMonth current = YearMonth.now();
+        List<String> expected = new ArrayList<>();
+        for (int i = 0; i < 24; i++) {
+            expected.add(current.minusMonths(i).toString());
         }
-
-        @Test
-        @DisplayName("Should display period selection form")
-        void shouldDisplayPeriodSelectionForm() {
-            navigateTo("/reports/tax-export");
-            waitForPageLoad();
-
-            assertThat(page.locator("#startMonth").isVisible())
-                .as("Start month select should be visible")
-                .isTrue();
-
-            assertThat(page.locator("#endMonth").isVisible())
-                .as("End month select should be visible")
-                .isTrue();
-
-            // Use text content to identify the specific submit button
-            assertThat(page.locator("button:has-text('Tampilkan')").isVisible())
-                .as("Submit button should be visible")
-                .isTrue();
-        }
-
-        @Test
-        @DisplayName("Should display e-Faktur Keluaran section")
-        void shouldDisplayEFakturKeluaranSection() {
-            navigateTo("/reports/tax-export");
-            waitForPageLoad();
-
-            assertThat(page.locator("text=e-Faktur Keluaran").first().isVisible())
-                .as("e-Faktur Keluaran section should be visible")
-                .isTrue();
-
-            // Download link is an anchor tag
-            assertThat(page.locator("a#btn-download-efaktur-keluaran").isVisible())
-                .as("Download e-Faktur Keluaran button should be visible")
-                .isTrue();
-        }
-
-        @Test
-        @DisplayName("Should display e-Faktur Masukan section")
-        void shouldDisplayEFakturMasukanSection() {
-            navigateTo("/reports/tax-export");
-            waitForPageLoad();
-
-            assertThat(page.locator("text=e-Faktur Masukan").first().isVisible())
-                .as("e-Faktur Masukan section should be visible")
-                .isTrue();
-
-            // Download link is an anchor tag
-            assertThat(page.locator("a#btn-download-efaktur-masukan").isVisible())
-                .as("Download e-Faktur Masukan button should be visible")
-                .isTrue();
-        }
-
-        @Test
-        @DisplayName("Should display Bupot Unifikasi section")
-        void shouldDisplayBupotUnifikasiSection() {
-            navigateTo("/reports/tax-export");
-            waitForPageLoad();
-
-            assertThat(page.locator("text=Bupot Unifikasi").first().isVisible())
-                .as("Bupot Unifikasi section should be visible")
-                .isTrue();
-
-            // Download link is an anchor tag
-            assertThat(page.locator("a#btn-download-bupot-unifikasi").isVisible())
-                .as("Download Bupot Unifikasi button should be visible")
-                .isTrue();
-        }
-
-        @Test
-        @DisplayName("Should display instructions section")
-        void shouldDisplayInstructionsSection() {
-            navigateTo("/reports/tax-export");
-            waitForPageLoad();
-
-            assertThat(page.locator("text=Cara Menggunakan").isVisible())
-                .as("Instructions section should be visible")
-                .isTrue();
-
-            assertThat(page.locator("text=DJP Converter").first().isVisible())
-                .as("DJP Converter reference should be visible")
-                .isTrue();
-        }
-
-        @Test
-        @DisplayName("Should display requirements notice")
-        void shouldDisplayRequirementsNotice() {
-            navigateTo("/reports/tax-export");
-            waitForPageLoad();
-
-            assertThat(page.locator("text=Persyaratan Data").isVisible())
-                .as("Requirements notice should be visible")
-                .isTrue();
-
-            assertThat(page.locator("text=NPWP dan NITKU").isVisible())
-                .as("NPWP and NITKU requirement should be visible")
-                .isTrue();
+        assertThat(page.locator("#startMonth option").evaluateAll("os => os.map(o => o.value)")).isEqualTo(expected);
+        assertThat(page.locator("#endMonth option").evaluateAll("os => os.map(o => o.value)")).isEqualTo(expected);
+        assertThat(page.locator("#startMonth")).hasValue(current.toString());
+        assertThat(page.locator("#endMonth")).hasValue(current.toString());
+        assertThat(page.locator("#period-start")).hasText(dayMonthYear(current.atDay(1)));
+        assertThat(page.locator("#period-end")).hasText(dayMonthYear(current.atEndOfMonth()));
+        for (String type : List.of("efaktur-keluaran", "efaktur-masukan", "bupot-unifikasi")) {
+            assertThat(page.locator("#btn-download-" + type)).hasAttribute("href",
+                    "/reports/tax-export/" + type + "?startMonth=" + current + "&endMonth=" + current);
         }
     }
 
-    @Nested
-    @DisplayName("Period Selection")
-    class PeriodSelectionTests {
+    @Test
+    @DisplayName("Statistics count and sum only the chosen months' posted faktur and bupot; the period form narrows them and updates the download links")
+    void shouldShowStatisticsForChosenPeriod() {
+        navigateTo("/reports/tax-export?startMonth=" + MARCH + "&endMonth=" + APRIL);
+        waitForPageLoad();
 
-        @Test
-        @DisplayName("Should default to current month")
-        void shouldDefaultToCurrentMonth() {
-            navigateTo("/reports/tax-export");
-            waitForPageLoad();
+        assertThat(page.locator("#startMonth")).hasValue(MARCH);
+        assertThat(page.locator("#endMonth")).hasValue(APRIL);
+        assertThat(page.locator("#period-start")).hasText("01 Maret " + YEAR);
+        assertThat(page.locator("#period-end")).hasText("30 April " + YEAR);
+        assertStatistics("2 faktur", "3.080.000", "1 faktur", "330.000", "2 bupot", "170.000");
 
-            String currentMonth = YearMonth.now().format(MONTH_FORMAT);
+        page.locator("#endMonth").selectOption(MARCH);
+        page.locator("button:has-text('Tampilkan')").click();
+        page.waitForURL(url -> url.endsWith("/reports/tax-export?startMonth=" + MARCH + "&endMonth=" + MARCH));
+        waitForPageLoad();
 
-            assertThat(page.locator("#startMonth").inputValue())
-                .as("Start month should default to current month")
-                .isEqualTo(currentMonth);
-
-            assertThat(page.locator("#endMonth").inputValue())
-                .as("End month should default to current month")
-                .isEqualTo(currentMonth);
-        }
-
-        @Test
-        @DisplayName("Should update period on form submit")
-        void shouldUpdatePeriodOnSubmit() {
-            navigateTo("/reports/tax-export");
-            waitForPageLoad();
-
-            // Select a different month
-            YearMonth twoMonthsAgo = YearMonth.now().minusMonths(2);
-            String targetMonth = twoMonthsAgo.format(MONTH_FORMAT);
-
-            page.locator("#startMonth").selectOption(targetMonth);
-            page.locator("#endMonth").selectOption(targetMonth);
-            page.locator("button:has-text('Tampilkan')").click();
-            waitForPageLoad();
-
-            // Verify URL contains the selected period
-            assertThat(page.url())
-                .as("URL should contain selected start month")
-                .contains("startMonth=" + targetMonth);
-
-            assertThat(page.url())
-                .as("URL should contain selected end month")
-                .contains("endMonth=" + targetMonth);
-        }
-
-        @Test
-        @DisplayName("Should allow selecting date range")
-        void shouldAllowSelectingDateRange() {
-            navigateTo("/reports/tax-export");
-            waitForPageLoad();
-
-            YearMonth threeMonthsAgo = YearMonth.now().minusMonths(3);
-            YearMonth oneMonthAgo = YearMonth.now().minusMonths(1);
-
-            page.locator("#startMonth").selectOption(threeMonthsAgo.format(MONTH_FORMAT));
-            page.locator("#endMonth").selectOption(oneMonthAgo.format(MONTH_FORMAT));
-            page.locator("button:has-text('Tampilkan')").click();
-            waitForPageLoad();
-
-            assertThat(page.url())
-                .as("URL should contain start month")
-                .contains("startMonth=" + threeMonthsAgo.format(MONTH_FORMAT));
-
-            assertThat(page.url())
-                .as("URL should contain end month")
-                .contains("endMonth=" + oneMonthAgo.format(MONTH_FORMAT));
-        }
-
-        @Test
-        @DisplayName("Should display available months for selection")
-        void shouldDisplayAvailableMonths() {
-            navigateTo("/reports/tax-export");
-            waitForPageLoad();
-
-            // Get all options from start month select
-            var options = page.locator("#startMonth option").all();
-
-            assertThat(options)
-                .as("Should have 24 months available")
-                .hasSize(24);
+        assertThat(page.locator("#endMonth")).hasValue(MARCH);
+        assertThat(page.locator("#period-end")).hasText("31 Maret " + YEAR);
+        assertStatistics("1 faktur", "2.200.000", "1 faktur", "330.000", "1 bupot", "120.000");
+        for (String type : List.of("efaktur-keluaran", "efaktur-masukan", "bupot-unifikasi")) {
+            assertThat(page.locator("#btn-download-" + type)).hasAttribute("href",
+                    "/reports/tax-export/" + type + "?startMonth=" + MARCH + "&endMonth=" + MARCH);
+            assertThat(page.locator("#btn-download-" + type)).not().hasClass(Pattern.compile(".*pointer-events-none.*"));
         }
     }
 
-    @Nested
-    @DisplayName("Export Statistics")
-    class ExportStatisticsTests {
+    @Test
+    @DisplayName("Download links return Coretax workbooks holding exactly the chosen months' posted faktur and bupot")
+    void shouldDownloadWorkbooksForChosenPeriod() throws Exception {
+        navigateTo("/reports/tax-export?startMonth=" + MARCH + "&endMonth=" + APRIL);
+        waitForPageLoad();
 
-        @Test
-        @DisplayName("Should display e-Faktur Keluaran count")
-        void shouldDisplayEFakturKeluaranCount() {
-            navigateTo("/reports/tax-export");
-            waitForPageLoad();
-
-            // Look for the faktur count badge
-            var countBadge = page.locator("text=/\\d+ faktur/").first();
-
-            assertThat(countBadge.isVisible())
-                .as("e-Faktur count should be displayed")
-                .isTrue();
+        String suffix = "_" + YEAR + "03_" + YEAR + "04.xlsx";
+        try (Workbook keluaran = download("#btn-download-efaktur-keluaran", "efaktur-keluaran" + suffix)) {
+            assertThat(column(keluaran.getSheet("DATA"), 1)).containsExactly(fakturMarch, fakturApril);
         }
-
-        @Test
-        @DisplayName("Should display e-Faktur Keluaran PPN total")
-        void shouldDisplayEFakturKeluaranPpnTotal() {
-            navigateTo("/reports/tax-export");
-            waitForPageLoad();
-
-            // The Total PPN label should be visible
-            assertThat(page.locator("text=Total PPN:").first().isVisible())
-                .as("Total PPN label should be visible")
-                .isTrue();
+        try (Workbook masukan = download("#btn-download-efaktur-masukan", "efaktur-masukan" + suffix)) {
+            assertThat(column(masukan.getSheet("DATA"), 1)).containsExactly(fakturMasukan);
         }
-
-        @Test
-        @DisplayName("Should display Bupot count")
-        void shouldDisplayBupotCount() {
-            navigateTo("/reports/tax-export");
-            waitForPageLoad();
-
-            // Look for the bupot count badge
-            var countBadge = page.locator("text=/\\d+ bupot/").first();
-
-            assertThat(countBadge.isVisible())
-                .as("Bupot count should be displayed")
-                .isTrue();
-        }
-
-        @Test
-        @DisplayName("Should display Total PPh")
-        void shouldDisplayTotalPph() {
-            navigateTo("/reports/tax-export");
-            waitForPageLoad();
-
-            assertThat(page.locator("text=Total PPh:").isVisible())
-                .as("Total PPh label should be visible")
-                .isTrue();
+        try (Workbook bupot = download("#btn-download-bupot-unifikasi", "bupot-unifikasi" + suffix)) {
+            assertThat(column(bupot.getSheet("DATA"), 0)).containsExactly(bupotMarch, bupotApril);
         }
     }
 
-    @Nested
-    @DisplayName("Download Actions")
-    class DownloadActionsTests {
+    @Test
+    @DisplayName("A period without tax details shows zero statistics and disables the downloads")
+    void shouldDisableDownloadsForEmptyPeriod() {
+        navigateTo("/reports/tax-export?startMonth=" + YEAR + "-06&endMonth=" + YEAR + "-06");
+        waitForPageLoad();
 
-        @Test
-        @DisplayName("Should have correct e-Faktur Keluaran download link")
-        void shouldHaveCorrectEFakturKeluaranDownloadLink() {
-            navigateTo("/reports/tax-export");
-            waitForPageLoad();
-
-            String downloadHref = page.locator("a#btn-download-efaktur-keluaran").getAttribute("href");
-
-            assertThat(downloadHref)
-                .as("Download link should point to efaktur-keluaran endpoint")
-                .contains("/reports/tax-export/efaktur-keluaran");
-
-            assertThat(downloadHref)
-                .as("Download link should include startMonth parameter")
-                .contains("startMonth=");
-
-            assertThat(downloadHref)
-                .as("Download link should include endMonth parameter")
-                .contains("endMonth=");
-        }
-
-        @Test
-        @DisplayName("Should have correct e-Faktur Masukan download link")
-        void shouldHaveCorrectEFakturMasukanDownloadLink() {
-            navigateTo("/reports/tax-export");
-            waitForPageLoad();
-
-            String downloadHref = page.locator("a#btn-download-efaktur-masukan").getAttribute("href");
-
-            assertThat(downloadHref)
-                .as("Download link should point to efaktur-masukan endpoint")
-                .contains("/reports/tax-export/efaktur-masukan");
-
-            assertThat(downloadHref)
-                .as("Download link should include startMonth parameter")
-                .contains("startMonth=");
-        }
-
-        @Test
-        @DisplayName("Should have correct Bupot Unifikasi download link")
-        void shouldHaveCorrectBupotUnifikasiDownloadLink() {
-            navigateTo("/reports/tax-export");
-            waitForPageLoad();
-
-            String downloadHref = page.locator("a#btn-download-bupot-unifikasi").getAttribute("href");
-
-            assertThat(downloadHref)
-                .as("Download link should point to bupot-unifikasi endpoint")
-                .contains("/reports/tax-export/bupot-unifikasi");
-
-            assertThat(downloadHref)
-                .as("Download link should include startMonth parameter")
-                .contains("startMonth=");
-        }
-
-        @Test
-        @DisplayName("Should update download links when period changes")
-        void shouldUpdateDownloadLinksWhenPeriodChanges() {
-            navigateTo("/reports/tax-export");
-            waitForPageLoad();
-
-            YearMonth twoMonthsAgo = YearMonth.now().minusMonths(2);
-            String targetMonth = twoMonthsAgo.format(MONTH_FORMAT);
-
-            page.locator("#startMonth").selectOption(targetMonth);
-            page.locator("#endMonth").selectOption(targetMonth);
-            page.locator("button:has-text('Tampilkan')").click();
-            waitForPageLoad();
-
-            // The download link (anchor tag) should have updated href
-            var downloadLink = page.locator("a#btn-download-efaktur-keluaran");
-            String downloadHref = downloadLink.getAttribute("href");
-
-            assertThat(downloadHref)
-                .as("Download link should use updated startMonth")
-                .contains("startMonth=" + targetMonth);
-
-            assertThat(downloadHref)
-                .as("Download link should use updated endMonth")
-                .contains("endMonth=" + targetMonth);
+        assertStatistics("0 faktur", "0", "0 faktur", "0", "0 bupot", "0");
+        for (String type : List.of("efaktur-keluaran", "efaktur-masukan", "bupot-unifikasi")) {
+            assertThat(page.locator("#btn-download-" + type)).hasClass(Pattern.compile(".*pointer-events-none.*"));
         }
     }
 
-    @Nested
-    @DisplayName("Navigation")
-    class NavigationTests {
+    @Test
+    @DisplayName("Sidebar opens the page with its menu entry highlighted; page links to company settings and the DJP converter")
+    void shouldNavigateAndLinkRelatedPages() {
+        navigateTo("/dashboard");
+        waitForPageLoad();
+        page.locator("#nav-group-laporan").click();
+        page.locator("#nav-tax-export").click();
+        page.waitForURL(url -> url.endsWith("/reports/tax-export"));
 
-        @Test
-        @DisplayName("Should navigate to tax export from reports menu")
-        void shouldNavigateToTaxExportFromReportsMenu() {
-            navigateTo("/dashboard");
-            waitForPageLoad();
-
-            // Open reports menu if collapsed
-            var reportsMenu = page.locator("a[href*='/reports']").first();
-            if (reportsMenu.isVisible()) {
-                reportsMenu.click();
-                waitForPageLoad();
-            }
-
-            // Navigate to tax export
-            navigateTo("/reports/tax-export");
-            waitForPageLoad();
-
-            assertThat(page.url())
-                .as("Should be on tax export page")
-                .contains("/reports/tax-export");
+        assertThat(page.locator("#page-title")).hasText("Export Data Pajak untuk Coretax");
+        assertThat(page.locator("#nav-tax-export")).hasClass(Pattern.compile(".*bg-primary-600.*"));
+        assertThat(page.locator("main a[href='/settings/company']")).hasText("Pengaturan Perusahaan");
+        String converter = "https://www.pajak.go.id/reformdjp/coretax/template-xml-dan-converter-excel-ke-xml";
+        assertThat(page.locator("main a[href='" + converter + "']")).hasCount(2);
+        for (int i = 0; i < 2; i++) {
+            assertThat(page.locator("main a[href='" + converter + "']").nth(i)).hasAttribute("target", "_blank");
         }
+    }
 
-        @Test
-        @DisplayName("Should have link to company settings")
-        void shouldHaveLinkToCompanySettings() {
-            navigateTo("/reports/tax-export");
-            waitForPageLoad();
+    private void assertStatistics(String keluaranCount, String keluaranTotal, String masukanCount,
+                                  String masukanTotal, String bupotCount, String bupotTotal) {
+        assertThat(page.locator("#efaktur-keluaran-count")).hasText(keluaranCount);
+        assertThat(page.locator("#efaktur-keluaran-total")).hasText(keluaranTotal);
+        assertThat(page.locator("#efaktur-masukan-count")).hasText(masukanCount);
+        assertThat(page.locator("#efaktur-masukan-total")).hasText(masukanTotal);
+        assertThat(page.locator("#bupot-unifikasi-count")).hasText(bupotCount);
+        assertThat(page.locator("#bupot-unifikasi-total")).hasText(bupotTotal);
+    }
 
-            var settingsLink = page.locator("a[href*='/settings/company']").first();
+    private Workbook download(String buttonSelector, String filename) throws IOException {
+        String href = page.locator(buttonSelector).getAttribute("href");
+        APIResponse response = page.request().get(baseUrl() + href);
+        assertThat(response.status()).as(href).isEqualTo(200);
+        assertThat(response.headers().get("content-type")).isEqualTo(XLSX);
+        assertThat(response.headers().get("content-disposition")).isEqualTo("attachment; filename=\"" + filename + "\"");
+        return new XSSFWorkbook(new ByteArrayInputStream(response.body()));
+    }
 
-            assertThat(settingsLink.isVisible())
-                .as("Link to company settings should be visible")
-                .isTrue();
+    private static List<String> column(Sheet sheet, int column) {
+        List<String> values = new ArrayList<>();
+        for (int r = 1; r <= sheet.getLastRowNum(); r++) {
+            values.add(FORMATTER.formatCellValue(sheet.getRow(r).getCell(column)));
         }
+        return values;
+    }
 
-        @Test
-        @DisplayName("Should have external link to DJP Converter")
-        void shouldHaveExternalLinkToDjpConverter() {
-            navigateTo("/reports/tax-export");
-            waitForPageLoad();
+    private static String dayMonthYear(LocalDate date) {
+        String[] months = {"Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus",
+                "September", "Oktober", "November", "Desember"};
+        return String.format("%02d %s %d", date.getDayOfMonth(), months[date.getMonthValue() - 1], date.getYear());
+    }
 
-            var djpLink = page.locator("a[href*='pajak.go.id']").first();
+    private record Line(String accountCode, BigDecimal debit, BigDecimal credit) {}
 
-            assertThat(djpLink.isVisible())
-                .as("DJP Converter link should be visible")
-                .isTrue();
+    private static Line line(String accountCode, String debit, String credit) {
+        return new Line(accountCode, new BigDecimal(debit), new BigDecimal(credit));
+    }
 
-            assertThat(djpLink.getAttribute("target"))
-                .as("DJP link should open in new tab")
-                .isEqualTo("_blank");
+    private Transaction post(LocalDate date, String templateName, TransactionStatus status, Line... lines) {
+        String number = "TXF-" + UUID.randomUUID().toString().substring(0, 8);
+        Transaction tx = new Transaction();
+        tx.setTransactionNumber(number);
+        tx.setTransactionDate(date);
+        tx.setDescription(templateName + " " + number);
+        tx.setAmount(lines[0].debit());
+        tx.setJournalTemplate(templateRepository.findByTemplateNameAndIsCurrentVersionTrue(templateName)
+                .orElseThrow(() -> new IllegalStateException("Seeded template missing: " + templateName)));
+        tx.setStatus(status);
+        tx.setPostedAt(LocalDateTime.now());
+        tx.setPostedBy("admin");
+        tx.setCreatedBy("admin");
+        if (status == TransactionStatus.VOID) {
+            tx.setVoidReason(com.artivisi.accountingfinance.enums.VoidReason.INPUT_ERROR);
+            tx.setVoidedAt(LocalDateTime.now());
+            tx.setVoidedBy("admin");
         }
+        Transaction saved = transactionRepository.save(tx);
+
+        int index = 0;
+        for (Line l : lines) {
+            JournalEntry entry = new JournalEntry();
+            entry.setJournalNumber(number + "-" + String.format("%02d", ++index));
+            entry.setTransaction(saved);
+            entry.setAccount(account(l.accountCode()));
+            entry.setDebitAmount(l.debit());
+            entry.setCreditAmount(l.credit());
+            entry.setPostedAt(saved.getPostedAt());
+            entry.setCreatedBy("admin");
+            journalEntryRepository.save(entry);
+        }
+        return saved;
+    }
+
+    private void detail(Transaction tx, TaxType type, Consumer<TaxTransactionDetail> fields) {
+        TaxTransactionDetail detail = new TaxTransactionDetail();
+        detail.setTransaction(tx);
+        detail.setTaxType(type);
+        fields.accept(detail);
+        taxDetailRepository.save(detail);
+    }
+
+    private static void faktur(TaxTransactionDetail d, String number, LocalDate date, String dpp, String ppn) {
+        d.setFakturNumber(number);
+        d.setFakturDate(date);
+        d.setTransactionCode("01");
+        d.setDpp(new BigDecimal(dpp));
+        d.setPpn(new BigDecimal(ppn));
+        d.setCounterpartyIdType("TIN");
+        d.setCounterpartyNpwp("01.310.523.4-091.000");
+        d.setCounterpartyName("PT Klien Coretax");
+    }
+
+    private static void bupot(TaxTransactionDetail d, String number, String gross, String tax) {
+        d.setBupotNumber(number);
+        d.setTaxObjectCode("24-104-01");
+        d.setGrossAmount(new BigDecimal(gross));
+        d.setTaxRate(new BigDecimal("2.00"));
+        d.setTaxAmount(new BigDecimal(tax));
+        d.setCounterpartyIdType("TIN");
+        d.setCounterpartyNpwp("03.555.666.7-888.000");
+        d.setCounterpartyName("CV Vendor Coretax");
+    }
+
+    private ChartOfAccount account(String code) {
+        return accountRepository.findByAccountCode(code)
+                .orElseThrow(() -> new IllegalStateException("Seeded account missing: " + code));
+    }
+
+    private static String faktur() {
+        return "010." + digits(3) + "-94." + digits(8);
+    }
+
+    private static String digits(int length) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < length; i++) {
+            sb.append(ThreadLocalRandom.current().nextInt(10));
+        }
+        return sb.toString();
     }
 }

@@ -16,6 +16,10 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.TreeSet;
 
 @Controller
 @RequestMapping("/reports/tax-export")
@@ -53,9 +57,7 @@ public class TaxExportController {
         model.addAttribute("startDate", startDate);
         model.addAttribute("endDate", endDate);
         model.addAttribute("stats", stats);
-
-        // Generate list of available months (last 24 months)
-        model.addAttribute("availableMonths", generateAvailableMonths());
+        model.addAttribute("availableMonths", availableMonths(start, end));
 
         return "reports/tax-export";
     }
@@ -126,14 +128,18 @@ public class TaxExportController {
                 .body(excelData);
     }
 
-    private java.util.List<YearMonth> generateAvailableMonths() {
-        java.util.List<YearMonth> months = new java.util.ArrayList<>();
+    /**
+     * The last 24 months, newest first, plus the selected months when they lie outside that window,
+     * so the selectors always show the period being displayed.
+     */
+    private List<YearMonth> availableMonths(YearMonth start, YearMonth end) {
+        TreeSet<YearMonth> months = new TreeSet<>(Comparator.reverseOrder());
         YearMonth current = YearMonth.now();
-
         for (int i = 0; i < 24; i++) {
             months.add(current.minusMonths(i));
         }
-
-        return months;
+        months.add(start);
+        months.add(end);
+        return new ArrayList<>(months);
     }
 }
