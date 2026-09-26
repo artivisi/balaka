@@ -1,252 +1,248 @@
 package com.artivisi.accountingfinance.functional;
 
+import com.artivisi.accountingfinance.entity.Transaction;
+import com.artivisi.accountingfinance.enums.TransactionStatus;
 import com.artivisi.accountingfinance.functional.service.ServiceTestDataInitializer;
+import com.artivisi.accountingfinance.repository.JournalEntryRepository;
+import com.artivisi.accountingfinance.repository.TransactionRepository;
 import com.artivisi.accountingfinance.ui.PlaywrightTestBase;
 import com.microsoft.playwright.Locator;
-import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
 
+import java.time.LocalDate;
+import java.util.List;
+import java.util.UUID;
+import java.util.regex.Pattern;
+
+import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Functional tests for the free-form journal entry UI.
- * Tests: navigation, form validation, save draft, save & post.
+ * Free-form journal entry form (/transactions/journal-entry/new). Entries are dated
+ * January 2105 (reserved for this class) with unique descriptions, and verified against the
+ * stored transaction and journal lines.
  */
-@Slf4j
 @DisplayName("Free-Form Journal Entry UI - Functional Tests")
 @Import(ServiceTestDataInitializer.class)
 class JournalEntryUiTest extends PlaywrightTestBase {
 
-    @Test
-    @DisplayName("Should navigate to journal entry form from transaction list")
-    void shouldNavigateToJournalEntryForm() {
+    @Autowired private TransactionRepository transactionRepository;
+    @Autowired private JournalEntryRepository journalEntryRepository;
+    @Autowired private JdbcTemplate jdbc;
+
+    @BeforeEach
+    void login() {
         loginAsAdmin();
+    }
+
+    @Test
+    @DisplayName("Jurnal Manual button opens an empty form dated today with two lines")
+    void shouldNavigateToJournalEntryForm() {
         navigateTo("/transactions");
         waitForPageLoad();
 
-        // Click the "Jurnal Manual" button
-        Locator journalButton = page.locator("[data-testid='btn-journal-entry']");
-        assertThat(journalButton.isVisible()).isTrue();
-        journalButton.click();
+        page.locator("[data-testid='btn-journal-entry']").click();
         waitForPageLoad();
 
-        // Verify we're on the journal entry form
-        assertThat(page.url()).contains("/transactions/journal-entry/new");
-        assertThat(page.locator("#transactionDate").isVisible()).isTrue();
-        assertThat(page.locator("#description").isVisible()).isTrue();
+        assertThat(page).hasURL(baseUrl() + "/transactions/journal-entry/new");
+        assertThat(page.locator("#page-title")).hasText("Jurnal Manual");
+        assertThat(page.locator("#transactionDate")).hasValue(LocalDate.now().toString());
+        assertThat(page.locator("#description")).hasValue("");
+        assertThat(page.locator("#category")).hasValue("");
+        assertThat(page.locator(".journal-line")).hasCount(2);
+        assertThat(page.locator("#total-debit")).hasText("0");
+        assertThat(page.locator("#total-credit")).hasText("0");
     }
 
     @Test
-    @DisplayName("Should show validation errors for empty form")
+    @DisplayName("Missing description, account or amount is reported on the form and nothing is saved")
     void shouldShowValidationErrors() {
-        loginAsAdmin();
-        navigateTo("/transactions/journal-entry/new");
-        waitForPageLoad();
+        String description = unique("Validasi");
+        openForm();
+        Locator error = page.locator("div[x-text='errorMessage']");
 
-        // Click save without filling anything
         page.locator("#btn-save-draft").click();
-        page.waitForTimeout(500);
+        assertThat(error).hasText("Deskripsi wajib diisi");
 
-        // Should show validation error
-        Locator errorMessage = page.locator("text=Deskripsi wajib diisi");
-        assertThat(errorMessage.isVisible()).isTrue();
+        page.locator("#description").fill(description);
+        page.locator("#btn-save-draft").click();
+        assertThat(error).hasText("Baris 1: pilih akun");
+
+        pickAccount(0, "5.1.07");
+        pickAccount(1, "1.1.02");
+        page.locator("#btn-save-draft").click();
+        assertThat(error).hasText("Baris 1: isi debit atau kredit");
+
+        assertThat(page).hasURL(baseUrl() + "/transactions/journal-entry/new");
+        assertThat(countByDescription(description)).isZero();
     }
 
     @Test
-    @DisplayName("Should create and save draft journal entry")
+    @DisplayName("Saving a draft stores a DRAFT Jurnal Manual transaction with the entered lines, unnumbered")
     void shouldCreateDraftJournalEntry() {
-        loginAsAdmin();
-        navigateTo("/transactions/journal-entry/new");
-        waitForPageLoad();
+        String description = unique("Penyesuaian listrik");
+        openForm();
+        fillHeader("2105-01-15", description, "ADJUSTING");
+        pickAccount(0, "5.1.07");
+        debit(0, "500000");
+        pickAccount(1, "1.1.02");
+        credit(1, "500000");
+        assertThat(page.locator("#total-debit")).hasText("500.000");
+        assertThat(page.locator("#total-credit")).hasText("500.000");
 
-        // Fill description (type to trigger x-model)
-        page.locator("#description").click();
-        page.locator("#description").type("Jurnal penyesuaian beban listrik");
-
-        // Select category
-        page.locator("#category").selectOption("ADJUSTING");
-
-        // Select accounts by picking the first available option (index 1, since 0 is placeholder)
-        selectAccountByIndex("[data-testid='account-select-0']", 1);
-        page.locator("[data-testid='debit-input-0']").click();
-        page.locator("[data-testid='debit-input-0']").type("500000");
-
-        selectAccountByIndex("[data-testid='account-select-1']", 2);
-        page.locator("[data-testid='credit-input-1']").click();
-        page.locator("[data-testid='credit-input-1']").type("500000");
-
-        page.waitForTimeout(500);
-
-        // Save draft and wait for navigation
         page.locator("#btn-save-draft").click();
+        UUID id = waitForDetail();
 
-        // Wait for the page to navigate away from journal-entry/new
-        page.waitForFunction("() => !window.location.href.includes('journal-entry')", null,
-                new com.microsoft.playwright.Page.WaitForFunctionOptions().setTimeout(15000));
-
-        // Should be on transaction detail page
-        assertThat(page.url()).matches(".*\\/transactions\\/[0-9a-f-]+$");
-
-        // Verify it's a DRAFT
-        waitForPageLoad();
-        Locator statusBadge = page.locator("text=DRAFT").first();
-        assertThat(statusBadge.isVisible()).isTrue();
+        assertThat(page.getByTestId("status-draft")).isVisible();
+        Transaction draft = transactionRepository.findById(id).orElseThrow();
+        assertThat(draft.getStatus()).isEqualTo(TransactionStatus.DRAFT);
+        assertThat(draft.getTransactionNumber()).isNull();
+        assertThat(draft.getDescription()).isEqualTo(description);
+        assertThat(draft.getTransactionDate()).isEqualTo(LocalDate.of(2105, 1, 15));
+        assertThat(draft.getAmount()).isEqualByComparingTo("500000");
+        assertThat(draft.getNotes()).isEqualTo("ADJUSTING");
+        assertThat(draft.getClosingEntry()).isFalse();
+        assertThat(templateName(id)).isEqualTo("Jurnal Manual");
+        assertThat(lines(id)).containsExactlyInAnyOrder("5.1.07 D500000", "1.1.02 C500000");
+        assertThat(journalEntryRepository.findByTransactionIdOrderByJournalNumberAsc(id))
+                .allSatisfy(je -> assertThat(je.getJournalNumber()).isNull());
     }
 
     @Test
-    @DisplayName("Should create and post journal entry")
+    @DisplayName("Save & post stores a POSTED numbered closing entry with the entered lines")
     void shouldCreateAndPostJournalEntry() {
-        loginAsAdmin();
-        navigateTo("/transactions/journal-entry/new");
-        waitForPageLoad();
-
-        // Fill description (type to trigger x-model)
-        page.locator("#description").click();
-        page.locator("#description").type("Jurnal penutup pendapatan");
-
-        // Select category
-        page.locator("#category").selectOption("CLOSING");
-
-        // Fill first line - debit
-        selectAccountByIndex("[data-testid='account-select-0']", 1);
-        page.locator("[data-testid='debit-input-0']").click();
-        page.locator("[data-testid='debit-input-0']").type("750000");
-
-        // Fill second line - credit
-        selectAccountByIndex("[data-testid='account-select-1']", 2);
-        page.locator("[data-testid='credit-input-1']").click();
-        page.locator("[data-testid='credit-input-1']").type("750000");
-
-        page.waitForTimeout(500);
-
-        // Save & Post and wait for navigation
-        page.locator("#btn-save-post").click();
-
-        page.waitForFunction("() => !window.location.href.includes('journal-entry')", null,
-                new com.microsoft.playwright.Page.WaitForFunctionOptions().setTimeout(15000));
-
-        // Should be on transaction detail page
-        assertThat(page.url()).matches(".*\\/transactions\\/[0-9a-f-]+$");
-
-        // Verify it's POSTED
-        waitForPageLoad();
-        Locator statusBadge = page.locator("text=POSTED").first();
-        assertThat(statusBadge.isVisible()).isTrue();
-    }
-
-    @Test
-    @DisplayName("Should add and remove journal lines")
-    void shouldAddAndRemoveLines() {
-        loginAsAdmin();
-        navigateTo("/transactions/journal-entry/new");
-        waitForPageLoad();
-
-        // Should start with 2 lines
-        assertThat(page.locator(".journal-line").count()).isEqualTo(2);
-
-        // Add a line
-        page.locator("text=Tambah Baris").click();
-        page.waitForTimeout(300);
-        assertThat(page.locator(".journal-line").count()).isEqualTo(3);
-
-        // Remove the added line
-        page.locator("[data-testid='remove-line-2']").click();
-        page.waitForTimeout(300);
-        assertThat(page.locator(".journal-line").count()).isEqualTo(2);
-    }
-
-    @Test
-    @DisplayName("Should show unbalanced warning")
-    void shouldShowUnbalancedWarning() {
-        loginAsAdmin();
-        navigateTo("/transactions/journal-entry/new");
-        waitForPageLoad();
-
-        // Fill description
-        page.locator("#description").click();
-        page.locator("#description").type("Unbalanced test");
-
-        // Fill first line - debit 100000
-        selectAccountByIndex("[data-testid='account-select-0']", 1);
-        page.locator("[data-testid='debit-input-0']").click();
-        page.locator("[data-testid='debit-input-0']").type("100000");
-
-        // Fill second line - credit 50000 (unbalanced)
-        selectAccountByIndex("[data-testid='account-select-1']", 2);
-        page.locator("[data-testid='credit-input-1']").click();
-        page.locator("[data-testid='credit-input-1']").type("50000");
-
-        page.waitForTimeout(300);
-
-        // Should show unbalanced indicator
-        Locator selisih = page.locator("text=Selisih:");
-        assertThat(selisih.isVisible()).isTrue();
-
-        // Try to save - should fail
-        page.locator("#btn-save-draft").click();
-        page.waitForTimeout(500);
-        Locator error = page.locator("text=Jurnal tidak seimbang");
-        assertThat(error.isVisible()).isTrue();
-    }
-
-    @Test
-    @DisplayName("Should capture screenshots for user manual")
-    void shouldCaptureScreenshotsForManual() {
-        loginAsAdmin();
-        navigateTo("/transactions/journal-entry/new");
-        waitForPageLoad();
-
-        // Screenshot 1: Empty form
+        String description = unique("Penutup pendapatan");
+        openForm();
         takeManualScreenshot("journal-entry/form-empty");
-
-        // Fill the form with realistic data
-        page.locator("#description").click();
-        page.locator("#description").type("Penyesuaian sewa kantor bulan Januari 2026");
-        page.locator("#category").selectOption("ADJUSTING");
-
-        // Line 1: Debit Beban Sewa
-        selectAccountByIndex("[data-testid='account-select-0']", 1);
-        page.locator("[data-testid='debit-input-0']").click();
-        page.locator("[data-testid='debit-input-0']").type("1000000");
-
-        // Line 2: Credit Sewa Dibayar Dimuka
-        selectAccountByIndex("[data-testid='account-select-1']", 2);
-        page.locator("[data-testid='credit-input-1']").click();
-        page.locator("[data-testid='credit-input-1']").type("1000000");
-
-        page.waitForTimeout(500);
-
-        // Screenshot 2: Filled form with balanced journal
+        fillHeader("2105-01-31", description, "CLOSING");
+        pickAccount(0, "4.1.01");
+        debit(0, "750000");
+        pickAccount(1, "3.2.02");
+        credit(1, "750000");
+        assertThat(page.getByText("Selisih:")).isHidden();
         takeManualScreenshot("journal-entry/form-filled");
 
-        // Save & Post
         page.locator("#btn-save-post").click();
-        page.waitForFunction("() => !window.location.href.includes('journal-entry')", null,
-                new com.microsoft.playwright.Page.WaitForFunctionOptions().setTimeout(15000));
-        waitForPageLoad();
+        UUID id = waitForDetail();
 
-        // Screenshot 3: Posted result
+        assertThat(page.getByTestId("status-posted")).isVisible();
         takeManualScreenshot("journal-entry/result-posted");
-
-        // Verify the journal was posted (page should show posted status)
-        assertThat(page.url()).as("Should redirect after posting").doesNotContain("journal-entry/new");
+        Transaction posted = transactionRepository.findById(id).orElseThrow();
+        assertThat(posted.getStatus()).isEqualTo(TransactionStatus.POSTED);
+        assertThat(posted.getTransactionNumber()).isNotBlank();
+        assertThat(posted.getClosingEntry()).isTrue();
+        assertThat(posted.getNotes()).isEqualTo("CLOSING");
+        assertThat(lines(id)).containsExactlyInAnyOrder("4.1.01 D750000", "3.2.02 C750000");
+        assertThat(journalEntryRepository.findByTransactionIdOrderByJournalNumberAsc(id))
+                .allSatisfy(je -> assertThat(je.getJournalNumber()).isNotBlank());
     }
 
-    /**
-     * Drive the accountPicker combobox by picking the Nth result of an empty
-     * query. Server returns top-10 transactable accounts in code-ascending order,
-     * so empty-query indexing matches the legacy &lt;option&gt; ordering with the
-     * placeholder offset removed: legacy index 1 → combobox index 0, index 2 → 1.
-     */
-    private void selectAccountByIndex(String selector, int legacyIndex) {
-        Locator input = page.locator(selector);
-        input.waitFor();
+    @Test
+    @DisplayName("Lines can be added and removed down to two, and a three-line entry is stored with all lines")
+    void shouldAddAndRemoveLines() {
+        String description = unique("Tiga baris");
+        openForm();
+        assertThat(page.locator("[data-testid='remove-line-0']")).isHidden();
+
+        page.getByText("Tambah Baris").click();
+        page.getByText("Tambah Baris").click();
+        assertThat(page.locator(".journal-line")).hasCount(4);
+        page.locator("[data-testid='remove-line-3']").click();
+        assertThat(page.locator(".journal-line")).hasCount(3);
+
+        fillHeader("2105-01-20", description, "CORRECTION");
+        pickAccount(0, "5.1.07");
+        debit(0, "300000");
+        pickAccount(1, "5.1.05");
+        debit(1, "200000");
+        pickAccount(2, "1.1.02");
+        credit(2, "500000");
+        page.locator("#btn-save-draft").click();
+        UUID id = waitForDetail();
+
+        assertThat(lines(id)).containsExactlyInAnyOrder("5.1.07 D300000", "5.1.05 D200000", "1.1.02 C500000");
+        assertThat(transactionRepository.findById(id).orElseThrow().getAmount()).isEqualByComparingTo("500000");
+    }
+
+    @Test
+    @DisplayName("An unbalanced entry shows the difference, is refused on save and stores nothing")
+    void shouldShowUnbalancedWarning() {
+        String description = unique("Tidak seimbang");
+        openForm();
+        fillHeader("2105-01-10", description, "");
+        pickAccount(0, "5.1.07");
+        debit(0, "100000");
+        pickAccount(1, "1.1.02");
+        credit(1, "50000");
+
+        assertThat(page.getByText("Selisih:")).hasText("Selisih: 50.000");
+        page.locator("#btn-save-draft").click();
+
+        assertThat(page.locator("div[x-text='errorMessage']"))
+                .hasText("Jurnal tidak seimbang. Total debit harus sama dengan total kredit.");
+        assertThat(page).hasURL(baseUrl() + "/transactions/journal-entry/new");
+        assertThat(countByDescription(description)).isZero();
+    }
+
+    private void openForm() {
+        navigateTo("/transactions/journal-entry/new");
+        waitForPageLoad();
+    }
+
+    private void fillHeader(String date, String description, String category) {
+        page.locator("#transactionDate").fill(date);
+        page.locator("#description").fill(description);
+        page.locator("#category").selectOption(category);
+    }
+
+    private void pickAccount(int line, String code) {
+        Locator input = page.locator("[data-testid='account-select-" + line + "']");
         input.click();
-        page.waitForTimeout(400); // debounce + fetch
-        int comboboxIndex = legacyIndex - 1;
-        Locator results = page.locator("[data-testid='account-picker-result']");
-        results.nth(comboboxIndex).click();
+        input.fill(code);
+        page.locator("[data-testid='journal-line-" + line + "'] [data-testid='account-picker-result']")
+                .filter(new Locator.FilterOptions().setHasText(Pattern.compile("^\\s*" + code.replace(".", "\\.") + "\\s+—")))
+                .click();
+        assertThat(input).hasValue(Pattern.compile("^" + code.replace(".", "\\.") + " - .+"));
+    }
+
+    private void debit(int line, String amount) {
+        page.locator("[data-testid='debit-input-" + line + "']").pressSequentially(amount);
+    }
+
+    private void credit(int line, String amount) {
+        page.locator("[data-testid='credit-input-" + line + "']").pressSequentially(amount);
+    }
+
+    private UUID waitForDetail() {
+        page.waitForURL(Pattern.compile(".*/transactions/[0-9a-f-]{36}$"));
+        waitForPageLoad();
+        return UUID.fromString(page.url().substring(page.url().lastIndexOf('/') + 1));
+    }
+
+    private List<String> lines(UUID transactionId) {
+        return journalEntryRepository.findByTransactionIdWithAccount(transactionId).stream()
+                .map(je -> je.getAccount().getAccountCode() + " "
+                        + (je.getDebitAmount().signum() > 0
+                                ? "D" + je.getDebitAmount().stripTrailingZeros().toPlainString()
+                                : "C" + je.getCreditAmount().stripTrailingZeros().toPlainString()))
+                .toList();
+    }
+
+    private String templateName(UUID transactionId) {
+        return jdbc.queryForObject("SELECT jt.template_name FROM transactions t "
+                + "JOIN journal_templates jt ON jt.id = t.id_journal_template WHERE t.id = ?", String.class, transactionId);
+    }
+
+    private long countByDescription(String description) {
+        return jdbc.queryForObject("SELECT COUNT(*) FROM transactions WHERE description = ?", Long.class, description);
+    }
+
+    private static String unique(String prefix) {
+        return prefix + " " + UUID.randomUUID().toString().substring(0, 8);
     }
 }
