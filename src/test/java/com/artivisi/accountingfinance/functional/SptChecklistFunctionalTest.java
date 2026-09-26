@@ -168,6 +168,7 @@ class SptChecklistFunctionalTest extends PlaywrightTestBase {
 
         assertThat(page.locator("#year")).hasValue(String.valueOf(YEAR));
         assertThat(page.locator("#readiness-heading")).hasText("Kesiapan Data SPT Tahunan " + YEAR);
+        assertThat(page.locator("[data-testid='checklist-errors']")).hasCount(0);
         assertItem("#check-financial-statements", "bg-green-50", "Laporan Keuangan",
                 "Pendapatan: Rp 50.000.000 — Laba Bersih: Rp 30.000.000");
         assertItem("#check-fiscal-adjustments", "bg-green-50", "Koreksi Fiskal", "2 item koreksi fiskal");

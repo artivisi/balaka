@@ -41,16 +41,26 @@
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 <h2 id="readiness-heading" class="text-lg font-semibold text-gray-900 mb-4" th:text="|Kesiapan Data SPT Tahunan ${year}|">Kesiapan Data SPT Tahunan 2025</h2>
 
+                <div th:unless="${checklist.errors().isEmpty()}" data-testid="checklist-errors"
+                     class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <p class="text-sm font-semibold text-red-800">Sebagian pemeriksaan gagal dijalankan. Hasil item berikut tidak dapat dipercaya sampai penyebabnya diperbaiki:</p>
+                    <ul class="mt-1 list-disc list-inside text-sm text-red-700">
+                        <li th:each="e : ${checklist.errors()}" th:text="${e.value}">Pesan kesalahan</li>
+                    </ul>
+                </div>
+
                 <div class="space-y-4">
                     <!-- 1. Financial Statements -->
-                    <div id="check-financial-statements" class="flex items-start p-3 rounded-lg" th:classappend="${checklist.hasIncomeStatement()} ? 'bg-green-50' : 'bg-yellow-50'">
+                    <div id="check-financial-statements" class="flex items-start p-3 rounded-lg" th:classappend="${checklist.errors().containsKey('check-financial-statements')} ? 'bg-red-50' : (${checklist.hasIncomeStatement()} ? 'bg-green-50' : 'bg-yellow-50')">
                         <span class="text-xl mr-3" th:text="${checklist.hasIncomeStatement()} ? '&#10004;' : '&#9888;'"></span>
                         <div>
                             <p class="font-medium text-gray-900">Laporan Keuangan</p>
                             <p class="text-sm text-gray-600" th:if="${checklist.hasIncomeStatement()}"
                                th:text="|Pendapatan: Rp ${#numbers.formatDecimal(checklist.totalRevenue(), 0, 'POINT', 0, 'COMMA')} — Laba Bersih: Rp ${#numbers.formatDecimal(checklist.netIncome(), 0, 'POINT', 0, 'COMMA')}|">
                             </p>
-                            <p class="text-sm text-yellow-700" th:unless="${checklist.hasIncomeStatement()}">Belum ada transaksi di tahun ini</p>
+                            <p class="text-sm text-yellow-700" th:unless="${checklist.hasIncomeStatement() or checklist.errors().containsKey('check-financial-statements')}">Belum ada transaksi di tahun ini</p>
+                            <p class="text-sm text-red-700" th:if="${checklist.errors().containsKey('check-financial-statements')}"
+                               data-testid="error-check-financial-statements" th:text="|Gagal diperiksa: ${checklist.errors().get('check-financial-statements')}|"></p>
                         </div>
                     </div>
 
@@ -73,38 +83,45 @@
                             <p class="text-sm text-gray-600" th:if="${checklist.hasPphBadan()}"
                                th:text="|PPh Terutang: Rp ${#numbers.formatDecimal(checklist.pphTerutang(), 0, 'POINT', 0, 'COMMA')} — PPh 29: Rp ${#numbers.formatDecimal(checklist.pph29(), 0, 'POINT', 0, 'COMMA')}|">
                             </p>
-                            <p class="text-sm text-red-700" th:unless="${checklist.hasPphBadan()}">Gagal menghitung PPh Badan</p>
+                            <p class="text-sm text-red-700" th:if="${checklist.errors().containsKey('check-pph-badan')}"
+                               data-testid="error-check-pph-badan" th:text="|Gagal diperiksa: ${checklist.errors().get('check-pph-badan')}|"></p>
                         </div>
                     </div>
 
                     <!-- 4. Fiscal Periods -->
-                    <div id="check-fiscal-periods" class="flex items-start p-3 rounded-lg" th:classappend="${checklist.allMonthsClosed()} ? 'bg-green-50' : 'bg-yellow-50'">
+                    <div id="check-fiscal-periods" class="flex items-start p-3 rounded-lg" th:classappend="${checklist.errors().containsKey('check-fiscal-periods')} ? 'bg-red-50' : (${checklist.allMonthsClosed()} ? 'bg-green-50' : 'bg-yellow-50')">
                         <span class="text-xl mr-3" th:text="${checklist.allMonthsClosed()} ? '&#10004;' : '&#9888;'"></span>
                         <div>
                             <p class="font-medium text-gray-900">Periode Fiskal</p>
-                            <p class="text-sm text-gray-600" th:text="|${checklist.closedMonths()}/12 bulan ditutup|"></p>
+                            <p class="text-sm text-gray-600" th:unless="${checklist.errors().containsKey('check-fiscal-periods')}" th:text="|${checklist.closedMonths()}/12 bulan ditutup|"></p>
+                            <p class="text-sm text-red-700" th:if="${checklist.errors().containsKey('check-fiscal-periods')}"
+                               data-testid="error-check-fiscal-periods" th:text="|Gagal diperiksa: ${checklist.errors().get('check-fiscal-periods')}|"></p>
                         </div>
                     </div>
 
                     <!-- 5. Fixed Assets -->
-                    <div id="check-depreciation" class="flex items-start p-3 rounded-lg" th:classappend="${checklist.hasDepreciation()} ? 'bg-green-50' : 'bg-gray-50'">
+                    <div id="check-depreciation" class="flex items-start p-3 rounded-lg" th:classappend="${checklist.errors().containsKey('check-depreciation')} ? 'bg-red-50' : (${checklist.hasDepreciation()} ? 'bg-green-50' : 'bg-gray-50')">
                         <span class="text-xl mr-3" th:text="${checklist.hasDepreciation()} ? '&#10004;' : '&#8212;'"></span>
                         <div>
                             <p class="font-medium text-gray-900">Penyusutan Aset Tetap</p>
                             <p class="text-sm text-gray-600" th:if="${checklist.hasDepreciation()}"
                                th:text="|${checklist.assetCount()} aset tercatat|"></p>
-                            <p class="text-sm text-gray-500" th:unless="${checklist.hasDepreciation()}">Tidak ada aset tetap</p>
+                            <p class="text-sm text-gray-500" th:unless="${checklist.hasDepreciation() or checklist.errors().containsKey('check-depreciation')}">Tidak ada aset tetap</p>
+                            <p class="text-sm text-red-700" th:if="${checklist.errors().containsKey('check-depreciation')}"
+                               data-testid="error-check-depreciation" th:text="|Gagal diperiksa: ${checklist.errors().get('check-depreciation')}|"></p>
                         </div>
                     </div>
 
                     <!-- 6. Payroll -->
-                    <div id="check-payroll" class="flex items-start p-3 rounded-lg" th:classappend="${checklist.payrollMonths() > 0} ? 'bg-green-50' : 'bg-gray-50'">
+                    <div id="check-payroll" class="flex items-start p-3 rounded-lg" th:classappend="${checklist.errors().containsKey('check-payroll')} ? 'bg-red-50' : (${checklist.payrollMonths() > 0} ? 'bg-green-50' : 'bg-gray-50')">
                         <span class="text-xl mr-3" th:text="${checklist.payrollMonths() > 0} ? '&#10004;' : '&#8212;'"></span>
                         <div>
                             <p class="font-medium text-gray-900">Payroll & PPh 21</p>
                             <p class="text-sm text-gray-600" th:if="${checklist.payrollMonths() > 0}"
                                th:text="|${checklist.payrollMonths()} bulan payroll diproses|"></p>
-                            <p class="text-sm text-gray-500" th:unless="${checklist.payrollMonths() > 0}">Tidak ada data payroll</p>
+                            <p class="text-sm text-gray-500" th:unless="${checklist.payrollMonths() > 0 or checklist.errors().containsKey('check-payroll')}">Tidak ada data payroll</p>
+                            <p class="text-sm text-red-700" th:if="${checklist.errors().containsKey('check-payroll')}"
+                               data-testid="error-check-payroll" th:text="|Gagal diperiksa: ${checklist.errors().get('check-payroll')}|"></p>
                         </div>
                     </div>
 

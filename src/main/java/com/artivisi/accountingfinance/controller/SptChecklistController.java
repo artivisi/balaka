@@ -23,7 +23,9 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.Year;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.TreeSet;
 
 import static com.artivisi.accountingfinance.controller.ViewConstants.ATTR_CURRENT_PAGE;
@@ -68,6 +70,7 @@ public class SptChecklistController {
     private ChecklistResult generateChecklist(int year) {
         LocalDate startDate = LocalDate.of(year, 1, 1);
         LocalDate endDate = LocalDate.of(year, 12, 31);
+        Map<String, String> errors = new LinkedHashMap<>();
 
         // 1. Financial statements available
         boolean hasIncomeStatement;
@@ -79,9 +82,9 @@ public class SptChecklistController {
             netIncome = incomeStatement.netIncome();
             hasIncomeStatement = totalRevenue.compareTo(BigDecimal.ZERO) != 0
                     || incomeStatement.totalExpense().compareTo(BigDecimal.ZERO) != 0;
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             hasIncomeStatement = false;
-            log.warn("Failed to generate income statement for year {}: {}", year, e.getMessage());
+            recordFailure(errors, "check-financial-statements", year, e);
         }
 
         // 2. Fiscal adjustments entered
@@ -98,8 +101,8 @@ public class SptChecklistController {
             hasPphBadan = true;
             pphTerutang = rekon.pphBadan().pphTerutang();
             pph29 = rekon.pphBadan().pph29();
-        } catch (Exception e) {
-            log.warn("Failed to calculate PPh Badan for year {}: {}", year, e.getMessage());
+        } catch (RuntimeException e) {
+            recordFailure(errors, "check-pph-badan", year, e);
         }
 
         // 4. All monthly fiscal periods closed
@@ -110,8 +113,8 @@ public class SptChecklistController {
                     .filter(p -> p.getStatus() == FiscalPeriodStatus.MONTH_CLOSED
                             || p.getStatus() == FiscalPeriodStatus.TAX_FILED)
                     .count();
-        } catch (Exception e) {
-            log.warn("Failed to check fiscal periods for year {}: {}", year, e.getMessage());
+        } catch (RuntimeException e) {
+            recordFailure(errors, "check-fiscal-periods", year, e);
         }
         boolean allMonthsClosed = closedMonths == 12;
 
@@ -122,9 +125,9 @@ public class SptChecklistController {
             var depReport = depreciationReportService.generateReport(year);
             assetCount = depReport.items().size();
             hasDepreciation = assetCount > 0;
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             hasDepreciation = false;
-            log.warn("Failed to check depreciation for year {}: {}", year, e.getMessage());
+            recordFailure(errors, "check-depreciation", year, e);
         }
 
         // 6. Payroll complete
@@ -133,8 +136,8 @@ public class SptChecklistController {
             var employeeIds = payrollService.getEmployeesWithPayrollInYear(year);
             payrollMonths = employeeIds.isEmpty() ? 0 :
                     payrollService.getYearlyPayrollSummary(employeeIds.getFirst(), year).monthCount();
-        } catch (Exception e) {
-            log.warn("Failed to check payroll for year {}: {}", year, e.getMessage());
+        } catch (RuntimeException e) {
+            recordFailure(errors, "check-payroll", year, e);
         }
 
         // 7. Loss carryforwards
@@ -148,8 +151,14 @@ public class SptChecklistController {
                 allMonthsClosed, closedMonths,
                 hasDepreciation, assetCount,
                 payrollMonths,
-                hasActiveLosses, lossReport.totalActiveRemaining()
+                hasActiveLosses, lossReport.totalActiveRemaining(),
+                errors
         );
+    }
+
+    private void recordFailure(Map<String, String> errors, String item, int year, RuntimeException e) {
+        log.error("SPT checklist {} failed for year {}", item, year, e);
+        errors.put(item, e.getMessage() != null ? e.getMessage() : e.getClass().getName());
     }
 
     public record ChecklistResult(
@@ -168,6 +177,7 @@ public class SptChecklistController {
             int assetCount,
             int payrollMonths,
             boolean hasActiveLosses,
-            BigDecimal activeLossAmount
+            BigDecimal activeLossAmount,
+            Map<String, String> errors
     ) {}
 }
