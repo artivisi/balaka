@@ -89,8 +89,13 @@ class ServiceAccountingTest extends PlaywrightTestBase {
 
         loginAsAdmin();
         assertThat(page.locator("#kpi-period")).isVisible();
-        page.locator("#month-selector").fill(KPI_MONTH.toString());
-        page.locator("#month-selector").dispatchEvent("change");
+        // htmx attaches the selector's change trigger in the settle phase after the swap;
+        // a change fired before the container leaves htmx-settling is never sent.
+        assertThat(page.locator("#dashboard-kpis-container")).not().hasClass(Pattern.compile(".*\\bhtmx-settling\\b.*"));
+        page.waitForResponse(response -> response.url().endsWith("/dashboard/kpis?month=" + KPI_MONTH), () -> {
+            page.locator("#month-selector").fill(KPI_MONTH.toString());
+            page.locator("#month-selector").dispatchEvent("change");
+        });
 
         assertThat(page.locator("#kpi-period")).hasText("Maret 2096");
         assertThat(page.locator("#month-selector")).hasValue(KPI_MONTH.toString());
