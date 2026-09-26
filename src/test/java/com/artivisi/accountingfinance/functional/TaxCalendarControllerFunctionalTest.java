@@ -84,6 +84,7 @@ class TaxCalendarControllerFunctionalTest extends PlaywrightTestBase {
         assertThat(row(TaxDeadlineType.SPT_PPN).locator(".due-date")).hasText("28 Februari " + YEAR);
         assertThat(page.locator(".deadline-row").first().locator(".due-date")).hasText("15 Februari " + YEAR);
         assertThat(page.locator(".deadline-row").last().locator(".due-date")).hasText("28 Februari " + YEAR);
+        takeManualScreenshot("tax-calendar");
     }
 
     @Test
@@ -231,6 +232,7 @@ class TaxCalendarControllerFunctionalTest extends PlaywrightTestBase {
         Locator november = page.locator("[data-testid='month-card-11']");
         assertThat(november.locator(".completion-count")).hasText("0/8");
         assertThat(november.locator(".completion-percent")).hasText("0%");
+        takeManualScreenshot("tax-calendar-yearly");
 
         june.locator("a").click();
         page.waitForURL("**/tax-calendar?year=" + YEAR + "&month=6");

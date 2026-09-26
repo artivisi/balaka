@@ -115,6 +115,7 @@ class ExportReportTest extends PlaywrightTestBase {
         assertThat(page.locator("#ppn-message")).hasText("PPN harus disetor ke negara sebelum tanggal jatuh tempo");
         assertThat(page.locator("#btn-print")).hasAttribute("href",
                 "/reports/ppn-summary/print?startDate=" + START + "&endDate=" + END);
+        takeManualScreenshot("reports-ppn-summary");
     }
 
     @Test
@@ -153,6 +154,7 @@ class ExportReportTest extends PlaywrightTestBase {
         assertThat(page.locator("#tax-summary-content tfoot")).containsText("5.940.000");
         assertThat(page.locator("a[href='/reports/ppn-summary?startDate=" + START + "&endDate=" + END + "']")).hasCount(1);
         assertThat(page.locator("a[href='/reports/pph23-withholding?startDate=" + START + "&endDate=" + END + "']")).hasCount(1);
+        takeManualScreenshot("reports-tax-summary");
     }
 
     @Test
