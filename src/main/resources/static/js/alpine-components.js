@@ -230,6 +230,14 @@ function registerNavigationStates() {
 
 // Blank line factory for the free-form journal entry form (journalEntryForm below).
 // Pure: captures no component state.
+// Today's date in the user's local timezone as YYYY-MM-DD. toISOString() gives the UTC date,
+// which is the previous day before 07:00 in Asia/Jakarta.
+function localIsoDate(date) {
+    return date.getFullYear() + '-'
+        + String(date.getMonth() + 1).padStart(2, '0') + '-'
+        + String(date.getDate()).padStart(2, '0');
+}
+
 function blankJournalLine() {
     return {
         label: '',
@@ -451,7 +459,7 @@ function registerFormComponents() {
     // (x-for in template). Each line has its own accountPicker-style combobox
     // backed by GET /accounts/search; no full COA dump in the page.
     Alpine.data('journalEntryForm', () => ({
-        transactionDate: new Date().toISOString().split('T')[0],
+        transactionDate: localIsoDate(new Date()),
         description: '',
         category: '',
         submitting: false,

@@ -6,7 +6,10 @@ import com.artivisi.accountingfinance.functional.service.ServiceTestDataInitiali
 import com.artivisi.accountingfinance.repository.JournalEntryRepository;
 import com.artivisi.accountingfinance.repository.TransactionRepository;
 import com.artivisi.accountingfinance.ui.PlaywrightTestBase;
+import com.microsoft.playwright.Browser;
+import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.Locator;
+import com.microsoft.playwright.Page;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -14,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -57,6 +61,23 @@ class JournalEntryUiTest extends PlaywrightTestBase {
         assertThat(page.locator(".journal-line")).hasCount(2);
         assertThat(page.locator("#total-debit")).hasText("0");
         assertThat(page.locator("#total-credit")).hasText("0");
+    }
+
+    @Test
+    @DisplayName("Default date is the user's local date, not the UTC date (00:30 WIB is still the previous day in UTC)")
+    void shouldDefaultToLocalDateBeforeUtcMidnight() {
+        try (BrowserContext wib = browser.newContext(new Browser.NewContextOptions()
+                .setViewportSize(1920, 1080)
+                .setLocale("id-ID")
+                .setTimezoneId("Asia/Jakarta")
+                .setStorageState(context.storageState()))) {
+            Page wibPage = wib.newPage();
+            // 2026-01-15 00:30 WIB = 2026-01-14 17:30 UTC
+            wibPage.clock().setFixedTime(Instant.parse("2026-01-14T17:30:00Z").toEpochMilli());
+            wibPage.navigate(baseUrl() + "/transactions/journal-entry/new");
+
+            assertThat(wibPage.locator("#transactionDate")).hasValue("2026-01-15");
+        }
     }
 
     @Test

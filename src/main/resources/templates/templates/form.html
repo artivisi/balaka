@@ -846,7 +846,7 @@
                     try {
                         // Build preview request
                         const previewData = {
-                            transactionDate: new Date().toISOString().split('T')[0],
+                            transactionDate: localIsoDate(new Date()),
                             amount: amount,
                             description: 'Preview: ' + this.templateName
                         };

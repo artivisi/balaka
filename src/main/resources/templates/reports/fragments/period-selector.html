@@ -102,7 +102,7 @@
                     var start = btn.dataset.start;
                     var end = btn.dataset.end;
                     var mode = btn.dataset.mode;
-                    var today = new Date().toISOString().split('T')[0];
+                    var today = localIsoDate(new Date());
                     // Cut a running period off at today; a period that has not started keeps its own end
                     if (end > today && start <= today) end = today;
                     var form = btn.closest('form');
