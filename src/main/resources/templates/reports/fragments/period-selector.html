@@ -103,7 +103,8 @@
                     var end = btn.dataset.end;
                     var mode = btn.dataset.mode;
                     var today = new Date().toISOString().split('T')[0];
-                    if (end > today) end = today;
+                    // Cut a running period off at today; a period that has not started keeps its own end
+                    if (end > today && start <= today) end = today;
                     var form = btn.closest('form');
                     if (mode === 'as-of') {
                         form.querySelector('[name="asOfDate"]').value = end;

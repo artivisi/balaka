@@ -56,7 +56,7 @@
                             <h3 class="text-sm font-bold text-green-800 uppercase tracking-wider mb-3 pb-2 border-b-2 border-green-200">Pendapatan</h3>
                             <div class="space-y-2">
                                 <th:block th:if="${!incomeStatement.revenueItems.isEmpty()}">
-                                    <div th:each="item : ${incomeStatement.revenueItems}" class="flex justify-between items-center py-2 hover:bg-gray-50 px-2 rounded">
+                                    <div th:each="item : ${incomeStatement.revenueItems}" th:data-testid="|revenue-${item.account.accountCode}|" class="flex justify-between items-center py-2 hover:bg-gray-50 px-2 rounded">
                                         <span class="text-sm text-gray-700" th:text="${item.account.accountName}">Account</span>
                                         <span class="text-sm font-mono" th:text="${#numbers.formatDecimal(item.balance, 1, 'POINT', 0, 'COMMA')}">0</span>
                                     </div>
@@ -65,7 +65,7 @@
                             </div>
                             <div class="flex justify-between items-center py-3 mt-2 border-t border-gray-200 bg-green-50 px-3 rounded">
                                 <span class="text-sm font-semibold text-green-800">Total Pendapatan</span>
-                                <span class="text-sm font-mono font-semibold text-green-800" th:text="${#numbers.formatDecimal(incomeStatement.totalRevenue, 1, 'POINT', 0, 'COMMA')}">0</span>
+                                <span class="text-sm font-mono font-semibold text-green-800" data-testid="total-revenue" th:text="${#numbers.formatDecimal(incomeStatement.totalRevenue, 1, 'POINT', 0, 'COMMA')}">0</span>
                             </div>
                         </div>
 
@@ -74,7 +74,7 @@
                             <h3 class="text-sm font-bold text-red-800 uppercase tracking-wider mb-3 pb-2 border-b-2 border-red-200">Beban Operasional</h3>
                             <div class="space-y-2">
                                 <th:block th:if="${!incomeStatement.expenseItems.isEmpty()}">
-                                    <div th:each="item : ${incomeStatement.expenseItems}" class="flex justify-between items-center py-2 hover:bg-gray-50 px-2 rounded">
+                                    <div th:each="item : ${incomeStatement.expenseItems}" th:data-testid="|expense-${item.account.accountCode}|" class="flex justify-between items-center py-2 hover:bg-gray-50 px-2 rounded">
                                         <span class="text-sm text-gray-700" th:text="${item.account.accountName}">Account</span>
                                         <span class="text-sm font-mono" th:text="'(' + ${#numbers.formatDecimal(item.balance, 1, 'POINT', 0, 'COMMA')} + ')'">0</span>
                                     </div>
@@ -83,17 +83,17 @@
                             </div>
                             <div class="flex justify-between items-center py-3 mt-2 border-t border-gray-200 bg-red-50 px-3 rounded">
                                 <span class="text-sm font-semibold text-red-800">Total Beban Operasional</span>
-                                <span class="text-sm font-mono font-semibold text-red-800" th:text="'(' + ${#numbers.formatDecimal(incomeStatement.totalExpense, 1, 'POINT', 0, 'COMMA')} + ')'">0</span>
+                                <span class="text-sm font-mono font-semibold text-red-800" data-testid="total-expense" th:text="'(' + ${#numbers.formatDecimal(incomeStatement.totalExpense, 1, 'POINT', 0, 'COMMA')} + ')'">0</span>
                             </div>
                         </div>
 
                         <!-- Net Income -->
                         <div class="flex justify-between items-center py-4 px-4 rounded-lg border-2"
                              th:classappend="${incomeStatement.netIncome.compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? 'bg-accent-100 border-accent-300' : 'bg-red-100 border-red-300'">
-                            <span class="text-base font-bold"
+                            <span class="text-base font-bold" data-testid="net-income-label"
                                   th:classappend="${incomeStatement.netIncome.compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? 'text-accent-900' : 'text-red-900'"
                                   th:text="${incomeStatement.netIncome.compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? 'LABA BERSIH' : 'RUGI BERSIH'">LABA BERSIH</span>
-                            <span class="text-xl font-mono font-bold"
+                            <span class="text-xl font-mono font-bold" data-testid="net-income"
                                   th:classappend="${incomeStatement.netIncome.compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? 'text-accent-900' : 'text-red-900'"
                                   th:text="${#numbers.formatDecimal(incomeStatement.netIncome, 1, 'POINT', 0, 'COMMA')}">0</span>
                         </div>
@@ -120,7 +120,7 @@
                                 </div>
                                 <div class="flex justify-between items-center py-3 mt-2 border-t-2 border-blue-200 bg-blue-50 px-3 rounded">
                                     <span class="text-sm font-bold text-blue-800">Total Aset</span>
-                                    <span class="text-sm font-mono font-bold text-blue-800" th:text="${#numbers.formatDecimal(balanceSheet.totalAssets, 1, 'POINT', 0, 'COMMA')}">0</span>
+                                    <span class="text-sm font-mono font-bold text-blue-800" data-testid="total-assets" th:text="${#numbers.formatDecimal(balanceSheet.totalAssets, 1, 'POINT', 0, 'COMMA')}">0</span>
                                 </div>
                             </div>
 
@@ -144,7 +144,7 @@
                                 </div>
                                 <div class="flex justify-between items-center py-3 mt-2 border-t-2 border-purple-200 bg-purple-50 px-3 rounded">
                                     <span class="text-sm font-bold text-purple-800">Total Kewajiban &amp; Ekuitas</span>
-                                    <span class="text-sm font-mono font-bold text-purple-800" th:text="${#numbers.formatDecimal(balanceSheet.totalLiabilities + balanceSheet.totalEquity, 1, 'POINT', 0, 'COMMA')}">0</span>
+                                    <span class="text-sm font-mono font-bold text-purple-800" data-testid="total-liabilities-equity" th:text="${#numbers.formatDecimal(balanceSheet.totalLiabilities + balanceSheet.totalEquity, 1, 'POINT', 0, 'COMMA')}">0</span>
                                 </div>
                             </div>
                         </div>
