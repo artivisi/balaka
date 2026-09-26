@@ -175,8 +175,10 @@ class ProductionOrderControllerFunctionalTest extends PlaywrightTestBase {
             for (ProductionOrder order : mine) {
                 assertThat(orderRow(order)).hasCount(order == entry.getValue() ? 1 : 0);
             }
+            // Seeded PROD-001 is COMPLETED; checked per filter because Map.of iteration order is unspecified
+            assertThat(page.locator("[data-testid='production-order-row-PROD-001']"))
+                    .hasCount("COMPLETED".equals(entry.getKey()) ? 1 : 0);
         }
-        assertThat(page.locator("[data-testid='production-order-row-PROD-001']")).hasCount(0);
 
         page.locator("#production-status-filter").selectOption("");
         page.locator("form[action='/inventory/production'] button[type='submit']").click();

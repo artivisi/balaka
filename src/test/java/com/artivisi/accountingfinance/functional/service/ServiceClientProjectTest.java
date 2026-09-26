@@ -1,11 +1,16 @@
 package com.artivisi.accountingfinance.functional.service;
 
+import com.artivisi.accountingfinance.repository.ClientRepository;
+import com.artivisi.accountingfinance.repository.ProjectRepository;
 import com.artivisi.accountingfinance.ui.PlaywrightTestBase;
 import com.microsoft.playwright.Locator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
+
+import java.util.UUID;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -19,6 +24,19 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @DisplayName("Service Industry - Clients & Projects")
 @Import(ServiceTestDataInitializer.class)
 class ServiceClientProjectTest extends PlaywrightTestBase {
+
+    @Autowired
+    private ClientRepository clientRepository;
+
+    @Autowired
+    private ProjectRepository projectRepository;
+
+    private int projectCount(String clientCode) {
+        UUID clientId = clientRepository.findByCode(clientCode)
+                .orElseThrow(() -> new IllegalStateException("Seeded client missing: " + clientCode))
+                .getId();
+        return (int) projectRepository.countByClientId(clientId);
+    }
 
     @BeforeEach
     void login() {
@@ -49,13 +67,15 @@ class ServiceClientProjectTest extends PlaywrightTestBase {
         assertEquals(baseUrl() + "/clients/MANDIRI", page.url());
         assertThat(page.locator("[data-testid='client-code']")).hasText("MANDIRI");
         Locator projects = page.locator("[data-testid='client-detail'] a[href^='/projects/']");
-        assertThat(projects).hasCount(2);
+        // Other classes add projects to seeded clients in the shared DB: the page must list
+        // exactly the client's projects in the repository, including the seeded ones.
+        assertThat(projects).hasCount(projectCount("MANDIRI"));
         assertProjectLink("PRJ-2024-001", "Core Banking System Consultation", "Aktif");
         assertProjectLink("PRJ-2024-002", "IT Security Training", "Selesai");
 
         navigateTo("/clients/PERTAMINA");
         waitForPageLoad();
-        assertThat(projects).hasCount(1);
+        assertThat(projects).hasCount(projectCount("PERTAMINA"));
         assertProjectLink("PRJ-2024-004", "ERP Implementation Support", "Aktif");
     }
 
