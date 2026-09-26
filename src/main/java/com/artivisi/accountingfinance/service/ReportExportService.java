@@ -1721,7 +1721,10 @@ public class ReportExportService {
             addTableCell(pphTable, formatNumber(report.commercialNetIncome()), Element.ALIGN_RIGHT);
             addTableCell(pphTable, COL_KOREKSI_FISKAL_NETO, Element.ALIGN_LEFT);
             addTableCell(pphTable, formatNumber(report.netAdjustment()), Element.ALIGN_RIGHT);
-            addSubtotalRow(pphTable, "Penghasilan Kena Pajak (PKP)", formatNumber(report.pkp()));
+            addSubtotalRow(pphTable, "Penghasilan Neto Fiskal", formatNumber(report.pkp()));
+            addTableCell(pphTable, "Kompensasi Kerugian Fiskal", Element.ALIGN_LEFT);
+            addTableCell(pphTable, "(" + formatNumber(report.lossCompensation()) + ")", Element.ALIGN_RIGHT);
+            addSubtotalRow(pphTable, "Penghasilan Kena Pajak (PKP)", formatNumber(report.pkpAfterLoss()));
 
             addTableCell(pphTable, "PPh Badan Terutang (" + report.pphBadan().calculationMethod() + ")", Element.ALIGN_LEFT);
             addTableCell(pphTable, formatNumber(report.pphBadan().pphTerutang()), Element.ALIGN_RIGHT);
@@ -1792,9 +1795,17 @@ public class ReportExportService {
             Row sC = sheet.createRow(rowNum++);
             createCell(sC, 0, "C. PKP & PPh Badan", sectionStyle);
 
+            Row netoFiskalRow = sheet.createRow(rowNum++);
+            createCell(netoFiskalRow, 0, "Penghasilan Neto Fiskal", totalStyle);
+            createNumericCell(netoFiskalRow, 1, report.pkp(), totalStyle);
+
+            Row lossRow = sheet.createRow(rowNum++);
+            createCell(lossRow, 0, "Kompensasi Kerugian Fiskal", textStyle);
+            createNumericCell(lossRow, 1, report.lossCompensation().negate(), numberStyle);
+
             Row pkpRow = sheet.createRow(rowNum++);
             createCell(pkpRow, 0, "Penghasilan Kena Pajak (PKP)", totalStyle);
-            createNumericCell(pkpRow, 1, report.pkp(), totalStyle);
+            createNumericCell(pkpRow, 1, report.pkpAfterLoss(), totalStyle);
 
             Row pphRow = sheet.createRow(rowNum++);
             createCell(pphRow, 0, "PPh Badan Terutang", textStyle);

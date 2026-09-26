@@ -1,11 +1,13 @@
 package com.artivisi.accountingfinance.service;
 
 import com.artivisi.accountingfinance.entity.FiscalAdjustment;
+import com.artivisi.accountingfinance.entity.FiscalLossCarryforward;
 import com.artivisi.accountingfinance.entity.TaxTransactionDetail;
 import com.artivisi.accountingfinance.enums.FiscalAdjustmentCategory;
 import com.artivisi.accountingfinance.enums.FiscalAdjustmentDirection;
 import com.artivisi.accountingfinance.repository.ChartOfAccountRepository;
 import com.artivisi.accountingfinance.repository.FiscalAdjustmentRepository;
+import com.artivisi.accountingfinance.repository.FiscalLossCarryforwardRepository;
 import com.artivisi.accountingfinance.repository.JournalEntryRepository;
 import com.artivisi.accountingfinance.repository.TaxTransactionDetailRepository;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +29,7 @@ public class TaxReportDetailService {
 
     private final TaxTransactionDetailRepository taxTransactionDetailRepository;
     private final FiscalAdjustmentRepository fiscalAdjustmentRepository;
+    private final FiscalLossCarryforwardRepository fiscalLossCarryforwardRepository;
     private final ChartOfAccountRepository chartOfAccountRepository;
     private final JournalEntryRepository journalEntryRepository;
     private final ReportService reportService;
@@ -169,15 +172,21 @@ public class TaxReportDetailService {
         BigDecimal commercialNetIncome = incomeStatement.netIncome();
         BigDecimal pkp = commercialNetIncome.add(netAdjustment);
 
-        // Ensure PKP is not negative for tax calculation
-        BigDecimal taxablePkp = pkp.compareTo(BigDecimal.ZERO) > 0 ? pkp : BigDecimal.ZERO;
+        // UU PPh Pasal 6 ayat 2: fiscal losses of the previous five years are compensated
+        // against this year's net fiscal income (oldest first), never beyond it.
+        List<FiscalLossCarryforward> activeLosses = fiscalLossCarryforwardRepository.findActiveLossesForYear(year);
+        BigDecimal availableLoss = activeLosses.stream()
+                .map(FiscalLossCarryforward::getRemainingAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal positivePkp = pkp.max(BigDecimal.ZERO);
+        BigDecimal lossCompensation = availableLoss.min(positivePkp);
+        BigDecimal pkpAfterLoss = positivePkp.subtract(lossCompensation);
 
-        // Calculate PPh Badan
-        PPhBadanCalculation pphBadan = calculatePPhBadan(year, taxablePkp, incomeStatement.totalRevenue());
+        PPhBadanCalculation pphBadan = calculatePPhBadan(year, pkpAfterLoss, incomeStatement.totalRevenue());
 
         return new RekonsiliasiFiskalReport(year, incomeStatement, adjustments,
                 totalPositiveAdjustment, totalNegativeAdjustment, netAdjustment,
-                commercialNetIncome, pkp, pphBadan);
+                commercialNetIncome, pkp, activeLosses, lossCompensation, pkpAfterLoss, pphBadan);
     }
 
     // ==================== PPh BADAN CALCULATION ====================
@@ -310,6 +319,9 @@ public class TaxReportDetailService {
             BigDecimal netAdjustment,
             BigDecimal commercialNetIncome,
             BigDecimal pkp,
+            List<FiscalLossCarryforward> activeLosses,
+            BigDecimal lossCompensation,
+            BigDecimal pkpAfterLoss,
             PPhBadanCalculation pphBadan
     ) {}
 

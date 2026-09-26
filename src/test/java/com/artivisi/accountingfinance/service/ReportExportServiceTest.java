@@ -1152,6 +1152,7 @@ class ReportExportServiceTest {
                     2025, incomeStatement, List.of(positiveAdj, negativeAdj),
                     new BigDecimal("5000000"), new BigDecimal("2000000"),
                     new BigDecimal("3000000"), new BigDecimal("40000000"),
+                    new BigDecimal("43000000"), List.of(), BigDecimal.ZERO,
                     new BigDecimal("43000000"), pphBadan);
 
             byte[] pdf = reportExportService.exportRekonsiliasiFiskalToPdf(report);
@@ -1199,6 +1200,7 @@ class ReportExportServiceTest {
                     2025, incomeStatement, List.of(positiveAdj, negativeAdj),
                     new BigDecimal("5000000"), new BigDecimal("2000000"),
                     new BigDecimal("3000000"), new BigDecimal("40000000"),
+                    new BigDecimal("43000000"), List.of(), BigDecimal.ZERO,
                     new BigDecimal("43000000"), pphBadan);
 
             byte[] excel = reportExportService.exportRekonsiliasiFiskalToExcel(report);

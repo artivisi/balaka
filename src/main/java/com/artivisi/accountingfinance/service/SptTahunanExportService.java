@@ -129,19 +129,10 @@ public class SptTahunanExportService {
                 .map(this::toAdjustmentItem)
                 .toList();
 
-        // Loss carryforward (kompensasi kerugian fiskal)
-        List<FiscalLossCarryforward> activeLosses = fiscalLossCarryforwardRepository.findActiveLossesForYear(year);
-        BigDecimal totalLossCompensation = activeLosses.stream()
-                .map(FiscalLossCarryforward::getRemainingAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        List<L1LossItem> lossItems = activeLosses.stream()
+        List<L1LossItem> lossItems = rekon.activeLosses().stream()
                 .map(loss -> new L1LossItem(
                         loss.getOriginYear(), loss.getRemainingAmount(), loss.getExpiryYear()))
                 .toList();
-
-        // Adjusted PKP after loss compensation
-        BigDecimal pkpAfterLoss = rekon.pkp().subtract(totalLossCompensation).max(BigDecimal.ZERO);
 
         return new L1Report(
                 year,
@@ -159,8 +150,8 @@ public class SptTahunanExportService {
                 negativeAdjustments, rekon.totalNegativeAdjustment(),
                 rekon.pkp(),
                 // Loss carryforward
-                lossItems, totalLossCompensation,
-                pkpAfterLoss,
+                lossItems, rekon.lossCompensation(),
+                rekon.pkpAfterLoss(),
                 // Section II: PPh Terutang
                 rekon.pphBadan(),
                 // Section III: Kredit Pajak

@@ -21,6 +21,7 @@ import com.artivisi.accountingfinance.repository.JournalEntryRepository;
 import com.artivisi.accountingfinance.repository.JournalTemplateRepository;
 import com.artivisi.accountingfinance.repository.TransactionRepository;
 import com.artivisi.accountingfinance.service.SptTahunanExportService;
+import com.artivisi.accountingfinance.service.TaxReportDetailService;
 import com.artivisi.accountingfinance.ui.PlaywrightTestBase;
 import com.microsoft.playwright.APIResponse;
 import com.microsoft.playwright.Locator;
@@ -59,9 +60,11 @@ import static org.assertj.core.api.Assertions.assertThat;
  *
  * - 02-10 Pendapatan Jasa + PPN: Dr 1.1.02 55.5M / Cr 4.1.01 50M / Cr 2.1.03 5.5M
  * - 05-10 Pembayaran Jasa dengan PPh 23: Dr 5.1.20 20M / Cr 1.1.02 19.6M / Cr 2.1.21 0.4M
- * - fiscal adjustments: +2M permanent, (1M) temporary -> PKP 31M, PPh Badan 3,410,000 (Pasal 31E)
+ * - fiscal adjustments: +2M permanent, (1M) temporary -> penghasilan neto fiskal 31M
+ * - fiscal loss from {@link #LOSS_YEAR} of 7.5M, compensable from the following year -> PKP 23.5M
+ * - PPh Badan on PKP after loss compensation: 23,500,000 x 22% x 50% (Pasal 31E, revenue < 4.8B) = 2,585,000;
+ *   no PPh 23/25 credits, so PPh 29 = 2,585,000
  * - fiscal periods: January-October closed/filed, November-December open
- * - fiscal loss from {@link #LOSS_YEAR} of 7.5M, compensable from the following year
  * {@link #LOSS_YEAR} itself has no journals, adjustments or periods in this context.
  */
 @DisplayName("SPT Tahunan Badan Checklist")
@@ -83,6 +86,7 @@ class SptChecklistFunctionalTest extends PlaywrightTestBase {
     @Autowired private FiscalLossCarryforwardRepository lossRepository;
     @Autowired private FixedAssetRepository fixedAssetRepository;
     @Autowired private SptTahunanExportService sptTahunanExportService;
+    @Autowired private TaxReportDetailService taxReportDetailService;
 
     private UUID lossId;
 
@@ -168,7 +172,7 @@ class SptChecklistFunctionalTest extends PlaywrightTestBase {
                 "Pendapatan: Rp 50.000.000 — Laba Bersih: Rp 30.000.000");
         assertItem("#check-fiscal-adjustments", "bg-green-50", "Koreksi Fiskal", "2 item koreksi fiskal");
         assertItem("#check-pph-badan", "bg-green-50", "PPh Badan Terutang",
-                "PPh Terutang: Rp 3.410.000 — PPh 29: Rp 3.410.000");
+                "PPh Terutang: Rp 2.585.000 — PPh 29: Rp 2.585.000");
         assertItem("#check-fiscal-periods", "bg-yellow-50", "Periode Fiskal", "10/12 bulan ditutup");
         assertItem("#check-payroll", "bg-gray-50", "Payroll & PPh 21", "Tidak ada data payroll");
         assertItem("#check-loss-carryforward", "bg-blue-50", "Kompensasi Kerugian", "Sisa rugi fiskal: Rp 7.500.000");
@@ -194,16 +198,44 @@ class SptChecklistFunctionalTest extends PlaywrightTestBase {
         waitForPageLoad();
 
         try (Workbook l1 = download("#download-spt-l1", "spt-l1-rekonsiliasi-fiskal-" + YEAR + ".xlsx")) {
-            assertThat(rows(l1.getSheet("L1 Rekonsiliasi Fiskal"))).contains(
+            assertThat(rows(l1.getSheet("L1 Rekonsiliasi Fiskal"))).containsExactly(
+                    "LAMPIRAN I - PENGHITUNGAN PENGHASILAN NETO FISKAL",
                     "Tahun Pajak: " + YEAR,
+                    "Kode Akun|Uraian|Jumlah (Rp)",
+                    "|I. PEREDARAN USAHA",
                     "4.1.01|" + account("4.1.01").getAccountName() + "|50000000",
+                    "|Total I. PEREDARAN USAHA|50000000",
+                    "|Harga Pokok Penjualan|0",
+                    "|LABA BRUTO (I - HPP)|50000000",
+                    "|II. BIAYA USAHA",
                     "5.1.20|" + account("5.1.20").getAccountName() + "|20000000",
+                    "|Total II. BIAYA USAHA|20000000",
+                    "|PENGHASILAN NETO DARI USAHA (I - II)|30000000",
+                    "|III. PENGHASILAN DARI LUAR USAHA",
+                    "|Total III. PENGHASILAN DARI LUAR USAHA|0",
+                    "|IV. BIAYA DARI LUAR USAHA",
+                    "|Total IV. BIAYA DARI LUAR USAHA|0",
+                    "|PENGHASILAN NETO DARI LUAR USAHA (III - IV)|0",
                     "|PENGHASILAN NETO KOMERSIAL|30000000",
+                    "|V. PENYESUAIAN FISKAL POSITIF",
                     "|Beban sumbangan (PERMANENT)|2000000",
+                    "|Total V. PENYESUAIAN FISKAL POSITIF|2000000",
+                    "|VI. PENYESUAIAN FISKAL NEGATIF",
                     "|Selisih penyusutan (TEMPORARY)|1000000",
+                    "|Total VI. PENYESUAIAN FISKAL NEGATIF|1000000",
                     "|PENGHASILAN NETO FISKAL|31000000",
+                    "|KOMPENSASI KERUGIAN FISKAL",
                     "|Rugi Fiskal Tahun " + LOSS_YEAR + " (kadaluarsa " + (LOSS_YEAR + 5) + ")|7500000",
-                    "|PENGHASILAN KENA PAJAK (PKP)|23500000");
+                    "|Total Kompensasi Kerugian|7500000",
+                    "|PENGHASILAN KENA PAJAK (PKP)|23500000",
+                    "|VII. PPh BADAN TERUTANG",
+                    "|Metode: Fasilitas Pasal 31E penuh (omset < 4,8M)",
+                    "|PPh Terutang|2585000",
+                    "|VIII. KREDIT PAJAK",
+                    "|PPh 23 yang dipotong pihak lain|0",
+                    "|PPh 25 yang sudah dibayar|0",
+                    "|Total Kredit Pajak|0",
+                    "|PPh KURANG / (LEBIH) BAYAR (PPh 29)|2585000");
         }
         try (Workbook l4 = download("#download-spt-l4", "spt-l4-penghasilan-final-" + YEAR + ".xlsx")) {
             assertThat(rows(l4.getSheet("L4 Penghasilan Final"))).containsExactly(
@@ -241,17 +273,67 @@ class SptChecklistFunctionalTest extends PlaywrightTestBase {
                     "||TOTAL|||0||||||0|0|0");
         }
         try (Workbook rekon = download("#download-spt-rekonsiliasi-fiskal", "rekonsiliasi-fiskal-" + YEAR + ".xlsx")) {
-            assertThat(rows(rekon.getSheet("Rekonsiliasi Fiskal"))).contains(
+            assertThat(rows(rekon.getSheet("Rekonsiliasi Fiskal"))).containsExactly(
+                    "PT ArtiVisi Intermedia",
+                    "REKONSILIASI FISKAL",
+                    "Tahun Pajak " + YEAR,
+                    "A. Laba Rugi Komersial",
                     "Pendapatan|50000000",
                     "Beban|-20000000",
                     "Laba Bersih Komersial|30000000",
+                    "B. Koreksi Fiskal",
                     "Beban sumbangan (Beda Tetap, Koreksi Positif)|2000000",
                     "Selisih penyusutan (Beda Waktu, Koreksi Negatif)|-1000000",
                     "Koreksi Fiskal Neto|1000000",
-                    "Penghasilan Kena Pajak (PKP)|31000000",
-                    "PPh Badan Terutang|3410000",
-                    "PPh Pasal 29 (Kurang/Lebih Bayar)|3410000");
+                    "C. PKP & PPh Badan",
+                    "Penghasilan Neto Fiskal|31000000",
+                    "Kompensasi Kerugian Fiskal|-7500000",
+                    "Penghasilan Kena Pajak (PKP)|23500000",
+                    "PPh Badan Terutang|2585000",
+                    "Kredit Pajak PPh 23",
+                    "Kredit Pajak PPh 25",
+                    "PPh Pasal 29 (Kurang/Lebih Bayar)|2585000");
         }
+    }
+
+    @Test
+    @DisplayName("Rekonsiliasi fiskal page, PPh Badan API data, lampiran and Coretax export compute PPh on PKP after loss compensation")
+    void shouldComputePphBadanAfterLossCompensation() {
+        navigateTo("/reports/rekonsiliasi-fiskal?year=" + YEAR);
+        waitForPageLoad();
+
+        assertThat(page.locator("#penghasilan-neto-fiskal")).hasText("31.000.000");
+        assertThat(page.locator("#loss-compensation")).hasText("(7.500.000)");
+        assertThat(page.locator("#pkp")).hasText("23.500.000");
+        assertThat(page.locator("#calculation-method")).hasText("Fasilitas Pasal 31E penuh (omset < 4,8M)");
+        assertThat(page.locator("#pph-terutang")).hasText("2.585.000");
+        assertThat(page.locator("#total-kredit")).hasText("(0)");
+        assertThat(page.locator("#pph29")).hasText("2.585.000");
+
+        var rekon = taxReportDetailService.generateRekonsiliasiFiskal(YEAR);
+        assertThat(rekon.pkp()).isEqualByComparingTo("31000000");
+        assertThat(rekon.lossCompensation()).isEqualByComparingTo("7500000");
+        assertThat(rekon.pkpAfterLoss()).isEqualByComparingTo("23500000");
+        assertThat(rekon.pphBadan().pkp()).isEqualByComparingTo("23500000");
+        assertThat(rekon.pphBadan().pkpRounded()).isEqualByComparingTo("23500000");
+        assertThat(rekon.pphBadan().pphTerutang()).isEqualByComparingTo("2585000");
+        assertThat(rekon.pphBadan().pph29()).isEqualByComparingTo("2585000");
+
+        var lampiran = sptTahunanExportService.generateConsolidatedLampiran(YEAR);
+        assertThat(lampiran.lampiranI().penghasilanNetoFiskal()).isEqualByComparingTo("31000000");
+        assertThat(lampiran.lampiranI().totalKompensasi()).isEqualByComparingTo("7500000");
+        assertThat(lampiran.lampiranI().penghasilanKenaPajak()).isEqualByComparingTo("23500000");
+        assertThat(lampiran.pphBadan().penghasilanKenaPajak()).isEqualByComparingTo("23500000");
+        assertThat(lampiran.pphBadan().pphTerutang()).isEqualByComparingTo("2585000");
+        assertThat(lampiran.pphBadan().pph29KurangBayar()).isEqualByComparingTo("2585000");
+
+        var induk = sptTahunanExportService.generateCoretaxExport(YEAR).induk();
+        assertThat(induk.penghasilanNetoFiskal()).isEqualByComparingTo("31000000");
+        assertThat(induk.kompensasiKerugian()).isEqualByComparingTo("7500000");
+        assertThat(induk.penghasilanKenaPajak()).isEqualByComparingTo("23500000");
+        assertThat(induk.penghasilanKenaPajakPembulatan()).isEqualByComparingTo("23500000");
+        assertThat(induk.pphTerutang()).isEqualByComparingTo("2585000");
+        assertThat(induk.pph29KurangBayar()).isEqualByComparingTo("2585000");
     }
 
     @Test

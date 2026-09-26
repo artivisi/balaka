@@ -60,7 +60,7 @@ GET /api/tax-export/rekonsiliasi-fiskal?year=2025
 GET /api/tax-export/rekonsiliasi-fiskal?year=2025&format=excel
 ```
 
-Commercial income to taxable income (PKP) reconciliation with positive/negative fiscal adjustments.
+Commercial income to taxable income (PKP) reconciliation with positive/negative fiscal adjustments. `pkp` is the net fiscal income before loss compensation; `lossCompensation` is the fiscal loss of the previous five years compensated this year (UU PPh Pasal 6 ayat 2, capped at `pkp`); `pkpAfterLoss` is the PKP that `pphBadan` is computed on.
 
 ### PPh Badan (Corporate Income Tax)
 
@@ -68,7 +68,7 @@ Commercial income to taxable income (PKP) reconciliation with positive/negative 
 GET /api/tax-export/pph-badan?year=2025
 ```
 
-JSON only. Returns PKP, PPh terutang, kredit pajak (PPh 23/25), and PPh 29 calculation including Pasal 31E facility.
+JSON only. Returns PKP (after fiscal loss compensation), PPh terutang, kredit pajak (PPh 23/25), and PPh 29 calculation including Pasal 31E facility.
 
 ## SPT Tahunan Badan Exports
 

@@ -562,6 +562,8 @@ public class TaxExportApiController {
                 report.netAdjustment(),
                 adjustmentItems,
                 report.pkp(),
+                report.lossCompensation(),
+                report.pkpAfterLoss(),
                 pphBadan);
     }
 
@@ -647,6 +649,8 @@ public class TaxExportApiController {
             BigDecimal netAdjustment,
             List<FiscalAdjustmentItem> adjustments,
             BigDecimal pkp,
+            BigDecimal lossCompensation,
+            BigDecimal pkpAfterLoss,
             PPhBadanData pphBadan
     ) {}
 

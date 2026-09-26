@@ -213,9 +213,19 @@
                                   th:text="${#numbers.formatDecimal(report.netAdjustment, 1, 'POINT', 0, 'COMMA')}">0</span>
                         </div>
                         <div class="flex justify-between items-center pt-3 border-t border-gray-300">
+                            <span class="text-sm font-semibold text-gray-800">Penghasilan Neto Fiskal</span>
+                            <span id="penghasilan-neto-fiskal" class="font-mono text-sm font-semibold"
+                                  th:text="${#numbers.formatDecimal(report.pkp, 1, 'POINT', 0, 'COMMA')}">0</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-600">Kompensasi Kerugian Fiskal</span>
+                            <span id="loss-compensation" class="font-mono text-sm"
+                                  th:text="|(${#numbers.formatDecimal(report.lossCompensation, 1, 'POINT', 0, 'COMMA')})|">0</span>
+                        </div>
+                        <div class="flex justify-between items-center pt-3 border-t border-gray-300">
                             <span class="text-sm font-semibold text-gray-800">Penghasilan Kena Pajak (PKP)</span>
                             <span id="pkp" class="font-mono text-sm font-semibold"
-                                  th:text="${#numbers.formatDecimal(report.pkp, 1, 'POINT', 0, 'COMMA')}">0</span>
+                                  th:text="${#numbers.formatDecimal(report.pkpAfterLoss, 1, 'POINT', 0, 'COMMA')}">0</span>
                         </div>
 
                         <!-- PPh Badan -->
