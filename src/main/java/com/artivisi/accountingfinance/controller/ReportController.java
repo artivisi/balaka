@@ -39,6 +39,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
 import java.util.List;
 import java.util.Locale;
+import java.util.TreeSet;
 import java.util.UUID;
 
 import static com.artivisi.accountingfinance.controller.ViewConstants.*;
@@ -938,8 +939,16 @@ public class ReportController {
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_REPORTS);
         model.addAttribute(ATTR_REPORT_TYPE, "fiscal-closing");
 
-        int closingYear = year != null ? year : LocalDate.now().getYear() - 1;
+        int currentYear = LocalDate.now().getYear();
+        int closingYear = year != null ? year : currentYear - 1;
         model.addAttribute("year", closingYear);
+        // The last six years, plus the displayed year when it lies outside them
+        TreeSet<Integer> availableYears = new TreeSet<>();
+        for (int y = currentYear - 5; y <= currentYear; y++) {
+            availableYears.add(y);
+        }
+        availableYears.add(closingYear);
+        model.addAttribute("availableYears", List.copyOf(availableYears));
         model.addAttribute("preview", fiscalYearClosingService.previewClosing(closingYear));
 
         return "reports/fiscal-closing";

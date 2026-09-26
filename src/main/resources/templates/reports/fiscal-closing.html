@@ -38,7 +38,7 @@
                     <label for="year" class="text-sm font-medium text-gray-700">Tahun:</label>
                     <select id="year" name="year"
                             class="rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 auto-submit">
-                        <option th:each="y : ${#numbers.sequence(2020, 2030)}"
+                        <option th:each="y : ${availableYears}"
                                 th:value="${y}" th:text="${y}"
                                 th:selected="${y == year}">2024</option>
                     </select>
