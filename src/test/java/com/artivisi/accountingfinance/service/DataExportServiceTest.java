@@ -12,8 +12,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -427,5 +432,33 @@ class DataExportServiceTest {
             }
         }
         return names;
+    }
+
+    @Test
+    @DisplayName("Industry seed 07_clients.csv uses the column order of the export and of DataImportService.importClients")
+    void industrySeedClientHeadersMatchImportFormat() throws IOException {
+        String importOrder = "code,name,contact_person,email,phone,address,npwp,nik,nitku,active,created_at";
+        String exportHeader = null;
+        try (ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(dataExportService.exportAllData()))) {
+            ZipEntry entry;
+            while ((entry = zis.getNextEntry()) != null) {
+                if ("07_clients.csv".equals(entry.getName())) {
+                    exportHeader = new String(zis.readAllBytes(), StandardCharsets.UTF_8).lines().findFirst().orElseThrow();
+                }
+                zis.closeEntry();
+            }
+        }
+        assertThat(exportHeader).isEqualTo(importOrder);
+
+        List<Path> seedFiles;
+        try (Stream<Path> files = Files.list(Path.of("industry-seed"))) {
+            seedFiles = files.map(pack -> pack.resolve("seed-data/07_clients.csv")).filter(Files::exists).sorted().toList();
+        }
+        assertThat(seedFiles).extracting(Path::toString).containsExactly(
+                "industry-seed/it-service/seed-data/07_clients.csv",
+                "industry-seed/online-seller/seed-data/07_clients.csv");
+        for (Path csv : seedFiles) {
+            assertThat(Files.readAllLines(csv, StandardCharsets.UTF_8).getFirst()).as(csv.toString()).isEqualTo(importOrder);
+        }
     }
 }
