@@ -1,9 +1,11 @@
 package com.artivisi.accountingfinance.functional;
 
 import com.artivisi.accountingfinance.functional.service.ServiceTestDataInitializer;
+import com.artivisi.accountingfinance.security.ApiScope;
 import com.artivisi.accountingfinance.ui.PlaywrightTestBase;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.microsoft.playwright.APIRequest;
 import com.microsoft.playwright.APIRequestContext;
 import com.microsoft.playwright.APIResponse;
@@ -14,6 +16,12 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.Import;
 
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -46,39 +54,23 @@ class OpenApiTest extends PlaywrightTestBase {
     }
 
     @Test
-    @DisplayName("GET /v3/api-docs returns 200 without authentication")
-    void testPublicAccess() throws Exception {
+    @DisplayName("GET /v3/api-docs is public and describes Balaka API with bearer authentication")
+    void testPublicSpecHeader() throws Exception {
         APIResponse response = apiContext.get(API_DOCS_URL);
 
         assertThat(response.status()).isEqualTo(200);
-        assertThat(response.headers().get("content-type")).contains("application/json");
-
-        log.info("OpenAPI spec returned 200 without auth");
-    }
-
-    @Test
-    @DisplayName("Response contains required OpenAPI keys")
-    void testOpenApiKeys() throws Exception {
-        APIResponse response = apiContext.get(API_DOCS_URL);
+        assertThat(response.headers().get("content-type")).startsWith("application/json");
         JsonNode body = objectMapper.readTree(response.text());
-
-        assertThat(body.has("openapi")).isTrue();
-        assertThat(body.has("info")).isTrue();
-        assertThat(body.has("paths")).isTrue();
-        assertThat(body.has("components")).isTrue();
-
-        log.info("OpenAPI spec has required top-level keys");
-    }
-
-    @Test
-    @DisplayName("info.title is 'Balaka API'")
-    void testInfoTitle() throws Exception {
-        APIResponse response = apiContext.get(API_DOCS_URL);
-        JsonNode body = objectMapper.readTree(response.text());
-
+        assertThat(body.get("openapi").asText()).startsWith("3.");
         assertThat(body.get("info").get("title").asText()).isEqualTo("Balaka API");
-
-        log.info("Info title verified");
+        assertThat(body.get("info").get("license").get("name").asText()).isEqualTo("Apache License, Version 2.0");
+        assertThat(body.get("info").get("license").get("url").asText()).isEqualTo("https://www.apache.org/licenses/LICENSE-2.0");
+        JsonNode bearer = body.get("components").get("securitySchemes").get("bearer");
+        assertThat(bearer.get("type").asText()).isEqualTo("http");
+        assertThat(bearer.get("scheme").asText()).isEqualTo("bearer");
+        assertThat(bearer.get("bearerFormat").asText()).isEqualTo("opaque");
+        assertThat(body.get("security")).hasSize(1);
+        assertThat(body.get("security").get(0).has("bearer")).isTrue();
     }
 
     @Test
@@ -104,23 +96,26 @@ class OpenApiTest extends PlaywrightTestBase {
     }
 
     @Test
-    @DisplayName("paths contains spot-check endpoints from each controller")
+    @DisplayName("paths contains one operation per API controller with its HTTP method")
     void testPathsContainEndpoints() throws Exception {
         APIResponse response = apiContext.get(API_DOCS_URL);
         JsonNode paths = objectMapper.readTree(response.text()).get("paths");
 
-        // Spot-check one endpoint per controller tag
-        assertThat(paths.has("/api/device/code")).as("DeviceAuth").isTrue();
-        assertThat(paths.has("/api/drafts")).as("DraftTransaction").isTrue();
-        assertThat(paths.has("/api/transactions")).as("Transaction").isTrue();
-        assertThat(paths.has("/api/analysis/company")).as("FinancialAnalysis").isTrue();
-        assertThat(paths.has("/api/templates")).as("Template").isTrue();
-        assertThat(paths.has("/api/bank-reconciliation/parser-configs")).as("BankRecon").isTrue();
-        assertThat(paths.has("/api/bills")).as("Bill").isTrue();
-        assertThat(paths.has("/api/data-import")).as("DataImport").isTrue();
-        assertThat(paths.has("/api/tax-export/efaktur-keluaran")).as("TaxExport").isTrue();
-
-        log.info("Spot-checked {} paths", paths.size());
+        String[][] operations = {
+                {"/api/device/code", "post", "DeviceAuth"},
+                {"/api/drafts", "post", "DraftTransaction"},
+                {"/api/transactions", "post", "Transaction"},
+                {"/api/transactions/{id}", "put", "Transaction"},
+                {"/api/analysis/company", "get", "FinancialAnalysis"},
+                {"/api/templates", "get", "Template"},
+                {"/api/bank-reconciliation/parser-configs", "get", "BankRecon"},
+                {"/api/bills", "post", "Bill"},
+                {"/api/data-import", "post", "DataImport"},
+                {"/api/tax-export/efaktur-keluaran", "get", "TaxExport"},
+        };
+        for (String[] op : operations) {
+            assertThat(paths.path(op[0]).has(op[1])).as("%s %s %s", op[2], op[1].toUpperCase(), op[0]).isTrue();
+        }
     }
 
     @Test
@@ -149,46 +144,23 @@ class OpenApiTest extends PlaywrightTestBase {
     }
 
     @Test
-    @DisplayName("x-csv-files extension present")
-    void testCsvFilesExtension() throws Exception {
-        APIResponse response = apiContext.get(API_DOCS_URL);
-        JsonNode body = objectMapper.readTree(response.text());
+    @DisplayName("x-csv-files, x-industries, x-error-codes and x-workflows are served exactly as configured in openapi/extensions.json")
+    void testStaticExtensionsMatchConfiguration() throws Exception {
+        JsonNode configured;
+        try (InputStream is = getClass().getResourceAsStream("/openapi/extensions.json")) {
+            assertThat(is).as("openapi/extensions.json on classpath").isNotNull();
+            configured = objectMapper.readTree(is);
+        }
+        JsonNode body = objectMapper.readTree(apiContext.get(API_DOCS_URL).text());
 
-        JsonNode csvFiles = body.get("x-csv-files");
-        assertThat(csvFiles).as("x-csv-files present").isNotNull();
-        assertThat(csvFiles.isArray()).isTrue();
-        assertThat(csvFiles.size()).isEqualTo(16);
-
-        log.info("x-csv-files: {} files", csvFiles.size());
-    }
-
-    @Test
-    @DisplayName("x-industries has 4 items")
-    void testIndustriesExtension() throws Exception {
-        APIResponse response = apiContext.get(API_DOCS_URL);
-        JsonNode body = objectMapper.readTree(response.text());
-
-        JsonNode industries = body.get("x-industries");
-        assertThat(industries).as("x-industries present").isNotNull();
-        assertThat(industries.isArray()).isTrue();
-        assertThat(industries.size()).isEqualTo(4);
-
-        log.info("x-industries: {}", industries);
-    }
-
-    @Test
-    @DisplayName("x-error-codes extension present")
-    void testErrorCodesExtension() throws Exception {
-        APIResponse response = apiContext.get(API_DOCS_URL);
-        JsonNode body = objectMapper.readTree(response.text());
-
-        JsonNode errorCodes = body.get("x-error-codes");
-        assertThat(errorCodes).as("x-error-codes present").isNotNull();
-        assertThat(errorCodes.isObject()).isTrue();
-        assertThat(errorCodes.has("UNAUTHORIZED")).isTrue();
-        assertThat(errorCodes.has("VALIDATION_ERROR")).isTrue();
-
-        log.info("x-error-codes verified");
+        for (String key : List.of("x-csv-files", "x-industries", "x-error-codes", "x-workflows")) {
+            assertThat(body.get(key)).as(key).isEqualTo(configured.get(key));
+        }
+        assertThat(body.get("x-industries")).containsExactly(
+                TextNode.valueOf("it-service"), TextNode.valueOf("online-seller"),
+                TextNode.valueOf("coffee-shop"), TextNode.valueOf("campus"));
+        assertThat(body.get("x-error-codes").get("UNAUTHORIZED").asText()).isEqualTo("401 - Missing or invalid Bearer token");
+        assertThat(body.get("x-error-codes").get("VALIDATION_ERROR").asText()).isEqualTo("400 - Request body validation failed");
     }
 
     @Test
@@ -215,6 +187,15 @@ class OpenApiTest extends PlaywrightTestBase {
                 "analysis:read", "analysis:write", "transactions:post", "data:import",
                 "tax-export:read", "assets:read", "assets:write",
                 "tax-filings:read", "tax-filings:write");
+
+        List<String> served = new ArrayList<>();
+        auth.get("scopes").forEach(scope -> served.add(scope.get("scope").asText() + " | "
+                + scope.get("description").asText() + " | " + scope.get("grantedWithPermissions")));
+        List<String> registry = Arrays.stream(ApiScope.values())
+                .map(s -> s.scope() + " | " + s.description() + " | "
+                        + objectMapper.valueToTree(s.grantingPermissions().stream().sorted().toList()))
+                .toList();
+        assertThat(served).containsExactlyElementsOf(registry);
 
         log.info("x-authentication: {} scopes", scopes.size());
     }
@@ -263,12 +244,11 @@ class OpenApiTest extends PlaywrightTestBase {
     }
 
     @Test
-    @DisplayName("GET /swagger-ui/index.html returns 200")
-    void testSwaggerUiAccess() {
-        APIResponse response = apiContext.get(SWAGGER_UI_URL);
+    @DisplayName("Swagger UI renders the Balaka API spec with its operations")
+    void testSwaggerUiRendersSpec() {
+        navigateTo(SWAGGER_UI_URL);
 
-        assertThat(response.status()).isEqualTo(200);
-
-        log.info("Swagger UI returned 200");
+        assertThat(page.locator(".swagger-ui .info .title")).containsText("Balaka API");
+        assertThat(page.locator(".opblock-summary-path[data-path='/api/transactions']").first()).isVisible();
     }
 }
