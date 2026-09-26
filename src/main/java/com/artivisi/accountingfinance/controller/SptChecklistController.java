@@ -22,7 +22,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.Year;
+import java.util.Comparator;
 import java.util.List;
+import java.util.TreeSet;
 
 import static com.artivisi.accountingfinance.controller.ViewConstants.ATTR_CURRENT_PAGE;
 import static com.artivisi.accountingfinance.controller.ViewConstants.PAGE_SPT_CHECKLIST;
@@ -54,10 +56,11 @@ public class SptChecklistController {
         ChecklistResult checklist = generateChecklist(targetYear);
         model.addAttribute("checklist", checklist);
 
-        // Available years (current -3 to current)
+        // The three previous years, plus the displayed year when it lies outside them
         int currentYear = Year.now().getValue();
-        List<Integer> availableYears = List.of(currentYear - 1, currentYear - 2, currentYear - 3);
-        model.addAttribute("availableYears", availableYears);
+        TreeSet<Integer> availableYears = new TreeSet<>(Comparator.reverseOrder());
+        availableYears.addAll(List.of(currentYear - 1, currentYear - 2, currentYear - 3, targetYear));
+        model.addAttribute("availableYears", List.copyOf(availableYears));
 
         return "reports/spt-checklist";
     }

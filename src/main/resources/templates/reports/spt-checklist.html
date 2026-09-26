@@ -39,11 +39,11 @@
 
             <!-- Checklist Status -->
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h2 class="text-lg font-semibold text-gray-900 mb-4" th:text="|Kesiapan Data SPT Tahunan ${year}|">Kesiapan Data SPT Tahunan 2025</h2>
+                <h2 id="readiness-heading" class="text-lg font-semibold text-gray-900 mb-4" th:text="|Kesiapan Data SPT Tahunan ${year}|">Kesiapan Data SPT Tahunan 2025</h2>
 
                 <div class="space-y-4">
                     <!-- 1. Financial Statements -->
-                    <div class="flex items-start p-3 rounded-lg" th:classappend="${checklist.hasIncomeStatement()} ? 'bg-green-50' : 'bg-yellow-50'">
+                    <div id="check-financial-statements" class="flex items-start p-3 rounded-lg" th:classappend="${checklist.hasIncomeStatement()} ? 'bg-green-50' : 'bg-yellow-50'">
                         <span class="text-xl mr-3" th:text="${checklist.hasIncomeStatement()} ? '&#10004;' : '&#9888;'"></span>
                         <div>
                             <p class="font-medium text-gray-900">Laporan Keuangan</p>
@@ -55,7 +55,7 @@
                     </div>
 
                     <!-- 2. Fiscal Adjustments -->
-                    <div class="flex items-start p-3 rounded-lg" th:classappend="${checklist.hasFiscalAdjustments()} ? 'bg-green-50' : 'bg-yellow-50'">
+                    <div id="check-fiscal-adjustments" class="flex items-start p-3 rounded-lg" th:classappend="${checklist.hasFiscalAdjustments()} ? 'bg-green-50' : 'bg-yellow-50'">
                         <span class="text-xl mr-3" th:text="${checklist.hasFiscalAdjustments()} ? '&#10004;' : '&#9888;'"></span>
                         <div>
                             <p class="font-medium text-gray-900">Koreksi Fiskal</p>
@@ -66,7 +66,7 @@
                     </div>
 
                     <!-- 3. PPh Badan -->
-                    <div class="flex items-start p-3 rounded-lg" th:classappend="${checklist.hasPphBadan()} ? 'bg-green-50' : 'bg-red-50'">
+                    <div id="check-pph-badan" class="flex items-start p-3 rounded-lg" th:classappend="${checklist.hasPphBadan()} ? 'bg-green-50' : 'bg-red-50'">
                         <span class="text-xl mr-3" th:text="${checklist.hasPphBadan()} ? '&#10004;' : '&#10008;'"></span>
                         <div>
                             <p class="font-medium text-gray-900">PPh Badan Terutang</p>
@@ -78,7 +78,7 @@
                     </div>
 
                     <!-- 4. Fiscal Periods -->
-                    <div class="flex items-start p-3 rounded-lg" th:classappend="${checklist.allMonthsClosed()} ? 'bg-green-50' : 'bg-yellow-50'">
+                    <div id="check-fiscal-periods" class="flex items-start p-3 rounded-lg" th:classappend="${checklist.allMonthsClosed()} ? 'bg-green-50' : 'bg-yellow-50'">
                         <span class="text-xl mr-3" th:text="${checklist.allMonthsClosed()} ? '&#10004;' : '&#9888;'"></span>
                         <div>
                             <p class="font-medium text-gray-900">Periode Fiskal</p>
@@ -87,7 +87,7 @@
                     </div>
 
                     <!-- 5. Fixed Assets -->
-                    <div class="flex items-start p-3 rounded-lg" th:classappend="${checklist.hasDepreciation()} ? 'bg-green-50' : 'bg-gray-50'">
+                    <div id="check-depreciation" class="flex items-start p-3 rounded-lg" th:classappend="${checklist.hasDepreciation()} ? 'bg-green-50' : 'bg-gray-50'">
                         <span class="text-xl mr-3" th:text="${checklist.hasDepreciation()} ? '&#10004;' : '&#8212;'"></span>
                         <div>
                             <p class="font-medium text-gray-900">Penyusutan Aset Tetap</p>
@@ -98,7 +98,7 @@
                     </div>
 
                     <!-- 6. Payroll -->
-                    <div class="flex items-start p-3 rounded-lg" th:classappend="${checklist.payrollMonths() > 0} ? 'bg-green-50' : 'bg-gray-50'">
+                    <div id="check-payroll" class="flex items-start p-3 rounded-lg" th:classappend="${checklist.payrollMonths() > 0} ? 'bg-green-50' : 'bg-gray-50'">
                         <span class="text-xl mr-3" th:text="${checklist.payrollMonths() > 0} ? '&#10004;' : '&#8212;'"></span>
                         <div>
                             <p class="font-medium text-gray-900">Payroll & PPh 21</p>
@@ -109,7 +109,7 @@
                     </div>
 
                     <!-- 7. Loss Carryforward -->
-                    <div class="flex items-start p-3 rounded-lg" th:classappend="${checklist.hasActiveLosses()} ? 'bg-blue-50' : 'bg-gray-50'">
+                    <div id="check-loss-carryforward" class="flex items-start p-3 rounded-lg" th:classappend="${checklist.hasActiveLosses()} ? 'bg-blue-50' : 'bg-gray-50'">
                         <span class="text-xl mr-3" th:text="${checklist.hasActiveLosses()} ? '&#8505;' : '&#8212;'"></span>
                         <div>
                             <p class="font-medium text-gray-900">Kompensasi Kerugian</p>

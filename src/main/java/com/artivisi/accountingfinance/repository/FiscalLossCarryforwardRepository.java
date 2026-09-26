@@ -18,7 +18,8 @@ public interface FiscalLossCarryforwardRepository extends JpaRepository<FiscalLo
      * Ordered by origin year ASC (oldest used first — FIFO).
      */
     @Query("SELECT f FROM FiscalLossCarryforward f " +
-            "WHERE f.expiryYear >= :year " +
+            "WHERE f.originYear < :year " +
+            "AND f.expiryYear >= :year " +
             "AND f.remainingAmount > 0 " +
             "ORDER BY f.originYear ASC")
     List<FiscalLossCarryforward> findActiveLossesForYear(@Param("year") int year);
