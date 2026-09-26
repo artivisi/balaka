@@ -1,445 +1,154 @@
 package com.artivisi.accountingfinance.functional;
 
+import com.artivisi.accountingfinance.entity.DeviceToken;
 import com.artivisi.accountingfinance.entity.User;
+import com.artivisi.accountingfinance.enums.Role;
 import com.artivisi.accountingfinance.functional.service.ServiceTestDataInitializer;
+import com.artivisi.accountingfinance.repository.DeviceTokenRepository;
 import com.artivisi.accountingfinance.repository.UserRepository;
 import com.artivisi.accountingfinance.service.DeviceAuthService;
 import com.artivisi.accountingfinance.ui.PlaywrightTestBase;
+import com.microsoft.playwright.APIRequest;
+import com.microsoft.playwright.APIRequestContext;
+import com.microsoft.playwright.Locator;
+import com.microsoft.playwright.options.RequestOptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
+import org.springframework.security.crypto.password.PasswordEncoder;
+
+import java.time.format.DateTimeFormatter;
+import java.util.Set;
+import java.util.UUID;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Functional tests for UserController.
- * Tests user management: list, create, edit, password change, toggle status, delete.
+ * UserController navigation between list, form, detail, edit and change-password pages, and the
+ * device session table on the user detail page. User CRUD, validation, password rules,
+ * activation, session revocation, delete and access control are verified by
+ * ServiceUserManagementTest; tests here work on users they create.
  */
 @DisplayName("User Controller Tests")
 @Import(ServiceTestDataInitializer.class)
 class UserControllerFunctionalTest extends PlaywrightTestBase {
 
-    @Autowired
-    private UserRepository userRepository;
+    private static final DateTimeFormatter TABLE_TIME = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
-    @Autowired
-    private DeviceAuthService deviceAuthService;
+    @Autowired private UserRepository userRepository;
+    @Autowired private DeviceTokenRepository deviceTokenRepository;
+    @Autowired private DeviceAuthService deviceAuthService;
+    @Autowired private PasswordEncoder passwordEncoder;
 
     @BeforeEach
     void setupAndLogin() {
         loginAsAdmin();
     }
 
-    // ==================== LIST PAGE ====================
-
     @Test
-    @DisplayName("Should display user list page with title")
-    void shouldDisplayUserListPage() {
+    @DisplayName("List opens an empty new-user form; detail opens a prefilled edit form and change password; cancel returns")
+    void shouldNavigateBetweenUserPages() {
+        User user = createUser();
+
         navigateTo("/users");
         waitForPageLoad();
-
-        assertThat(page.locator("#page-title")).isVisible();
-        assertThat(page.locator("#page-title")).hasText("Kelola Pengguna");
-    }
-
-    @Test
-    @DisplayName("Should display search button")
-    void shouldDisplaySearchButton() {
-        navigateTo("/users");
-        waitForPageLoad();
-
-        assertThat(page.locator("#btn-search")).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should display new user button")
-    void shouldDisplayNewUserButton() {
-        navigateTo("/users");
-        waitForPageLoad();
-
-        assertThat(page.locator("#btn-new-user")).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should search users by keyword")
-    void shouldSearchUsers() {
-        navigateTo("/users");
-        waitForPageLoad();
-
-        page.locator("input[name='search']").first().fill("admin");
-        page.locator("#btn-search").click();
-        waitForPageLoad();
-
-        assertThat(page).hasURL(java.util.regex.Pattern.compile(".*search=admin.*"));
-    }
-
-    // ==================== NEW USER FORM ====================
-
-    @Test
-    @DisplayName("Should display new user form with title")
-    void shouldDisplayNewUserForm() {
-        navigateTo("/users/new");
-        waitForPageLoad();
-
-        assertThat(page.locator("#page-title")).isVisible();
-        assertThat(page.locator("#page-title")).hasText("Pengguna Baru");
-    }
-
-    @Test
-    @DisplayName("Should display username field")
-    void shouldDisplayUsernameField() {
-        navigateTo("/users/new");
-        waitForPageLoad();
-
-        assertThat(page.locator("#username")).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should display password field")
-    void shouldDisplayPasswordField() {
-        navigateTo("/users/new");
-        waitForPageLoad();
-
-        assertThat(page.locator("#password")).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should display fullName field")
-    void shouldDisplayFullNameField() {
-        navigateTo("/users/new");
-        waitForPageLoad();
-
-        assertThat(page.locator("#fullName")).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should display email field")
-    void shouldDisplayEmailField() {
-        navigateTo("/users/new");
-        waitForPageLoad();
-
-        assertThat(page.locator("#email")).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should display save button")
-    void shouldDisplaySaveButton() {
-        navigateTo("/users/new");
-        waitForPageLoad();
-
-        assertThat(page.locator("#btn-save")).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should create new user with valid data")
-    void shouldCreateNewUserWithValidData() {
-        navigateTo("/users/new");
-        waitForPageLoad();
-
-        String uniqueUsername = "testuser" + System.currentTimeMillis();
-
-        page.locator("#username").fill(uniqueUsername);
-        page.locator("#password").fill("Password123!");
-        page.locator("#fullName").fill("Test User");
-        page.locator("#email").fill(uniqueUsername + "@test.com");
-
-        // Select at least one role
-        var roleCheckbox = page.locator("input[name='selectedRoles']").first();
-        if (!roleCheckbox.isChecked()) {
-            roleCheckbox.check();
-        }
-
-        page.locator("#btn-save").click();
-        waitForPageLoad();
-
-        // Should redirect to users list or user detail
-        assertThat(page).hasURL(java.util.regex.Pattern.compile(".*\\/users.*"));
-    }
-
-    @Test
-    @DisplayName("Should stay on form when role not selected")
-    void shouldStayOnFormWhenRoleNotSelected() {
-        navigateTo("/users/new");
-        waitForPageLoad();
-
-        String uniqueUsername = "testuser" + System.currentTimeMillis();
-
-        page.locator("#username").fill(uniqueUsername);
-        page.locator("#password").fill("Password123!");
-        page.locator("#fullName").fill("Test User");
-        page.locator("#email").fill(uniqueUsername + "@test.com");
-
-        // Uncheck all roles
-        var roleCheckboxes = page.locator("input[name='selectedRoles']:checked").all();
-        for (var checkbox : roleCheckboxes) {
-            checkbox.uncheck();
-        }
-
-        page.locator("#btn-save").click();
-        waitForPageLoad();
-
-        // Should stay on form or show error
-        assertThat(page.locator("#page-title")).isVisible();
-    }
-
-    // ==================== USER DETAIL PAGE ====================
-
-    @Test
-    @DisplayName("Should display user detail page with title")
-    void shouldDisplayUserDetailPage() {
-        var adminUser = userRepository.findByUsername("admin").orElse(null);
-        if (adminUser == null) return;
-
-        navigateTo("/users/" + adminUser.getId());
-        waitForPageLoad();
-
-        assertThat(page.locator("#page-title")).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should display change password link")
-    void shouldDisplayChangePasswordLink() {
-        var adminUser = userRepository.findByUsername("admin").orElse(null);
-        if (adminUser == null) return;
-
-        navigateTo("/users/" + adminUser.getId());
-        waitForPageLoad();
-
-        assertThat(page.locator("#link-change-password")).isVisible();
-    }
-
-    // ==================== EDIT USER FORM ====================
-
-    @Test
-    @DisplayName("Should display edit user form with title")
-    void shouldDisplayEditUserForm() {
-        var adminUser = userRepository.findByUsername("admin").orElse(null);
-        if (adminUser == null) return;
-
-        navigateTo("/users/" + adminUser.getId() + "/edit");
-        waitForPageLoad();
-
-        assertThat(page.locator("#page-title")).isVisible();
-        assertThat(page.locator("#page-title")).hasText("Edit Pengguna");
-    }
-
-    @Test
-    @DisplayName("Should pre-fill username in edit form")
-    void shouldPreFillUsernameInEditForm() {
-        var adminUser = userRepository.findByUsername("admin").orElse(null);
-        if (adminUser == null) return;
-
-        navigateTo("/users/" + adminUser.getId() + "/edit");
-        waitForPageLoad();
-
-        assertThat(page.locator("#username")).hasValue("admin");
-    }
-
-    @Test
-    @DisplayName("Should update user successfully")
-    void shouldUpdateUserSuccessfully() {
-        var adminUser = userRepository.findByUsername("admin").orElse(null);
-        if (adminUser == null) return;
-
-        navigateTo("/users/" + adminUser.getId() + "/edit");
-        waitForPageLoad();
-
-        // Submit without changes to test flow
-        page.locator("#btn-save").click();
-        waitForPageLoad();
-
-        // Should redirect to user detail or list
-        assertThat(page).hasURL(java.util.regex.Pattern.compile(".*\\/users.*"));
-    }
-
-    // ==================== CHANGE PASSWORD ====================
-
-    @Test
-    @DisplayName("Should display change password form with title")
-    void shouldDisplayChangePasswordForm() {
-        var adminUser = userRepository.findByUsername("admin").orElse(null);
-        if (adminUser == null) return;
-
-        navigateTo("/users/" + adminUser.getId() + "/change-password");
-        waitForPageLoad();
-
-        assertThat(page.locator("#page-title")).isVisible();
-        assertThat(page.locator("#page-title")).hasText("Ubah Password");
-    }
-
-    @Test
-    @DisplayName("Should display new password field")
-    void shouldDisplayNewPasswordField() {
-        var adminUser = userRepository.findByUsername("admin").orElse(null);
-        if (adminUser == null) return;
-
-        navigateTo("/users/" + adminUser.getId() + "/change-password");
-        waitForPageLoad();
-
-        assertThat(page.locator("#newPassword")).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should display confirm password field")
-    void shouldDisplayConfirmPasswordField() {
-        var adminUser = userRepository.findByUsername("admin").orElse(null);
-        if (adminUser == null) return;
-
-        navigateTo("/users/" + adminUser.getId() + "/change-password");
-        waitForPageLoad();
-
-        assertThat(page.locator("#confirmPassword")).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should display save password button")
-    void shouldDisplaySavePasswordButton() {
-        var adminUser = userRepository.findByUsername("admin").orElse(null);
-        if (adminUser == null) return;
-
-        navigateTo("/users/" + adminUser.getId() + "/change-password");
-        waitForPageLoad();
-
-        assertThat(page.locator("#btn-save-password")).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should display cancel button")
-    void shouldDisplayCancelButton() {
-        var adminUser = userRepository.findByUsername("admin").orElse(null);
-        if (adminUser == null) return;
-
-        navigateTo("/users/" + adminUser.getId() + "/change-password");
-        waitForPageLoad();
-
-        assertThat(page.locator("#btn-cancel")).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should stay on form when passwords do not match")
-    void shouldStayOnFormWhenPasswordsDoNotMatch() {
-        var adminUser = userRepository.findByUsername("admin").orElse(null);
-        if (adminUser == null) return;
-
-        navigateTo("/users/" + adminUser.getId() + "/change-password");
-        waitForPageLoad();
-
-        page.locator("#newPassword").fill("Password123!");
-        page.locator("#confirmPassword").fill("DifferentPassword123!");
-
-        page.locator("#btn-save-password").click();
-        waitForPageLoad();
-
-        // Should stay on form or show error
-        assertThat(page.locator("#page-title")).isVisible();
-    }
-
-    // ==================== NAVIGATION ====================
-
-    @Test
-    @DisplayName("Should navigate from list to new form")
-    void shouldNavigateFromListToNewForm() {
-        navigateTo("/users");
-        waitForPageLoad();
-
+        assertThat(page.locator("#btn-new-user")).hasAttribute("href", "/users/new");
         page.locator("#btn-new-user").click();
         waitForPageLoad();
 
-        assertThat(page).hasURL(java.util.regex.Pattern.compile(".*\\/users\\/new.*"));
-    }
+        assertThat(page).hasURL(baseUrl() + "/users/new");
+        assertThat(page.locator("#page-title")).hasText("Pengguna Baru");
+        assertThat(page.locator("#username")).hasValue("");
+        assertThat(page.locator("#password")).hasValue("");
+        assertThat(page.locator("#fullName")).hasValue("");
+        assertThat(page.locator("#email")).hasValue("");
+        assertThat(page.locator("input[name='selectedRoles']:checked")).hasCount(0);
 
-    @Test
-    @DisplayName("Should navigate from detail to change password")
-    void shouldNavigateFromDetailToChangePassword() {
-        var adminUser = userRepository.findByUsername("admin").orElse(null);
-        if (adminUser == null) return;
-
-        navigateTo("/users/" + adminUser.getId());
+        navigateTo("/users/" + user.getId());
+        waitForPageLoad();
+        assertThat(page.locator("#page-title")).hasText(user.getFullName());
+        page.locator("a[href='/users/" + user.getId() + "/edit']").click();
         waitForPageLoad();
 
+        assertThat(page).hasURL(baseUrl() + "/users/" + user.getId() + "/edit");
+        assertThat(page.locator("#page-title")).hasText("Edit Pengguna");
+        assertThat(page.locator("#username")).hasValue(user.getUsername());
+        assertThat(page.locator("#fullName")).hasValue(user.getFullName());
+        assertThat(page.locator("#email")).hasValue(user.getEmail());
+        assertThat(page.locator("input[name='selectedRoles']:checked")).hasCount(1);
+        assertThat(page.locator("input[name='selectedRoles'][value='ACCOUNTANT']")).isChecked();
+
+        navigateTo("/users/" + user.getId());
+        waitForPageLoad();
         page.locator("#link-change-password").click();
         waitForPageLoad();
 
-        assertThat(page).hasURL(java.util.regex.Pattern.compile(".*\\/change-password.*"));
-    }
-
-    // ==================== DEVICE SESSIONS ====================
-
-    @Test
-    @DisplayName("Should display device sessions section with active token")
-    void shouldDisplayDeviceSessionsSection() {
-        User adminUser = userRepository.findByUsername("admin").orElseThrow();
-
-        // Create a device token
-        deviceAuthService.createAccessToken(adminUser, "test-client", "Test Device");
-
-        navigateTo("/users/" + adminUser.getId());
+        assertThat(page).hasURL(baseUrl() + "/users/" + user.getId() + "/change-password");
+        assertThat(page.locator("#page-title")).hasText("Ubah Password");
+        assertThat(page.locator("#newPassword")).hasValue("");
+        assertThat(page.locator("#confirmPassword")).hasValue("");
+        page.locator("#btn-cancel").click();
         waitForPageLoad();
 
-        assertThat(page.locator("#device-sessions")).isVisible();
-        assertThat(page.locator("#device-sessions table")).isVisible();
-        assertThat(page.locator("#device-sessions td:has-text('Test Device')")).isVisible();
-        assertThat(page.locator("#device-sessions td:has-text('test-client')")).isVisible();
+        assertThat(page).hasURL(baseUrl() + "/users/" + user.getId());
+        assertThat(userRepository.findById(user.getId()).orElseThrow().getPassword()).isEqualTo(user.getPassword());
     }
 
     @Test
-    @DisplayName("Should display empty state when no device sessions")
-    void shouldDisplayEmptyStateWhenNoSessions() {
-        User adminUser = userRepository.findByUsername("admin").orElseThrow();
+    @DisplayName("Device session table lists each active token with device name, client id, status, creation and last use")
+    void shouldListDeviceSessions() {
+        User user = createUser();
+        DeviceToken used = deviceAuthService.createAccessToken(user, "cli-" + uid(), "Laptop Kantor");
+        DeviceToken idle = deviceAuthService.createAccessToken(user, "cli-" + uid(), "Ponsel");
+        String bearer = used.getTokenHash();
 
-        // Revoke all tokens to ensure clean state
-        deviceAuthService.revokeAllTokens(adminUser, "test-cleanup");
+        APIRequestContext api = playwright.request().newContext(new APIRequest.NewContextOptions().setBaseURL(baseUrl()));
+        try {
+            assertThat(api.get("/api/templates", RequestOptions.create()
+                    .setHeader("Authorization", "Bearer " + bearer)
+                    .setHeader("X-Forwarded-For", "10.77.1.2")).status()).isEqualTo(200);
+        } finally {
+            api.dispose();
+        }
+        DeviceToken usedAfter = deviceTokenRepository.findById(used.getId()).orElseThrow();
+        assertThat(usedAfter.getLastUsedAt()).isNotNull();
+        DeviceToken idleAfter = deviceTokenRepository.findById(idle.getId()).orElseThrow();
 
-        navigateTo("/users/" + adminUser.getId());
+        navigateTo("/users/" + user.getId());
         waitForPageLoad();
 
-        assertThat(page.locator("#device-sessions")).isVisible();
-        assertThat(page.locator("#device-sessions:has-text('Tidak ada sesi perangkat aktif')")).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should revoke individual device session")
-    void shouldRevokeDeviceSession() {
-        User adminUser = userRepository.findByUsername("admin").orElseThrow();
-
-        // Clean state and create a token
-        deviceAuthService.revokeAllTokens(adminUser, "test-cleanup");
-        deviceAuthService.createAccessToken(adminUser, "revoke-test-client", "Revoke Test Device");
-
-        navigateTo("/users/" + adminUser.getId());
-        waitForPageLoad();
-
-        // Take screenshot before revoking (for user manual)
+        Locator rows = page.locator("#device-sessions tbody tr");
+        assertThat(rows).hasCount(2);
+        assertThat(sessionRow(user, used).locator("td")).hasText(new String[] {
+                "Laptop Kantor", used.getClientId(), "Aktif", usedAfter.getCreatedAt().format(TABLE_TIME),
+                usedAfter.getLastUsedAt().format(TABLE_TIME), usedAfter.getLastUsedIp(), "Cabut"});
+        assertThat(sessionRow(user, idle).locator("td")).hasText(new String[] {
+                "Ponsel", idle.getClientId(), "Aktif", idleAfter.getCreatedAt().format(TABLE_TIME), "-", "-", "Cabut"});
+        assertThat(page.locator("#form-revoke-all")).hasCount(1);
         takeManualScreenshot("users/device-sessions");
-
-        // Accept confirm dialog and click Cabut
-        page.onDialog(dialog -> dialog.accept());
-        page.locator(".form-revoke-session button").first().click();
-        waitForPageLoad();
-
-        assertThat(page.locator(":has-text('Sesi perangkat berhasil dicabut')").first()).isVisible();
     }
 
-    @Test
-    @DisplayName("Should revoke all device sessions")
-    void shouldRevokeAllDeviceSessions() {
-        User adminUser = userRepository.findByUsername("admin").orElseThrow();
+    private Locator sessionRow(User user, DeviceToken token) {
+        return page.locator("#device-sessions tbody tr:has(form[action='/users/" + user.getId()
+                + "/revoke-session/" + token.getId() + "'])");
+    }
 
-        // Clean state and create two tokens
-        deviceAuthService.revokeAllTokens(adminUser, "test-cleanup");
-        deviceAuthService.createAccessToken(adminUser, "client-a", "Device A");
-        deviceAuthService.createAccessToken(adminUser, "client-b", "Device B");
+    private User createUser() {
+        String id = uid();
+        User user = new User();
+        user.setUsername("usernav-" + id);
+        user.setPassword(passwordEncoder.encode("Rahasia#2045x"));
+        user.setFullName("Pengguna Navigasi " + id);
+        user.setEmail("usernav-" + id + "@example.com");
+        user.setActive(true);
+        user.setRoles(Set.of(Role.ACCOUNTANT), "system");
+        return userRepository.save(user);
+    }
 
-        navigateTo("/users/" + adminUser.getId());
-        waitForPageLoad();
-
-        // Accept confirm dialog and click Cabut Semua
-        page.onDialog(dialog -> dialog.accept());
-        page.locator("#form-revoke-all button").click();
-        waitForPageLoad();
-
-        assertThat(page.locator(":has-text('sesi perangkat berhasil dicabut')").first()).isVisible();
+    private static String uid() {
+        return UUID.randomUUID().toString().replace("-", "").substring(0, 10);
     }
 }
