@@ -5,6 +5,7 @@ import com.artivisi.accountingfinance.functional.service.ServiceTestDataInitiali
 import com.artivisi.accountingfinance.repository.AssetCategoryRepository;
 import com.artivisi.accountingfinance.repository.ChartOfAccountRepository;
 import com.artivisi.accountingfinance.repository.ClientRepository;
+import com.artivisi.accountingfinance.repository.CompanyConfigRepository;
 import com.artivisi.accountingfinance.repository.JournalEntryRepository;
 import com.artivisi.accountingfinance.ui.PlaywrightTestBase;
 import org.junit.jupiter.api.BeforeEach;
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
 
@@ -47,6 +49,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 class DataImportPersistenceTest extends PlaywrightTestBase {
 
     private static final String CLIENTS_HEADER = "code,name,contact_person,email,phone,address,npwp,nik,nitku,active,created_at\n";
+    private static final String COMPANY_CONFIG_HEADER = "company_name,company_address,company_phone,company_email,"
+            + "tax_id,npwp,nitku,fiscal_year_start_month,currency_code,signing_officer_name,signing_officer_title,"
+            + "company_logo_path,established_date,is_pkp,pkp_since,industry,id_receivable_account,id_payable_account,"
+            + "id_output_tax_account,id_input_tax_account\n";
     private static final String CONFIRM_MESSAGE =
             "PERINGATAN: Seluruh data akan dihapus dan diganti dengan data dari file. Lanjutkan?";
 
@@ -64,6 +70,12 @@ class DataImportPersistenceTest extends PlaywrightTestBase {
 
     @Autowired
     private AssetCategoryRepository assetCategoryRepository;
+
+    @Autowired
+    private CompanyConfigRepository companyConfigRepository;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     @BeforeEach
     void setupAndLogin() {
@@ -181,6 +193,75 @@ class DataImportPersistenceTest extends PlaywrightTestBase {
                 .hasText("Format file tidak didukung. Gunakan file ZIP hasil ekspor.");
 
         assertThat(clientCodes()).isEqualTo(clientsBefore);
+    }
+
+    @Test
+    @DisplayName("A company_config row without company_name keeps the company identity and sets industry and the given posting accounts by COA code")
+    void settingsOnlyCompanyConfigRowUpdatesPostingAccounts() throws IOException {
+        Map<String, Object> before = companyConfigRow();
+        assertThat(before.get("company_name")).isEqualTo("PT ArtiVisi Intermedia");
+        assertThat(before.get("output_tax")).isEqualTo("2.1.03");
+
+        Path zip = zip("settings-only.zip", Map.of("01_company_config.csv",
+                COMPANY_CONFIG_HEADER + ",,,,,,,,,,,,,,,online-seller,1.1.11,2.1.02,,\n"));
+
+        submitImport(zip, true);
+
+        assertThat(page.locator("#import-error-message")).hasCount(0);
+        assertThat(page.locator("#import-success-message"))
+                .hasText(Pattern.compile("Import berhasil: 1 record data, 0 dokumen dalam \\d+ ms"));
+        Map<String, Object> after = companyConfigRow();
+        assertThat(companyConfigRepository.count()).isEqualTo(1);
+        assertThat(after.get("id")).isEqualTo(before.get("id"));
+        assertThat(after.get("company_name")).isEqualTo("PT ArtiVisi Intermedia");
+        assertThat(after.get("npwp")).isEqualTo(before.get("npwp"));
+        assertThat(after.get("industry")).isEqualTo("online-seller");
+        assertThat(after.get("receivable")).isEqualTo("1.1.11");
+        assertThat(after.get("payable")).isEqualTo("2.1.02");
+        assertThat(after.get("output_tax")).isEqualTo("2.1.03");
+        assertThat(after.get("input_tax")).isEqualTo("1.1.25");
+    }
+
+    @Test
+    @DisplayName("A posting-account code missing from the chart of accounts rejects the import and leaves the company config unchanged")
+    void unknownPostingAccountCodeRejected() throws IOException {
+        Map<String, Object> before = companyConfigRow();
+
+        Path zip = zip("unknown-account.zip", Map.of("01_company_config.csv",
+                COMPANY_CONFIG_HEADER + ",,,,,,,,,,,,,,,,9.9.99,,,\n"));
+
+        submitImport(zip, true);
+
+        assertThat(page.locator("#import-success-message")).hasCount(0);
+        assertThat(page.locator("#import-error-message")).hasText(
+                "Error: Failed to import 01_company_config.csv: receivable account 9.9.99 not found in chart of accounts");
+        assertThat(companyConfigRow()).isEqualTo(before);
+    }
+
+    @Test
+    @DisplayName("A company_config row without company_name but with identity columns is rejected")
+    void companyConfigRowWithoutNameRejected() throws IOException {
+        Map<String, Object> before = companyConfigRow();
+
+        Path zip = zip("no-name.zip", Map.of("01_company_config.csv",
+                COMPANY_CONFIG_HEADER + ",Jl. Tanpa Nama,,,,,,1,IDR,,,,,,,it-service,,,,\n"));
+
+        submitImport(zip, true);
+
+        assertThat(page.locator("#import-error-message")).hasText(
+                "Error: Failed to import 01_company_config.csv: company_name is required when company identity columns are set");
+        assertThat(companyConfigRow()).isEqualTo(before);
+    }
+
+    private Map<String, Object> companyConfigRow() {
+        return jdbcTemplate.queryForMap("""
+                SELECT c.id, c.company_name, c.npwp, c.industry, ar.account_code AS receivable,
+                       ap.account_code AS payable, ot.account_code AS output_tax, it.account_code AS input_tax
+                FROM company_config c
+                LEFT JOIN chart_of_accounts ar ON ar.id = c.id_receivable_account
+                LEFT JOIN chart_of_accounts ap ON ap.id = c.id_payable_account
+                LEFT JOIN chart_of_accounts ot ON ot.id = c.id_output_tax_account
+                LEFT JOIN chart_of_accounts it ON it.id = c.id_input_tax_account""");
     }
 
     private String submitImport(Path file, boolean accept) {

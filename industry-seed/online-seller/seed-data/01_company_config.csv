@@ -1,1 +1,2 @@
-company_name,company_address,company_phone,company_email,tax_id,npwp,nitku,fiscal_year_start_month,currency_code,signing_officer_name,signing_officer_title,company_logo_path,established_date,is_pkp,pkp_since,industry
+company_name,company_address,company_phone,company_email,tax_id,npwp,nitku,fiscal_year_start_month,currency_code,signing_officer_name,signing_officer_title,company_logo_path,established_date,is_pkp,pkp_since,industry,id_receivable_account,id_payable_account,id_output_tax_account,id_input_tax_account
+,,,,,,,,,,,,,,,online-seller,1.1.10,2.1.02,2.1.03,1.1.25

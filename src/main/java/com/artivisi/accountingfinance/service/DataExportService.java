@@ -210,11 +210,16 @@ public class DataExportService {
     // ============================================
     // 01: Company Config
     // ============================================
+    private String accountCode(ChartOfAccount account) {
+        return account == null ? "" : escapeCsv(account.getAccountCode());
+    }
+
     private String exportCompanyConfig() {
         StringBuilder csv = new StringBuilder();
         csv.append("company_name,company_address,company_phone,company_email,tax_id,npwp,nitku,");
         csv.append("fiscal_year_start_month,currency_code,signing_officer_name,signing_officer_title,company_logo_path,");
-        csv.append("established_date,is_pkp,pkp_since,industry\n");
+        csv.append("established_date,is_pkp,pkp_since,industry,");
+        csv.append("id_receivable_account,id_payable_account,id_output_tax_account,id_input_tax_account\n");
 
         companyConfigRepository.findFirst().ifPresent(c -> {
             csv.append(escapeCsv(c.getCompanyName())).append(",");
@@ -232,7 +237,11 @@ public class DataExportService {
             csv.append(c.getEstablishedDate() != null ? c.getEstablishedDate().format(DATE_FORMATTER) : "").append(",");
             csv.append(c.getIsPkp() != null ? c.getIsPkp() : "").append(",");
             csv.append(c.getPkpSince() != null ? c.getPkpSince().format(DATE_FORMATTER) : "").append(",");
-            csv.append(escapeCsv(c.getIndustry())).append("\n");
+            csv.append(escapeCsv(c.getIndustry())).append(",");
+            csv.append(accountCode(c.getReceivableAccount())).append(",");
+            csv.append(accountCode(c.getPayableAccount())).append(",");
+            csv.append(accountCode(c.getOutputTaxAccount())).append(",");
+            csv.append(accountCode(c.getInputTaxAccount())).append("\n");
         });
         return csv.toString();
     }

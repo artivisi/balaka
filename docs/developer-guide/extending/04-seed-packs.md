@@ -63,12 +63,20 @@ mkdir -p industry-seed/<name>/seed-data/
 
 ### 2. Company Config (01_company_config.csv)
 
+A seed pack carries no company identity. Its single row leaves `company_name` and the other identity columns empty and sets only `industry` and the posting accounts, by COA code:
+
 ```csv
-id,company_name,npwp,address,city,province,phone,email,currency_code,fiscal_year_start_month,is_pkp,industry,established_date
-e0000000-0000-0000-0000-000000000099,My Company,12.345.678.9-012.000,Jl. Example 1,Jakarta,DKI Jakarta,021-1234567,info@example.com,IDR,1,false,retail,2024-01-01
+company_name,company_address,company_phone,company_email,tax_id,npwp,nitku,fiscal_year_start_month,currency_code,signing_officer_name,signing_officer_title,company_logo_path,established_date,is_pkp,pkp_since,industry,id_receivable_account,id_payable_account,id_output_tax_account,id_input_tax_account
+,,,,,,,,,,,,,,,online-seller,1.1.10,2.1.02,2.1.03,1.1.25
 ```
 
-The `industry` field is used by AI analysis to determine relevant KPIs and analysis types.
+Import rules for this file:
+
+- Row with `company_name`: replaces the company config; empty account columns clear that account.
+- Row without `company_name`: updates the existing company config (created on first use when absent). Only `industry` and the account columns that are filled are applied. Any other filled column rejects the import.
+- An account code that is not in the chart of accounts rejects the whole import.
+
+The `industry` field is used by AI analysis to determine relevant KPIs and analysis types. The receivable/payable accounts drive the dashboard AR/AP KPIs and `/api/analysis/{snapshot,receivables,payables}`; invoices and bills also require the output/input tax accounts. Without them those screens show "Akun ... belum dikonfigurasi di Pengaturan Perusahaan".
 
 ### 3. Chart of Accounts (02_chart_of_accounts.csv)
 

@@ -171,15 +171,20 @@ class DataExportImportTest {
 
         String header = lines[0];
         assertThat(header)
-            .as("Header should end with industry field")
-            .endsWith("established_date,is_pkp,pkp_since,industry");
+            .as("Header should end with industry and the posting-account columns")
+            .endsWith("established_date,is_pkp,pkp_since,industry,"
+                    + "id_receivable_account,id_payable_account,id_output_tax_account,id_input_tax_account");
 
-        // Data line should have the values
+        // Data line should have the values; posting accounts are exported as COA codes
         String dataLine = lines[1];
         assertThat(dataLine)
             .as("Data should contain established date and isPkp=false")
             .contains("2015-06-20")
             .contains("false");
+        assertThat(dataLine).endsWith(","
+                + codeOf(config.getReceivableAccount()) + "," + codeOf(config.getPayableAccount()) + ","
+                + codeOf(config.getOutputTaxAccount()) + "," + codeOf(config.getInputTaxAccount()));
+        assertThat(config.getReceivableAccount()).as("integration seed configures the receivable account").isNotNull();
     }
 
     @Nested
@@ -1018,5 +1023,9 @@ class DataExportImportTest {
             }
         }
         return baos.toByteArray();
+    }
+
+    private static String codeOf(com.artivisi.accountingfinance.entity.ChartOfAccount account) {
+        return account == null ? "" : account.getAccountCode();
     }
 }

@@ -55,6 +55,7 @@ public class DataImportService {
     private final DocumentRepository documentRepository;
     private final AuditLogRepository auditLogRepository;
     private final CompanyConfigRepository companyConfigRepository;
+    private final CompanyConfigService companyConfigService;
 
     // Additional repositories
     private final JournalTemplateRepository templateRepository;
@@ -110,6 +111,7 @@ public class DataImportService {
     // imports before chart_of_accounts (02); resolved in a post-import pass.
     private CompanyConfig importedCompanyConfig;
     private String[] pendingCompanyConfigAccountCodes;
+    private boolean companyConfigSettingsOnly;
     private Map<TaxDeadlineType, TaxDeadline> taxDeadlineMap;
     private Map<String, ProjectMilestone> milestoneMap;
     private Map<String, ProductCategory> productCategoryMap;
@@ -139,8 +141,16 @@ public class DataImportService {
 
         log.info("Files with data: {}", LogSanitizer.sanitize(filesWithData.toString()));
 
+        // A company_config row without company_name only carries industry and posting
+        // accounts for the existing company, so the company row itself is kept.
+        Set<String> filesToTruncate = new java.util.HashSet<>(filesWithData);
+        if (filesWithData.contains(COMPANY_CONFIG_FILE)
+                && isSettingsOnlyCompanyConfig(csvFiles.get(COMPANY_CONFIG_FILE))) {
+            filesToTruncate.remove(COMPANY_CONFIG_FILE);
+        }
+
         // Truncate only tables that will be imported
-        truncateTablesForFiles(filesWithData);
+        truncateTablesForFiles(filesToTruncate);
 
         // Initialize reference maps with existing data
         initializeMapsFromDatabase();
@@ -373,6 +383,7 @@ public class DataImportService {
         // Reset per-import company-config account resolution state
         importedCompanyConfig = null;
         pendingCompanyConfigAccountCodes = null;
+        companyConfigSettingsOnly = false;
 
         // Initialize maps with existing data from database
         accountMap = mapBy(accountRepository.findAll(), ChartOfAccount::getAccountCode);
@@ -683,11 +694,23 @@ public class DataImportService {
     // Import Methods
     // ============================================
 
+    private static final String COMPANY_CONFIG_FILE = "01_company_config.csv";
+    private static final int COMPANY_CONFIG_INDUSTRY_COLUMN = 15;
+
+    private boolean isSettingsOnlyCompanyConfig(String content) {
+        List<String[]> rows = parseCsv(content);
+        return !rows.isEmpty() && getField(rows.get(0), 0).isEmpty();
+    }
+
     private int importCompanyConfig(String content) {
         List<String[]> rows = parseCsv(content);
         if (rows.isEmpty()) return 0;
 
         String[] row = rows.get(0);
+        if (getField(row, 0).isEmpty()) {
+            return importCompanyConfigSettings(row);
+        }
+        companyConfigSettingsOnly = false;
         CompanyConfig config = new CompanyConfig();
         config.setCompanyName(getField(row, 0));
         config.setCompanyAddress(getField(row, 1));
@@ -738,23 +761,61 @@ public class DataImportService {
         return 1;
     }
 
+    /**
+     * A row without company_name (seed packs) sets industry and the posting accounts it names
+     * on the existing company, leaving the company identity and unnamed accounts unchanged.
+     */
+    private int importCompanyConfigSettings(String[] row) {
+        for (int i = 1; i < COMPANY_CONFIG_INDUSTRY_COLUMN; i++) {
+            if (!getField(row, i).isEmpty()) {
+                throw new IllegalArgumentException(
+                        "company_name is required when company identity columns are set");
+            }
+        }
+        CompanyConfig config = companyConfigService.getConfig();
+        String industry = getField(row, COMPANY_CONFIG_INDUSTRY_COLUMN);
+        if (!industry.isEmpty()) {
+            config.setIndustry(industry);
+        }
+        companyConfigRepository.save(config);
+        companyConfigSettingsOnly = true;
+        importedCompanyConfig = config;
+        pendingCompanyConfigAccountCodes = new String[] {
+                getField(row, 16), getField(row, 17), getField(row, 18), getField(row, 19)
+        };
+        return 1;
+    }
+
     private void resolveCompanyConfigAccounts() {
         if (importedCompanyConfig == null || pendingCompanyConfigAccountCodes == null) {
             return;
         }
-        String[] codes = pendingCompanyConfigAccountCodes;
-        importedCompanyConfig.setReceivableAccount(accountByCode(codes[0]));
-        importedCompanyConfig.setPayableAccount(accountByCode(codes[1]));
-        importedCompanyConfig.setOutputTaxAccount(accountByCode(codes[2]));
-        importedCompanyConfig.setInputTaxAccount(accountByCode(codes[3]));
+        try {
+            String[] codes = pendingCompanyConfigAccountCodes;
+            applyPostingAccount(codes[0], "receivable", importedCompanyConfig::setReceivableAccount);
+            applyPostingAccount(codes[1], "payable", importedCompanyConfig::setPayableAccount);
+            applyPostingAccount(codes[2], "output tax", importedCompanyConfig::setOutputTaxAccount);
+            applyPostingAccount(codes[3], "input tax", importedCompanyConfig::setInputTaxAccount);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalStateException("Failed to import " + COMPANY_CONFIG_FILE + ": " + e.getMessage(), e);
+        }
         companyConfigRepository.save(importedCompanyConfig);
     }
 
-    private ChartOfAccount accountByCode(String code) {
+    private void applyPostingAccount(String code, String slot,
+                                     java.util.function.Consumer<ChartOfAccount> setter) {
         if (code == null || code.isBlank()) {
-            return null;
+            if (!companyConfigSettingsOnly) {
+                setter.accept(null);
+            }
+            return;
         }
-        return accountMap.get(code);
+        ChartOfAccount account = accountMap.get(code);
+        if (account == null) {
+            throw new IllegalArgumentException(
+                    slot + " account " + code + " not found in chart of accounts");
+        }
+        setter.accept(account);
     }
 
     private int importChartOfAccounts(String content) {

@@ -1,2 +1,2 @@
-company_name,company_address,company_phone,company_email,tax_id,npwp,nitku,fiscal_year_start_month,currency_code,signing_officer_name,signing_officer_title,company_logo_path,established_date,is_pkp,pkp_since,industry
-Kedai Kopi Nusantara,"Jl. Braga No. 78, Bandung 40111",022-4201-5678,info@kedaikopinusantara.com,01.234.567.8-203.000,01.234.567.8-203.000,0000000000000002,1,IDR,Reza Mahendra,Owner,,2020-01-10,false,,coffee-shop
+company_name,company_address,company_phone,company_email,tax_id,npwp,nitku,fiscal_year_start_month,currency_code,signing_officer_name,signing_officer_title,company_logo_path,established_date,is_pkp,pkp_since,industry,id_receivable_account,id_payable_account,id_output_tax_account,id_input_tax_account
+Kedai Kopi Nusantara,"Jl. Braga No. 78, Bandung 40111",022-4201-5678,info@kedaikopinusantara.com,01.234.567.8-203.000,01.234.567.8-203.000,0000000000000002,1,IDR,Reza Mahendra,Owner,,2020-01-10,false,,coffee-shop,1.1.10,2.1.02,2.1.03,1.1.25

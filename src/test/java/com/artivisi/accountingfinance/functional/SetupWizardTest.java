@@ -6,17 +6,22 @@ import com.artivisi.accountingfinance.repository.ChartOfAccountRepository;
 import com.artivisi.accountingfinance.repository.JournalTemplateRepository;
 import com.artivisi.accountingfinance.repository.UserRepository;
 import com.artivisi.accountingfinance.ui.PlaywrightTestBase;
+import com.microsoft.playwright.Locator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
 
+import java.util.Map;
 import java.util.Optional;
 
+import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -146,5 +151,51 @@ class SetupWizardTest extends PlaywrightTestBase {
         assertThat(page.locator("select[name='industryPack']").count())
                 .as("wizard form must not be present")
                 .isZero();
+    }
+    @ParameterizedTest(name = "{0}")
+    @CsvSource({
+            "it-service,    1.1.10, 2.1.01, 2.1.03, 1.1.25",
+            "online-seller, 1.1.10, 2.1.02, 2.1.03, 1.1.25",
+            "coffee-shop,   1.1.10, 2.1.02, 2.1.03, 1.1.25",
+            "campus,        1.1.10, 2.1.01,       ,       "
+    })
+    @DisplayName("Seed pack configures industry and posting accounts; the admin lands on a dashboard with AR/AP KPIs")
+    void seedPackConfiguresPostingAccounts(String pack, String receivable, String payable,
+                                           String outputTax, String inputTax) {
+        runWizard("admin-" + pack, pack);
+
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM company_config", Long.class)).isEqualTo(1L);
+        Map<String, Object> config = jdbcTemplate.queryForMap("""
+                SELECT c.industry, ar.account_code AS receivable, ap.account_code AS payable,
+                       ot.account_code AS output_tax, it.account_code AS input_tax
+                FROM company_config c
+                LEFT JOIN chart_of_accounts ar ON ar.id = c.id_receivable_account
+                LEFT JOIN chart_of_accounts ap ON ap.id = c.id_payable_account
+                LEFT JOIN chart_of_accounts ot ON ot.id = c.id_output_tax_account
+                LEFT JOIN chart_of_accounts it ON it.id = c.id_input_tax_account""");
+        assertThat(config.get("industry")).isEqualTo(pack);
+        assertThat(config.get("receivable")).isEqualTo(receivable);
+        assertThat(config.get("payable")).isEqualTo(payable);
+        assertThat(config.get("output_tax")).isEqualTo(outputTax);
+        assertThat(config.get("input_tax")).isEqualTo(inputTax);
+
+        login("admin-" + pack, "wizardpass123");
+        assertThat(kpiValue("Piutang Usaha")).hasText("Rp 0,0jt");
+        assertThat(kpiValue("Hutang Usaha")).hasText("Rp 0,0jt");
+        assertThat(page.locator("[data-testid='kpi-config-error']")).hasCount(0);
+    }
+
+    private void runWizard(String username, String pack) {
+        page.navigate(baseUrl() + "/setup");
+        page.fill("input[name='username']", username);
+        page.fill("input[name='fullName']", "Admin " + pack);
+        page.fill("input[name='password']", "wizardpass123");
+        page.selectOption("select[name='industryPack']", pack);
+        page.click("button#btn-setup");
+        page.waitForURL("**/login**");
+    }
+
+    private Locator kpiValue(String label) {
+        return page.locator("#dashboard-kpis p.text-xs.font-medium:text-is('" + label + "') + p");
     }
 }
