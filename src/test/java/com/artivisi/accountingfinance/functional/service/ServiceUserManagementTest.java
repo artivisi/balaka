@@ -45,6 +45,8 @@ class ServiceUserManagementTest extends PlaywrightTestBase {
 
     private static final String PASSWORD = "Rahasia#2045x";
     private static final String NEW_PASSWORD = "Baru#Rahasia2046";
+    private static final String PASSWORD_HINT =
+            "Minimal 12 karakter: huruf besar, huruf kecil, angka, dan karakter khusus";
     private static final SecureRandom RANDOM = new SecureRandom();
 
     @Autowired private UserRepository userRepository;
@@ -140,6 +142,10 @@ class ServiceUserManagementTest extends PlaywrightTestBase {
         assertThat(formError()).hasText("At least one role must be selected");
         assertThat(page.locator("#username")).hasValue(noRole);
 
+        openNewUserForm();
+        assertThat(page.locator("#password")).hasAttribute("minlength", "12");
+        assertThat(page.locator("#password")).hasAttribute("placeholder", PASSWORD_HINT);
+
         String weak = "weak-" + uid();
         submitNewUser(weak, "weakpass", Role.STAFF);
         assertThat(formError()).hasText("Password minimal 12 karakter. Password harus mengandung minimal satu huruf besar. "
@@ -229,6 +235,9 @@ class ServiceUserManagementTest extends PlaywrightTestBase {
         page.locator("#link-change-password").click();
         waitForPageLoad();
         assertThat(page.locator("#page-title")).hasText("Ubah Password");
+        assertThat(page.locator("#newPassword")).hasAttribute("minlength", "12");
+        assertThat(page.locator("#newPassword")).hasAttribute("placeholder", PASSWORD_HINT);
+        assertThat(page.locator("#confirmPassword")).hasAttribute("minlength", "12");
 
         page.locator("#newPassword").fill(NEW_PASSWORD);
         page.locator("#confirmPassword").fill(NEW_PASSWORD + "x");
@@ -236,6 +245,7 @@ class ServiceUserManagementTest extends PlaywrightTestBase {
         waitForPageLoad();
         assertThat(formError()).hasText("Password tidak cocok");
 
+        page.locator("#newPassword").evaluate("el => el.form.noValidate = true");
         page.locator("#newPassword").fill("lemahsekali");
         page.locator("#confirmPassword").fill("lemahsekali");
         page.locator("#btn-save-password").click();
@@ -378,6 +388,7 @@ class ServiceUserManagementTest extends PlaywrightTestBase {
 
     private void submitNewUser(String username, String password, Role role) {
         openNewUserForm();
+        page.locator("#username").evaluate("el => el.form.noValidate = true");
         page.locator("#username").fill(username);
         page.locator("#password").fill(password);
         page.locator("#fullName").fill("Nama " + username);
