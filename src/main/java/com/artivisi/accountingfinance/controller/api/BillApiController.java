@@ -18,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -55,8 +56,8 @@ public class BillApiController {
     public ResponseEntity<Map<String, Object>> listBills(
             @RequestParam(required = false) String status,
             @RequestParam(required = false) UUID vendorId,
-            @RequestParam(required = false) LocalDate dateFrom,
-            @RequestParam(required = false) LocalDate dateTo,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFrom,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateTo,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
 
@@ -97,15 +98,6 @@ public class BillApiController {
         log.info("API: Create bill - vendor={}, date={}, lines={}, user={}",
                 request.vendorName(), request.billDate(), request.lines().size(), username);
 
-        Vendor vendor = vendorService.findOrCreateByName(request.vendorName());
-
-        Bill bill = new Bill();
-        bill.setVendor(vendor);
-        bill.setBillDate(request.billDate());
-        bill.setDueDate(request.dueDate());
-        bill.setVendorInvoiceNumber(request.vendorInvoiceNumber());
-        bill.setNotes(request.notes());
-
         List<BillLine> lines = new ArrayList<>();
         for (BillLineRequest lineReq : request.lines()) {
             BillLine line = new BillLine();
@@ -124,6 +116,15 @@ public class BillApiController {
 
             lines.add(line);
         }
+
+        Vendor vendor = vendorService.findOrCreateByName(request.vendorName());
+
+        Bill bill = new Bill();
+        bill.setVendor(vendor);
+        bill.setBillDate(request.billDate());
+        bill.setDueDate(request.dueDate());
+        bill.setVendorInvoiceNumber(request.vendorInvoiceNumber());
+        bill.setNotes(request.notes());
 
         Bill created = billService.create(bill, lines);
         log.info("API: Bill created - billNumber={}, vendor={}, amount={}",

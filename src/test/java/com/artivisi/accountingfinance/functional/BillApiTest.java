@@ -1,6 +1,12 @@
 package com.artivisi.accountingfinance.functional;
 
+import com.artivisi.accountingfinance.entity.Bill;
+import com.artivisi.accountingfinance.entity.Vendor;
+import com.artivisi.accountingfinance.enums.BillStatus;
 import com.artivisi.accountingfinance.functional.service.ServiceTestDataInitializer;
+import com.artivisi.accountingfinance.repository.BillRepository;
+import com.artivisi.accountingfinance.repository.VendorRepository;
+import com.artivisi.accountingfinance.service.BillService;
 import com.artivisi.accountingfinance.ui.PlaywrightTestBase;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -8,26 +14,38 @@ import com.microsoft.playwright.APIRequest;
 import com.microsoft.playwright.APIRequestContext;
 import com.microsoft.playwright.APIResponse;
 import com.microsoft.playwright.options.RequestOptions;
-import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.time.Duration;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-@Slf4j
 @DisplayName("Bill API - Functional Tests")
 @Import(ServiceTestDataInitializer.class)
 class BillApiTest extends PlaywrightTestBase {
+
+    private static final int YEAR = 2086;
+
+    @Autowired private BillService billService;
+    @Autowired private BillRepository billRepository;
+    @Autowired private VendorRepository vendorRepository;
+    @Autowired private JdbcTemplate jdbcTemplate;
 
     private APIRequestContext apiContext;
     private ObjectMapper objectMapper;
@@ -52,220 +70,256 @@ class BillApiTest extends PlaywrightTestBase {
     }
 
     @Test
-    @DisplayName("POST /api/bills - creates bill with existing vendor match")
-    void testCreateBillWithExistingVendor() throws Exception {
-        // First create a vendor via API
-        String vendorName = "PT Vendor Pertama";
-        JsonNode created1 = createBill(vendorName, "2026-02-01", "2026-03-01",
-                "INV-001", List.of(
-                        Map.of("description", "Jasa Konsultasi", "unitPrice", 5000000, "quantity", 1)
-                ));
-
-        assertThat(created1.get("vendorName").asText()).isEqualTo(vendorName);
-        String vendorId = created1.get("vendorId").asText();
-
-        // Create another bill with same vendor name — should match existing
-        JsonNode created2 = createBill(vendorName, "2026-02-15", "2026-03-15",
-                "INV-002", List.of(
-                        Map.of("description", "Jasa Maintenance", "unitPrice", 3000000, "quantity", 2)
-                ));
-
-        assertThat(created2.get("vendorId").asText()).isEqualTo(vendorId);
-        assertThat(created2.get("vendorName").asText()).isEqualTo(vendorName);
-
-        log.info("Existing vendor match test passed - vendorId: {}", vendorId);
-    }
-
-    @Test
-    @DisplayName("POST /api/bills - creates bill with new vendor auto-creation")
+    @DisplayName("POST /api/bills - auto-creates an unknown vendor and returns the persisted bill with PPN")
     void testCreateBillWithNewVendor() throws Exception {
-        String vendorName = "PT Vendor Baru API";
-        JsonNode created = createBill(vendorName, "2026-02-10", "2026-03-10",
-                null, List.of(
-                        Map.of("description", "Pembelian ATK", "unitPrice", 250000, "quantity", 10, "taxRate", 11)
-                ));
+        String vendorName = "PT Vendor Baru API " + shortId();
+        JsonNode created = createBill(vendorName, YEAR + "-02-10", YEAR + "-03-10", null, "Catatan API", List.of(
+                Map.of("description", "Pembelian ATK", "unitPrice", 250000, "quantity", 10, "taxRate", 11,
+                        "expenseAccountCode", "5.1.09")));
 
-        assertThat(created.get("id")).isNotNull();
-        assertThat(created.get("billNumber").asText()).isNotEmpty();
+        Vendor vendor = vendorRepository.findByNameIgnoreCase(vendorName)
+                .orElseThrow(() -> new AssertionError("Vendor not auto-created: " + vendorName));
+        assertThat(vendor.getCode()).matches("VND-\\d{4,}");
+        assertThat(vendor.getActive()).isTrue();
+
         assertThat(created.get("vendorName").asText()).isEqualTo(vendorName);
-        assertThat(created.get("vendorCode").asText()).startsWith("VND-");
+        assertThat(created.get("vendorCode").asText()).isEqualTo(vendor.getCode());
+        assertThat(created.get("vendorId").asText()).isEqualTo(vendor.getId().toString());
+        assertThat(created.get("billNumber").asText()).matches(
+                "BILL-" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMM")) + "-\\d{4}");
+        assertThat(created.get("billDate").asText()).isEqualTo(YEAR + "-02-10");
+        assertThat(created.get("dueDate").asText()).isEqualTo(YEAR + "-03-10");
+        assertThat(created.get("notes").asText()).isEqualTo("Catatan API");
+        assertThat(created.get("vendorInvoiceNumber").isNull()).isTrue();
         assertThat(created.get("status").asText()).isEqualTo("DRAFT");
-        assertThat(created.get("amount").asDouble()).isEqualTo(2500000.0);
-        assertThat(created.get("taxAmount").asDouble()).isEqualTo(275000.0);
+        assertThat(created.get("amount").decimalValue()).isEqualByComparingTo("2500000");
+        assertThat(created.get("taxAmount").decimalValue()).isEqualByComparingTo("275000");
+        assertThat(created.get("approvedAt").isNull()).isTrue();
 
         JsonNode lines = created.get("lines");
         assertThat(lines.size()).isEqualTo(1);
         assertThat(lines.get(0).get("description").asText()).isEqualTo("Pembelian ATK");
-        assertThat(lines.get(0).get("quantity").asDouble()).isEqualTo(10.0);
-        assertThat(lines.get(0).get("unitPrice").asDouble()).isEqualTo(250000.0);
-        assertThat(lines.get(0).get("taxRate").asDouble()).isEqualTo(11.0);
+        assertThat(lines.get(0).get("quantity").decimalValue()).isEqualByComparingTo("10");
+        assertThat(lines.get(0).get("unitPrice").decimalValue()).isEqualByComparingTo("250000");
+        assertThat(lines.get(0).get("taxRate").decimalValue()).isEqualByComparingTo("11");
+        assertThat(lines.get(0).get("taxAmount").decimalValue()).isEqualByComparingTo("275000");
+        assertThat(lines.get(0).get("amount").decimalValue()).isEqualByComparingTo("2500000");
+        assertThat(lines.get(0).get("expenseAccountCode").asText()).isEqualTo("5.1.09");
+        assertThat(lines.get(0).get("expenseAccountName").asText()).isEqualTo("Beban ATK");
 
-        log.info("New vendor auto-creation test passed - bill: {}, vendor: {}",
-                created.get("billNumber").asText(), created.get("vendorCode").asText());
+        Bill saved = billService.findByBillNumber(created.get("billNumber").asText());
+        assertThat(saved.getId().toString()).isEqualTo(created.get("id").asText());
+        assertThat(saved.getVendor().getId()).isEqualTo(vendor.getId());
+        assertThat(saved.getAmount()).isEqualByComparingTo("2500000");
+        assertThat(saved.getTaxAmount()).isEqualByComparingTo("275000");
+        assertThat(saved.getStatus()).isEqualTo(BillStatus.DRAFT);
     }
 
     @Test
-    @DisplayName("POST /api/bills - creates bill with multiple lines")
+    @DisplayName("POST /api/bills - reuses the existing vendor whose name matches case-insensitively")
+    void testCreateBillWithExistingVendor() throws Exception {
+        String vendorName = "PT Vendor Pertama " + shortId();
+        JsonNode first = createBill(vendorName, YEAR + "-02-01", YEAR + "-03-01", "INV-001", null, List.of(
+                Map.of("description", "Jasa Konsultasi", "unitPrice", 5000000, "quantity", 1)));
+        long vendorsBefore = vendorRepository.count();
+
+        JsonNode second = createBill(vendorName.toUpperCase(), YEAR + "-02-15", YEAR + "-03-15", "INV-002", null, List.of(
+                Map.of("description", "Jasa Maintenance", "unitPrice", 3000000, "quantity", 2)));
+
+        assertThat(vendorRepository.count()).isEqualTo(vendorsBefore);
+        assertThat(second.get("vendorId").asText()).isEqualTo(first.get("vendorId").asText());
+        assertThat(second.get("vendorName").asText()).isEqualTo(vendorName);
+        assertThat(second.get("vendorInvoiceNumber").asText()).isEqualTo("INV-002");
+        assertThat(second.get("amount").decimalValue()).isEqualByComparingTo("6000000");
+        assertThat(second.get("taxAmount").decimalValue()).isEqualByComparingTo("0");
+        assertThat(second.get("billNumber").asText()).isNotEqualTo(first.get("billNumber").asText());
+    }
+
+    @Test
+    @DisplayName("POST /api/bills - sums multiple lines; PPN only on the taxed line; default quantity 1")
     void testCreateBillWithMultipleLines() throws Exception {
-        JsonNode created = createBill("PT Multi Line Vendor", "2026-02-05", "2026-03-05",
-                "ML-001", List.of(
-                        Map.of("description", "Item A", "unitPrice", 1000000, "quantity", 1),
+        JsonNode created = createBill("PT Multi Line Vendor " + shortId(), YEAR + "-02-05", YEAR + "-03-05",
+                "ML-001", null, List.of(
+                        Map.of("description", "Item A", "unitPrice", 1000000),
                         Map.of("description", "Item B", "unitPrice", 500000, "quantity", 3),
-                        Map.of("description", "Item C", "unitPrice", 200000, "quantity", 5, "taxRate", 11)
-                ));
+                        Map.of("description", "Item C", "unitPrice", 200000, "quantity", 5, "taxRate", 11)));
 
-        assertThat(created.get("lines").size()).isEqualTo(3);
-        // 1000000 + 1500000 + 1000000 = 3500000
-        assertThat(created.get("amount").asDouble()).isEqualTo(3500000.0);
-        // tax on Item C only: 1000000 * 11% = 110000
-        assertThat(created.get("taxAmount").asDouble()).isEqualTo(110000.0);
-
-        log.info("Multiple lines test passed - amount: {}, tax: {}",
-                created.get("amount"), created.get("taxAmount"));
+        JsonNode lines = created.get("lines");
+        assertThat(lines.size()).isEqualTo(3);
+        assertThat(lines.get(0).get("description").asText()).isEqualTo("Item A");
+        assertThat(lines.get(0).get("quantity").decimalValue()).isEqualByComparingTo("1");
+        assertThat(lines.get(0).get("amount").decimalValue()).isEqualByComparingTo("1000000");
+        assertThat(lines.get(1).get("description").asText()).isEqualTo("Item B");
+        assertThat(lines.get(1).get("amount").decimalValue()).isEqualByComparingTo("1500000");
+        assertThat(lines.get(1).get("taxAmount").decimalValue()).isEqualByComparingTo("0");
+        assertThat(lines.get(2).get("description").asText()).isEqualTo("Item C");
+        assertThat(lines.get(2).get("amount").decimalValue()).isEqualByComparingTo("1000000");
+        assertThat(lines.get(2).get("taxAmount").decimalValue()).isEqualByComparingTo("110000");
+        assertThat(created.get("amount").decimalValue()).isEqualByComparingTo("3500000");
+        assertThat(created.get("taxAmount").decimalValue()).isEqualByComparingTo("110000");
     }
 
     @Test
-    @DisplayName("GET /api/bills - lists bills with pagination")
+    @DisplayName("POST /api/bills - rejects missing lines and unknown expense accounts without creating anything")
+    void testCreateBillRejected() throws Exception {
+        String vendorName = "PT Ditolak " + shortId();
+        long billsBefore = billRepository.count();
+
+        Map<String, Object> noLines = new HashMap<>();
+        noLines.put("vendorName", vendorName);
+        noLines.put("billDate", YEAR + "-02-01");
+        noLines.put("dueDate", YEAR + "-03-01");
+        noLines.put("lines", List.of());
+        APIResponse response = post("/api/bills", noLines);
+        assertThat(response.status()).isEqualTo(400);
+        JsonNode error = parse(response);
+        assertThat(error.get("fieldErrors").get("lines").asText()).isEqualTo("Minimal satu baris tagihan wajib diisi");
+
+        Map<String, Object> badAccount = new HashMap<>(noLines);
+        badAccount.put("lines", List.of(Map.of("description", "X", "unitPrice", 1000, "expenseAccountCode", "9.9.99")));
+        response = post("/api/bills", badAccount);
+        assertThat(response.status()).isEqualTo(404);
+
+        assertThat(billRepository.count()).isEqualTo(billsBefore);
+        assertThat(vendorRepository.findByNameIgnoreCase(vendorName)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("GET /api/bills - filters by vendor, status and date range, and paginates")
     void testListBills() throws Exception {
-        // Create a bill first
-        createBill("PT List Test Vendor", "2026-01-15", "2026-02-15",
-                null, List.of(
-                        Map.of("description", "Test item", "unitPrice", 100000, "quantity", 1)
-                ));
+        String vendorName = "PT List Vendor " + shortId();
+        JsonNode january = createBill(vendorName, YEAR + "-01-15", YEAR + "-02-15", null, null, List.of(
+                Map.of("description", "Januari", "unitPrice", 100000, "expenseAccountCode", "5.1.20")));
+        JsonNode february = createBill(vendorName, YEAR + "-02-15", YEAR + "-03-15", null, null, List.of(
+                Map.of("description", "Februari", "unitPrice", 200000, "expenseAccountCode", "5.1.20")));
+        JsonNode march = createBill(vendorName, YEAR + "-03-15", YEAR + "-04-15", null, null, List.of(
+                Map.of("description", "Maret", "unitPrice", 300000, "expenseAccountCode", "5.1.20")));
+        assertThat(post("/api/bills/" + february.get("id").asText() + "/approve", Map.of()).status()).isEqualTo(200);
+        String vendorId = january.get("vendorId").asText();
 
-        APIResponse response = get("/api/bills?page=0&size=10");
-        assertThat(response.status()).isEqualTo(200);
+        JsonNode all = getPage("/api/bills?vendorId=" + vendorId);
+        assertThat(all.get("totalElements").asLong()).isEqualTo(3);
+        assertThat(all.get("totalPages").asInt()).isEqualTo(1);
+        assertThat(all.get("currentPage").asInt()).isZero();
+        assertThat(all.get("pageSize").asInt()).isEqualTo(20);
+        assertThat(billNumbers(all)).containsExactly(march.get("billNumber").asText(),
+                february.get("billNumber").asText(), january.get("billNumber").asText());
 
-        JsonNode body = parse(response);
-        assertThat(body.has("items")).isTrue();
-        assertThat(body.has("totalElements")).isTrue();
-        assertThat(body.has("totalPages")).isTrue();
-        assertThat(body.has("currentPage")).isTrue();
-        assertThat(body.has("pageSize")).isTrue();
-        assertThat(body.get("totalElements").asLong()).isGreaterThanOrEqualTo(1);
+        JsonNode drafts = getPage("/api/bills?vendorId=" + vendorId + "&status=draft");
+        assertThat(billNumbers(drafts)).containsExactly(march.get("billNumber").asText(), january.get("billNumber").asText());
+        JsonNode approved = getPage("/api/bills?vendorId=" + vendorId + "&status=APPROVED");
+        assertThat(billNumbers(approved)).containsExactly(february.get("billNumber").asText());
+        assertThat(approved.get("items").get(0).get("status").asText()).isEqualTo("APPROVED");
 
-        JsonNode items = body.get("items");
-        assertThat(items.isArray()).isTrue();
-        assertThat(items.size()).isGreaterThanOrEqualTo(1);
+        JsonNode range = getPage("/api/bills?vendorId=" + vendorId + "&dateFrom=" + YEAR + "-02-01&dateTo=" + YEAR + "-03-15");
+        assertThat(billNumbers(range)).containsExactly(march.get("billNumber").asText(), february.get("billNumber").asText());
 
-        JsonNode first = items.get(0);
-        assertThat(first.has("id")).isTrue();
-        assertThat(first.has("billNumber")).isTrue();
-        assertThat(first.has("vendorName")).isTrue();
-        assertThat(first.has("status")).isTrue();
-
-        log.info("List bills test passed - totalElements: {}", body.get("totalElements"));
+        JsonNode page1 = getPage("/api/bills?vendorId=" + vendorId + "&page=1&size=2");
+        assertThat(page1.get("totalElements").asLong()).isEqualTo(3);
+        assertThat(page1.get("totalPages").asInt()).isEqualTo(2);
+        assertThat(page1.get("currentPage").asInt()).isEqualTo(1);
+        assertThat(page1.get("pageSize").asInt()).isEqualTo(2);
+        assertThat(billNumbers(page1)).containsExactly(january.get("billNumber").asText());
     }
 
     @Test
-    @DisplayName("GET /api/bills - filters by status")
-    void testListBillsFilterByStatus() throws Exception {
-        createBill("PT Filter Vendor", "2026-01-20", "2026-02-20",
-                null, List.of(
-                        Map.of("description", "Filter test", "unitPrice", 100000, "quantity", 1)
-                ));
-
-        APIResponse response = get("/api/bills?status=DRAFT");
-        assertThat(response.status()).isEqualTo(200);
-
-        JsonNode body = parse(response);
-        JsonNode items = body.get("items");
-        for (int i = 0; i < items.size(); i++) {
-            assertThat(items.get(i).get("status").asText()).isEqualTo("DRAFT");
-        }
-
-        log.info("Filter by status test passed - {} DRAFT bills", items.size());
-    }
-
-    @Test
-    @DisplayName("GET /api/bills/{id} - returns bill detail")
+    @DisplayName("GET /api/bills/{id} - returns bill detail; unknown id is 404")
     void testGetBillDetail() throws Exception {
-        JsonNode created = createBill("PT Detail Vendor", "2026-02-01", "2026-03-01",
-                "DET-001", List.of(
-                        Map.of("description", "Detail item", "unitPrice", 750000, "quantity", 2)
-                ));
-
+        String vendorName = "PT Detail Vendor " + shortId();
+        JsonNode created = createBill(vendorName, YEAR + "-02-01", YEAR + "-03-01", "DET-001", null, List.of(
+                Map.of("description", "Detail item", "unitPrice", 750000, "quantity", 2, "expenseAccountCode", "5.1.20")));
         String billId = created.get("id").asText();
 
         APIResponse response = get("/api/bills/" + billId);
         assertThat(response.status()).isEqualTo(200);
-
         JsonNode bill = parse(response);
         assertThat(bill.get("id").asText()).isEqualTo(billId);
-        assertThat(bill.get("vendorName").asText()).isEqualTo("PT Detail Vendor");
+        assertThat(bill.get("billNumber").asText()).isEqualTo(created.get("billNumber").asText());
+        assertThat(bill.get("vendorName").asText()).isEqualTo(vendorName);
         assertThat(bill.get("vendorInvoiceNumber").asText()).isEqualTo("DET-001");
+        assertThat(bill.get("billDate").asText()).isEqualTo(YEAR + "-02-01");
+        assertThat(bill.get("amount").decimalValue()).isEqualByComparingTo("1500000");
+        assertThat(bill.get("status").asText()).isEqualTo("DRAFT");
         assertThat(bill.get("lines").size()).isEqualTo(1);
         assertThat(bill.get("lines").get(0).get("description").asText()).isEqualTo("Detail item");
+        assertThat(bill.get("lines").get(0).get("expenseAccountName").asText()).isEqualTo("Beban Cloud & Server");
 
-        log.info("Bill detail test passed - billNumber: {}", bill.get("billNumber"));
+        APIResponse missing = get("/api/bills/" + UUID.randomUUID());
+        assertThat(missing.status()).isEqualTo(404);
     }
 
     @Test
-    @DisplayName("POST /api/bills/{id}/approve - approves a draft bill")
+    @DisplayName("POST /api/bills/{id}/approve - approves a draft, records the approver, creates the expense draft; second approval is 409")
     void testApproveBill() throws Exception {
-        JsonNode created = createBill("PT Approve Vendor", "2026-02-01", "2026-03-01",
-                null, List.of(
-                        Map.of("description", "Approve item", "unitPrice", 500000, "quantity", 1,
-                                "expenseAccountCode", "5.1.20")
-                ));
-
+        JsonNode created = createBill("PT Approve Vendor " + shortId(), YEAR + "-04-01", YEAR + "-05-01", null, null, List.of(
+                Map.of("description", "Approve item", "unitPrice", 500000, "quantity", 1, "taxRate", 11,
+                        "expenseAccountCode", "5.1.20")));
         String billId = created.get("id").asText();
 
         APIResponse response = post("/api/bills/" + billId + "/approve", Map.of());
         assertThat(response.status()).isEqualTo(200);
-
         JsonNode approved = parse(response);
         assertThat(approved.get("status").asText()).isEqualTo("APPROVED");
-        assertThat(approved.get("approvedAt")).isNotNull();
-        assertThat(approved.get("approvedBy").asText()).isNotEmpty();
+        assertThat(approved.get("approvedBy").asText()).isEqualTo("admin");
+        assertThat(LocalDateTime.parse(approved.get("approvedAt").asText())).isAfter(LocalDateTime.now().minusMinutes(5));
 
-        log.info("Approve bill test passed - status: {}", approved.get("status"));
+        Bill bill = billService.findById(UUID.fromString(billId));
+        assertThat(bill.getStatus()).isEqualTo(BillStatus.APPROVED);
+        assertThat(bill.getApprovedBy()).isEqualTo("admin");
+        assertThat(jdbcTemplate.queryForList("""
+                SELECT t.status || '|' || t.transaction_date || '|' || t.amount || '|' || jt.template_name
+                FROM transactions t JOIN journal_templates jt ON jt.id = t.id_journal_template
+                WHERE t.source_document_type = 'BILL' AND t.source_document_id = ?""", String.class, bill.getId()))
+                .containsExactly("DRAFT|" + YEAR + "-04-01|555000.00|Tagihan Vendor");
+
+        APIResponse again = post("/api/bills/" + billId + "/approve", Map.of());
+        assertThat(again.status()).isEqualTo(409);
+        assertThat(billTransactionCount(bill)).isEqualTo(1);
     }
 
     @Test
-    @DisplayName("POST /api/bills/{id}/mark-paid - marks an approved bill as paid")
+    @DisplayName("POST /api/bills/{id}/mark-paid - refuses a draft (409), marks an approved bill paid")
     void testMarkBillPaid() throws Exception {
-        JsonNode created = createBill("PT Paid Vendor", "2026-02-01", "2026-03-01",
-                null, List.of(
-                        Map.of("description", "Paid item", "unitPrice", 1000000, "quantity", 1,
-                                "expenseAccountCode", "5.1.20")
-                ));
-
+        JsonNode created = createBill("PT Paid Vendor " + shortId(), YEAR + "-05-01", YEAR + "-06-01", null, null, List.of(
+                Map.of("description", "Paid item", "unitPrice", 1000000, "quantity", 1, "expenseAccountCode", "5.1.20")));
         String billId = created.get("id").asText();
 
-        // Approve first
-        post("/api/bills/" + billId + "/approve", Map.of());
+        APIResponse draftPaid = post("/api/bills/" + billId + "/mark-paid", Map.of());
+        assertThat(draftPaid.status()).isEqualTo(409);
+        assertThat(billService.findById(UUID.fromString(billId)).getStatus()).isEqualTo(BillStatus.DRAFT);
 
-        // Then mark as paid
+        assertThat(post("/api/bills/" + billId + "/approve", Map.of()).status()).isEqualTo(200);
         APIResponse response = post("/api/bills/" + billId + "/mark-paid", Map.of());
         assertThat(response.status()).isEqualTo(200);
-
         JsonNode paid = parse(response);
         assertThat(paid.get("status").asText()).isEqualTo("PAID");
-        assertThat(paid.get("paidAt")).isNotNull();
+        assertThat(LocalDateTime.parse(paid.get("paidAt").asText())).isAfter(LocalDateTime.now().minusMinutes(5));
 
-        log.info("Mark paid test passed - status: {}", paid.get("status"));
+        Bill bill = billService.findById(UUID.fromString(billId));
+        assertThat(bill.getStatus()).isEqualTo(BillStatus.PAID);
+        assertThat(bill.getPaidAt()).isNotNull();
     }
 
     @Test
-    @DisplayName("API endpoints reject unauthenticated requests with 401")
+    @DisplayName("API endpoints reject unauthenticated requests with 401 and create nothing")
     void testUnauthenticated() {
+        long billsBefore = billRepository.count();
         APIResponse listResponse = apiContext.get("/api/bills");
         assertThat(listResponse.status()).isEqualTo(401);
 
         APIResponse createResponse = apiContext.post("/api/bills",
                 RequestOptions.create()
                         .setHeader("Content-Type", "application/json")
-                        .setData(Map.of("vendorName", "test")));
+                        .setData(Map.of("vendorName", "test", "billDate", YEAR + "-01-01", "dueDate", YEAR + "-02-01",
+                                "lines", List.of(Map.of("description", "x", "unitPrice", 1)))));
         assertThat(createResponse.status()).isEqualTo(401);
-
-        log.info("Unauthenticated test passed");
+        assertThat(billRepository.count()).isEqualTo(billsBefore);
     }
 
     // --- Helpers ---
 
-    private JsonNode createBill(String vendorName, String billDate, String dueDate,
-                                 String vendorInvoiceNumber, List<Map<String, Object>> lines) throws Exception {
+    private JsonNode createBill(String vendorName, String billDate, String dueDate, String vendorInvoiceNumber,
+                                String notes, List<Map<String, Object>> lines) throws Exception {
         Map<String, Object> request = new HashMap<>();
         request.put("vendorName", vendorName);
         request.put("billDate", billDate);
@@ -273,12 +327,37 @@ class BillApiTest extends PlaywrightTestBase {
         if (vendorInvoiceNumber != null) {
             request.put("vendorInvoiceNumber", vendorInvoiceNumber);
         }
+        if (notes != null) {
+            request.put("notes", notes);
+        }
         request.put("lines", lines);
 
         APIResponse response = post("/api/bills", request);
         assertThat(response.status()).isEqualTo(201);
 
         return parse(response);
+    }
+
+    private int billTransactionCount(Bill bill) {
+        return jdbcTemplate.queryForObject("""
+                SELECT COUNT(*) FROM transactions WHERE source_document_type = 'BILL' AND source_document_id = ?""",
+                Integer.class, bill.getId());
+    }
+
+    private JsonNode getPage(String path) throws Exception {
+        APIResponse response = get(path);
+        assertThat(response.status()).as(path).isEqualTo(200);
+        return parse(response);
+    }
+
+    private List<String> billNumbers(JsonNode page) {
+        List<String> numbers = new ArrayList<>();
+        page.get("items").forEach(item -> numbers.add(item.get("billNumber").asText()));
+        return numbers;
+    }
+
+    private static String shortId() {
+        return UUID.randomUUID().toString().replace("-", "").substring(0, 10);
     }
 
     private APIResponse get(String path) {

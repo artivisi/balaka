@@ -38,8 +38,8 @@ public interface BillRepository extends JpaRepository<Bill, UUID> {
     @Query("SELECT b FROM Bill b WHERE " +
             "(:status IS NULL OR b.status = :status) AND " +
             "(:vendorId IS NULL OR b.vendor.id = :vendorId) AND " +
-            "(:dateFrom IS NULL OR b.billDate >= :dateFrom) AND " +
-            "(:dateTo IS NULL OR b.billDate <= :dateTo) " +
+            "(CAST(:dateFrom AS date) IS NULL OR b.billDate >= :dateFrom) AND " +
+            "(CAST(:dateTo AS date) IS NULL OR b.billDate <= :dateTo) " +
             "ORDER BY b.billDate DESC")
     Page<Bill> findByFiltersWithDates(
             @Param("status") BillStatus status,
