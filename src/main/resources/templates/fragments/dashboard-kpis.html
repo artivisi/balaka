@@ -2,6 +2,15 @@
 <html xmlns:th="http://www.thymeleaf.org" lang="id">
 <head><title>dashboard kpis Fragment</title></head>
 <body>
+    <!-- Shown instead of the KPIs when a required posting account is not configured -->
+    <div th:fragment="config-error" data-testid="kpi-config-error"
+         class="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+        <p class="text-sm font-semibold text-red-800">KPI tidak dapat dihitung</p>
+        <p class="text-sm text-red-700" data-testid="kpi-config-message" th:text="${configError}">Akun Piutang Usaha belum dikonfigurasi di Pengaturan Perusahaan</p>
+        <a th:href="@{/settings}" data-testid="kpi-config-link"
+           class="mt-2 inline-block text-sm font-medium text-primary-600 hover:text-primary-700 underline">Buka Pengaturan Perusahaan</a>
+    </div>
+
     <!-- Dashboard KPIs Fragment - loaded via HTMX on page load -->
     <div th:fragment="kpis" id="dashboard-kpis">
         <!-- Month Header with Selector -->

@@ -20,6 +20,7 @@ import org.springframework.test.context.TestPropertySource;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -183,6 +184,33 @@ class SetupWizardTest extends PlaywrightTestBase {
         assertThat(kpiValue("Piutang Usaha")).hasText("Rp 0,0jt");
         assertThat(kpiValue("Hutang Usaha")).hasText("Rp 0,0jt");
         assertThat(page.locator("[data-testid='kpi-config-error']")).hasCount(0);
+    }
+
+    @Test
+    @DisplayName("Without configured AR/AP accounts the dashboard renders and names the missing account with a link to company settings")
+    void dashboardNamesMissingPostingAccount() {
+        runWizard("manualadmin", "it-service");
+        UUID receivableId = jdbcTemplate.queryForObject(
+                "SELECT id_receivable_account FROM company_config", UUID.class);
+        jdbcTemplate.update("UPDATE company_config SET id_receivable_account = NULL, id_payable_account = NULL");
+
+        login("manualadmin", "wizardpass123");
+        Locator error = page.locator("[data-testid='kpi-config-error']");
+        assertThat(error.locator("[data-testid='kpi-config-message']"))
+                .hasText("Akun Piutang Usaha belum dikonfigurasi di Pengaturan Perusahaan");
+        assertThat(page.locator("#dashboard-kpis")).hasCount(0);
+        assertThat(page.locator("#section-saldo-kas h2")).hasText("Saldo Kas & Bank");
+
+        jdbcTemplate.update("UPDATE company_config SET id_receivable_account = ?", receivableId);
+        navigateTo("/dashboard");
+        assertThat(error.locator("[data-testid='kpi-config-message']"))
+                .hasText("Akun Hutang Usaha belum dikonfigurasi di Pengaturan Perusahaan");
+
+        Locator link = error.locator("a[data-testid='kpi-config-link']");
+        assertThat(link).hasAttribute("href", "/settings");
+        link.click();
+        page.waitForURL("**/settings");
+        assertThat(page.locator("#payableAccountId")).isVisible();
     }
 
     private void runWizard(String username, String pack) {

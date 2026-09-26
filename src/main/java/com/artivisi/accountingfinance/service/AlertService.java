@@ -127,9 +127,7 @@ public class AlertService {
     }
 
     private AlertEvent evaluateCashLow(AlertRule rule) {
-        YearMonth now = YearMonth.now();
-        DashboardService.DashboardKPI kpi = dashboardService.calculateKPIs(now);
-        BigDecimal cashBalance = kpi.cashBalance();
+        BigDecimal cashBalance = dashboardService.calculateCashBalance(YearMonth.now().atEndOfMonth());
 
         if (cashBalance.compareTo(rule.getThreshold()) < 0) {
             AlertSeverity severity = cashBalance.compareTo(BigDecimal.ZERO) <= 0
@@ -170,16 +168,18 @@ public class AlertService {
         return null;
     }
 
+    private BigDecimal monthExpense(YearMonth month) {
+        return dashboardService.calculateTotalExpense(month.atDay(1), month.atEndOfMonth());
+    }
+
     private AlertEvent evaluateExpenseSpike(AlertRule rule) {
         YearMonth currentMonth = YearMonth.now();
-        DashboardService.DashboardKPI currentKpi = dashboardService.calculateKPIs(currentMonth);
-        BigDecimal currentExpense = currentKpi.expense();
+        BigDecimal currentExpense = monthExpense(currentMonth);
 
         // Calculate average of previous 3 months
         BigDecimal avgExpense = BigDecimal.ZERO;
         for (int i = 1; i <= 3; i++) {
-            DashboardService.DashboardKPI prevKpi = dashboardService.calculateKPIs(currentMonth.minusMonths(i));
-            avgExpense = avgExpense.add(prevKpi.expense());
+            avgExpense = avgExpense.add(monthExpense(currentMonth.minusMonths(i)));
         }
         avgExpense = avgExpense.divide(BigDecimal.valueOf(3), 2, RoundingMode.HALF_UP);
 

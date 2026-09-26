@@ -1,8 +1,10 @@
 package com.artivisi.accountingfinance.controller;
 
+import com.artivisi.accountingfinance.exception.MissingConfigurationException;
 import com.artivisi.accountingfinance.security.Permission;
 import com.artivisi.accountingfinance.service.DashboardService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
@@ -10,12 +12,14 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import java.time.LocalDate;
 import java.time.YearMonth;
 
 import static com.artivisi.accountingfinance.controller.ViewConstants.*;
 
 @Controller
 @RequiredArgsConstructor
+@Slf4j
 @PreAuthorize("hasAuthority('" + Permission.DASHBOARD_VIEW + "')")
 public class DashboardController {
 
@@ -40,18 +44,23 @@ public class DashboardController {
             month = YearMonth.now();
         }
 
-        var kpi = dashboardService.calculateKPIs(month);
-        model.addAttribute("kpi", kpi);
         model.addAttribute("selectedMonth", month);
+        try {
+            model.addAttribute("kpi", dashboardService.calculateKPIs(month));
+        } catch (MissingConfigurationException e) {
+            log.error("Dashboard KPIs unavailable: {}", e.getMessage());
+            model.addAttribute("configError", e.getMessage());
+            return "fragments/dashboard-kpis :: config-error";
+        }
 
         return "fragments/dashboard-kpis :: kpis";
     }
 
     @GetMapping("/dashboard/cash-bank-breakdown")
     public String cashBankBreakdown(Model model) {
-        var kpi = dashboardService.calculateKPIs(YearMonth.now());
-        model.addAttribute("cashBankItems", kpi.cashBankItems());
-        model.addAttribute("totalCash", kpi.cashBalance());
+        LocalDate monthEnd = YearMonth.now().atEndOfMonth();
+        model.addAttribute("cashBankItems", dashboardService.calculateCashBankBreakdown(monthEnd));
+        model.addAttribute("totalCash", dashboardService.calculateCashBalance(monthEnd));
         return "fragments/cash-bank-breakdown :: breakdown";
     }
 

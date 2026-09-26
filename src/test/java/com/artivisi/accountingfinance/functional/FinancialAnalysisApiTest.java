@@ -291,6 +291,35 @@ class FinancialAnalysisApiTest extends PlaywrightTestBase {
     }
 
     @Test
+    @DisplayName("Unconfigured AR/AP accounts: snapshot, receivables and payables return 500 CONFIGURATION_ERROR naming the account")
+    void testUnconfiguredPostingAccountsReturnConfigurationError() throws Exception {
+        CompanyConfigSnapshot snapshot = CompanyConfigSnapshot.capture(companyConfigRepository);
+        String receivableMissing = "Akun Piutang Usaha belum dikonfigurasi di Pengaturan Perusahaan";
+        String payableMissing = "Akun Hutang Usaha belum dikonfigurasi di Pengaturan Perusahaan";
+        try {
+            CompanyConfig config = companyConfigRepository.findById(snapshot.id()).orElseThrow();
+            config.setReceivableAccount(null);
+            config.setPayableAccount(null);
+            companyConfigRepository.save(config);
+
+            assertConfigurationError("/api/analysis/snapshot?month=" + YEAR + "-03", receivableMissing);
+            assertConfigurationError("/api/analysis/receivables?asOfDate=" + MAR_END, receivableMissing);
+            assertConfigurationError("/api/analysis/payables?asOfDate=" + MAR_END, payableMissing);
+        } finally {
+            snapshot.restore(companyConfigRepository, accountRepository);
+        }
+        assertThat(get("/api/analysis/snapshot?month=" + YEAR + "-03").status()).isEqualTo(200);
+    }
+
+    private void assertConfigurationError(String path, String message) throws Exception {
+        APIResponse response = get(path);
+        assertThat(response.status()).as("%s: %s", path, response.text()).isEqualTo(500);
+        JsonNode body = parse(response);
+        assertThat(body.get("error").asText()).isEqualTo("CONFIGURATION_ERROR");
+        assertThat(body.get("message").asText()).isEqualTo(message);
+    }
+
+    @Test
     @DisplayName("GET /api/analysis/payables and snapshot payablesBalance follow the configured payable account for a posted vendor bill")
     void testPayablesFollowConfiguredAccount() throws Exception {
         assertThat(transactionRepository.findByTransactionDateBetweenOrderByTransactionDateDesc(

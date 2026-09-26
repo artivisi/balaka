@@ -202,7 +202,7 @@ public class ApiExceptionHandler {
     public ResponseEntity<ErrorResponse> handleMissingConfiguration(MissingConfigurationException ex) {
         log.error("API missing configuration: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrorResponse(
-                "INTERNAL_ERROR",
+                "CONFIGURATION_ERROR",
                 ex.getMessage(),
                 null));
     }

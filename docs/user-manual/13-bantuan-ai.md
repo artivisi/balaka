@@ -1703,6 +1703,7 @@ Authorization: Bearer {accessToken}
 | 404 | `NOT_FOUND` | Resource tidak ditemukan |
 | 409 | `CONFLICT` | State conflict (contoh: transaksi sudah POSTED) |
 | 429 | `RATE_LIMIT_EXCEEDED` | Terlalu banyak request |
+| 500 | `CONFIGURATION_ERROR` | Konfigurasi wajib belum diisi, misalnya akun Piutang/Hutang Usaha di Pengaturan Perusahaan; `message` menyebut konfigurasi yang kurang |
 | 500 | `INTERNAL_ERROR` | Server error |
 
 ---

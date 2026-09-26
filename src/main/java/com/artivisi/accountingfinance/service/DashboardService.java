@@ -120,7 +120,7 @@ public class DashboardService {
         return total;
     }
 
-    private BigDecimal calculateTotalExpense(LocalDate startDate, LocalDate endDate) {
+    public BigDecimal calculateTotalExpense(LocalDate startDate, LocalDate endDate) {
         List<ChartOfAccount> expenseAccounts = chartOfAccountRepository
                 .findByAccountTypeAndActiveOrderByAccountCodeAsc(AccountType.EXPENSE, true);
 
@@ -144,7 +144,7 @@ public class DashboardService {
         return total;
     }
 
-    private BigDecimal calculateCashBalance(LocalDate asOfDate) {
+    public BigDecimal calculateCashBalance(LocalDate asOfDate) {
         BigDecimal total = BigDecimal.ZERO;
         for (ChartOfAccount account : chartOfAccountRepository.findCashBankAccounts()) {
             total = total.add(calculateAccountBalanceByEntity(account, asOfDate));
@@ -165,7 +165,7 @@ public class DashboardService {
         }
     }
 
-    private List<CashBankItem> calculateCashBankBreakdown(LocalDate asOfDate) {
+    public List<CashBankItem> calculateCashBankBreakdown(LocalDate asOfDate) {
         List<CashBankItem> items = new ArrayList<>();
         for (ChartOfAccount account : chartOfAccountRepository.findCashBankAccounts()) {
             BigDecimal balance = calculateAccountBalanceByEntity(account, asOfDate);
