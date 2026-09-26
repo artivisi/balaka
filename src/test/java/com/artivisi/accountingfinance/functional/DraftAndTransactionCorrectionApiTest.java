@@ -1,6 +1,8 @@
 package com.artivisi.accountingfinance.functional;
 
 import com.artivisi.accountingfinance.functional.service.ServiceTestDataInitializer;
+import com.artivisi.accountingfinance.repository.ChartOfAccountRepository;
+import com.artivisi.accountingfinance.repository.JournalTemplateRepository;
 import com.artivisi.accountingfinance.ui.PlaywrightTestBase;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -8,34 +10,51 @@ import com.microsoft.playwright.APIRequest;
 import com.microsoft.playwright.APIRequestContext;
 import com.microsoft.playwright.APIResponse;
 import com.microsoft.playwright.options.RequestOptions;
-import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.math.BigDecimal;
 import java.time.Duration;
+import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 /**
- * Functional tests for draft and transaction correction API endpoints.
- * Tests:
- * - PATCH /api/drafts/{id} (update PENDING draft)
- * - PUT /api/transactions/{id} (update DRAFT transaction)
- * - DELETE /api/transactions/{id} (delete DRAFT transaction)
+ * Draft and transaction correction API:
+ * PATCH /api/drafts/{id}, POST /api/drafts, POST /api/drafts/{id}/approve,
+ * PUT/DELETE /api/transactions/{id}, POST /api/transactions/{id}/post and /void,
+ * GET /api/transactions/{id}/journal-preview, GET /api/templates.
+ *
+ * Every test creates its own drafts and transactions dated in 2007 (reserved for this class;
+ * the API rejects future dates) with seeded it-service templates resolved by name and accounts
+ * by code. Persisted state is read back with SQL.
  */
-@Slf4j
 @DisplayName("Draft & Transaction Correction API - Functional Tests")
 @Import(ServiceTestDataInitializer.class)
 class DraftAndTransactionCorrectionApiTest extends PlaywrightTestBase {
+
+    private static final String DATE = "2007-03-12";
+    private static final String ELECTRICITY = "Bayar Beban Listrik";   // 5.1.07 D / BANK C
+    private static final String RENT = "Bayar Beban Sewa";             // 5.1.05 D / BANK C
+    private static final String TRAINING = "Pendapatan Jasa Training"; // BANK D / 4.1.01 C
+    private static final String FIXED_ASSET = "Pembelian Aset Tetap";  // ASET_TETAP D / BANK C, formula assetCost
+
+    @Autowired private JournalTemplateRepository templateRepository;
+    @Autowired private ChartOfAccountRepository accountRepository;
+    @Autowired private JdbcTemplate jdbc;
 
     private APIRequestContext apiContext;
     private ObjectMapper objectMapper;
@@ -68,19 +87,13 @@ class DraftAndTransactionCorrectionApiTest extends PlaywrightTestBase {
         void shouldUpdateMerchantName() throws Exception {
             String draftId = createPendingDraft("Original Merchant", 50000);
 
-            Map<String, Object> patch = Map.of("merchantName", "Corrected Merchant Name");
+            APIResponse response = patch("/api/drafts/" + draftId, Map.of("merchantName", "Corrected Merchant Name"));
 
-            APIResponse response = apiContext.patch("/api/drafts/" + draftId,
-                    RequestOptions.create()
-                            .setHeader("Content-Type", "application/json")
-                            .setHeader("Authorization", "Bearer " + accessToken)
-                            .setData(patch));
-
-            assertThat(response.ok()).isTrue();
-
-            JsonNode body = objectMapper.readTree(response.text());
+            assertThat(response.status()).as(response.text()).isEqualTo(200);
+            JsonNode body = json(response);
             assertThat(body.get("merchant").asText()).isEqualTo("Corrected Merchant Name");
             assertThat(body.get("status").asText()).isEqualTo("PENDING");
+            assertThat(draftColumn(draftId, "merchant_name")).isEqualTo("Corrected Merchant Name");
         }
 
         @Test
@@ -88,43 +101,31 @@ class DraftAndTransactionCorrectionApiTest extends PlaywrightTestBase {
         void shouldUpdateAmount() throws Exception {
             String draftId = createPendingDraft("Amount Test Merchant", 50000);
 
-            Map<String, Object> patch = Map.of("amount", 75000);
+            APIResponse response = patch("/api/drafts/" + draftId, Map.of("amount", 75000));
 
-            APIResponse response = apiContext.patch("/api/drafts/" + draftId,
-                    RequestOptions.create()
-                            .setHeader("Content-Type", "application/json")
-                            .setHeader("Authorization", "Bearer " + accessToken)
-                            .setData(patch));
-
-            assertThat(response.ok()).isTrue();
-
-            JsonNode body = objectMapper.readTree(response.text());
-            assertThat(body.get("amount").asInt()).isEqualTo(75000);
+            assertThat(response.status()).as(response.text()).isEqualTo(200);
+            assertThat(new BigDecimal(json(response).get("amount").asText())).isEqualByComparingTo("75000");
+            assertThat(new BigDecimal(draftColumn(draftId, "amount"))).isEqualByComparingTo("75000");
+            assertThat(draftColumn(draftId, "merchant_name")).isEqualTo("Amount Test Merchant");
         }
 
         @Test
         @DisplayName("Should update suggested template on PENDING draft")
         void shouldUpdateSuggestedTemplate() throws Exception {
             String draftId = createPendingDraft("Template Test Merchant", 50000);
-            String templateId = getFirstTemplateId();
+            String templateId = templateId(RENT);
 
-            Map<String, Object> patch = Map.of("suggestedTemplateId", templateId);
+            APIResponse response = patch("/api/drafts/" + draftId, Map.of("suggestedTemplateId", templateId));
 
-            APIResponse response = apiContext.patch("/api/drafts/" + draftId,
-                    RequestOptions.create()
-                            .setHeader("Content-Type", "application/json")
-                            .setHeader("Authorization", "Bearer " + accessToken)
-                            .setData(patch));
-
-            assertThat(response.ok()).isTrue();
-
-            JsonNode body = objectMapper.readTree(response.text());
-            assertThat(body.get("suggestedTemplate")).isNotNull();
-            assertThat(body.get("suggestedTemplate").get("id").asText()).isEqualTo(templateId);
+            assertThat(response.status()).as(response.text()).isEqualTo(200);
+            JsonNode suggestion = json(response).get("suggestedTemplate");
+            assertThat(suggestion.get("id").asText()).isEqualTo(templateId);
+            assertThat(suggestion.get("name").asText()).isEqualTo(RENT);
+            assertThat(draftColumn(draftId, "id_suggested_template")).isEqualTo(templateId);
         }
 
         @Test
-        @DisplayName("Should update multiple fields at once")
+        @DisplayName("Should update merchant, amount and description at once")
         void shouldUpdateMultipleFields() throws Exception {
             String draftId = createPendingDraft("Multi Update Merchant", 30000);
 
@@ -132,37 +133,51 @@ class DraftAndTransactionCorrectionApiTest extends PlaywrightTestBase {
             patch.put("merchantName", "Updated Merchant");
             patch.put("amount", 99000);
             patch.put("description", "Updated description");
+            APIResponse response = patch("/api/drafts/" + draftId, patch);
 
-            APIResponse response = apiContext.patch("/api/drafts/" + draftId,
-                    RequestOptions.create()
-                            .setHeader("Content-Type", "application/json")
-                            .setHeader("Authorization", "Bearer " + accessToken)
-                            .setData(patch));
-
-            assertThat(response.ok()).isTrue();
-
-            JsonNode body = objectMapper.readTree(response.text());
+            assertThat(response.status()).as(response.text()).isEqualTo(200);
+            JsonNode body = json(response);
             assertThat(body.get("merchant").asText()).isEqualTo("Updated Merchant");
-            assertThat(body.get("amount").asInt()).isEqualTo(99000);
+            assertThat(new BigDecimal(body.get("amount").asText())).isEqualByComparingTo("99000");
+            assertThat(draftColumn(draftId, "merchant_name")).isEqualTo("Updated Merchant");
+            assertThat(new BigDecimal(draftColumn(draftId, "amount"))).isEqualByComparingTo("99000");
+            assertThat(draftColumn(draftId, "raw_ocr_text")).isEqualTo("Updated description");
         }
 
         @Test
-        @DisplayName("Should reject update on non-PENDING draft")
+        @DisplayName("Should reject update on approved draft and leave it unchanged")
         void shouldRejectUpdateOnApprovedDraft() throws Exception {
-            // Create and approve a draft
             String draftId = createPendingDraft("Approved Draft Merchant", 50000);
-            String templateId = getFirstTemplateId();
-            approveDraft(draftId, templateId);
+            approveDraft(draftId, ELECTRICITY, "Approved via test", 50000);
 
-            Map<String, Object> patch = Map.of("merchantName", "Should Not Work");
+            APIResponse response = patch("/api/drafts/" + draftId, Map.of("merchantName", "Should Not Work"));
 
-            APIResponse response = apiContext.patch("/api/drafts/" + draftId,
-                    RequestOptions.create()
-                            .setHeader("Content-Type", "application/json")
-                            .setHeader("Authorization", "Bearer " + accessToken)
-                            .setData(patch));
+            assertThat(response.status()).as(response.text()).isEqualTo(409);
+            assertThat(draftColumn(draftId, "merchant_name")).isEqualTo("Approved Draft Merchant");
+            assertThat(draftColumn(draftId, "status")).isEqualTo("APPROVED");
+        }
+    }
 
-            assertThat(response.status()).isGreaterThanOrEqualTo(400);
+    @Nested
+    @DisplayName("POST /api/drafts/{id}/approve")
+    class ApproveDraft {
+
+        @Test
+        @DisplayName("Should create a DRAFT transaction with the chosen template and return its id")
+        void shouldReturnTransactionIdAfterApproval() throws Exception {
+            String draftId = createPendingDraft("TransactionId Test Merchant", 60000);
+
+            JsonNode body = approveDraft(draftId, ELECTRICITY, "Approve with transactionId test", 60000);
+
+            assertThat(body.get("status").asText()).isEqualTo("APPROVED");
+            String transactionId = body.get("transactionId").asText();
+            assertThat(transactionColumn(transactionId, "status")).isEqualTo("DRAFT");
+            assertThat(transactionTemplateName(transactionId)).isEqualTo(ELECTRICITY);
+            assertThat(transactionColumn(transactionId, "description")).isEqualTo("Approve with transactionId test");
+            assertThat(new BigDecimal(transactionColumn(transactionId, "amount"))).isEqualByComparingTo("60000");
+            assertThat(transactionColumn(transactionId, "transaction_date")).isEqualTo(DATE);
+            assertThat(draftColumn(draftId, "status")).isEqualTo("APPROVED");
+            assertThat(draftColumn(draftId, "id_transaction")).isEqualTo(transactionId);
         }
     }
 
@@ -171,23 +186,16 @@ class DraftAndTransactionCorrectionApiTest extends PlaywrightTestBase {
     class PutTransaction {
 
         @Test
-        @DisplayName("Should reclassify DRAFT transaction template")
+        @DisplayName("Should reclassify DRAFT transaction to another template")
         void shouldReclassifyTemplate() throws Exception {
             String transactionId = createDraftTransaction();
-            String newTemplateId = getSecondTemplateId();
 
-            Map<String, Object> update = Map.of("templateId", newTemplateId);
+            APIResponse response = put(transactionId, Map.of("templateId", templateId(RENT)));
 
-            APIResponse response = apiContext.put("/api/transactions/" + transactionId,
-                    RequestOptions.create()
-                            .setHeader("Content-Type", "application/json")
-                            .setHeader("Authorization", "Bearer " + accessToken)
-                            .setData(update));
-
-            assertThat(response.ok()).isTrue();
-
-            JsonNode body = objectMapper.readTree(response.text());
-            assertThat(body.get("status").asText()).isEqualTo("DRAFT");
+            assertThat(response.status()).as(response.text()).isEqualTo(200);
+            assertThat(json(response).get("status").asText()).isEqualTo("DRAFT");
+            assertThat(transactionTemplateName(transactionId)).isEqualTo(RENT);
+            assertThat(transactionColumn(transactionId, "status")).isEqualTo("DRAFT");
         }
 
         @Test
@@ -195,18 +203,12 @@ class DraftAndTransactionCorrectionApiTest extends PlaywrightTestBase {
         void shouldUpdateDescription() throws Exception {
             String transactionId = createDraftTransaction();
 
-            Map<String, Object> update = Map.of("description", "Corrected: Bayar PPN Januari 2026");
+            APIResponse response = put(transactionId, Map.of("description", "Corrected: Bayar listrik Maret"));
 
-            APIResponse response = apiContext.put("/api/transactions/" + transactionId,
-                    RequestOptions.create()
-                            .setHeader("Content-Type", "application/json")
-                            .setHeader("Authorization", "Bearer " + accessToken)
-                            .setData(update));
-
-            assertThat(response.ok()).isTrue();
-
-            JsonNode body = objectMapper.readTree(response.text());
-            assertThat(body.get("description").asText()).isEqualTo("Corrected: Bayar PPN Januari 2026");
+            assertThat(response.status()).as(response.text()).isEqualTo(200);
+            assertThat(json(response).get("description").asText()).isEqualTo("Corrected: Bayar listrik Maret");
+            assertThat(transactionColumn(transactionId, "description")).isEqualTo("Corrected: Bayar listrik Maret");
+            assertThat(new BigDecimal(transactionColumn(transactionId, "amount"))).isEqualByComparingTo("85000");
         }
 
         @Test
@@ -214,148 +216,101 @@ class DraftAndTransactionCorrectionApiTest extends PlaywrightTestBase {
         void shouldUpdateAmount() throws Exception {
             String transactionId = createDraftTransaction();
 
-            Map<String, Object> update = Map.of("amount", 150000);
+            APIResponse response = put(transactionId, Map.of("amount", 150000));
 
-            APIResponse response = apiContext.put("/api/transactions/" + transactionId,
-                    RequestOptions.create()
-                            .setHeader("Content-Type", "application/json")
-                            .setHeader("Authorization", "Bearer " + accessToken)
-                            .setData(update));
-
-            assertThat(response.ok()).isTrue();
-
-            JsonNode body = objectMapper.readTree(response.text());
-            assertThat(body.get("amount").asInt()).isEqualTo(150000);
+            assertThat(response.status()).as(response.text()).isEqualTo(200);
+            assertThat(new BigDecimal(json(response).get("amount").asText())).isEqualByComparingTo("150000");
+            assertThat(new BigDecimal(transactionColumn(transactionId, "amount"))).isEqualByComparingTo("150000");
         }
 
         @Test
-        @DisplayName("Should update multiple DRAFT transaction fields")
+        @DisplayName("Should update description, amount and date at once")
         void shouldUpdateMultipleFields() throws Exception {
             String transactionId = createDraftTransaction();
 
             Map<String, Object> update = new HashMap<>();
             update.put("description", "Updated remarks");
             update.put("amount", 200000);
-            update.put("transactionDate", "2026-02-15");
+            update.put("transactionDate", "2007-02-15");
+            APIResponse response = put(transactionId, update);
 
-            APIResponse response = apiContext.put("/api/transactions/" + transactionId,
-                    RequestOptions.create()
-                            .setHeader("Content-Type", "application/json")
-                            .setHeader("Authorization", "Bearer " + accessToken)
-                            .setData(update));
-
-            assertThat(response.ok()).isTrue();
-
-            JsonNode body = objectMapper.readTree(response.text());
+            assertThat(response.status()).as(response.text()).isEqualTo(200);
+            JsonNode body = json(response);
             assertThat(body.get("description").asText()).isEqualTo("Updated remarks");
-            assertThat(body.get("amount").asInt()).isEqualTo(200000);
+            assertThat(new BigDecimal(body.get("amount").asText())).isEqualByComparingTo("200000");
+            assertThat(body.get("transactionDate").asText()).isEqualTo("2007-02-15");
+            assertThat(transactionColumn(transactionId, "description")).isEqualTo("Updated remarks");
+            assertThat(new BigDecimal(transactionColumn(transactionId, "amount"))).isEqualByComparingTo("200000");
+            assertThat(transactionColumn(transactionId, "transaction_date")).isEqualTo("2007-02-15");
         }
 
         @Test
-        @DisplayName("Should reject update on POSTED transaction")
+        @DisplayName("Should reject update on POSTED transaction and leave it unchanged")
         void shouldRejectUpdateOnPostedTransaction() throws Exception {
-            String transactionId = createAndPostTransaction();
+            String transactionId = createAndPostTransaction("Posted not editable");
 
-            Map<String, Object> update = Map.of("description", "Should Not Work");
+            APIResponse response = put(transactionId, Map.of("description", "Should Not Work"));
 
-            APIResponse response = apiContext.put("/api/transactions/" + transactionId,
-                    RequestOptions.create()
-                            .setHeader("Content-Type", "application/json")
-                            .setHeader("Authorization", "Bearer " + accessToken)
-                            .setData(update));
-
-            assertThat(response.status()).isGreaterThanOrEqualTo(400);
+            assertThat(response.status()).as(response.text()).isEqualTo(409);
+            assertThat(transactionColumn(transactionId, "description")).isEqualTo("Posted not editable");
+            assertThat(transactionColumn(transactionId, "status")).isEqualTo("POSTED");
         }
 
         @Test
-        @DisplayName("Should update DRAFT transaction with accountSlots")
-        void shouldUpdateWithLineAccountOverrides() throws Exception {
+        @DisplayName("Should map the BANK slot on the existing template so posting credits that account")
+        void shouldUpdateWithAccountSlots() throws Exception {
             String transactionId = createDraftTransaction();
-            String accountId = getFirstAccountId();
 
-            Map<String, Object> update = new HashMap<>();
-            update.put("accountSlots", Map.of("BANK", accountId));
+            APIResponse response = put(transactionId, Map.of("accountSlots", Map.of("BANK", accountId("1.1.03"))));
 
-            APIResponse response = apiContext.put("/api/transactions/" + transactionId,
-                    RequestOptions.create()
-                            .setHeader("Content-Type", "application/json")
-                            .setHeader("Authorization", "Bearer " + accessToken)
-                            .setData(update));
-
-            assertThat(response.ok())
-                    .as("Update with accountSlots failed: %d %s", response.status(), response.text())
-                    .isTrue();
+            assertThat(response.status()).as(response.text()).isEqualTo(200);
+            assertThat(mappedAccountCodes(transactionId)).containsExactly("1.1.03");
+            assertThat(entries(post(transactionId))).containsExactlyInAnyOrder(
+                    entry("5.1.07", "85000", "0"), entry("1.1.03", "0", "85000"));
         }
 
         @Test
-        @DisplayName("Should reclassify template with accountSlots")
+        @DisplayName("Should reclassify template and map its BANK slot in one update")
         void shouldReclassifyWithAccountSlots() throws Exception {
             String transactionId = createDraftTransaction();
-            String templateId = getSecondTemplateId();
-            String accountId = getFirstAccountId();
 
             Map<String, Object> update = new HashMap<>();
-            update.put("templateId", templateId);
-            update.put("accountSlots", Map.of("BANK", accountId));
+            update.put("templateId", templateId(TRAINING));
+            update.put("accountSlots", Map.of("BANK", accountId("1.1.02")));
+            APIResponse response = put(transactionId, update);
 
-            APIResponse response = apiContext.put("/api/transactions/" + transactionId,
-                    RequestOptions.create()
-                            .setHeader("Content-Type", "application/json")
-                            .setHeader("Authorization", "Bearer " + accessToken)
-                            .setData(update));
-
-            assertThat(response.ok())
-                    .as("Reclassify with overrides failed: %d %s", response.status(), response.text())
-                    .isTrue();
+            assertThat(response.status()).as(response.text()).isEqualTo(200);
+            assertThat(transactionTemplateName(transactionId)).isEqualTo(TRAINING);
+            assertThat(mappedAccountCodes(transactionId)).containsExactly("1.1.02");
+            assertThat(entries(post(transactionId))).containsExactlyInAnyOrder(
+                    entry("1.1.02", "85000", "0"), entry("4.1.01", "0", "85000"));
         }
 
         @Test
-        @DisplayName("Should re-apply accountSlots without 409 Conflict")
+        @DisplayName("Should re-apply the same accountSlots without 409 and keep one mapping per slot")
         void shouldReApplyAccountSlots() throws Exception {
             String transactionId = createDraftTransaction();
-            String accountId = getFirstAccountId();
+            Map<String, Object> update = Map.of("accountSlots", Map.of("BANK", accountId("1.1.03")));
 
-            Map<String, Object> update = new HashMap<>();
-            update.put("accountSlots", Map.of("BANK", accountId));
+            APIResponse first = put(transactionId, update);
+            assertThat(first.status()).as(first.text()).isEqualTo(200);
 
-            // First PUT
-            APIResponse response1 = apiContext.put("/api/transactions/" + transactionId,
-                    RequestOptions.create()
-                            .setHeader("Content-Type", "application/json")
-                            .setHeader("Authorization", "Bearer " + accessToken)
-                            .setData(update));
+            APIResponse second = put(transactionId, update);
+            assertThat(second.status()).as(second.text()).isEqualTo(200);
 
-            assertThat(response1.ok())
-                    .as("First PUT with accountSlots failed: %d %s", response1.status(), response1.text())
-                    .isTrue();
-
-            // Second PUT with same overrides — should NOT return 409
-            APIResponse response2 = apiContext.put("/api/transactions/" + transactionId,
-                    RequestOptions.create()
-                            .setHeader("Content-Type", "application/json")
-                            .setHeader("Authorization", "Bearer " + accessToken)
-                            .setData(update));
-
-            assertThat(response2.ok())
-                    .as("Second PUT with accountSlots returned %d (expected 200): %s",
-                            response2.status(), response2.text())
-                    .isTrue();
+            assertThat(mappedAccountCodes(transactionId)).containsExactly("1.1.03");
         }
 
         @Test
-        @DisplayName("Should reject future transaction date")
+        @DisplayName("Should reject a future transaction date and keep the original date")
         void shouldRejectFutureDate() throws Exception {
             String transactionId = createDraftTransaction();
 
-            Map<String, Object> update = Map.of("transactionDate", "2099-12-31");
+            APIResponse response = put(transactionId,
+                    Map.of("transactionDate", LocalDate.now().plusDays(1).toString()));
 
-            APIResponse response = apiContext.put("/api/transactions/" + transactionId,
-                    RequestOptions.create()
-                            .setHeader("Content-Type", "application/json")
-                            .setHeader("Authorization", "Bearer " + accessToken)
-                            .setData(update));
-
-            assertThat(response.status()).isGreaterThanOrEqualTo(400);
+            assertThat(response.status()).as(response.text()).isEqualTo(400);
+            assertThat(transactionColumn(transactionId, "transaction_date")).isEqualTo(DATE);
         }
     }
 
@@ -364,59 +319,53 @@ class DraftAndTransactionCorrectionApiTest extends PlaywrightTestBase {
     class DeleteTransaction {
 
         @Test
-        @DisplayName("Should delete DRAFT transaction")
+        @DisplayName("Should delete DRAFT transaction and unlink its source draft")
         void shouldDeleteDraftTransaction() throws Exception {
-            String transactionId = createDraftTransaction();
+            String draftId = createPendingDraft("Delete Merchant", 85000);
+            String transactionId = approveDraft(draftId, ELECTRICITY, "To be deleted", 85000)
+                    .get("transactionId").asText();
 
-            APIResponse response = apiContext.delete("/api/transactions/" + transactionId,
-                    RequestOptions.create()
-                            .setHeader("Authorization", "Bearer " + accessToken));
+            APIResponse response = apiContext.delete("/api/transactions/" + transactionId, auth());
 
-            assertThat(response.status())
-                    .as("Delete failed: %d %s", response.status(), response.text())
-                    .isEqualTo(204);
+            assertThat(response.status()).as(response.text()).isEqualTo(204);
+            assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM transactions WHERE id = ?::uuid",
+                    Long.class, transactionId)).isZero();
+            assertThat(draftColumn(draftId, "id_transaction")).isNull();
         }
 
         @Test
-        @DisplayName("Should create and post transaction with accountSlots")
-        void shouldPostWithAccountSlots() throws Exception {
-            String templateId = getFirstTemplateId();
-            String accountId = getFirstAccountId();
-
-            Map<String, Object> request = new HashMap<>();
-            request.put("templateId", templateId);
-            request.put("merchant", "Override Test Merchant");
-            request.put("amount", 75000);
-            request.put("transactionDate", "2026-02-12");
-            request.put("description", "Transaction with account overrides");
-            request.put("source", "correction-test");
-            request.put("userApproved", true);
-            request.put("accountSlots", Map.of("BANK", accountId));
-
-            APIResponse response = apiContext.post("/api/transactions",
-                    RequestOptions.create()
-                            .setHeader("Content-Type", "application/json")
-                            .setHeader("Authorization", "Bearer " + accessToken)
-                            .setData(request));
-
-            assertThat(response.status())
-                    .as("Create with overrides failed: %d %s", response.status(), response.text())
-                    .isEqualTo(201);
-
-            JsonNode body = objectMapper.readTree(response.text());
-            assertThat(body.get("status").asText()).isEqualTo("POSTED");
-        }
-
-        @Test
-        @DisplayName("Should reject delete on POSTED transaction")
+        @DisplayName("Should reject delete on POSTED transaction and keep it with its journal")
         void shouldRejectDeleteOnPostedTransaction() throws Exception {
-            String transactionId = createAndPostTransaction();
+            String transactionId = createAndPostTransaction("Posted not deletable");
 
-            APIResponse response = apiContext.delete("/api/transactions/" + transactionId,
-                    RequestOptions.create()
-                            .setHeader("Authorization", "Bearer " + accessToken));
+            APIResponse response = apiContext.delete("/api/transactions/" + transactionId, auth());
 
-            assertThat(response.status()).isGreaterThanOrEqualTo(400);
+            assertThat(response.status()).as(response.text()).isEqualTo(409);
+            assertThat(transactionColumn(transactionId, "status")).isEqualTo("POSTED");
+            assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM journal_entries WHERE id_transaction = ?::uuid",
+                    Long.class, transactionId)).isEqualTo(2L);
+        }
+    }
+
+    @Nested
+    @DisplayName("POST /api/transactions (direct post)")
+    class PostTransactionDirect {
+
+        @Test
+        @DisplayName("Should create and post transaction with accountSlots into the chosen bank account")
+        void shouldPostWithAccountSlots() throws Exception {
+            Map<String, Object> request = directRequest(TRAINING, 75000, "Transaction with account overrides");
+            request.put("accountSlots", Map.of("BANK", accountId("1.1.03")));
+
+            APIResponse response = apiContext.post("/api/transactions", jsonBody(request));
+
+            assertThat(response.status()).as(response.text()).isEqualTo(201);
+            JsonNode body = json(response);
+            assertThat(body.get("status").asText()).isEqualTo("POSTED");
+            assertThat(body.get("transactionDate").asText()).isEqualTo(DATE);
+            assertThat(entries(body)).containsExactlyInAnyOrder(
+                    entry("1.1.03", "75000", "0"), entry("4.1.01", "0", "75000"));
+            assertThat(transactionColumn(body.get("transactionId").asText(), "status")).isEqualTo("POSTED");
         }
     }
 
@@ -425,133 +374,55 @@ class DraftAndTransactionCorrectionApiTest extends PlaywrightTestBase {
     class PostDraftDirect {
 
         @Test
-        @DisplayName("Should create DRAFT transaction directly with template and post it")
+        @DisplayName("Should create DRAFT transaction without journal, then post it into the mapped accounts")
         void shouldCreateDraftAndPost() throws Exception {
-            String templateId = getFirstTemplateId();
-            String accountId = getFirstAccountId();
+            APIResponse createResponse = apiContext.post("/api/drafts", jsonBody(draftRequest(
+                    ELECTRICITY, 120000, "Direct draft creation test", Map.of("BANK", accountId("1.1.02")))));
 
-            Map<String, Object> request = new HashMap<>();
-            request.put("templateId", templateId);
-            request.put("description", "Direct draft creation test");
-            request.put("amount", 120000);
-            request.put("transactionDate", "2026-02-15");
-            request.put("accountSlots", Map.of("BANK", accountId));
-
-            APIResponse createResponse = apiContext.post("/api/drafts",
-                    RequestOptions.create()
-                            .setHeader("Content-Type", "application/json")
-                            .setHeader("Authorization", "Bearer " + accessToken)
-                            .setData(request));
-
-            assertThat(createResponse.status())
-                    .as("Create draft failed: %d %s", createResponse.status(), createResponse.text())
-                    .isEqualTo(201);
-
-            JsonNode createBody = objectMapper.readTree(createResponse.text());
+            assertThat(createResponse.status()).as(createResponse.text()).isEqualTo(201);
+            JsonNode createBody = json(createResponse);
             assertThat(createBody.get("status").asText()).isEqualTo("DRAFT");
             String transactionId = createBody.get("transactionId").asText();
-            assertThat(transactionId).isNotNull();
+            assertThat(transactionColumn(transactionId, "status")).isEqualTo("DRAFT");
+            assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM journal_entries WHERE id_transaction = ?::uuid",
+                    Long.class, transactionId)).isZero();
 
-            // Now post it
-            APIResponse postResponse = apiContext.post("/api/transactions/" + transactionId + "/post",
-                    RequestOptions.create()
-                            .setHeader("Authorization", "Bearer " + accessToken));
+            JsonNode postBody = post(transactionId);
 
-            assertThat(postResponse.ok())
-                    .as("Post failed: %d %s", postResponse.status(), postResponse.text())
-                    .isTrue();
-
-            JsonNode postBody = objectMapper.readTree(postResponse.text());
             assertThat(postBody.get("status").asText()).isEqualTo("POSTED");
-            assertThat(postBody.get("journalEntries").size()).isGreaterThanOrEqualTo(2);
+            assertThat(entries(postBody)).containsExactlyInAnyOrder(
+                    entry("5.1.07", "120000", "0"), entry("1.1.02", "0", "120000"));
+            assertThat(transactionColumn(transactionId, "status")).isEqualTo("POSTED");
         }
 
         @Test
-        @DisplayName("Should return 400 when posting draft without required accountSlots")
+        @DisplayName("Should return 400 when posting a draft whose BANK slot has no account, leaving it DRAFT")
         void shouldReturn400WhenPostingWithoutAccountSlots() throws Exception {
-            String templateId = getTemplateWithHintLine();
-
-            // Create draft WITHOUT accountSlots — template has hint lines that need accounts
-            Map<String, Object> request = new HashMap<>();
-            request.put("templateId", templateId);
-            request.put("description", "Missing account slots test");
-            request.put("amount", 80000);
-            request.put("transactionDate", "2026-02-15");
-
             APIResponse createResponse = apiContext.post("/api/drafts",
-                    RequestOptions.create()
-                            .setHeader("Content-Type", "application/json")
-                            .setHeader("Authorization", "Bearer " + accessToken)
-                            .setData(request));
+                    jsonBody(draftRequest(ELECTRICITY, 80000, "Missing account slots test", null)));
+            assertThat(createResponse.status()).as(createResponse.text()).isEqualTo(201);
+            String transactionId = json(createResponse).get("transactionId").asText();
 
-            assertThat(createResponse.status())
-                    .as("Create draft failed: %d %s", createResponse.status(), createResponse.text())
-                    .isEqualTo(201);
+            APIResponse postResponse = apiContext.post("/api/transactions/" + transactionId + "/post", auth());
 
-            JsonNode createBody = objectMapper.readTree(createResponse.text());
-            String transactionId = createBody.get("transactionId").asText();
-
-            // Attempt to post — should return 400 because hint line has no account
-            APIResponse postResponse = apiContext.post("/api/transactions/" + transactionId + "/post",
-                    RequestOptions.create()
-                            .setHeader("Authorization", "Bearer " + accessToken));
-
-            assertThat(postResponse.status())
-                    .as("Expected 400 but got %d: %s", postResponse.status(), postResponse.text())
-                    .isEqualTo(400);
+            assertThat(postResponse.status()).as(postResponse.text()).isEqualTo(400);
+            assertThat(transactionColumn(transactionId, "status")).isEqualTo("DRAFT");
+            assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM journal_entries WHERE id_transaction = ?::uuid",
+                    Long.class, transactionId)).isZero();
         }
 
         @Test
-        @DisplayName("Should reject direct draft with future date")
+        @DisplayName("Should reject direct draft with future date without creating a transaction")
         void shouldRejectFutureDate() throws Exception {
-            String templateId = getFirstTemplateId();
+            String description = "Future date draft " + UUID.randomUUID();
+            Map<String, Object> request = draftRequest(ELECTRICITY, 50000, description, null);
+            request.put("transactionDate", LocalDate.now().plusDays(1).toString());
 
-            Map<String, Object> request = new HashMap<>();
-            request.put("templateId", templateId);
-            request.put("description", "Future date test");
-            request.put("amount", 50000);
-            request.put("transactionDate", "2099-12-31");
+            APIResponse response = apiContext.post("/api/drafts", jsonBody(request));
 
-            APIResponse response = apiContext.post("/api/drafts",
-                    RequestOptions.create()
-                            .setHeader("Content-Type", "application/json")
-                            .setHeader("Authorization", "Bearer " + accessToken)
-                            .setData(request));
-
-            assertThat(response.status()).isGreaterThanOrEqualTo(400);
-        }
-    }
-
-    @Nested
-    @DisplayName("POST /api/drafts/{id}/approve - transactionId")
-    class ApproveTransactionId {
-
-        @Test
-        @DisplayName("Should return transactionId after approval")
-        void shouldReturnTransactionIdAfterApproval() throws Exception {
-            String draftId = createPendingDraft("TransactionId Test Merchant", 60000);
-            String templateId = getFirstTemplateId();
-
-            Map<String, Object> request = Map.of(
-                    "templateId", templateId,
-                    "description", "Approve with transactionId test",
-                    "amount", 60000
-            );
-
-            APIResponse response = apiContext.post("/api/drafts/" + draftId + "/approve",
-                    RequestOptions.create()
-                            .setHeader("Content-Type", "application/json")
-                            .setHeader("Authorization", "Bearer " + accessToken)
-                            .setData(request));
-
-            assertThat(response.ok())
-                    .as("Approve failed: %d %s", response.status(), response.text())
-                    .isTrue();
-
-            JsonNode body = objectMapper.readTree(response.text());
-            assertThat(body.get("status").asText()).isEqualTo("APPROVED");
-            assertThat(body.has("transactionId")).isTrue();
-            assertThat(body.get("transactionId").isNull()).isFalse();
+            assertThat(response.status()).as(response.text()).isEqualTo(400);
+            assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM transactions WHERE description = ?",
+                    Long.class, description)).isZero();
         }
     }
 
@@ -560,54 +431,32 @@ class DraftAndTransactionCorrectionApiTest extends PlaywrightTestBase {
     class JournalPreview {
 
         @Test
-        @DisplayName("Should return journal preview for DRAFT transaction")
+        @DisplayName("Should preview the journal lines of a DRAFT transaction without posting it")
         void shouldReturnJournalPreview() throws Exception {
-            // Create a draft with account overrides so the preview can resolve accounts
-            String templateId = getFirstTemplateId();
-            String accountId = getFirstAccountId();
+            APIResponse createResponse = apiContext.post("/api/drafts", jsonBody(draftRequest(
+                    ELECTRICITY, 95000, "Journal preview test", Map.of("BANK", accountId("1.1.02")))));
+            assertThat(createResponse.status()).as(createResponse.text()).isEqualTo(201);
+            String transactionId = json(createResponse).get("transactionId").asText();
 
-            Map<String, Object> request = new HashMap<>();
-            request.put("templateId", templateId);
-            request.put("description", "Journal preview test");
-            request.put("amount", 95000);
-            request.put("transactionDate", "2026-02-10");
-            request.put("accountSlots", Map.of("BANK", accountId));
+            APIResponse previewResponse = apiContext.get(
+                    "/api/transactions/" + transactionId + "/journal-preview", auth());
 
-            APIResponse createResponse = apiContext.post("/api/drafts",
-                    RequestOptions.create()
-                            .setHeader("Content-Type", "application/json")
-                            .setHeader("Authorization", "Bearer " + accessToken)
-                            .setData(request));
-
-            assertThat(createResponse.status())
-                    .as("Create draft failed: %d %s", createResponse.status(), createResponse.text())
-                    .isEqualTo(201);
-
-            JsonNode createBody = objectMapper.readTree(createResponse.text());
-            String transactionId = createBody.get("transactionId").asText();
-
-            // Get journal preview
-            APIResponse previewResponse = apiContext.get("/api/transactions/" + transactionId + "/journal-preview",
-                    RequestOptions.create()
-                            .setHeader("Authorization", "Bearer " + accessToken));
-
-            assertThat(previewResponse.ok())
-                    .as("Journal preview failed: %d %s", previewResponse.status(), previewResponse.text())
-                    .isTrue();
-
-            JsonNode preview = objectMapper.readTree(previewResponse.text());
+            assertThat(previewResponse.status()).as(previewResponse.text()).isEqualTo(200);
+            JsonNode preview = json(previewResponse);
             assertThat(preview.get("valid").asBoolean()).isTrue();
-            assertThat(preview.get("entries").isArray()).isTrue();
-            assertThat(preview.get("entries").size()).isGreaterThanOrEqualTo(2);
-            assertThat(preview.get("totalDebit").asDouble()).isGreaterThan(0);
-            assertThat(preview.get("totalCredit").asDouble()).isGreaterThan(0);
-
-            // Verify entries have account codes
-            JsonNode firstEntry = preview.get("entries").get(0);
-            assertThat(firstEntry.has("accountCode")).isTrue();
-            assertThat(firstEntry.has("accountName")).isTrue();
-            assertThat(firstEntry.has("debitAmount")).isTrue();
-            assertThat(firstEntry.has("creditAmount")).isTrue();
+            assertThat(preview.get("errors")).isEmpty();
+            List<String> lines = new ArrayList<>();
+            for (JsonNode e : preview.get("entries")) {
+                lines.add(e.get("accountCode").asText() + " " + e.get("accountName").asText() + " "
+                        + amount(e.get("debitAmount")) + "/" + amount(e.get("creditAmount")));
+            }
+            assertThat(lines).containsExactlyInAnyOrder(
+                    "5.1.07 Beban Listrik 95000/0", "1.1.02 Bank BCA 0/95000");
+            assertThat(amount(preview.get("totalDebit"))).isEqualTo("95000");
+            assertThat(amount(preview.get("totalCredit"))).isEqualTo("95000");
+            assertThat(transactionColumn(transactionId, "status")).isEqualTo("DRAFT");
+            assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM journal_entries WHERE id_transaction = ?::uuid",
+                    Long.class, transactionId)).isZero();
         }
     }
 
@@ -616,48 +465,33 @@ class DraftAndTransactionCorrectionApiTest extends PlaywrightTestBase {
     class VoidTransaction {
 
         @Test
-        @DisplayName("Should void a POSTED transaction")
+        @DisplayName("Should void a POSTED transaction and record reason and notes")
         void shouldVoidPostedTransaction() throws Exception {
-            String transactionId = createAndPostTransaction();
-
-            Map<String, Object> voidRequest = Map.of(
-                    "reason", "INPUT_ERROR",
-                    "notes", "Wrong account used"
-            );
+            String transactionId = createAndPostTransaction("To be voided");
 
             APIResponse response = apiContext.post("/api/transactions/" + transactionId + "/void",
-                    RequestOptions.create()
-                            .setHeader("Content-Type", "application/json")
-                            .setHeader("Authorization", "Bearer " + accessToken)
-                            .setData(voidRequest));
+                    jsonBody(Map.of("reason", "INPUT_ERROR", "notes", "Wrong account used")));
 
-            assertThat(response.ok())
-                    .as("Void failed: %d %s", response.status(), response.text())
-                    .isTrue();
-
-            JsonNode body = objectMapper.readTree(response.text());
+            assertThat(response.status()).as(response.text()).isEqualTo(200);
+            JsonNode body = json(response);
             assertThat(body.get("status").asText()).isEqualTo("VOID");
             assertThat(body.get("transactionId").asText()).isEqualTo(transactionId);
+            assertThat(transactionColumn(transactionId, "status")).isEqualTo("VOID");
+            assertThat(transactionColumn(transactionId, "void_reason")).isEqualTo("INPUT_ERROR");
+            assertThat(transactionColumn(transactionId, "void_notes")).isEqualTo("Wrong account used");
         }
 
         @Test
-        @DisplayName("Should reject void on DRAFT transaction")
+        @DisplayName("Should reject void on DRAFT transaction and leave it DRAFT")
         void shouldRejectVoidOnDraftTransaction() throws Exception {
             String transactionId = createDraftTransaction();
 
-            Map<String, Object> voidRequest = Map.of(
-                    "reason", "DUPLICATE"
-            );
-
             APIResponse response = apiContext.post("/api/transactions/" + transactionId + "/void",
-                    RequestOptions.create()
-                            .setHeader("Content-Type", "application/json")
-                            .setHeader("Authorization", "Bearer " + accessToken)
-                            .setData(voidRequest));
+                    jsonBody(Map.of("reason", "DUPLICATE")));
 
-            assertThat(response.status())
-                    .as("Expected error but got %d: %s", response.status(), response.text())
-                    .isGreaterThanOrEqualTo(400);
+            assertThat(response.status()).as(response.text()).isEqualTo(409);
+            assertThat(transactionColumn(transactionId, "status")).isEqualTo("DRAFT");
+            assertThat(transactionColumn(transactionId, "void_reason")).isNull();
         }
     }
 
@@ -666,44 +500,35 @@ class DraftAndTransactionCorrectionApiTest extends PlaywrightTestBase {
     class GetTemplates {
 
         @Test
-        @DisplayName("Should return template lines in GET /api/templates/{id}")
+        @DisplayName("Should return the seeded lines of a template by id")
         void shouldReturnTemplateLinesInGetById() throws Exception {
-            String templateId = getFirstTemplateId();
+            String templateId = templateId(FIXED_ASSET);
 
-            APIResponse response = apiContext.get("/api/templates/" + templateId,
-                    RequestOptions.create()
-                            .setHeader("Authorization", "Bearer " + accessToken));
+            APIResponse response = apiContext.get("/api/templates/" + templateId, auth());
 
-            assertThat(response.ok()).isTrue();
-
-            JsonNode body = objectMapper.readTree(response.text());
-            assertThat(body.has("lines")).isTrue();
-            JsonNode lines = body.get("lines");
-            assertThat(lines.isArray()).isTrue();
-            assertThat(lines.size()).isGreaterThanOrEqualTo(2);
-
-            // Verify line structure
-            JsonNode firstLine = lines.get(0);
-            assertThat(firstLine.has("lineOrder")).isTrue();
-            assertThat(firstLine.has("position")).isTrue();
-            assertThat(firstLine.has("formula")).isTrue();
+            assertThat(response.status()).as(response.text()).isEqualTo(200);
+            JsonNode body = json(response);
+            assertThat(body.get("name").asText()).isEqualTo(FIXED_ASSET);
+            assertThat(templateLines(body)).containsExactly(
+                    "1 DEBIT - ASET_TETAP assetCost", "2 CREDIT - BANK assetCost");
         }
 
         @Test
-        @DisplayName("Should return template lines in GET /api/templates list")
+        @DisplayName("Should include each template's lines in the template list")
         void shouldReturnTemplateLinesInList() throws Exception {
-            APIResponse response = apiContext.get("/api/templates",
-                    RequestOptions.create()
-                            .setHeader("Authorization", "Bearer " + accessToken));
+            APIResponse response = apiContext.get("/api/templates", auth());
 
-            assertThat(response.ok()).isTrue();
-
-            JsonNode templates = objectMapper.readTree(response.text());
-            assertThat(templates.size()).isGreaterThan(0);
-
-            JsonNode firstTemplate = templates.get(0);
-            assertThat(firstTemplate.has("lines")).isTrue();
-            assertThat(firstTemplate.get("lines").size()).isGreaterThanOrEqualTo(2);
+            assertThat(response.status()).as(response.text()).isEqualTo(200);
+            JsonNode electricity = null;
+            for (JsonNode t : json(response)) {
+                if (t.get("name").asText().equals(ELECTRICITY)) {
+                    electricity = t;
+                }
+            }
+            assertThat(electricity).as("Template %s missing from /api/templates", ELECTRICITY).isNotNull();
+            assertThat(electricity.get("id").asText()).isEqualTo(templateId(ELECTRICITY));
+            assertThat(templateLines(electricity)).containsExactly(
+                    "1 DEBIT 5.1.07 - amount", "2 CREDIT - BANK amount");
         }
     }
 
@@ -712,360 +537,210 @@ class DraftAndTransactionCorrectionApiTest extends PlaywrightTestBase {
     class DetailedTemplate {
 
         @Test
-        @DisplayName("Should create draft with DETAILED template variables and post successfully")
+        @DisplayName("Should create draft with assetCost variable and post it at that amount")
         void shouldCreateDraftWithVariablesAndPost() throws Exception {
-            // Find "Pembelian Aset Tetap" template (DETAILED, formula: assetCost)
-            String templateId = getDetailedTemplateId();
-            Map<String, String> accountSlotIds = getAccountSlotsForDetailedTemplate(templateId);
-
-            Map<String, Object> request = new HashMap<>();
-            request.put("templateId", templateId);
-            request.put("description", "Pembelian laptop Lenovo untuk operasional kantor");
-            request.put("amount", 3681200);
-            request.put("transactionDate", "2026-02-15");
-            request.put("accountSlots", accountSlotIds);
+            Map<String, Object> request = draftRequest(FIXED_ASSET, 3681200,
+                    "Pembelian laptop Lenovo untuk operasional kantor", fixedAssetSlots());
             request.put("variables", Map.of("assetCost", 3681200));
 
-            // Create draft
-            APIResponse createResponse = apiContext.post("/api/drafts",
-                    RequestOptions.create()
-                            .setHeader("Content-Type", "application/json")
-                            .setHeader("Authorization", "Bearer " + accessToken)
-                            .setData(request));
+            APIResponse createResponse = apiContext.post("/api/drafts", jsonBody(request));
 
-            assertThat(createResponse.status())
-                    .as("Create draft failed: %d %s", createResponse.status(), createResponse.text())
-                    .isEqualTo(201);
-
-            JsonNode createBody = objectMapper.readTree(createResponse.text());
+            assertThat(createResponse.status()).as(createResponse.text()).isEqualTo(201);
+            JsonNode createBody = json(createResponse);
             assertThat(createBody.get("status").asText()).isEqualTo("DRAFT");
-            String transactionId = createBody.get("transactionId").asText();
 
-            // Post the draft
-            APIResponse postResponse = apiContext.post("/api/transactions/" + transactionId + "/post",
-                    RequestOptions.create()
-                            .setHeader("Authorization", "Bearer " + accessToken));
+            JsonNode postBody = post(createBody.get("transactionId").asText());
 
-            assertThat(postResponse.ok())
-                    .as("Post failed: %d %s", postResponse.status(), postResponse.text())
-                    .isTrue();
-
-            JsonNode postBody = objectMapper.readTree(postResponse.text());
             assertThat(postBody.get("status").asText()).isEqualTo("POSTED");
-            assertThat(postBody.get("journalEntries").size()).isEqualTo(2);
-
-            // Verify journal entries have correct amounts
-            for (JsonNode entry : postBody.get("journalEntries")) {
-                BigDecimal debit = new BigDecimal(entry.get("debitAmount").asText());
-                BigDecimal credit = new BigDecimal(entry.get("creditAmount").asText());
-                // One entry should be debit 3681200, the other credit 3681200
-                if (debit.compareTo(BigDecimal.ZERO) > 0) {
-                    assertThat(debit).isEqualByComparingTo(new BigDecimal("3681200"));
-                } else {
-                    assertThat(credit).isEqualByComparingTo(new BigDecimal("3681200"));
-                }
-            }
+            assertThat(entries(postBody)).containsExactlyInAnyOrder(
+                    entry("1.2.01", "3681200", "0"), entry("1.1.02", "0", "3681200"));
         }
 
         @Test
-        @DisplayName("Should create and post transaction directly with DETAILED template variables")
+        @DisplayName("Should create and post directly with assetCost variable")
         void shouldPostDirectlyWithVariables() throws Exception {
-            String templateId = getDetailedTemplateId();
-            Map<String, String> accountSlotIds = getAccountSlotsForDetailedTemplate(templateId);
-
-            Map<String, Object> request = new HashMap<>();
-            request.put("templateId", templateId);
-            request.put("merchant", "Enterkomputer");
-            request.put("amount", 5500000);
-            request.put("transactionDate", "2026-02-12");
-            request.put("description", "Pembelian monitor Dell 27 inch");
-            request.put("source", "correction-test");
-            request.put("userApproved", true);
-            request.put("accountSlots", accountSlotIds);
+            Map<String, Object> request = directRequest(FIXED_ASSET, 5500000, "Pembelian monitor Dell 27 inch");
+            request.put("accountSlots", fixedAssetSlots());
             request.put("variables", Map.of("assetCost", 5500000));
 
-            APIResponse response = apiContext.post("/api/transactions",
-                    RequestOptions.create()
-                            .setHeader("Content-Type", "application/json")
-                            .setHeader("Authorization", "Bearer " + accessToken)
-                            .setData(request));
+            APIResponse response = apiContext.post("/api/transactions", jsonBody(request));
 
-            assertThat(response.status())
-                    .as("Create with variables failed: %d %s", response.status(), response.text())
-                    .isEqualTo(201);
-
-            JsonNode body = objectMapper.readTree(response.text());
+            assertThat(response.status()).as(response.text()).isEqualTo(201);
+            JsonNode body = json(response);
             assertThat(body.get("status").asText()).isEqualTo("POSTED");
-            assertThat(body.get("journalEntries").size()).isEqualTo(2);
+            assertThat(entries(body)).containsExactlyInAnyOrder(
+                    entry("1.2.01", "5500000", "0"), entry("1.1.02", "0", "5500000"));
         }
     }
 
-    // ========== Helper methods ==========
+    // ========== Helpers ==========
+
+    private RequestOptions auth() {
+        return RequestOptions.create().setHeader("Authorization", "Bearer " + accessToken);
+    }
+
+    private RequestOptions jsonBody(Object data) {
+        return RequestOptions.create()
+                .setHeader("Content-Type", "application/json")
+                .setHeader("Authorization", "Bearer " + accessToken)
+                .setData(data);
+    }
+
+    private APIResponse patch(String path, Map<String, Object> data) {
+        return apiContext.patch(path, jsonBody(data));
+    }
+
+    private APIResponse put(String transactionId, Map<String, Object> data) {
+        return apiContext.put("/api/transactions/" + transactionId, jsonBody(data));
+    }
+
+    private JsonNode post(String transactionId) throws Exception {
+        APIResponse response = apiContext.post("/api/transactions/" + transactionId + "/post", auth());
+        assertThat(response.status()).as("Post failed: %s", response.text()).isEqualTo(200);
+        return json(response);
+    }
+
+    private JsonNode json(APIResponse response) throws Exception {
+        return objectMapper.readTree(response.text());
+    }
+
+    private static String amount(JsonNode node) {
+        return new BigDecimal(node.asText()).stripTrailingZeros().toPlainString();
+    }
+
+    private static String entry(String accountCode, String debit, String credit) {
+        return accountCode + " D" + debit + " C" + credit;
+    }
+
+    private static List<String> entries(JsonNode transactionBody) {
+        List<String> result = new ArrayList<>();
+        for (JsonNode e : transactionBody.get("journalEntries")) {
+            result.add(entry(e.get("accountCode").asText(), amount(e.get("debitAmount")), amount(e.get("creditAmount"))));
+        }
+        return result;
+    }
+
+    private static List<String> templateLines(JsonNode template) {
+        List<String> result = new ArrayList<>();
+        for (JsonNode l : template.get("lines")) {
+            result.add(l.get("lineOrder").asInt() + " " + l.get("position").asText() + " "
+                    + orDash(l.get("accountCode")) + " " + orDash(l.get("accountHint")) + " "
+                    + l.get("formula").asText());
+        }
+        return result;
+    }
+
+    private static String orDash(JsonNode node) {
+        return node.isNull() || node.asText().isEmpty() ? "-" : node.asText();
+    }
+
+    private String templateId(String name) {
+        return templateRepository.findByTemplateNameAndIsCurrentVersionTrue(name)
+                .orElseThrow(() -> new IllegalStateException("Seeded template missing: " + name))
+                .getId().toString();
+    }
+
+    private String accountId(String code) {
+        return accountRepository.findByAccountCode(code)
+                .orElseThrow(() -> new IllegalStateException("Seeded account missing: " + code))
+                .getId().toString();
+    }
+
+    private Map<String, String> fixedAssetSlots() {
+        return Map.of("ASET_TETAP", accountId("1.2.01"), "BANK", accountId("1.1.02"));
+    }
+
+    private String draftColumn(String draftId, String column) {
+        return jdbc.queryForObject("SELECT " + column + "::text FROM draft_transactions WHERE id = ?::uuid",
+                String.class, draftId);
+    }
+
+    private String transactionColumn(String transactionId, String column) {
+        return jdbc.queryForObject("SELECT " + column + "::text FROM transactions WHERE id = ?::uuid",
+                String.class, transactionId);
+    }
+
+    private String transactionTemplateName(String transactionId) {
+        return jdbc.queryForObject("SELECT jt.template_name FROM transactions t "
+                + "JOIN journal_templates jt ON jt.id = t.id_journal_template WHERE t.id = ?::uuid",
+                String.class, transactionId);
+    }
+
+    private List<String> mappedAccountCodes(String transactionId) {
+        return jdbc.queryForList("SELECT a.account_code FROM transaction_account_mappings m "
+                + "JOIN chart_of_accounts a ON a.id = m.id_account WHERE m.id_transaction = ?::uuid",
+                String.class, transactionId);
+    }
+
+    private Map<String, Object> directRequest(String template, int amount, String description) {
+        Map<String, Object> request = new HashMap<>();
+        request.put("templateId", templateId(template));
+        request.put("merchant", "Correction Test Merchant");
+        request.put("amount", amount);
+        request.put("transactionDate", DATE);
+        request.put("description", description);
+        request.put("source", "correction-test");
+        request.put("userApproved", true);
+        return request;
+    }
+
+    private Map<String, Object> draftRequest(String template, int amount, String description,
+                                             Map<String, String> accountSlots) {
+        Map<String, Object> request = new HashMap<>();
+        request.put("templateId", templateId(template));
+        request.put("description", description);
+        request.put("amount", amount);
+        request.put("transactionDate", DATE);
+        if (accountSlots != null) {
+            request.put("accountSlots", accountSlots);
+        }
+        return request;
+    }
 
     private String createPendingDraft(String merchant, int amount) throws Exception {
         Map<String, Object> request = new HashMap<>();
         request.put("merchant", merchant);
         request.put("amount", amount);
-        request.put("transactionDate", "2026-02-12");
+        request.put("transactionDate", DATE);
         request.put("currency", "IDR");
         request.put("confidence", 0.95);
         request.put("source", "correction-test");
 
-        APIResponse response = apiContext.post("/api/drafts/from-text",
-                RequestOptions.create()
-                        .setHeader("Content-Type", "application/json")
-                        .setHeader("Authorization", "Bearer " + accessToken)
-                        .setData(request));
-
-        assertThat(response.status()).isEqualTo(201);
-
-        JsonNode body = objectMapper.readTree(response.text());
-        return body.get("draftId").asText();
+        APIResponse response = apiContext.post("/api/drafts/from-text", jsonBody(request));
+        assertThat(response.status()).as(response.text()).isEqualTo(201);
+        return json(response).get("draftId").asText();
     }
 
-    private void approveDraft(String draftId, String templateId) {
-        Map<String, Object> request = Map.of(
-                "templateId", templateId,
-                "description", "Approved via test",
-                "amount", 50000
-        );
-
-        APIResponse response = apiContext.post("/api/drafts/" + draftId + "/approve",
-                RequestOptions.create()
-                        .setHeader("Content-Type", "application/json")
-                        .setHeader("Authorization", "Bearer " + accessToken)
-                        .setData(request));
-
-        assertThat(response.ok())
-                .as("Approve draft %s failed: %d %s", draftId, response.status(), response.text())
-                .isTrue();
+    private JsonNode approveDraft(String draftId, String template, String description, int amount) throws Exception {
+        APIResponse response = apiContext.post("/api/drafts/" + draftId + "/approve", jsonBody(Map.of(
+                "templateId", templateId(template),
+                "description", description,
+                "amount", amount)));
+        assertThat(response.status()).as("Approve draft %s failed: %s", draftId, response.text()).isEqualTo(200);
+        return json(response);
     }
 
+    /** DRAFT transaction for {@value #ELECTRICITY}, amount 85000, dated {@value #DATE}, no account mappings. */
     private String createDraftTransaction() throws Exception {
-        // Create a draft via POST /api/drafts/from-text, approve it (creates Transaction in DRAFT),
-        // but we need a DRAFT Transaction, not a POSTED one.
-        // Use direct POST /api/transactions without userApproved to get a DRAFT.
-        // Actually, POST /api/transactions posts immediately. Let's use the draft → approve flow
-        // which creates a DRAFT Transaction, then post it separately.
         String draftId = createPendingDraft("Draft Transaction Merchant", 85000);
-        String templateId = getFirstTemplateId();
-
-        // Approve draft — this creates a Transaction in DRAFT status
-        Map<String, Object> approveRequest = Map.of(
-                "templateId", templateId,
-                "description", "Draft transaction for correction test",
-                "amount", 85000
-        );
-        APIResponse approveResponse = apiContext.post("/api/drafts/" + draftId + "/approve",
-                RequestOptions.create()
-                        .setHeader("Content-Type", "application/json")
-                        .setHeader("Authorization", "Bearer " + accessToken)
-                        .setData(approveRequest));
-
-        assertThat(approveResponse.ok())
-                .as("Approve draft failed: %d %s", approveResponse.status(), approveResponse.text())
-                .isTrue();
-
-        // Use analysis API to find the most recent DRAFT transaction
-        APIResponse txListResponse = apiContext.get(
-                "/api/analysis/transactions?status=DRAFT&size=1",
-                RequestOptions.create()
-                        .setHeader("Authorization", "Bearer " + accessToken));
-
-        assertThat(txListResponse.ok())
-                .as("List transactions failed: %d %s", txListResponse.status(), txListResponse.text())
-                .isTrue();
-
-        JsonNode txList = objectMapper.readTree(txListResponse.text());
-        // Extract transactions array from the wrapped response structure
-        JsonNode transactions = txList.get("data").get("transactions");
-        assertThat(transactions.isArray()).isTrue();
-        assertThat(transactions.size()).isGreaterThan(0);
-
-        return transactions.get(0).get("id").asText();
+        return approveDraft(draftId, ELECTRICITY, "Draft transaction for correction test", 85000)
+                .get("transactionId").asText();
     }
 
-    private String createAndPostTransaction() throws Exception {
-        String templateId = getFirstTemplateId();
+    private String createAndPostTransaction(String description) throws Exception {
+        Map<String, Object> request = directRequest(ELECTRICITY, 100000, description);
+        request.put("accountSlots", Map.of("BANK", accountId("1.1.02")));
 
-        Map<String, Object> request = new HashMap<>();
-        request.put("templateId", templateId);
-        request.put("merchant", "Posted Transaction Merchant");
-        request.put("amount", 100000);
-        request.put("transactionDate", "2026-02-12");
-        request.put("description", "Posted test transaction");
-        request.put("source", "correction-test");
-        request.put("userApproved", true);
-
-        APIResponse response = apiContext.post("/api/transactions",
-                RequestOptions.create()
-                        .setHeader("Content-Type", "application/json")
-                        .setHeader("Authorization", "Bearer " + accessToken)
-                        .setData(request));
-
-        assertThat(response.status()).isEqualTo(201);
-
-        JsonNode body = objectMapper.readTree(response.text());
-        return body.get("transactionId").asText();
-    }
-
-    private String getFirstTemplateId() throws Exception {
-        APIResponse response = apiContext.get("/api/templates",
-                RequestOptions.create()
-                        .setHeader("Authorization", "Bearer " + accessToken));
-
-        assertThat(response.ok()).isTrue();
-
-        JsonNode templates = objectMapper.readTree(response.text());
-        assertThat(templates.size()).isGreaterThan(0);
-
-        return templates.get(0).get("id").asText();
-    }
-
-    private String getFirstAccountId() throws Exception {
-        APIResponse response = apiContext.get("/api/analysis/accounts",
-                RequestOptions.create()
-                        .setHeader("Authorization", "Bearer " + accessToken));
-
-        assertThat(response.ok()).isTrue();
-
-        JsonNode body = objectMapper.readTree(response.text());
-        JsonNode accounts = body.get("data").get("accounts");
-        assertThat(accounts.isArray()).isTrue();
-        assertThat(accounts.size()).isGreaterThan(0);
-
-        return accounts.get(0).get("id").asText();
-    }
-
-    private String getSecondTemplateId() throws Exception {
-        APIResponse response = apiContext.get("/api/templates",
-                RequestOptions.create()
-                        .setHeader("Authorization", "Bearer " + accessToken));
-
-        assertThat(response.ok()).isTrue();
-
-        JsonNode templates = objectMapper.readTree(response.text());
-        assertThat(templates.size()).isGreaterThan(1);
-
-        return templates.get(1).get("id").asText();
-    }
-
-    /**
-     * Find the DETAILED template (Pembelian Aset Tetap) that uses non-standard formula variables.
-     */
-    private String getDetailedTemplateId() throws Exception {
-        APIResponse response = apiContext.get("/api/templates",
-                RequestOptions.create()
-                        .setHeader("Authorization", "Bearer " + accessToken));
-
-        assertThat(response.ok()).isTrue();
-
-        JsonNode templates = objectMapper.readTree(response.text());
-        for (JsonNode template : templates) {
-            String name = template.get("name").asText();
-            if (name.contains("Pembelian Aset Tetap")) {
-                return template.get("id").asText();
-            }
-        }
-        throw new RuntimeException("DETAILED template 'Pembelian Aset Tetap' not found in seed data");
-    }
-
-    /**
-     * Find account IDs to fill the accountSlots for a DETAILED template.
-     * Looks at template lines with accountHint and finds matching accounts.
-     */
-    private Map<String, String> getAccountSlotsForDetailedTemplate(String templateId) throws Exception {
-        // Get template with lines
-        APIResponse templateResponse = apiContext.get("/api/templates/" + templateId,
-                RequestOptions.create()
-                        .setHeader("Authorization", "Bearer " + accessToken));
-        assertThat(templateResponse.ok()).isTrue();
-
-        JsonNode template = objectMapper.readTree(templateResponse.text());
-        JsonNode lines = template.get("lines");
-
-        // Get all accounts
-        APIResponse accountsResponse = apiContext.get("/api/analysis/accounts",
-                RequestOptions.create()
-                        .setHeader("Authorization", "Bearer " + accessToken));
-        assertThat(accountsResponse.ok()).isTrue();
-
-        JsonNode accountsBody = objectMapper.readTree(accountsResponse.text());
-        JsonNode accounts = accountsBody.get("data").get("accounts");
-
-        Map<String, String> slots = new HashMap<>();
-        for (JsonNode line : lines) {
-            if (line.has("accountHint") && !line.get("accountHint").isNull()
-                    && !line.get("accountHint").asText().isBlank()) {
-                String hint = line.get("accountHint").asText();
-                // Find a suitable account based on hint
-                String accountId = findAccountForHint(hint, accounts);
-                slots.put(hint, accountId);
-            }
-        }
-
-        assertThat(slots).as("No accountHint slots found in template").isNotEmpty();
-        return slots;
-    }
-
-    private String findAccountForHint(String hint, JsonNode accounts) {
-        // For ASET_TETAP, find an asset account; for BANK, find a bank/cash account
-        String hintLower = hint.toLowerCase();
-        for (JsonNode account : accounts) {
-            String type = account.get("type").asText();
-            String name = account.get("name").asText().toLowerCase();
-            if (hintLower.contains("aset") && type.equals("ASSET")
-                    && (name.contains("peralatan") || name.contains("aset tetap") || name.contains("komputer"))) {
-                return account.get("id").asText();
-            }
-            if (hintLower.contains("bank") && type.equals("ASSET")
-                    && (name.contains("bank") || name.contains("kas"))) {
-                return account.get("id").asText();
-            }
-        }
-        // Fallback: return first account of matching type
-        for (JsonNode account : accounts) {
-            String type = account.get("type").asText();
-            if (hintLower.contains("aset") && type.equals("ASSET")) {
-                return account.get("id").asText();
-            }
-            if (hintLower.contains("bank") && type.equals("ASSET")) {
-                return account.get("id").asText();
-            }
-        }
-        // Last resort: return any account
-        return accounts.get(0).get("id").asText();
-    }
-
-    private String getTemplateWithHintLine() throws Exception {
-        APIResponse response = apiContext.get("/api/templates",
-                RequestOptions.create()
-                        .setHeader("Authorization", "Bearer " + accessToken));
-
-        assertThat(response.ok()).isTrue();
-
-        JsonNode templates = objectMapper.readTree(response.text());
-        for (JsonNode template : templates) {
-            JsonNode lines = template.get("lines");
-            if (lines != null) {
-                for (JsonNode line : lines) {
-                    if (line.has("accountHint") && !line.get("accountHint").isNull()
-                            && !line.get("accountHint").asText().isBlank()) {
-                        return template.get("id").asText();
-                    }
-                }
-            }
-        }
-        throw new RuntimeException("No template with accountHint found in seed data");
+        APIResponse response = apiContext.post("/api/transactions", jsonBody(request));
+        assertThat(response.status()).as(response.text()).isEqualTo(201);
+        return json(response).get("transactionId").asText();
     }
 
     private String authenticateViaDeviceFlow() throws Exception {
-        Map<String, String> codeRequest = Map.of("clientId", "correction-test");
-
         APIResponse codeResponse = apiContext.post("/api/device/code",
                 RequestOptions.create()
                         .setHeader("Content-Type", "application/json")
-                        .setData(codeRequest));
+                        .setData(Map.of("clientId", "correction-test")));
 
         assertThat(codeResponse.ok()).isTrue();
 
