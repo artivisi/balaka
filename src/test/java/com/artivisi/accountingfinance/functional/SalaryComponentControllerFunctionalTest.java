@@ -64,6 +64,7 @@ class SalaryComponentControllerFunctionalTest extends PlaywrightTestBase {
         assertThat(page.locator("#btn-new-component")).hasAttribute("href", "/salary-components/new");
         assertThat(page.locator("#filter-type")).hasValue("");
         assertThat(page.locator("#filter-active")).hasValue("");
+        takeManualScreenshot("salary-components-list");
 
         SalaryComponent gapok = seeded("GAPOK");
         search("GAPOK");
@@ -182,6 +183,7 @@ class SalaryComponentControllerFunctionalTest extends PlaywrightTestBase {
         assertThat(page.locator("[data-testid='amount-input-container']")).isVisible();
         assertThat(page.locator("[data-testid='percentage-input-container']")).isHidden();
         assertThat(form().locator("a:text-is('Batal')")).hasAttribute("href", "/salary-components");
+        takeManualScreenshot("salary-components-form");
     }
 
     @Test

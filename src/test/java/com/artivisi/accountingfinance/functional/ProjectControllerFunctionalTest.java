@@ -78,6 +78,10 @@ class ProjectControllerFunctionalTest extends PlaywrightTestBase {
         assertThat(cells.nth(2)).hasText("PT Bank Mandiri Tbk");
         assertThat(cells.nth(3)).hasText("600,000,000");
         assertThat(cells.nth(4)).hasText("Aktif");
+
+        navigateTo("/projects");
+        waitForPageLoad();
+        takeManualScreenshot("service/projects-list");
     }
 
     @Test

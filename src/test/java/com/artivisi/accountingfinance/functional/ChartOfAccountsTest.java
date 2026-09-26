@@ -72,6 +72,8 @@ class ChartOfAccountsTest extends PlaywrightTestBase {
         assertThat(page.locator("#account-name-5-9-01")).hasText("Beban PPh 21 Ditanggung Perusahaan");
         assertThat(page.locator("#account-type-5-9-01")).hasText("Beban");
         assertThat(page.locator("#btn-delete-5")).hasCount(0);
+        takeManualScreenshot("accounts-list");
+        takeManualScreenshot("service/accounts-list");
     }
 
     @Test
@@ -87,6 +89,7 @@ class ChartOfAccountsTest extends PlaywrightTestBase {
         assertThat(page.locator("#parentId option", new com.microsoft.playwright.Page.LocatorOptions()
                 .setHasText("2.1 - Liabilitas Jangka Pendek"))).hasCount(1);
         assertThat(page.locator("input[name='active']")).hasCount(0);
+        takeManualScreenshot("accounts-form");
 
         page.getByTestId("account-type").selectOption("EXPENSE");
         assertThat(page.locator("#permanent")).not().isChecked();

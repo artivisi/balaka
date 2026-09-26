@@ -102,6 +102,7 @@ class AmortizationControllerFunctionalTest extends PlaywrightTestBase {
                 .hasText("5.1.05 - Beban Sewa");
         assertThat(page.locator("input[name='autoPost']")).not().isChecked();
         assertThat(page.locator("input[name='postDay']")).hasValue("1");
+        takeManualScreenshot("amortization-form");
     }
 
     @Test
@@ -504,6 +505,7 @@ class AmortizationControllerFunctionalTest extends PlaywrightTestBase {
         assertThat(prepaidRow).containsText("0/12");
         assertThat(prepaidRow).containsText("Aktif");
         assertThat(scheduleRow(cancelled)).containsText("Dibatalkan");
+        takeManualScreenshot("amortization-list");
 
         assertListCodes("?status=CANCELLED&search=" + token, cancelled);
         assertListCodes("?status=ACTIVE&search=" + token, prepaid, unearned);

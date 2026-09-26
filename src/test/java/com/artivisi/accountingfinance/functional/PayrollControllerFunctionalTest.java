@@ -125,6 +125,7 @@ class PayrollControllerFunctionalTest extends PlaywrightTestBase {
         assertThat(options).hasText(new String[] {"Semua Status", "Draft", "Calculated", "Approved", "Posted", "Cancelled"});
         assertThat(options.nth(0)).hasAttribute("value", "");
         assertThat(options.nth(3)).hasAttribute("value", "APPROVED");
+        takeManualScreenshot("payroll-list");
 
         page.locator("#btn-new-payroll").click();
         waitForPageLoad();
@@ -189,6 +190,7 @@ class PayrollControllerFunctionalTest extends PlaywrightTestBase {
         }
         assertThat(page.locator("select#jkkRiskClass")).hasValue("1");
         assertThat(page.locator("#btn-submit")).hasText("Buat & Kalkulasi");
+        takeManualScreenshot("payroll-form");
     }
 
     @Test

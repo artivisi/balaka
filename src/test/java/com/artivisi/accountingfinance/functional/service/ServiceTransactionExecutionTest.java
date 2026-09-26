@@ -1,74 +1,67 @@
 package com.artivisi.accountingfinance.functional.service;
 
-import com.artivisi.accountingfinance.functional.page.BalanceSheetPage;
-import com.artivisi.accountingfinance.functional.page.IncomeStatementPage;
+import com.artivisi.accountingfinance.entity.JournalEntry;
+import com.artivisi.accountingfinance.entity.Transaction;
+import com.artivisi.accountingfinance.enums.TransactionStatus;
 import com.artivisi.accountingfinance.functional.page.TransactionDetailPage;
 import com.artivisi.accountingfinance.functional.page.TransactionFormPage;
-import com.artivisi.accountingfinance.functional.page.TransactionListPage;
 import com.artivisi.accountingfinance.functional.util.CsvLoader;
 import com.artivisi.accountingfinance.functional.util.TransactionRow;
+import com.artivisi.accountingfinance.repository.JournalEntryRepository;
 import com.artivisi.accountingfinance.repository.JournalTemplateRepository;
+import com.artivisi.accountingfinance.repository.TransactionRepository;
 import com.artivisi.accountingfinance.ui.PlaywrightTestBase;
+import com.microsoft.playwright.Locator;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.DynamicTest;
+import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
 import org.junit.jupiter.api.TestMethodOrder;
-import org.junit.jupiter.api.MethodOrderer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Stream;
 
+import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 /**
- * CSV-Driven Transaction Execution Tests for Service Industry.
+ * Service industry transactions entered through the transaction form, one per row of
+ * service/transactions.csv, each saved and posted and checked on its detail page and in the database.
+ * The list test then finds each posted transaction in the transaction list.
  *
- * This test suite:
- * 1. Reads transaction scenarios from CSV file
- * 2. Executes each transaction via the UI using Page Objects
- * 3. Takes screenshots for user manual
- * 4. Verifies transaction detail page
- * 5. Verifies financial reports at the end
- *
- * Data from: src/test/resources/testdata/service/transactions.csv
+ * The CSV dates (2024) are kept because the form and result screenshots of the user manual show them.
+ * Reports over these transactions are verified by ServiceReportsTest on its own year.
  */
 @DisplayName("Service Industry - Transaction Execution")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @Import(ServiceTestDataInitializer.class)
 class ServiceTransactionExecutionTest extends PlaywrightTestBase {
 
-    @Autowired
-    private JournalTemplateRepository templateRepository;
+    private static final int CSV_ROWS = 5;
+    private static final Map<TransactionRow, UUID> POSTED = new LinkedHashMap<>();
 
-    // Page Objects
-    private TransactionFormPage transactionFormPage;
-    private TransactionDetailPage transactionDetailPage;
-    private IncomeStatementPage incomeStatementPage;
-    private BalanceSheetPage balanceSheetPage;
-    private TransactionListPage transactionListPage;
+    @Autowired private JournalTemplateRepository templateRepository;
+    @Autowired private TransactionRepository transactionRepository;
+    @Autowired private JournalEntryRepository journalEntryRepository;
 
-    private void initPageObjects() {
-        String baseUrl = "http://localhost:" + port;
-        transactionFormPage = new TransactionFormPage(page, baseUrl);
-        transactionDetailPage = new TransactionDetailPage(page, baseUrl);
-        incomeStatementPage = new IncomeStatementPage(page, baseUrl);
-        balanceSheetPage = new BalanceSheetPage(page, baseUrl);
-        transactionListPage = new TransactionListPage(page, baseUrl);
-    }
-
-    /**
-     * Execute transactions from CSV and verify results.
-     * Uses @TestFactory to create dynamic tests from CSV data.
-     */
     @TestFactory
     @Order(1)
     @DisplayName("Execute transactions from CSV")
     Stream<DynamicTest> executeTransactionsFromCsv() {
         List<TransactionRow> transactions = CsvLoader.loadTransactions("service/transactions.csv");
+        assertEquals(CSV_ROWS, transactions.size(), "service/transactions.csv row count");
 
         return transactions.stream()
             .sorted(Comparator.comparing(TransactionRow::sequence))
@@ -78,180 +71,106 @@ class ServiceTransactionExecutionTest extends PlaywrightTestBase {
             ));
     }
 
-    /**
-     * Execute a single transaction via UI using Page Objects.
-     */
     private void executeTransaction(TransactionRow tx) {
         loginAsAdmin();
-        initPageObjects();
+        UUID templateId = templateRepository.findByTemplateNameAndIsCurrentVersionTrue(tx.templateName())
+            .orElseThrow(() -> new IllegalStateException("Seeded template missing: " + tx.templateName()))
+            .getId();
+        TransactionFormPage form = new TransactionFormPage(page, baseUrl());
 
-        // Find template ID by name
-        var template = templateRepository.findByTemplateNameAndIsCurrentVersionTrue(tx.templateName());
-        if (template.isEmpty()) {
-            System.out.println("Template not found: " + tx.templateName() + " - skipping transaction");
-            return;
-        }
-        UUID templateId = template.get().getId();
-
-        // Navigate to form and fill data
-        transactionFormPage.navigateWithTemplate(templateId)
+        form.navigateWithTemplate(templateId)
             .fillDate(tx.date())
             .fillInputs(tx.inputs())
             .fillDescription(tx.description())
             .fillReferenceNumber(tx.reference())
             .selectProject(tx.project());
 
-        // Take screenshot before submit if requested
         if (tx.screenshot()) {
             takeManualScreenshot("service/" + String.format("%02d", tx.sequence()) + "-" + slugify(tx.description()) + "-form");
         }
 
-        // Save and post, get detail page
-        transactionDetailPage = transactionFormPage.saveAndPost();
+        TransactionDetailPage detail = form.saveAndPost();
 
-        // Take screenshot of result if requested
         if (tx.screenshot()) {
             takeManualScreenshot("service/" + String.format("%02d", tx.sequence()) + "-" + slugify(tx.description()) + "-result");
         }
 
-        // Verify transaction is posted
-        transactionDetailPage.verifyStatusPosted();
-
-        // Verify journal entries are correct
-        transactionDetailPage.verifyJournalEntriesVisible()
-            .verifyJournalEntryCount(2)  // Simple templates have 2 lines
+        detail.verifyStatusPosted()
+            .verifyJournalEntryCount(2)
             .verifyJournalEntryAccountCode(0, tx.expectedDebitAccount())
             .verifyJournalEntryDebit(0, tx.expectedAmount())
             .verifyJournalEntryAccountCode(1, tx.expectedCreditAccount())
             .verifyJournalEntryCredit(1, tx.expectedAmount())
-            .verifyJournalBalanced();
+            .verifyTotalDebit(tx.expectedAmount())
+            .verifyTotalCredit(tx.expectedAmount());
+
+        UUID id = UUID.fromString(page.url().substring(page.url().lastIndexOf('/') + 1));
+        BigDecimal amount = amount(tx);
+        Transaction saved = transactionRepository.findById(id).orElseThrow();
+        assertEquals(TransactionStatus.POSTED, saved.getStatus());
+        assertEquals(LocalDate.parse(tx.date()), saved.getTransactionDate());
+        assertEquals(tx.description(), saved.getDescription());
+        assertEquals(tx.reference(), saved.getReferenceNumber());
+        assertEquals(0, amount.compareTo(saved.getAmount()));
+        assertEquals(templateId, saved.getJournalTemplate().getId());
+        assertThat(page.locator("#transaction-number")).hasText(saved.getTransactionNumber());
+
+        List<JournalEntry> entries = journalEntryRepository.findByTransactionIdWithAccount(id);
+        assertEquals(2, entries.size());
+        JournalEntry debit = entries.stream().filter(e -> e.getDebitAmount().signum() > 0).findFirst().orElseThrow();
+        JournalEntry credit = entries.stream().filter(e -> e.getCreditAmount().signum() > 0).findFirst().orElseThrow();
+        assertEquals(tx.expectedDebitAccount(), debit.getAccount().getAccountCode());
+        assertEquals(0, amount.compareTo(debit.getDebitAmount()));
+        assertEquals(0, BigDecimal.ZERO.compareTo(debit.getCreditAmount()));
+        assertEquals(tx.expectedCreditAccount(), credit.getAccount().getAccountCode());
+        assertEquals(0, amount.compareTo(credit.getCreditAmount()));
+        assertEquals(0, BigDecimal.ZERO.compareTo(credit.getDebitAmount()));
+
+        POSTED.put(tx, id);
     }
 
-    /**
-     * Verify Income Statement (P&L) after all transactions.
-     */
     @Test
     @Order(2)
-    @DisplayName("Verify Income Statement report")
-    void verifyIncomeStatement() {
-        loginAsAdmin();
-        initPageObjects();
-
-        incomeStatementPage.navigate("2024-01-01", "2024-03-31")
-            .verifyPageTitle()
-            .verifyRevenueSectionVisible();
-
-        // Take screenshot for user manual (after transactions are executed)
-        takeManualScreenshot("service/report-income-statement");
-    }
-
-    /**
-     * Verify Balance Sheet after all transactions.
-     */
-    @Test
-    @Order(3)
-    @DisplayName("Verify Balance Sheet report")
-    void verifyBalanceSheet() {
-        loginAsAdmin();
-        initPageObjects();
-
-        balanceSheetPage.navigate("2024-03-31")
-            .verifyPageTitle()
-            .verifyAssetSectionVisible()
-            .verifyLiabilitySectionVisible()
-            .verifyEquitySectionVisible();
-
-        // Take screenshot for user manual (after transactions are executed)
-        takeManualScreenshot("service/report-balance-sheet");
-    }
-
-    /**
-     * Verify transaction list shows all executed transactions.
-     */
-    @Test
-    @Order(4)
-    @DisplayName("Verify transaction list")
+    @DisplayName("Transaction list finds each posted CSV transaction by number with date, description, reference, amount and status")
     void verifyTransactionList() {
+        assertEquals(CSV_ROWS, POSTED.size(), "CSV transactions not posted; run the whole class");
         loginAsAdmin();
-        initPageObjects();
 
-        transactionListPage.navigate()
-            .verifyPageTitle()
-            .verifyContentVisible();
-
-        // Take screenshot for user manual (after transactions are executed)
+        navigateTo("/transactions");
+        waitForPageLoad();
+        assertThat(page.locator("#page-title")).hasText("Transaksi");
         takeManualScreenshot("service/transaction-list");
+
+        DateTimeFormatter rowDate = DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.of("id", "ID"));
+        for (Map.Entry<TransactionRow, UUID> posted : POSTED.entrySet()) {
+            TransactionRow tx = posted.getKey();
+            Transaction saved = transactionRepository.findById(posted.getValue()).orElseThrow();
+            String number = saved.getTransactionNumber();
+
+            navigateTo("/transactions?search=" + number);
+            waitForPageLoad();
+
+            assertThat(page.locator("[data-testid^='trx-row-']")).hasCount(1);
+            Locator row = page.locator("[data-testid='trx-row-" + number + "']");
+            assertThat(row.locator("a[href='/transactions/" + saved.getId() + "']").first()).hasText(number);
+            assertThat(row).containsText(LocalDate.parse(tx.date()).format(rowDate));
+            assertThat(row).containsText(tx.description());
+            assertThat(row).containsText(tx.reference());
+            assertThat(row).containsText("Rp " + tx.expectedAmount());
+            assertThat(row).containsText("POSTED");
+        }
     }
 
-    /**
-     * Capture list screenshots for IT Service industry manual and tutorial.
-     * These screenshots are used in both 02-tutorial-akuntansi.md and 07-industri-jasa.md.
-     * Taken AFTER all transactions are executed so screenshots have data.
-     */
-    @Test
-    @Order(5)
-    @DisplayName("Capture list and detail screenshots")
-    void captureListScreenshots() {
-        loginAsAdmin();
-
-        // Dashboard (has widgets with data)
-        page.navigate("http://localhost:" + port + "/dashboard");
-        page.waitForLoadState();
-        page.waitForTimeout(1000);
-        takeManualScreenshot("service/dashboard");
-
-        // Chart of Accounts list (from seed data)
-        page.navigate("http://localhost:" + port + "/accounts");
-        page.waitForLoadState();
-        page.waitForSelector("#page-title", new com.microsoft.playwright.Page.WaitForSelectorOptions().setTimeout(5000));
-        takeManualScreenshot("service/accounts-list");
-
-        // Clients list (from test data)
-        page.navigate("http://localhost:" + port + "/clients");
-        page.waitForLoadState();
-        page.waitForSelector("#page-title", new com.microsoft.playwright.Page.WaitForSelectorOptions().setTimeout(5000));
-        takeManualScreenshot("service/clients-list");
-
-        // Projects list (from test data)
-        page.navigate("http://localhost:" + port + "/projects");
-        page.waitForLoadState();
-        page.waitForSelector("#page-title", new com.microsoft.playwright.Page.WaitForSelectorOptions().setTimeout(5000));
-        takeManualScreenshot("service/projects-list");
-
-        // Template list (from seed data)
-        page.navigate("http://localhost:" + port + "/templates");
-        page.waitForLoadState();
-        page.waitForSelector("#page-title", new com.microsoft.playwright.Page.WaitForSelectorOptions().setTimeout(5000));
-        takeManualScreenshot("service/templates-list");
-
-        // Find first template for detail view
-        var firstTemplate = templateRepository.findAll().stream()
-            .filter(t -> t.getCategory().name().equals("INCOME"))
-            .findFirst()
-            .orElseThrow(() -> new RuntimeException("No INCOME template found"));
-
-        // Template detail
-        page.navigate("http://localhost:" + port + "/templates/" + firstTemplate.getId());
-        page.waitForLoadState();
-        page.waitForSelector("#page-title", new com.microsoft.playwright.Page.WaitForSelectorOptions().setTimeout(5000));
-        takeManualScreenshot("service/templates-detail");
-
-        // Journals list (from executed transactions)
-        page.navigate("http://localhost:" + port + "/journals");
-        page.waitForLoadState();
-        page.waitForSelector("#page-title", new com.microsoft.playwright.Page.WaitForSelectorOptions().setTimeout(5000));
-        takeManualScreenshot("service/journals-list");
-
-        // Trial Balance (after transactions)
-        page.navigate("http://localhost:" + port + "/reports/trial-balance?startDate=2024-01-01&endDate=2024-03-31");
-        page.waitForLoadState();
-        page.waitForTimeout(2000); // Wait for report to render
-        takeManualScreenshot("service/report-trial-balance");
+    private static BigDecimal amount(TransactionRow tx) {
+        for (String part : tx.inputs().split("\\|")) {
+            String[] kv = part.split(":", 2);
+            if (kv[0].equals("amount")) {
+                return new BigDecimal(kv[1]);
+            }
+        }
+        throw new IllegalStateException("No amount input in CSV row " + tx.sequence());
     }
 
-    /**
-     * Convert text to URL-friendly slug.
-     */
     private String slugify(String text) {
         return text.toLowerCase()
             .replaceAll("[^a-z0-9]+", "-")

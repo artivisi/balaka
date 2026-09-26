@@ -93,6 +93,10 @@ class AssetCategoryControllerFunctionalTest extends PlaywrightTestBase {
         waitForPageLoad();
         assertThat(rows()).hasCount(1);
         assertThat(row("KOMPUTER").locator("td").nth(3)).hasText("4 tahun");
+
+        navigateTo("/assets/categories");
+        waitForPageLoad();
+        takeManualScreenshot("asset-categories-list");
     }
 
     @Test

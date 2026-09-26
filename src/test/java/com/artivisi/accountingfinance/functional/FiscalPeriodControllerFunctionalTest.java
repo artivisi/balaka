@@ -214,6 +214,7 @@ class FiscalPeriodControllerFunctionalTest extends PlaywrightTestBase {
         assertThat(periodRow(FILTER_YEAR + "-01")).containsText("Terbuka");
         assertThat(periodRow(FILTER_YEAR + "-02")).containsText("Tutup Bulan");
         assertThat(periodRow(FILTER_YEAR + "-03")).containsText("Terbuka");
+        takeManualScreenshot("fiscal-periods-list");
 
         page.locator("#filter-status").selectOption("MONTH_CLOSED");
         assertThat(page.locator("[data-testid='period-table'] tbody tr")).hasCount(1);

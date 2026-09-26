@@ -90,6 +90,7 @@ class ServicePayrollComprehensiveTest extends PlaywrightTestBase {
             assertThat(cells.nth(5)).hasText("(" + rupiah(d.get("total_deductions")) + ")");
             assertThat(cells.nth(6)).hasText(rupiah(d.get("net_pay")));
         }
+        takeManualScreenshot("payroll-detail");
     }
 
     @Test

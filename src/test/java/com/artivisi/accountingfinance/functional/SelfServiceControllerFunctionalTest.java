@@ -86,6 +86,7 @@ class SelfServiceControllerFunctionalTest extends PlaywrightTestBase {
         assertThat(main).containsText(self.getPhone());
         assertThat(main).containsText(self.getBankAccountNumber());
         assertThat(main).not().containsText(colleague.getName());
+        takeManualScreenshot("self-service-profile");
     }
 
     @Test
@@ -199,6 +200,7 @@ class SelfServiceControllerFunctionalTest extends PlaywrightTestBase {
         assertThat(rows.first().locator("td").nth(2)).hasText("450,000");
         assertThat(rows.first().locator("td").nth(3)).hasText("8,550,000");
         assertThat(page.locator("main")).not().containsText("7,000,000");
+        takeManualScreenshot("self-service-payslips");
 
         navigateTo("/self-service/payslips?year=" + (PAYROLL_YEAR - 1));
         waitForPageLoad();
@@ -261,6 +263,7 @@ class SelfServiceControllerFunctionalTest extends PlaywrightTestBase {
         assertThat(page.locator("main")).containsText("NPWP: " + self.getNpwp());
         String href = page.locator("main a:has-text('Download PDF')").getAttribute("href");
         assertThat(href).isEqualTo("/self-service/bukti-potong/" + PAYROLL_YEAR + "/pdf");
+        takeManualScreenshot("self-service-bukti-potong");
 
         APIResponse pdf = page.request().get(baseUrl() + href);
         assertThat(pdf.status()).isEqualTo(200);

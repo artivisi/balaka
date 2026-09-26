@@ -84,6 +84,7 @@ class EmployeeControllerFunctionalTest extends PlaywrightTestBase {
         assertThat(page.locator("#btn-new-employee")).hasAttribute("href", "/employees/new");
         assertThat(page.locator("#filter-status")).hasValue("");
         assertThat(page.locator("#filter-active")).hasValue("");
+        takeManualScreenshot("employees-list");
 
         search(employee.getEmployeeId());
         assertThat(employeeRows()).hasCount(1);
@@ -251,6 +252,7 @@ class EmployeeControllerFunctionalTest extends PlaywrightTestBase {
         assertThat(page.locator("#user option[value='" + user.getId() + "']"))
                 .hasText(user.getUsername() + " (" + user.getFullName() + ")");
         assertThat(form().locator("a:text-is('Batal')")).hasAttribute("href", "/employees");
+        takeManualScreenshot("employees-form");
     }
 
     @Test

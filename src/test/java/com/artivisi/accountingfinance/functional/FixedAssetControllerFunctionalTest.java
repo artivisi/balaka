@@ -130,6 +130,7 @@ class FixedAssetControllerFunctionalTest extends PlaywrightTestBase {
         assertThat(depreciatedCells.nth(3)).hasText("3,000,000");
         assertThat(depreciatedCells.nth(4)).hasText("0");
         assertThat(depreciatedCells.nth(5)).hasText("Habis Penyusutan");
+        takeManualScreenshot("assets-list");
 
         UUID komputer = category("KOMPUTER").getId();
         UUID kendaraan = category("KENDARAAN").getId();
@@ -181,6 +182,7 @@ class FixedAssetControllerFunctionalTest extends PlaywrightTestBase {
                 .hasText("Peralatan Komputer (4 tahun)");
         assertThat(page.locator("#category option[value='" + category("KENDARAAN").getId() + "']"))
                 .hasText("Kendaraan (8 tahun)");
+        takeManualScreenshot("assets-form");
     }
 
     @Test
@@ -527,6 +529,8 @@ class FixedAssetControllerFunctionalTest extends PlaywrightTestBase {
         generateViaUi(month(2));
         DepreciationEntry february = entry(asset, 2);
         assertThat(february.getDepreciationAmount()).isEqualByComparingTo("1000000");
+        assertThat(entryRow(february).locator("td").nth(0)).hasText(asset.getAssetCode());
+        takeManualScreenshot("assets-depreciation");
         long pendingUpToFebruary = entryRepository.findAllPending().stream()
                 .filter(e -> !e.getPeriodEnd().isAfter(month(2).atEndOfMonth())).count();
         page.locator("#post-all-period").fill(month(2).toString());

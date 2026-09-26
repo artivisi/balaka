@@ -34,8 +34,11 @@ public class BpjsCalculatorController {
     @PostMapping("/calculate")
     public String calculate(
             @RequestParam BigDecimal salary,
-            @RequestParam(defaultValue = "1") Integer riskClass,
+            @RequestParam int riskClass,
             Model model) {
+        if (riskClass < 1 || riskClass > 5) {
+            throw new IllegalArgumentException("Kelas risiko JKK harus 1-5: " + riskClass);
+        }
 
         BpjsCalculationResult result = bpjsCalculationService.calculate(salary, riskClass);
 

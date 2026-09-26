@@ -126,6 +126,7 @@ class JournalTemplateControllerFunctionalTest extends PlaywrightTestBase {
 
         assertThat(card(system.getTemplateName())).containsText("Sistem");
         assertThat(card(inactive.getTemplateName())).hasCount(0);
+        takeManualScreenshot("service/templates-list");
     }
 
     @Test
@@ -238,6 +239,7 @@ class JournalTemplateControllerFunctionalTest extends PlaywrightTestBase {
         assertThat(page.locator("#btn-duplicate")).hasAttribute("href", "/templates/" + template.getId() + "/duplicate");
         assertThat(page.locator("#btn-execute")).hasAttribute("href", "/transactions/new?templateId=" + template.getId());
         assertThat(page.locator("#form-delete")).hasCount(1);
+        takeManualScreenshot("service/templates-detail");
 
         page.locator("[data-testid='metadata-ai-card']").scrollIntoViewIfNeeded();
         takeManualScreenshot("service/templates-metadata-detail");

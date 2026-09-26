@@ -64,6 +64,7 @@ class ClientControllerFunctionalTest extends PlaywrightTestBase {
         assertThat(page.locator("#page-title")).hasText("Daftar Klien");
         assertThat(page.locator("#btn-new-client")).hasAttribute("href", "/clients/new");
         assertThat(page.locator("#filter-active")).hasValue("");
+        takeManualScreenshot("service/clients-list");
 
         search(client.getCode());
         assertThat(clientRows()).hasCount(1);
