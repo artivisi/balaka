@@ -20,8 +20,7 @@ public class CspNonceHeaderWriter implements HeaderWriter {
         String nonce = (String) request.getAttribute(CspNonceFilter.CSP_NONCE_ATTRIBUTE);
 
         if (nonce == null) {
-            // Fallback if nonce filter didn't run (shouldn't happen)
-            nonce = "missing-nonce";
+            throw new IllegalStateException("CSP nonce missing: CspNonceFilter did not run for this request");
         }
 
         // CSP with nonce-based scripts and styles - strict protection
