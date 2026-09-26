@@ -429,7 +429,7 @@ function registerFormComponents() {
                 if (response.ok) {
                     const result = await response.json()
                     document.getElementById('quick-transaction-modal')?.close()
-                    globalThis.location.href = '/transactions/' + result.transactionId
+                    globalThis.location.href = '/transactions/' + result.id
                 } else {
                     const errorText = await response.text()
                     alert('Gagal menyimpan: ' + errorText)

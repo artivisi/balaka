@@ -1,278 +1,260 @@
 package com.artivisi.accountingfinance.functional;
 
 import com.artivisi.accountingfinance.entity.JournalTemplate;
-import com.artivisi.accountingfinance.functional.page.DashboardPage;
+import com.artivisi.accountingfinance.entity.JournalTemplateLine;
+import com.artivisi.accountingfinance.entity.Transaction;
+import com.artivisi.accountingfinance.enums.CashFlowCategory;
+import com.artivisi.accountingfinance.enums.JournalPosition;
+import com.artivisi.accountingfinance.enums.TemplateCategory;
+import com.artivisi.accountingfinance.enums.TemplateType;
+import com.artivisi.accountingfinance.enums.TransactionStatus;
 import com.artivisi.accountingfinance.functional.page.QuickTransactionModal;
 import com.artivisi.accountingfinance.functional.page.TransactionFormPage;
 import com.artivisi.accountingfinance.functional.service.ServiceTestDataInitializer;
+import com.artivisi.accountingfinance.repository.ChartOfAccountRepository;
 import com.artivisi.accountingfinance.repository.JournalTemplateRepository;
 import com.artivisi.accountingfinance.repository.TransactionRepository;
 import com.artivisi.accountingfinance.ui.PlaywrightTestBase;
+import com.microsoft.playwright.Locator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Locale;
+import java.util.UUID;
+import java.util.regex.Pattern;
 
+import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Functional tests for Quick Transaction feature.
- * Tests the FAB button, template picker, and quick form flow.
+ * Quick transaction modal (FAB on every page): frequent/recent template picker, quick form,
+ * draft creation, cancel and ESC; plus the full form's journal preview.
+ *
+ * Each test creates its own templates with a usage count and last-used time above every seeded
+ * template, so they head the frequent and recent lists: one with fixed accounts
+ * (5.1.07 D / 1.1.02 C) and one whose credit line is a BANK account picker. Drafts are dated
+ * February 2108 (reserved for this class).
  */
 @DisplayName("Quick Transaction Flow")
 @Import(ServiceTestDataInitializer.class)
 class QuickTransactionTest extends PlaywrightTestBase {
 
-    @Autowired
-    private JournalTemplateRepository templateRepository;
+    @Autowired private JournalTemplateRepository templateRepository;
+    @Autowired private ChartOfAccountRepository accountRepository;
+    @Autowired private TransactionRepository transactionRepository;
+    @Autowired private JdbcTemplate jdbc;
 
-    @Autowired
-    private TransactionRepository transactionRepository;
-
-    private QuickTransactionModal quickTransactionModal;
-    private DashboardPage dashboardPage;
+    private QuickTransactionModal modal;
+    private JournalTemplate fixed;
+    private JournalTemplate withPicker;
 
     @BeforeEach
-    void setupPageObjects() {
-        // Setup template usage data for testing
-        setupTemplateUsageData();
+    void setup() {
+        String id = UUID.randomUUID().toString().substring(0, 8);
+        // Above every seeded template and every template an earlier test of this class created
+        int usage = (int) (System.currentTimeMillis() / 1000);
+        LocalDateTime future = LocalDateTime.now().plusYears(10);
+        fixed = saveTemplate("Cepat Tetap " + id, usage, future, false);
+        withPicker = saveTemplate("Cepat Bank " + id, usage - 1, future.minusNanos(1_000), true);
 
-        String baseUrl = "http://localhost:" + port;
-        quickTransactionModal = new QuickTransactionModal(page, baseUrl);
-        dashboardPage = new DashboardPage(page, baseUrl);
-
-        // Login as admin (has all permissions)
+        modal = new QuickTransactionModal(page, baseUrl());
         loginAsAdmin();
-
-        // Navigate to dashboard
-        dashboardPage.navigate();
-    }
-
-    /**
-     * Setup template usage data so templates appear in frequent/recent lists.
-     * Updates template usage counts and last used timestamps.
-     */
-    private void setupTemplateUsageData() {
-        List<com.artivisi.accountingfinance.entity.JournalTemplate> templates =
-            templateRepository.findByActiveAndIsCurrentVersionTrueOrderByTemplateNameAsc(true);
-
-        if (templates.size() >= 3) {
-            // Make first 3 templates "frequently used"
-            templates.get(0).setUsageCount(25);
-            templates.get(0).setLastUsedAt(java.time.LocalDateTime.now().minusHours(1));
-
-            templates.get(1).setUsageCount(18);
-            templates.get(1).setLastUsedAt(java.time.LocalDateTime.now().minusHours(2));
-
-            templates.get(2).setUsageCount(12);
-            templates.get(2).setLastUsedAt(java.time.LocalDateTime.now().minusHours(3));
-
-            templateRepository.saveAll(templates.subList(0, 3));
-        }
+        navigateTo("/dashboard");
+        waitForPageLoad();
     }
 
     @Test
-    @Order(1)
-    @DisplayName("FAB button should be visible on dashboard")
-    void fabButtonVisible() {
-        assertThat(page.getByTestId("quick-transaction-fab").isVisible())
-            .as("FAB button should be visible")
-            .isTrue();
+    @DisplayName("FAB opens the modal listing top templates by usage and by last use")
+    void shouldListFrequentAndRecentTemplates() {
+        assertThat(page.getByTestId("quick-transaction-fab")).hasText("Transaksi Cepat");
+
+        modal.openModal();
+
+        assertThat(page.getByTestId("quick-transaction-modal")).isVisible();
+        Locator frequent = page.locator("[data-testid^='template-frequent-']");
+        List<String> expectedFrequent = templateRepository.findByActiveAndIsCurrentVersionTrueOrderByUsageCountDesc(true).stream()
+                .filter(t -> t.getUsageCount() > 0).limit(6).map(t -> "template-frequent-" + t.getId()).toList();
+        assertThat(frequent).hasCount(expectedFrequent.size());
+        assertThat(frequent.nth(0)).hasAttribute("data-testid", "template-frequent-" + fixed.getId());
+        assertThat(frequent.nth(0)).containsText(fixed.getTemplateName());
+        assertThat(frequent.nth(0)).containsText(fixed.getUsageCount() + "x");
+        assertThat(frequent.nth(1)).hasAttribute("data-testid", "template-frequent-" + withPicker.getId());
+        assertThat(frequent.evaluateAll("els => els.map(e => e.dataset.testid)")).asList()
+                .containsExactlyInAnyOrderElementsOf(expectedFrequent);
+        Locator recent = page.locator("[data-testid^='template-recent-']");
+        List<String> expectedRecent = templateRepository.findByActiveAndIsCurrentVersionTrueOrderByLastUsedAtDesc(true).stream()
+                .filter(t -> t.getLastUsedAt() != null).limit(5).map(t -> "template-recent-" + t.getId()).toList();
+        assertThat(recent).hasCount(expectedRecent.size());
+        assertThat(recent.nth(0)).hasAttribute("data-testid", "template-recent-" + fixed.getId());
+        assertThat(recent.nth(0)).containsText(fixed.getLastUsedAt()
+                .format(DateTimeFormatter.ofPattern("d MMM HH:mm", Locale.of("id", "ID"))));
+        assertThat(recent.nth(1)).hasAttribute("data-testid", "template-recent-" + withPicker.getId());
+        assertThat(recent.evaluateAll("els => els.map(e => e.dataset.testid)")).asList()
+                .containsExactlyInAnyOrderElementsOf(expectedRecent);
     }
 
     @Test
-    @Order(2)
-    @DisplayName("Should open modal when FAB is clicked")
-    void openModal() {
-        quickTransactionModal.openModal();
+    @DisplayName("Choosing a template loads its quick form with the name as description and today's date")
+    void shouldLoadFormForSelectedTemplate() {
+        modal.openModal();
 
-        assertThat(quickTransactionModal.isModalVisible())
-            .as("Modal should be visible after clicking FAB")
-            .isTrue();
+        page.getByTestId("template-frequent-" + fixed.getId()).click();
+
+        waitForQuickForm();
+        assertThat(page.locator("#quick-transaction-content h3")).hasText(fixed.getTemplateName());
+        assertThat(page.locator("#quick-template-id")).hasValue(fixed.getId().toString());
+        assertThat(page.getByTestId("quick-description")).hasValue(fixed.getTemplateName());
+        assertThat(page.locator("#quick-date")).hasValue(LocalDate.now().toString());
+        assertThat(page.locator("[id^='quick-accountMapping_']")).hasCount(0);
     }
 
     @Test
-    @Order(3)
-    @DisplayName("Should show frequent templates")
-    void showFrequentTemplates() {
-        quickTransactionModal.openModal();
+    @DisplayName("Submitting the quick form saves a draft with the entered values and opens it")
+    void shouldCreateTransactionViaQuickForm() {
+        String description = "Transaksi cepat " + UUID.randomUUID().toString().substring(0, 8);
+        modal.openModal();
+        page.getByTestId("template-frequent-" + fixed.getId()).click();
+        waitForQuickForm();
 
-        int frequentCount = quickTransactionModal.getFrequentTemplatesCount();
+        page.locator("#quick-amount-display").pressSequentially("7500000");
+        assertThat(page.locator("#quick-amount")).hasValue("7500000");
+        page.getByTestId("quick-description").fill(description);
+        page.locator("#quick-date").fill("2108-02-10");
+        modal.submit();
 
-        assertThat(frequentCount)
-            .as("Should display frequent templates")
-            .isGreaterThanOrEqualTo(0)
-            .isLessThanOrEqualTo(6);  // Max 6 as per service design
+        page.waitForURL(Pattern.compile(".*/transactions/[0-9a-f-]{36}$"));
+        UUID id = UUID.fromString(page.url().substring(page.url().lastIndexOf('/') + 1));
+        assertThat(page.getByTestId("status-draft")).isVisible();
+        Transaction saved = transactionRepository.findById(id).orElseThrow();
+        assertThat(saved.getStatus()).isEqualTo(TransactionStatus.DRAFT);
+        assertThat(saved.getDescription()).isEqualTo(description);
+        assertThat(saved.getAmount()).isEqualByComparingTo("7500000");
+        assertThat(saved.getTransactionDate()).isEqualTo(LocalDate.of(2108, 2, 10));
+        assertThat(templateOf(id)).isEqualTo(fixed.getId());
     }
 
     @Test
-    @Order(4)
-    @DisplayName("Should show recent templates")
-    void showRecentTemplates() {
-        quickTransactionModal.openModal();
+    @DisplayName("A template with an account hint asks for the account and stores the chosen one")
+    void shouldStoreAccountPickedInQuickForm() {
+        String description = "Transaksi cepat bank " + UUID.randomUUID().toString().substring(0, 8);
+        UUID bankLine = withPicker.getLines().stream()
+                .filter(l -> "BANK".equals(l.getAccountHint())).findFirst().orElseThrow().getId();
+        String mandiri = accountRepository.findByAccountCode("1.1.03")
+                .orElseThrow(() -> new IllegalStateException("Seeded account missing: 1.1.03")).getId().toString();
+        modal.openModal();
+        page.getByTestId("template-frequent-" + withPicker.getId()).click();
+        waitForQuickForm();
 
-        int recentCount = quickTransactionModal.getRecentTemplatesCount();
+        Locator picker = page.locator("#quick-accountMapping_" + bankLine);
+        picker.click();
+        picker.fill("1.1.03");
+        picker.locator("xpath=..").locator("[data-testid='account-picker-result']")
+                .filter(new Locator.FilterOptions().setHasText("1.1.03 — ")).click();
+        assertThat(picker).hasValue("1.1.03 - Bank Mandiri");
+        assertThat(page.locator("input[name='accountMapping[" + bankLine + "]']")).hasValue(mandiri);
+        page.locator("#quick-amount-display").pressSequentially("250000");
+        page.getByTestId("quick-description").fill(description);
+        page.locator("#quick-date").fill("2108-02-11");
+        assertThat(page.locator("#quick-amount")).hasValue("250000");
+        modal.submit();
 
-        assertThat(recentCount)
-            .as("Should display recent templates")
-            .isGreaterThanOrEqualTo(0)
-            .isLessThanOrEqualTo(5);  // Max 5 as per service design
+        page.waitForURL(Pattern.compile(".*/transactions/[0-9a-f-]{36}$"));
+        UUID id = UUID.fromString(page.url().substring(page.url().lastIndexOf('/') + 1));
+        assertThat(jdbc.queryForList("SELECT a.account_code FROM transaction_account_mappings m "
+                + "JOIN chart_of_accounts a ON a.id = m.id_account WHERE m.id_transaction = ?", String.class, id))
+                .containsExactly("1.1.03");
+        assertThat(transactionRepository.findById(id).orElseThrow().getAmount()).isEqualByComparingTo("250000");
     }
 
     @Test
-    @Order(5)
-    @DisplayName("Should load form when template is selected from frequent list")
-    void loadFormAfterTemplateSelection() {
-        quickTransactionModal.openModal();
-
-        int frequentCount = quickTransactionModal.getFrequentTemplatesCount();
-        if (frequentCount > 0) {
-            // Click first frequent template
-            page.locator("[data-testid^='template-frequent-']").first().click();
-
-            // Wait for form to appear
-            page.getByTestId("quick-transaction-form").waitFor();
-
-            assertThat(quickTransactionModal.isFormVisible())
-                .as("Form should be visible after selecting template")
-                .isTrue();
-
-            // Verify description field exists and is filled
-            String description = quickTransactionModal.getDescription();
-            assertThat(description)
-                .as("Description should be pre-filled")
-                .isNotEmpty();
-        }
-    }
-
-    @Test
-    @Order(6)
-    @DisplayName("Should create transaction via quick form and verify in transaction list")
-    void createTransactionViaQuickForm() {
-        // Open modal
-        quickTransactionModal.openModal();
-
-        // Select first available template (frequent or recent)
-        int frequentCount = quickTransactionModal.getFrequentTemplatesCount();
-        int recentCount = quickTransactionModal.getRecentTemplatesCount();
-
-        if (frequentCount > 0 || recentCount > 0) {
-            page.locator("[data-testid^='template-frequent-'], [data-testid^='template-recent-']").first().click();
-
-            // Wait for form to load and Alpine.js to initialize
-            page.getByTestId("quick-transaction-form").waitFor();
-            page.waitForTimeout(500); // Allow time for Alpine.js to bind event handlers
-
-            // Fill form
-            quickTransactionModal.fillAmount("7500000");
-            quickTransactionModal.fillDescription("Test Quick Transaction - Automated");
-
-            // Submit and wait for navigation (form redirects to /transactions/{id} on success)
-            quickTransactionModal.submit();
-
-            // Wait for the page to navigate away from dashboard (form redirects on success)
-            page.waitForURL(url -> url.contains("/transactions/"),
-                new com.microsoft.playwright.Page.WaitForURLOptions().setTimeout(10000));
-
-            // Now navigate to transaction list to verify it appears there
-            page.navigate(baseUrl() + "/transactions");
-            page.waitForLoadState();
-
-            // Verify transaction appears in list
-            assertThat(page.locator("text='Test Quick Transaction - Automated'").count())
-                .as("Transaction should appear in transaction list")
-                .isGreaterThan(0);
-        }
-    }
-
-    @Test
-    @Order(7)
-    @DisplayName("Should close modal when cancel is clicked")
+    @DisplayName("Cancel closes the modal without saving")
     void cancelTransaction() {
-        quickTransactionModal.openModal();
+        String description = "Transaksi batal " + UUID.randomUUID().toString().substring(0, 8);
+        modal.openModal();
+        page.getByTestId("template-frequent-" + fixed.getId()).click();
+        waitForQuickForm();
+        page.locator("#quick-amount-display").pressSequentially("1000000");
+        page.getByTestId("quick-description").fill(description);
 
-        int frequentCount = quickTransactionModal.getFrequentTemplatesCount();
-        int recentCount = quickTransactionModal.getRecentTemplatesCount();
+        modal.cancel();
 
-        if (frequentCount > 0 || recentCount > 0) {
-            // Select first available template
-            page.locator("[data-testid^='template-frequent-'], [data-testid^='template-recent-']").first().click();
-
-            // Wait for form
-            page.getByTestId("quick-transaction-form").waitFor();
-
-            // Fill some data
-            quickTransactionModal.fillAmount("1000000");
-
-            // Cancel
-            quickTransactionModal.cancel();
-
-            // Verify modal is closed
-            page.waitForTimeout(500);
-            assertThat(quickTransactionModal.isModalVisible())
-                .as("Modal should be closed after cancel")
-                .isFalse();
-        }
+        assertThat(page.getByTestId("quick-transaction-modal")).isHidden();
+        assertThat(page).hasURL(baseUrl() + "/dashboard");
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM transactions WHERE description = ?", Long.class, description))
+                .isZero();
     }
 
     @Test
-    @Order(8)
-    @DisplayName("Should close modal on ESC key")
+    @DisplayName("ESC closes the modal")
     void closeModalWithEscKey() {
-        quickTransactionModal.openModal();
+        modal.openModal();
+        assertThat(page.getByTestId("quick-transaction-modal")).isVisible();
 
-        assertThat(quickTransactionModal.isModalVisible())
-            .as("Modal should be visible")
-            .isTrue();
+        modal.closeModal();
 
-        quickTransactionModal.closeModal();  // Uses ESC key
-
-        assertThat(quickTransactionModal.isModalVisible())
-            .as("Modal should be closed after ESC")
-            .isFalse();
+        assertThat(page.getByTestId("quick-transaction-modal")).isHidden();
     }
 
     @Test
-    @Order(9)
-    @DisplayName("Full form: Preview should update when amount is entered")
+    @DisplayName("Full form preview shows the template's lines for the entered amount")
     void previewUpdatesOnAmountEntry() {
-        // Get a SIMPLE template with fixed accounts (not dynamic) - fetch with lines to avoid lazy loading
-        JournalTemplate template = templateRepository.findAllWithLines()
-            .stream()
-            .filter(t -> t.getLines() != null && !t.getLines().isEmpty())
-            .filter(t -> t.getLines().stream().allMatch(line -> line.getAccount() != null))
-            .findFirst()
-            .orElse(null);
-
-        if (template == null) {
-            // Skip if no suitable template found
-            return;
-        }
-
-        // Navigate to full transaction form
         TransactionFormPage formPage = new TransactionFormPage(page, baseUrl());
-        formPage.navigateWithTemplate(template.getId());
+        formPage.navigateWithTemplate(fixed.getId());
 
-        // Enter amount
         formPage.fillAmount("5000000");
-
-        // Wait for preview to update via HTMX
         formPage.waitForPreviewUpdate();
 
-        // Verify preview shows the entered amount
-        long totalDebit = formPage.getPreviewTotalDebit();
-        long totalCredit = formPage.getPreviewTotalCredit();
+        assertThat(page.locator("#entry-account-code-0")).hasText("5.1.07");
+        assertThat(page.locator("#entry-debit-0")).containsText("5.000.000");
+        assertThat(page.locator("#entry-account-code-1")).hasText("1.1.02");
+        assertThat(page.locator("#entry-credit-1")).containsText("5.000.000");
+        assertThat(formPage.getPreviewTotalDebit()).isEqualTo(5_000_000L);
+        assertThat(formPage.getPreviewTotalCredit()).isEqualTo(5_000_000L);
+    }
 
-        assertThat(totalDebit)
-            .as("Preview total debit should match entered amount")
-            .isEqualTo(5_000_000L);
+    /** The form is swapped in by HTMX; typing before Alpine binds it would be overwritten by the empty amount. */
+    private void waitForQuickForm() {
+        assertThat(page.getByTestId("quick-transaction-form")).isVisible();
+        assertThat(page.locator("#quick-amount")).hasValue("0");
+    }
 
-        assertThat(totalCredit)
-            .as("Preview total credit should match entered amount")
-            .isEqualTo(5_000_000L);
+    private UUID templateOf(UUID transactionId) {
+        return jdbc.queryForObject("SELECT id_journal_template FROM transactions WHERE id = ?", UUID.class, transactionId);
+    }
+
+    private JournalTemplate saveTemplate(String name, int usageCount, LocalDateTime lastUsedAt, boolean bankPicker) {
+        JournalTemplate template = new JournalTemplate();
+        template.setTemplateName(name);
+        template.setCategory(TemplateCategory.EXPENSE);
+        template.setCashFlowCategory(CashFlowCategory.OPERATING);
+        template.setTemplateType(TemplateType.SIMPLE);
+        template.setDescription("Template transaksi cepat");
+        template.setUsageCount(usageCount);
+        template.setLastUsedAt(lastUsedAt);
+        template.addLine(line(1, JournalPosition.DEBIT, "5.1.07", null));
+        template.addLine(bankPicker ? line(2, JournalPosition.CREDIT, null, "BANK") : line(2, JournalPosition.CREDIT, "1.1.02", null));
+        JournalTemplate saved = templateRepository.save(template);
+        return templateRepository.findByIdWithLines(saved.getId()).orElseThrow();
+    }
+
+    private JournalTemplateLine line(int order, JournalPosition position, String accountCode, String hint) {
+        JournalTemplateLine line = new JournalTemplateLine();
+        line.setLineOrder(order);
+        line.setPosition(position);
+        line.setFormula("amount");
+        line.setAccountHint(hint);
+        if (accountCode != null) {
+            line.setAccount(accountRepository.findByAccountCode(accountCode)
+                    .orElseThrow(() -> new IllegalStateException("Seeded account missing: " + accountCode)));
+        }
+        return line;
     }
 }
