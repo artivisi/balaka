@@ -20,8 +20,16 @@ import com.artivisi.accountingfinance.repository.FixedAssetRepository;
 import com.artivisi.accountingfinance.repository.JournalEntryRepository;
 import com.artivisi.accountingfinance.repository.JournalTemplateRepository;
 import com.artivisi.accountingfinance.repository.TransactionRepository;
+import com.artivisi.accountingfinance.service.SptTahunanExportService;
 import com.artivisi.accountingfinance.ui.PlaywrightTestBase;
+import com.microsoft.playwright.APIResponse;
 import com.microsoft.playwright.Locator;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellType;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,10 +39,14 @@ import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Year;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.regex.Pattern;
@@ -59,6 +71,8 @@ class SptChecklistFunctionalTest extends PlaywrightTestBase {
 
     private static final int YEAR = 2095;
     private static final int LOSS_YEAR = 2094;
+    private static final String XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+    private static final DateTimeFormatter DMY = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     @Autowired private TransactionRepository transactionRepository;
     @Autowired private JournalEntryRepository journalEntryRepository;
@@ -68,6 +82,7 @@ class SptChecklistFunctionalTest extends PlaywrightTestBase {
     @Autowired private FiscalPeriodRepository fiscalPeriodRepository;
     @Autowired private FiscalLossCarryforwardRepository lossRepository;
     @Autowired private FixedAssetRepository fixedAssetRepository;
+    @Autowired private SptTahunanExportService sptTahunanExportService;
 
     private UUID lossId;
 
@@ -173,6 +188,73 @@ class SptChecklistFunctionalTest extends PlaywrightTestBase {
     }
 
     @Test
+    @DisplayName("The six Download Lampiran SPT links return the year's workbooks to a browser session")
+    void shouldDownloadSptAttachments() throws IOException {
+        navigateTo("/reports/spt-checklist?year=" + YEAR);
+        waitForPageLoad();
+
+        try (Workbook l1 = download("#download-spt-l1", "spt-l1-rekonsiliasi-fiskal-" + YEAR + ".xlsx")) {
+            assertThat(rows(l1.getSheet("L1 Rekonsiliasi Fiskal"))).contains(
+                    "Tahun Pajak: " + YEAR,
+                    "4.1.01|" + account("4.1.01").getAccountName() + "|50000000",
+                    "5.1.20|" + account("5.1.20").getAccountName() + "|20000000",
+                    "|PENGHASILAN NETO KOMERSIAL|30000000",
+                    "|Beban sumbangan (PERMANENT)|2000000",
+                    "|Selisih penyusutan (TEMPORARY)|1000000",
+                    "|PENGHASILAN NETO FISKAL|31000000",
+                    "|Rugi Fiskal Tahun " + LOSS_YEAR + " (kadaluarsa " + (LOSS_YEAR + 5) + ")|7500000",
+                    "|PENGHASILAN KENA PAJAK (PKP)|23500000");
+        }
+        try (Workbook l4 = download("#download-spt-l4", "spt-l4-penghasilan-final-" + YEAR + ".xlsx")) {
+            assertThat(rows(l4.getSheet("L4 Penghasilan Final"))).containsExactly(
+                    "LAMPIRAN IV - PENGHASILAN YANG DIKENAKAN PPh FINAL",
+                    "Tahun Pajak: " + YEAR,
+                    "No|Kode Objek Pajak|Uraian|Jumlah Bruto (Rp)|Tarif (%)|PPh Final (Rp)",
+                    "||TOTAL|0||0");
+        }
+        try (Workbook l9 = download("#download-spt-l9", "spt-l9-penyusutan-" + YEAR + ".xlsx")) {
+            List<String> expected = new ArrayList<>();
+            expected.add("NamaHarta|KelompokHarta|TanggalPerolehan|HargaPerolehan|MetodePenyusutan|MasaManfaat"
+                    + "|PenyusutanTahunIni|AkumulasiPenyusutan|NilaiBuku");
+            sptTahunanExportService.generateL9(YEAR).items().forEach(item -> expected.add(item.assetName() + "|"
+                    + item.fiscalGroup() + "|" + item.acquisitionDate().format(DMY) + "|"
+                    + plain(item.acquisitionCost()) + "|" + ("Garis Lurus".equals(item.depreciationMethod()) ? "GL" : "SM")
+                    + "|" + item.usefulLifeYears() + "|" + plain(item.depreciationThisYear()) + "|"
+                    + plain(item.accumulatedDepreciation()) + "|" + plain(item.bookValue())));
+            assertThat(rows(l9.getSheet("DATA"))).containsExactlyElementsOf(expected);
+            assertThat(rows(l9.getSheet("REF"))).contains("Kelompok I|Bukan Bangunan - Kelompok I|4", "GL|Garis Lurus (Straight-Line)");
+        }
+        try (Workbook transkrip = download("#download-spt-transkrip-8a", "spt-transkrip-8a-" + YEAR + ".xlsx")) {
+            assertThat(transkrip.getSheetAt(0).getSheetName()).isEqualTo("Neraca");
+            assertThat(rows(transkrip.getSheet("Laba Rugi"))).contains(
+                    "Periode 1 Januari - 31 Desember " + YEAR,
+                    "4.1.01|" + account("4.1.01").getAccountName() + "|50000000",
+                    "|Total PENDAPATAN|50000000",
+                    "5.1.20|" + account("5.1.20").getAccountName() + "|20000000",
+                    "|Total BEBAN|20000000",
+                    "|LABA (RUGI) BERSIH|30000000");
+        }
+        try (Workbook bpa1 = download("#download-spt-ebupot-pph21", "ebupot-pph21-1721a1-" + YEAR + ".xlsx")) {
+            assertThat(rows(bpa1.getSheet("DATA"))).containsExactly(
+                    "NPWP|NIK|NamaPegawai|StatusPTKP|MasaKerja|PenghasilanBruto|BiayaJabatan|IuranBPJS|PenghasilanNeto"
+                            + "|PTKP|PKP|PPh21Terutang|PPh21Dipotong|PPh21KurangLebihBayar",
+                    "||TOTAL|||0||||||0|0|0");
+        }
+        try (Workbook rekon = download("#download-spt-rekonsiliasi-fiskal", "rekonsiliasi-fiskal-" + YEAR + ".xlsx")) {
+            assertThat(rows(rekon.getSheet("Rekonsiliasi Fiskal"))).contains(
+                    "Pendapatan|50000000",
+                    "Beban|-20000000",
+                    "Laba Bersih Komersial|30000000",
+                    "Beban sumbangan (Beda Tetap, Koreksi Positif)|2000000",
+                    "Selisih penyusutan (Beda Waktu, Koreksi Negatif)|-1000000",
+                    "Koreksi Fiskal Neto|1000000",
+                    "Penghasilan Kena Pajak (PKP)|31000000",
+                    "PPh Badan Terutang|3410000",
+                    "PPh Pasal 29 (Kurang/Lebih Bayar)|3410000");
+        }
+    }
+
+    @Test
     @DisplayName("A year without activity shows every item as missing, and a loss is not compensable in its own year")
     void shouldReportMissingDataForEmptyYear() {
         navigateTo("/reports/spt-checklist?year=" + LOSS_YEAR);
@@ -215,6 +297,47 @@ class SptChecklistFunctionalTest extends PlaywrightTestBase {
 
         assertThat(page.locator("#page-title")).hasText("Checklist SPT Tahunan Badan");
         assertThat(page.locator("#nav-spt-checklist")).hasClass(Pattern.compile(".*bg-primary-600.*"));
+    }
+
+    private Workbook download(String linkSelector, String filename) throws IOException {
+        String href = page.locator(linkSelector).getAttribute("href");
+        assertThat(href).isEqualTo(expectedHref(linkSelector));
+        APIResponse response = page.request().get(baseUrl() + href);
+        assertThat(response.status()).as(href).isEqualTo(200);
+        assertThat(response.headers().get("content-type")).isEqualTo(XLSX);
+        assertThat(response.headers().get("content-disposition"))
+                .isEqualTo("attachment; filename=\"" + filename + "\"; filename*=UTF-8''" + filename);
+        return new XSSFWorkbook(new ByteArrayInputStream(response.body()));
+    }
+
+    private static String expectedHref(String linkSelector) {
+        return "/reports/spt-tahunan/" + linkSelector.substring("#download-spt-".length()) + "?year=" + YEAR;
+    }
+
+    private static List<String> rows(Sheet sheet) {
+        List<String> rows = new ArrayList<>();
+        for (Row row : sheet) {
+            List<String> cells = new ArrayList<>();
+            for (int c = 0; c < row.getLastCellNum(); c++) {
+                Cell cell = row.getCell(c);
+                if (cell == null) {
+                    cells.add("");
+                } else if (cell.getCellType() == CellType.NUMERIC) {
+                    cells.add(plain(BigDecimal.valueOf(cell.getNumericCellValue())));
+                } else {
+                    cells.add(cell.getStringCellValue());
+                }
+            }
+            String joined = String.join("|", cells).replaceAll("\\|+$", "");
+            if (!joined.isEmpty()) {
+                rows.add(joined);
+            }
+        }
+        return rows;
+    }
+
+    private static String plain(BigDecimal value) {
+        return value.stripTrailingZeros().toPlainString();
     }
 
     private void assertItem(String selector, String background, String title, String detail) {

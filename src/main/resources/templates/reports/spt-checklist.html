@@ -128,7 +128,7 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <!-- L1 Rekonsiliasi Fiskal -->
-                    <a th:href="|/api/tax-export/spt-tahunan/l1?year=${year}&format=excel|"
+                    <a id="download-spt-l1" th:href="@{/reports/spt-tahunan/l1(year=${year})}"
                        class="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
                         <div class="bg-green-100 p-2 rounded-lg mr-3">
                             <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -142,7 +142,7 @@
                     </a>
 
                     <!-- L4 Penghasilan Final -->
-                    <a th:href="|/api/tax-export/spt-tahunan/l4?year=${year}&format=excel|"
+                    <a id="download-spt-l4" th:href="@{/reports/spt-tahunan/l4(year=${year})}"
                        class="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
                         <div class="bg-blue-100 p-2 rounded-lg mr-3">
                             <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -156,7 +156,7 @@
                     </a>
 
                     <!-- L9 Penyusutan -->
-                    <a th:href="|/api/tax-export/spt-tahunan/l9?year=${year}&format=excel|"
+                    <a id="download-spt-l9" th:href="@{/reports/spt-tahunan/l9(year=${year})}"
                        class="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
                         <div class="bg-purple-100 p-2 rounded-lg mr-3">
                             <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -170,7 +170,7 @@
                     </a>
 
                     <!-- Transkrip 8A -->
-                    <a th:href="|/api/tax-export/spt-tahunan/transkrip-8a?year=${year}&format=excel|"
+                    <a id="download-spt-transkrip-8a" th:href="@{/reports/spt-tahunan/transkrip-8a(year=${year})}"
                        class="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
                         <div class="bg-orange-100 p-2 rounded-lg mr-3">
                             <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -184,7 +184,7 @@
                     </a>
 
                     <!-- BPA1 e-Bupot PPh 21 -->
-                    <a th:href="|/api/tax-export/ebupot-pph21?year=${year}&format=excel|"
+                    <a id="download-spt-ebupot-pph21" th:href="@{/reports/spt-tahunan/ebupot-pph21(year=${year})}"
                        class="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
                         <div class="bg-red-100 p-2 rounded-lg mr-3">
                             <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -198,7 +198,7 @@
                     </a>
 
                     <!-- Rekonsiliasi Fiskal (existing) -->
-                    <a th:href="|/api/tax-export/rekonsiliasi-fiskal?year=${year}&format=excel|"
+                    <a id="download-spt-rekonsiliasi-fiskal" th:href="@{/reports/spt-tahunan/rekonsiliasi-fiskal(year=${year})}"
                        class="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
                         <div class="bg-gray-100 p-2 rounded-lg mr-3">
                             <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
