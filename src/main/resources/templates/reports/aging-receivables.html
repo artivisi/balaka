@@ -53,7 +53,7 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-200">
-                        <tr th:each="row : ${report.rows}" class="hover:bg-gray-50">
+                        <tr th:each="row : ${report.rows}" th:attr="data-testid=|aging-row-${row.code}|" class="hover:bg-gray-50">
                             <td class="px-4 py-3">
                                 <div class="text-sm font-medium text-gray-900" th:text="${row.name}">Client</div>
                                 <div class="text-xs text-gray-500" th:text="${row.code}">CLI-001</div>

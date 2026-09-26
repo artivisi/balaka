@@ -1,256 +1,247 @@
 package com.artivisi.accountingfinance.functional;
 
 import com.artivisi.accountingfinance.entity.Bill;
-import com.artivisi.accountingfinance.entity.BillLine;
 import com.artivisi.accountingfinance.entity.Client;
 import com.artivisi.accountingfinance.entity.Invoice;
-import com.artivisi.accountingfinance.entity.InvoiceLine;
-import com.artivisi.accountingfinance.entity.InvoicePayment;
 import com.artivisi.accountingfinance.entity.Vendor;
-import com.artivisi.accountingfinance.enums.PaymentMethod;
 import com.artivisi.accountingfinance.functional.service.ServiceTestDataInitializer;
-import com.artivisi.accountingfinance.repository.ClientRepository;
-import com.artivisi.accountingfinance.repository.VendorRepository;
+import com.artivisi.accountingfinance.repository.ChartOfAccountRepository;
+import com.artivisi.accountingfinance.repository.ProductRepository;
 import com.artivisi.accountingfinance.service.BillService;
+import com.artivisi.accountingfinance.service.ClientService;
 import com.artivisi.accountingfinance.service.InvoiceService;
 import com.artivisi.accountingfinance.service.VendorService;
 import com.artivisi.accountingfinance.ui.PlaywrightTestBase;
-import lombok.extern.slf4j.Slf4j;
+import com.microsoft.playwright.Locator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.Collections;
-import java.util.List;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 
-@Slf4j
+/**
+ * Customer and vendor statements: opening balance from documents and payments before the period,
+ * chronological invoice/bill and payment entries with running balance, closing balance, the date
+ * filter, the empty period, the default period and the print layout.
+ *
+ * Each test creates its own client/vendor with documents dated in 2089.
+ */
 @DisplayName("Customer/Vendor Statements - Functional Tests")
 @Import(ServiceTestDataInitializer.class)
 class StatementTest extends PlaywrightTestBase {
 
-    @Autowired
-    private InvoiceService invoiceService;
+    private static final int YEAR = 2089;
 
-    @Autowired
-    private BillService billService;
+    @Autowired private InvoiceService invoiceService;
+    @Autowired private BillService billService;
+    @Autowired private ClientService clientService;
+    @Autowired private VendorService vendorService;
+    @Autowired private ProductRepository productRepository;
+    @Autowired private ChartOfAccountRepository chartOfAccountRepository;
 
-    @Autowired
-    private ClientRepository clientRepository;
-
-    @Autowired
-    private VendorService vendorService;
-
-    @Autowired
-    private VendorRepository vendorRepository;
-
-    @Autowired
-    private com.artivisi.accountingfinance.repository.ProductRepository productRepository;
-
-    @Autowired
-    private com.artivisi.accountingfinance.repository.ChartOfAccountRepository chartOfAccountRepository;
-
-    private Client testClient;
-    private Vendor testVendor;
+    private ArApFixture fixture;
 
     @BeforeEach
     void setUp() {
-        SecurityContextHolder.getContext().setAuthentication(
-                new UsernamePasswordAuthenticationToken("admin", null, Collections.emptyList()));
-
-        try {
-            testClient = clientRepository.findByCode("MANDIRI").orElseThrow();
-
-            // Create invoice, send, and record payment for client statement
-            Invoice invoice = new Invoice();
-            invoice.setClient(testClient);
-            invoice.setInvoiceDate(LocalDate.of(2026, 2, 10));
-            invoice.setDueDate(LocalDate.of(2026, 3, 10));
-            invoice.setAmount(new BigDecimal("8000000"));
-
-            com.artivisi.accountingfinance.entity.Product service = productRepository
-                    .findByCode("SVC-STMT").orElseGet(() -> {
-                        var p = new com.artivisi.accountingfinance.entity.Product();
-                        p.setCode("SVC-STMT");
-                        p.setName("Jasa Konsultasi");
-                        p.setUnit("paket");
-                        p.setTrackInventory(false);
-                        p.setSalesAccount(chartOfAccountRepository.findByAccountCode("4.1.01").orElseThrow());
-                        return productRepository.save(p);
-                    });
-
-            InvoiceLine line = new InvoiceLine();
-            line.setProduct(service);
-            line.setDescription("Jasa Konsultasi Statement Test");
-            line.setQuantity(BigDecimal.ONE);
-            line.setUnitPrice(new BigDecimal("8000000"));
-            line.calculateAmounts();
-
-            Invoice saved = invoiceService.create(invoice, List.of(line));
-            invoiceService.send(saved.getId());
-
-            // Record a payment
-            InvoicePayment payment = new InvoicePayment();
-            payment.setPaymentDate(LocalDate.of(2026, 2, 20));
-            payment.setAmount(new BigDecimal("3000000"));
-            payment.setPaymentMethod(PaymentMethod.TRANSFER);
-            payment.setReferenceNumber("TRF-STMT-001");
-            invoiceService.recordPayment(saved.getId(), payment);
-
-            // Create vendor and bill
-            String vendorCode = "VND-STMT-TEST";
-            var existing = vendorRepository.findByCode(vendorCode);
-            if (existing.isPresent()) {
-                testVendor = existing.get();
-            } else {
-                testVendor = new Vendor();
-                testVendor.setCode(vendorCode);
-                testVendor.setName("PT Vendor Statement Test");
-                testVendor.setActive(true);
-                testVendor = vendorService.create(testVendor);
-            }
-
-            Bill bill = new Bill();
-            bill.setVendor(testVendor);
-            bill.setBillDate(LocalDate.of(2026, 2, 12));
-            bill.setDueDate(LocalDate.of(2026, 3, 12));
-            bill.setAmount(new BigDecimal("4000000"));
-
-            BillLine billLine = new BillLine();
-            billLine.setExpenseAccount(chartOfAccountRepository.findByAccountCode("5.1.20").orElseThrow());
-            billLine.setDescription("Pembelian Peralatan Statement Test");
-            billLine.setQuantity(BigDecimal.ONE);
-            billLine.setUnitPrice(new BigDecimal("4000000"));
-            billLine.calculateAmounts();
-
-            Bill savedBill = billService.create(bill, List.of(billLine));
-            billService.approve(savedBill.getId());
-        } finally {
-            SecurityContextHolder.clearContext();
-        }
-
+        fixture = new ArApFixture(clientService, vendorService, invoiceService, billService,
+                productRepository, chartOfAccountRepository);
         loginAsAdmin();
     }
 
     @Test
-    @DisplayName("Client statement page loads with statement table")
-    void shouldDisplayClientStatementPage() {
-        navigateTo("/statements/client/MANDIRI?dateFrom=2026-02-01&dateTo=2026-02-28");
+    @DisplayName("Client statement: opening balance, invoices and payments in date order with running balance, closing balance")
+    void shouldShowClientStatement() {
+        ClientHistory h = clientHistory();
+
+        navigateTo("/statements/client/" + h.client.getCode() + "?dateFrom=" + YEAR + "-02-01&dateTo=" + YEAR + "-02-28");
         waitForPageLoad();
 
-        assertThat(page.locator("[data-testid='client-statement']")).isVisible();
-        assertThat(page.locator("[data-testid='statement-table']")).isVisible();
-        assertThat(page.locator("[data-testid='opening-balance']")).isVisible();
-        assertThat(page.locator("[data-testid='closing-balance']")).isVisible();
-
-        // Client code should appear (name may be modified by other tests)
-        String pageContent = page.content();
-        assertThat(pageContent).contains("MANDIRI");
-
-        log.info("Client statement page loaded");
+        assertThat(page.locator("#page-title")).hasText("Laporan Klien");
+        assertThat(page.locator("[data-testid='client-statement'] h2")).hasText(h.client.getName());
+        assertThat(page.locator("[data-testid='client-statement']")).containsText("Periode: 01 Feb " + YEAR + " - 28 Feb " + YEAR);
+        assertThat(page.locator("#dateFrom")).hasValue(YEAR + "-02-01");
+        assertThat(page.locator("#dateTo")).hasValue(YEAR + "-02-28");
+        assertThat(page.locator("[data-testid='opening-balance'] td")).hasText(new String[] {
+                "01 Feb " + YEAR, "Saldo Awal", "-", "-", "Rp 3,000,000"});
+        assertThat(entryRows()).hasCount(4);
+        assertThat(entryRows().nth(0).locator("td")).hasText(new String[] {
+                "05 Feb " + YEAR, "Invoice", h.february.getInvoiceNumber(), "Invoice " + h.february.getInvoiceNumber(),
+                "Rp 8,880,000", "-", "Rp 11,880,000"});
+        assertThat(entryRows().nth(1).locator("td")).hasText(new String[] {
+                "10 Feb " + YEAR, "Invoice", h.sameDay.getInvoiceNumber(), "Invoice " + h.sameDay.getInvoiceNumber(),
+                "Rp 2,000,000", "-", "Rp 13,880,000"});
+        assertThat(entryRows().nth(2).locator("td")).hasText(new String[] {
+                "10 Feb " + YEAR, "Pembayaran", "TRF-FEB-1", "Pembayaran " + h.february.getInvoiceNumber(),
+                "-", "Rp 3,000,000", "Rp 10,880,000"});
+        assertThat(entryRows().nth(3).locator("td")).hasText(new String[] {
+                "20 Feb " + YEAR, "Pembayaran", "TRF-FEB-2", "Pembayaran " + h.january.getInvoiceNumber(),
+                "-", "Rp 1,000,000", "Rp 9,880,000"});
+        assertThat(page.locator("[data-testid='closing-balance'] td")).hasText(new String[] {
+                "28 Feb " + YEAR, "Saldo Akhir", "-", "-", "Rp 9,880,000"});
+        assertThat(page.locator("[data-testid='no-data']")).hasCount(0);
+        assertThat(page.locator("a:text-is('Cetak')")).hasAttribute("href",
+                "/statements/client/" + h.client.getCode() + "/print?dateFrom=" + YEAR + "-02-01&dateTo=" + YEAR + "-02-28");
+        assertThat(page.locator("[data-testid='client-statement'] nav a")).hasAttribute("href", "/clients/" + h.client.getCode());
     }
 
     @Test
-    @DisplayName("Client statement shows invoice and payment entries")
-    void shouldShowInvoiceAndPaymentEntries() {
-        navigateTo("/statements/client/MANDIRI?dateFrom=2026-02-01&dateTo=2026-02-28");
+    @DisplayName("Client statement date filter: January shows zero opening, the January invoice and payment")
+    void shouldFilterClientStatementByDateRange() {
+        ClientHistory h = clientHistory();
+
+        navigateTo("/statements/client/" + h.client.getCode() + "?dateFrom=" + YEAR + "-02-01&dateTo=" + YEAR + "-02-28");
+        waitForPageLoad();
+        page.locator("#dateFrom").fill(YEAR + "-01-01");
+        page.locator("#dateTo").fill(YEAR + "-01-31");
+        page.locator("button:text-is('Tampilkan')").click();
         waitForPageLoad();
 
-        // Should show invoice entry (type badge and invoice number)
-        String pageContent = page.content();
-        assertThat(pageContent).contains("Invoice");
-        assertThat(pageContent).contains("INV-");
+        assertThat(page).hasURL(baseUrl() + "/statements/client/" + h.client.getCode()
+                + "?dateFrom=" + YEAR + "-01-01&dateTo=" + YEAR + "-01-31");
+        assertThat(page.locator("[data-testid='opening-balance'] td").last()).hasText("Rp 0");
+        assertThat(entryRows()).hasCount(2);
+        assertThat(entryRows().nth(0).locator("td")).hasText(new String[] {
+                "10 Jan " + YEAR, "Invoice", h.january.getInvoiceNumber(), "Invoice " + h.january.getInvoiceNumber(),
+                "Rp 5,000,000", "-", "Rp 5,000,000"});
+        assertThat(entryRows().nth(1).locator("td")).hasText(new String[] {
+                "20 Jan " + YEAR, "Pembayaran", "TRF-JAN", "Pembayaran " + h.january.getInvoiceNumber(),
+                "-", "Rp 2,000,000", "Rp 3,000,000"});
+        assertThat(page.locator("[data-testid='closing-balance'] td").last()).hasText("Rp 3,000,000");
 
-        // Should show payment entry with reference number
-        assertThat(pageContent).contains("Pembayaran");
-        assertThat(pageContent).contains("TRF-STMT-001");
-
-        log.info("Client statement entries verified");
+        navigateTo("/statements/client/" + h.client.getCode() + "?dateFrom=" + YEAR + "-03-01&dateTo=" + YEAR + "-03-31");
+        waitForPageLoad();
+        assertThat(page.locator("[data-testid='opening-balance'] td").last()).hasText("Rp 9,880,000");
+        assertThat(entryRows()).hasCount(1);
+        assertThat(entryRows().first().locator("td").nth(2)).hasText(h.march.getInvoiceNumber());
+        assertThat(page.locator("[data-testid='closing-balance'] td").last()).hasText("Rp 10,380,000");
     }
 
     @Test
-    @DisplayName("Client statement with date range filter")
-    void shouldFilterByDateRange() {
-        // Use a date range that excludes our test data
-        navigateTo("/statements/client/MANDIRI?dateFrom=2025-01-01&dateTo=2025-01-31");
+    @DisplayName("Client statement for a period without activity shows the no-data message with equal opening and closing")
+    void shouldShowEmptyClientStatement() {
+        ClientHistory h = clientHistory();
+
+        navigateTo("/statements/client/" + h.client.getCode() + "?dateFrom=" + (YEAR + 1) + "-01-01&dateTo=" + (YEAR + 1) + "-01-31");
         waitForPageLoad();
 
-        assertThat(page.locator("[data-testid='client-statement']")).isVisible();
-
-        // Either no-data message or empty entries
-        // The opening/closing balances should still be visible
-        assertThat(page.locator("[data-testid='opening-balance']")).isVisible();
-        assertThat(page.locator("[data-testid='closing-balance']")).isVisible();
-
-        log.info("Client statement date filter works");
+        assertThat(entryRows()).hasCount(0);
+        assertThat(page.locator("[data-testid='no-data']")).hasText("Tidak ada transaksi pada periode ini");
+        assertThat(page.locator("[data-testid='opening-balance'] td").last()).hasText("Rp 10,380,000");
+        assertThat(page.locator("[data-testid='closing-balance'] td").last()).hasText("Rp 10,380,000");
     }
 
     @Test
-    @DisplayName("Vendor statement page loads with statement table")
-    void shouldDisplayVendorStatementPage() {
-        navigateTo("/statements/vendor/" + testVendor.getCode() + "?dateFrom=2026-02-01&dateTo=2026-02-28");
+    @DisplayName("Statement without dates covers the first of the current month to today")
+    void shouldDefaultToCurrentMonth() {
+        Client client = fixture.client("Klien Default");
+
+        navigateTo("/statements/client/" + client.getCode());
         waitForPageLoad();
 
-        assertThat(page.locator("[data-testid='vendor-statement']")).isVisible();
-        assertThat(page.locator("[data-testid='statement-table']")).isVisible();
-        assertThat(page.locator("[data-testid='opening-balance']")).isVisible();
-        assertThat(page.locator("[data-testid='closing-balance']")).isVisible();
-
-        // Vendor name should appear
-        String pageContent = page.content();
-        assertThat(pageContent).contains("PT Vendor Statement Test");
-
-        log.info("Vendor statement page loaded");
+        LocalDate today = LocalDate.now();
+        assertThat(page.locator("#dateFrom")).hasValue(today.withDayOfMonth(1).toString());
+        assertThat(page.locator("#dateTo")).hasValue(today.toString());
+        assertThat(page.locator("[data-testid='no-data']")).hasCount(1);
     }
 
     @Test
-    @DisplayName("Client statement print page renders correctly")
-    void shouldDisplayClientStatementPrintPage() {
-        navigateTo("/statements/client/MANDIRI/print?dateFrom=2026-02-01&dateTo=2026-02-28");
+    @DisplayName("Client statement print page lists the same balances and entries")
+    void shouldPrintClientStatement() {
+        ClientHistory h = clientHistory();
+
+        navigateTo("/statements/client/" + h.client.getCode() + "/print?dateFrom=" + YEAR + "-02-01&dateTo=" + YEAR + "-02-28");
         waitForPageLoad();
 
-        String pageContent = page.content();
-        assertThat(pageContent).contains("MANDIRI");
-        assertThat(pageContent).contains("Laporan Piutang");
-        assertThat(pageContent).contains("Saldo Awal");
-        assertThat(pageContent).contains("Saldo Akhir");
-
-        log.info("Client statement print page loaded");
+        assertThat(page.locator("h1")).hasText("Laporan Piutang — " + h.client.getName());
+        assertThat(page.locator(".header p.mono")).hasText(h.client.getCode());
+        assertThat(page.locator(".period")).hasText("Periode: 01 Feb " + YEAR + " - 28 Feb " + YEAR);
+        assertThat(page.locator("thead th").nth(4)).hasText("Invoice");
+        Locator rows = page.locator("tbody tr");
+        assertThat(rows).hasCount(6);
+        assertThat(rows.nth(0).locator("td")).hasText(new String[] {"01 Feb " + YEAR, "Saldo Awal", "-", "-", "Rp 3,000,000"});
+        assertThat(rows.nth(1).locator("td")).hasText(new String[] {
+                "05 Feb " + YEAR, "Invoice", h.february.getInvoiceNumber(), "Invoice " + h.february.getInvoiceNumber(),
+                "Rp 8,880,000", "-", "Rp 11,880,000"});
+        assertThat(rows.nth(3).locator("td")).hasText(new String[] {
+                "10 Feb " + YEAR, "Pembayaran", "TRF-FEB-1", "Pembayaran " + h.february.getInvoiceNumber(),
+                "-", "Rp 3,000,000", "Rp 10,880,000"});
+        assertThat(rows.nth(5).locator("td")).hasText(new String[] {"28 Feb " + YEAR, "Saldo Akhir", "-", "-", "Rp 9,880,000"});
     }
 
     @Test
-    @DisplayName("Vendor statement print page renders correctly")
-    void shouldDisplayVendorStatementPrintPage() {
-        navigateTo("/statements/vendor/" + testVendor.getCode() + "/print?dateFrom=2026-02-01&dateTo=2026-02-28");
+    @DisplayName("Vendor statement: opening balance, bills and payments with running balance, closing balance")
+    void shouldShowVendorStatement() {
+        Vendor vendor = fixture.vendor("Vendor Laporan");
+        Bill january = approved(vendor, LocalDate.of(YEAR, 1, 15), "4000000", null);
+        fixture.payBill(january, LocalDate.of(YEAR, 1, 25), "1500000", "TRF-V-JAN");
+        Bill february = approved(vendor, LocalDate.of(YEAR, 2, 12), "2000000", "11");
+        fixture.payBill(february, LocalDate.of(YEAR, 2, 20), "2220000", "TRF-V-FEB");
+        fixture.draftBill(vendor, LocalDate.of(YEAR, 2, 14), LocalDate.of(YEAR, 3, 14), "999000", null);
+
+        navigateTo("/statements/vendor/" + vendor.getCode() + "?dateFrom=" + YEAR + "-02-01&dateTo=" + YEAR + "-02-28");
         waitForPageLoad();
 
-        String pageContent = page.content();
-        assertThat(pageContent).contains("PT Vendor Statement Test");
-        assertThat(pageContent).contains("Laporan Hutang");
-        assertThat(pageContent).contains("Saldo Awal");
-        assertThat(pageContent).contains("Saldo Akhir");
+        assertThat(page.locator("#page-title")).hasText("Laporan Vendor");
+        assertThat(page.locator("[data-testid='vendor-statement'] h2")).hasText(vendor.getName());
+        assertThat(page.locator("thead th").nth(4)).hasText("Tagihan");
+        assertThat(page.locator("[data-testid='opening-balance'] td").last()).hasText("Rp 2,500,000");
+        assertThat(entryRows()).hasCount(2);
+        assertThat(entryRows().nth(0).locator("td")).hasText(new String[] {
+                "12 Feb " + YEAR, "Tagihan", february.getBillNumber(), "Tagihan " + february.getBillNumber(),
+                "Rp 2,220,000", "-", "Rp 4,720,000"});
+        assertThat(entryRows().nth(1).locator("td")).hasText(new String[] {
+                "20 Feb " + YEAR, "Pembayaran", "TRF-V-FEB", "Pembayaran " + february.getBillNumber(),
+                "-", "Rp 2,220,000", "Rp 2,500,000"});
+        assertThat(page.locator("[data-testid='closing-balance'] td").last()).hasText("Rp 2,500,000");
 
-        log.info("Vendor statement print page loaded");
+        navigateTo("/statements/vendor/" + vendor.getCode() + "/print?dateFrom=" + YEAR + "-02-01&dateTo=" + YEAR + "-02-28");
+        waitForPageLoad();
+        assertThat(page.locator("h1")).hasText("Laporan Hutang — " + vendor.getName());
+        Locator rows = page.locator("tbody tr");
+        assertThat(rows).hasCount(4);
+        assertThat(rows.nth(1).locator("td")).hasText(new String[] {
+                "12 Feb " + YEAR, "Tagihan", february.getBillNumber(), "Tagihan " + february.getBillNumber(),
+                "Rp 2,220,000", "-", "Rp 4,720,000"});
+        assertThat(rows.nth(3).locator("td").last()).hasText("Rp 2,500,000");
     }
 
-    @Test
-    @DisplayName("Client detail page has Lihat Laporan link")
-    void shouldHaveStatementLinkOnClientDetail() {
-        navigateTo("/clients/MANDIRI");
-        waitForPageLoad();
+    /**
+     * January: invoice 5,000,000 paid 2,000,000 (opening for February 3,000,000). February: invoice
+     * 8,000,000 + 11% PPN, a same-day invoice 2,000,000 listed before a 3,000,000 payment, and a
+     * 1,000,000 payment on the January invoice. March: invoice 500,000. A draft and a cancelled
+     * invoice in February are excluded.
+     */
+    private ClientHistory clientHistory() {
+        Client client = fixture.client("Klien Laporan");
+        Invoice january = sent(client, LocalDate.of(YEAR, 1, 10), "5000000", null);
+        fixture.payInvoice(january, LocalDate.of(YEAR, 1, 20), "2000000", "TRF-JAN");
+        Invoice february = sent(client, LocalDate.of(YEAR, 2, 5), "8000000", "11");
+        Invoice sameDay = sent(client, LocalDate.of(YEAR, 2, 10), "2000000", null);
+        fixture.payInvoice(february, LocalDate.of(YEAR, 2, 10), "3000000", "TRF-FEB-1");
+        fixture.payInvoice(january, LocalDate.of(YEAR, 2, 20), "1000000", "TRF-FEB-2");
+        fixture.draftInvoice(client, LocalDate.of(YEAR, 2, 15), LocalDate.of(YEAR, 3, 15), "777000", null);
+        Invoice cancelled = sent(client, LocalDate.of(YEAR, 2, 16), "666000", null);
+        invoiceService.cancel(cancelled.getId());
+        Invoice march = sent(client, LocalDate.of(YEAR, 3, 5), "500000", null);
+        return new ClientHistory(client, january, february, sameDay, march);
+    }
 
-        assertThat(page.locator("[data-testid='view-statement']")).isVisible();
-        String href = page.locator("[data-testid='view-statement']").getAttribute("href");
-        assertThat(href).contains("/statements/client/MANDIRI");
+    private Invoice sent(Client client, LocalDate invoiceDate, String amount, String taxRate) {
+        return fixture.sentInvoice(client, invoiceDate, invoiceDate.plusDays(30), amount, taxRate);
+    }
 
-        log.info("Client detail has statement link");
+    private Bill approved(Vendor vendor, LocalDate billDate, String amount, String taxRate) {
+        return fixture.approvedBill(vendor, billDate, billDate.plusDays(30), amount, taxRate);
+    }
+
+    private Locator entryRows() {
+        return page.locator("[data-testid='statement-table'] tbody tr:not([data-testid])");
+    }
+
+    private record ClientHistory(Client client, Invoice january, Invoice february, Invoice sameDay, Invoice march) {
     }
 }
