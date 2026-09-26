@@ -30,6 +30,7 @@ import org.springframework.data.domain.Page;
 
 import java.math.BigDecimal;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -37,6 +38,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -49,6 +51,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -280,6 +283,15 @@ public class TransactionController {
     public ResponseEntity<Void> htmxDelete(@PathVariable UUID id) {
         transactionService.delete(id);
         return ResponseEntity.ok().build();
+    }
+
+    // Rules like "only draft transactions can be posted" or a closed fiscal period are
+    // user-facing; the detail/form pages show this message in their error alert.
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<RestExceptionHandler.ErrorResponse> handleIllegalState(IllegalStateException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new RestExceptionHandler.ErrorResponse(
+                        HttpStatus.CONFLICT.value(), "Conflict", ex.getMessage(), LocalDateTime.now()));
     }
 
     // REST API Endpoints

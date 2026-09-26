@@ -192,7 +192,11 @@ class ChartOfAccountApiTest extends PlaywrightTestBase {
         request.put("accountName", "");
 
         APIResponse response = post("/api/accounts", request);
-        assertThat(response.status()).isEqualTo(400);
+        assertThat(response.status()).as(response.text()).isEqualTo(400);
+        JsonNode body = parse(response);
+        assertThat(body.get("error").asText()).isEqualTo("VALIDATION_ERROR");
+        assertThat(body.get("fieldErrors").has("accountCode")).as(response.text()).isTrue();
+        assertThat(body.get("fieldErrors").has("accountName")).as(response.text()).isTrue();
     }
 
     @Test
@@ -205,14 +209,15 @@ class ChartOfAccountApiTest extends PlaywrightTestBase {
         request.put("normalBalance", "DEBIT");
 
         APIResponse response = post("/api/accounts", request);
-        assertThat(response.status()).isEqualTo(400);
+        assertApiError(response, 400, "INVALID_REQUEST", "Account code already exists: 1.1.01");
     }
 
     @Test
     @DisplayName("GET non-existent ID returns 404")
-    void getNonExistent() {
+    void getNonExistent() throws Exception {
         APIResponse response = get("/api/accounts/00000000-0000-0000-0000-000000000000");
-        assertThat(response.status()).isEqualTo(404);
+        assertApiError(response, 404, "NOT_FOUND",
+                "Account not found with id: 00000000-0000-0000-0000-000000000000");
     }
 
     @Test
@@ -231,7 +236,7 @@ class ChartOfAccountApiTest extends PlaywrightTestBase {
         assertThat(rootId).as("Root ASET account should exist").isNotNull();
 
         APIResponse deleteResponse = delete("/api/accounts/" + rootId);
-        assertThat(deleteResponse.status()).isEqualTo(409);
+        assertApiError(deleteResponse, 409, "CONFLICT", "Cannot delete account with child accounts");
     }
 
     // ==================== HELPER METHODS ====================
@@ -262,6 +267,13 @@ class ChartOfAccountApiTest extends PlaywrightTestBase {
         return apiContext.delete(path,
                 RequestOptions.create()
                         .setHeader("Authorization", "Bearer " + accessToken));
+    }
+
+    private void assertApiError(APIResponse response, int status, String code, String message) throws Exception {
+        assertThat(response.status()).as(response.text()).isEqualTo(status);
+        JsonNode body = parse(response);
+        assertThat(body.get("error").asText()).as(response.text()).isEqualTo(code);
+        assertThat(body.get("message").asText()).as(response.text()).isEqualTo(message);
     }
 
     private JsonNode parse(APIResponse response) throws Exception {

@@ -300,6 +300,7 @@
   "x-error-codes": {
     "VALIDATION_ERROR": "400 - Request body validation failed",
     "MISSING_PARAMETER": "400 - Required query parameter missing",
+    "INVALID_REQUEST": "400 - Malformed body, invalid parameter format, or input rejected by a business rule",
     "UNAUTHORIZED": "401 - Missing or invalid Bearer token",
     "FORBIDDEN": "403 - Token lacks required scope, or the token user's role lacks the required permission",
     "NOT_FOUND": "404 - Resource not found",

@@ -306,7 +306,7 @@ class TransactionPersistenceTest extends PlaywrightTestBase {
 
     @Test
     @DisplayName("A closed fiscal period blocks posting; reopening it allows the same draft to post")
-    void shouldBlockPostingInClosedFiscalPeriod() {
+    void shouldBlockPostingInClosedFiscalPeriod() throws Exception {
         assertThat(postForm("/fiscal-periods/new", FormData.create().set("year", "2058").set("month", "6")).status())
                 .isEqualTo(302);
         FiscalPeriod period = fiscalPeriodRepository.findByYearAndMonth(2058, 6)
@@ -315,7 +315,22 @@ class TransactionPersistenceTest extends PlaywrightTestBase {
         assertThat(fiscalPeriodRepository.findById(period.getId()).orElseThrow().getStatus()).isEqualTo(FiscalPeriodStatus.MONTH_CLOSED);
 
         UUID id = createDraft(TPL_TELEKOM, "2058-06-15", 210000, "Periode tutup " + uid(), Map.of("BANK", "1.1.02"));
-        assertThat(post(id).status()).isEqualTo(409);
+        String closedMessage = "Cannot post journal entry. Fiscal period Juni 2058 is Tutup Bulan";
+        APIResponse rejected = post(id);
+        assertThat(rejected.status()).isEqualTo(409);
+        assertThat(objectMapper.readTree(rejected.text()).get("message").asText()).isEqualTo(closedMessage);
+
+        List<String> dialogs = new java.util.concurrent.CopyOnWriteArrayList<>();
+        page.onDialog(dialog -> {
+            dialogs.add(dialog.message());
+            dialog.accept();
+        });
+        navigateTo("/transactions/" + id);
+        waitForPageLoad();
+        page.locator("#btn-post").click();
+        page.waitForCondition(() -> dialogs.size() == 2);
+        assertThat(dialogs).containsExactly(
+                "Posting transaksi ini? Setelah diposting tidak dapat diedit.", "Gagal posting: " + closedMessage);
         Transaction blocked = transactionRepository.findById(id).orElseThrow();
         assertThat(blocked.getStatus()).isEqualTo(TransactionStatus.DRAFT);
         assertThat(blocked.getTransactionNumber()).isNull();

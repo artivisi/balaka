@@ -152,7 +152,7 @@ class DraftAndTransactionCorrectionApiTest extends PlaywrightTestBase {
 
             APIResponse response = patch("/api/drafts/" + draftId, Map.of("merchantName", "Should Not Work"));
 
-            assertThat(response.status()).as(response.text()).isEqualTo(409);
+            assertApiError(response, 409, "CONFLICT", "Only pending drafts can be updated: APPROVED");
             assertThat(draftColumn(draftId, "merchant_name")).isEqualTo("Approved Draft Merchant");
             assertThat(draftColumn(draftId, "status")).isEqualTo("APPROVED");
         }
@@ -251,7 +251,7 @@ class DraftAndTransactionCorrectionApiTest extends PlaywrightTestBase {
 
             APIResponse response = put(transactionId, Map.of("description", "Should Not Work"));
 
-            assertThat(response.status()).as(response.text()).isEqualTo(409);
+            assertApiError(response, 409, "CONFLICT", "Only draft transactions can be updated: POSTED");
             assertThat(transactionColumn(transactionId, "description")).isEqualTo("Posted not editable");
             assertThat(transactionColumn(transactionId, "status")).isEqualTo("POSTED");
         }
@@ -309,7 +309,7 @@ class DraftAndTransactionCorrectionApiTest extends PlaywrightTestBase {
             APIResponse response = put(transactionId,
                     Map.of("transactionDate", LocalDate.now().plusDays(1).toString()));
 
-            assertThat(response.status()).as(response.text()).isEqualTo(400);
+            assertApiError(response, 400, "INVALID_REQUEST", "Transaction date cannot be in the future");
             assertThat(transactionColumn(transactionId, "transaction_date")).isEqualTo(DATE);
         }
     }
@@ -340,7 +340,7 @@ class DraftAndTransactionCorrectionApiTest extends PlaywrightTestBase {
 
             APIResponse response = apiContext.delete("/api/transactions/" + transactionId, auth());
 
-            assertThat(response.status()).as(response.text()).isEqualTo(409);
+            assertApiError(response, 409, "CONFLICT", "Only draft transactions can be deleted");
             assertThat(transactionColumn(transactionId, "status")).isEqualTo("POSTED");
             assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM journal_entries WHERE id_transaction = ?::uuid",
                     Long.class, transactionId)).isEqualTo(2L);
@@ -405,7 +405,7 @@ class DraftAndTransactionCorrectionApiTest extends PlaywrightTestBase {
 
             APIResponse postResponse = apiContext.post("/api/transactions/" + transactionId + "/post", auth());
 
-            assertThat(postResponse.status()).as(postResponse.text()).isEqualTo(400);
+            assertApiError(postResponse, 400, "INVALID_REQUEST", "Account not specified for template line: BANK");
             assertThat(transactionColumn(transactionId, "status")).isEqualTo("DRAFT");
             assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM journal_entries WHERE id_transaction = ?::uuid",
                     Long.class, transactionId)).isZero();
@@ -420,7 +420,7 @@ class DraftAndTransactionCorrectionApiTest extends PlaywrightTestBase {
 
             APIResponse response = apiContext.post("/api/drafts", jsonBody(request));
 
-            assertThat(response.status()).as(response.text()).isEqualTo(400);
+            assertApiError(response, 400, "INVALID_REQUEST", "Transaction date cannot be in the future");
             assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM transactions WHERE description = ?",
                     Long.class, description)).isZero();
         }
@@ -489,7 +489,7 @@ class DraftAndTransactionCorrectionApiTest extends PlaywrightTestBase {
             APIResponse response = apiContext.post("/api/transactions/" + transactionId + "/void",
                     jsonBody(Map.of("reason", "DUPLICATE")));
 
-            assertThat(response.status()).as(response.text()).isEqualTo(409);
+            assertApiError(response, 409, "CONFLICT", "Only posted transactions can be voided");
             assertThat(transactionColumn(transactionId, "status")).isEqualTo("DRAFT");
             assertThat(transactionColumn(transactionId, "void_reason")).isNull();
         }
@@ -598,6 +598,13 @@ class DraftAndTransactionCorrectionApiTest extends PlaywrightTestBase {
         APIResponse response = apiContext.post("/api/transactions/" + transactionId + "/post", auth());
         assertThat(response.status()).as("Post failed: %s", response.text()).isEqualTo(200);
         return json(response);
+    }
+
+    private void assertApiError(APIResponse response, int status, String code, String message) throws Exception {
+        assertThat(response.status()).as(response.text()).isEqualTo(status);
+        JsonNode body = json(response);
+        assertThat(body.get("error").asText()).as(response.text()).isEqualTo(code);
+        assertThat(body.get("message").asText()).as(response.text()).isEqualTo(message);
     }
 
     private JsonNode json(APIResponse response) throws Exception {

@@ -171,14 +171,14 @@ class BillApiTest extends PlaywrightTestBase {
         noLines.put("dueDate", YEAR + "-03-01");
         noLines.put("lines", List.of());
         APIResponse response = post("/api/bills", noLines);
-        assertThat(response.status()).isEqualTo(400);
+        assertApiError(response, 400, "VALIDATION_ERROR", "Minimal satu baris tagihan wajib diisi");
         JsonNode error = parse(response);
         assertThat(error.get("fieldErrors").get("lines").asText()).isEqualTo("Minimal satu baris tagihan wajib diisi");
 
         Map<String, Object> badAccount = new HashMap<>(noLines);
         badAccount.put("lines", List.of(Map.of("description", "X", "unitPrice", 1000, "expenseAccountCode", "9.9.99")));
         response = post("/api/bills", badAccount);
-        assertThat(response.status()).isEqualTo(404);
+        assertApiError(response, 404, "NOT_FOUND", "Akun beban tidak ditemukan: 9.9.99");
 
         assertThat(billRepository.count()).isEqualTo(billsBefore);
         assertThat(vendorRepository.findByNameIgnoreCase(vendorName)).isEmpty();
@@ -244,8 +244,8 @@ class BillApiTest extends PlaywrightTestBase {
         assertThat(bill.get("lines").get(0).get("description").asText()).isEqualTo("Detail item");
         assertThat(bill.get("lines").get(0).get("expenseAccountName").asText()).isEqualTo("Beban Cloud & Server");
 
-        APIResponse missing = get("/api/bills/" + UUID.randomUUID());
-        assertThat(missing.status()).isEqualTo(404);
+        UUID missingId = UUID.randomUUID();
+        assertApiError(get("/api/bills/" + missingId), 404, "NOT_FOUND", "Tagihan tidak ditemukan: " + missingId);
     }
 
     @Test
@@ -273,7 +273,7 @@ class BillApiTest extends PlaywrightTestBase {
                 .containsExactly("DRAFT|" + YEAR + "-04-01|555000.00|Tagihan Vendor");
 
         APIResponse again = post("/api/bills/" + billId + "/approve", Map.of());
-        assertThat(again.status()).isEqualTo(409);
+        assertApiError(again, 409, "CONFLICT", "Hanya tagihan draf yang dapat disetujui");
         assertThat(billTransactionCount(bill)).isEqualTo(1);
     }
 
@@ -285,7 +285,8 @@ class BillApiTest extends PlaywrightTestBase {
         String billId = created.get("id").asText();
 
         APIResponse draftPaid = post("/api/bills/" + billId + "/mark-paid", Map.of());
-        assertThat(draftPaid.status()).isEqualTo(409);
+        assertApiError(draftPaid, 409, "CONFLICT",
+                "Hanya tagihan yang disetujui, jatuh tempo, atau sebagian yang dapat ditandai lunas");
         assertThat(billService.findById(UUID.fromString(billId)).getStatus()).isEqualTo(BillStatus.DRAFT);
 
         assertThat(post("/api/bills/" + billId + "/approve", Map.of()).status()).isEqualTo(200);
@@ -372,6 +373,13 @@ class BillApiTest extends PlaywrightTestBase {
                         .setHeader("Authorization", "Bearer " + accessToken)
                         .setHeader("Content-Type", "application/json")
                         .setData(data));
+    }
+
+    private void assertApiError(APIResponse response, int status, String code, String message) throws Exception {
+        assertThat(response.status()).as(response.text()).isEqualTo(status);
+        JsonNode body = parse(response);
+        assertThat(body.get("error").asText()).as(response.text()).isEqualTo(code);
+        assertThat(body.get("message").asText()).as(response.text()).isEqualTo(message);
     }
 
     private JsonNode parse(APIResponse response) throws Exception {

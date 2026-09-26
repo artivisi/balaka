@@ -148,8 +148,11 @@ class TaxDetailApiTest extends PlaywrightTestBase {
         assertThat(body.get("fakturNumber").asText()).isEqualTo(faktur);
 
         Transaction other = postedNonTaxTransaction();
-        assertThat(get("/api/transactions/" + other.getId() + "/tax-details/" + detailId).status()).isEqualTo(400);
-        assertThat(get("/api/transactions/" + ppn.getId() + "/tax-details/" + UUID.randomUUID()).status()).isEqualTo(404);
+        assertApiError(get("/api/transactions/" + other.getId() + "/tax-details/" + detailId), 400,
+                "INVALID_REQUEST", "Tax detail does not belong to transaction " + other.getId());
+        UUID missingId = UUID.randomUUID();
+        assertApiError(get("/api/transactions/" + ppn.getId() + "/tax-details/" + missingId), 404,
+                "NOT_FOUND", "Tax detail tidak ditemukan: " + missingId);
     }
 
     @Test
@@ -196,9 +199,11 @@ class TaxDetailApiTest extends PlaywrightTestBase {
         String detailId = parse(post("/api/transactions/" + ppn.getId() + "/tax-details",
                 ppnRequest(faktur(), "PT Klien Utama"))).get("id").asText();
 
-        assertThat(put("/api/transactions/" + other.getId() + "/tax-details/" + detailId,
-                ppnRequest(faktur(), "PT Penyusup")).status()).isEqualTo(400);
-        assertThat(delete("/api/transactions/" + other.getId() + "/tax-details/" + detailId).status()).isEqualTo(400);
+        String notOwned = "Tax detail does not belong to transaction " + other.getId();
+        assertApiError(put("/api/transactions/" + other.getId() + "/tax-details/" + detailId,
+                ppnRequest(faktur(), "PT Penyusup")), 400, "INVALID_REQUEST", notOwned);
+        assertApiError(delete("/api/transactions/" + other.getId() + "/tax-details/" + detailId), 400,
+                "INVALID_REQUEST", notOwned);
 
         TaxTransactionDetail stored = taxDetailRepository.findById(UUID.fromString(detailId))
                 .orElseThrow(() -> new AssertionError("Detail was deleted through another transaction"));
@@ -220,10 +225,10 @@ class TaxDetailApiTest extends PlaywrightTestBase {
         noDpp.remove("dpp");
         Map<String, Object> duplicate = ppnRequest(faktur, "PT Klien Lain");
 
-        for (Map<String, Object> request : List.of(noName, noDpp, duplicate)) {
-            APIResponse response = post("/api/transactions/" + ppn.getId() + "/tax-details", request);
-            assertThat(response.status()).as(request + " -> " + response.text()).isEqualTo(400);
-        }
+        String url = "/api/transactions/" + ppn.getId() + "/tax-details";
+        assertApiError(post(url, noName), 400, "VALIDATION_ERROR", "Nama lawan transaksi wajib diisi");
+        assertApiError(post(url, noDpp), 400, "INVALID_REQUEST", "DPP wajib diisi untuk e-Faktur");
+        assertApiError(post(url, duplicate), 400, "INVALID_REQUEST", "Nomor faktur sudah digunakan: " + faktur);
         assertThat(taxDetailRepository.findAllByTransactionIdOrderByTaxTypeAsc(ppn.getId())).hasSize(1);
         assertThat(post("/api/transactions/" + UUID.randomUUID() + "/tax-details", ppnRequest(faktur(), "PT Klien Utama"))
                 .status()).isEqualTo(404);
@@ -439,6 +444,13 @@ class TaxDetailApiTest extends PlaywrightTestBase {
 
     private APIResponse delete(String path) {
         return apiContext.delete(path, RequestOptions.create().setHeader("Authorization", "Bearer " + accessToken));
+    }
+
+    private void assertApiError(APIResponse response, int status, String code, String message) throws Exception {
+        assertThat(response.status()).as(response.text()).isEqualTo(status);
+        JsonNode body = parse(response);
+        assertThat(body.get("error").asText()).as(response.text()).isEqualTo(code);
+        assertThat(body.get("message").asText()).as(response.text()).isEqualTo(message);
     }
 
     private JsonNode parse(APIResponse response) throws Exception {
