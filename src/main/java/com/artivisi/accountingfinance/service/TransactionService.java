@@ -199,19 +199,26 @@ public class TransactionService {
 
     @Transactional
     public void assignTags(Transaction transaction, List<UUID> tagIds) {
+        Transaction managed = transactionRepository.findById(transaction.getId())
+                .orElseThrow(() -> new EntityNotFoundException(ERR_TRANSACTION_NOT_FOUND + transaction.getId()));
+        // Hibernate flushes inserts before deletes; remove the old rows first so re-assigning a
+        // tag the transaction already has does not hit uq_transaction_tag.
+        managed.setTransactionTags(List.of());
+        transactionRepository.flush();
+
         List<TransactionTag> newTags = new ArrayList<>();
         if (tagIds != null) {
             for (UUID tagId : tagIds) {
                 Tag tag = tagRepository.findById(tagId)
                         .orElseThrow(() -> new EntityNotFoundException("Tag not found: " + tagId));
                 TransactionTag tt = new TransactionTag();
-                tt.setTransaction(transaction);
+                tt.setTransaction(managed);
                 tt.setTag(tag);
                 newTags.add(tt);
             }
         }
-        transaction.setTransactionTags(newTags);
-        transactionRepository.save(transaction);
+        managed.setTransactionTags(newTags);
+        transactionRepository.save(managed);
     }
 
     @Transactional
