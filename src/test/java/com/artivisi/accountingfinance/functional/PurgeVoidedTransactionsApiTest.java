@@ -1,6 +1,8 @@
 package com.artivisi.accountingfinance.functional;
 
 import com.artivisi.accountingfinance.functional.service.ServiceTestDataInitializer;
+import com.artivisi.accountingfinance.repository.ChartOfAccountRepository;
+import com.artivisi.accountingfinance.repository.JournalTemplateRepository;
 import com.artivisi.accountingfinance.ui.PlaywrightTestBase;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -8,15 +10,19 @@ import com.microsoft.playwright.APIRequest;
 import com.microsoft.playwright.APIRequestContext;
 import com.microsoft.playwright.APIResponse;
 import com.microsoft.playwright.options.RequestOptions;
-import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
 
+import java.math.BigDecimal;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -24,13 +30,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 /**
- * Functional tests for DELETE /api/transactions/purge-voided endpoint.
- * Tests: create → post → void → purge lifecycle, ?before param, and safety checks.
+ * DELETE /api/transactions/purge-voided?before=... on transactions this class creates in 2001
+ * (reserved). Every purge passes a "before" bound so it only reaches this class's own voided
+ * transactions; each test purges below a bound under which it leaves nothing, and the only
+ * transaction left VOID (2001-11-10) lies above every bound. The unbounded purge (all VOID
+ * transactions in the database) is not exercised: it would delete other classes' data.
  */
-@Slf4j
 @DisplayName("Purge Voided Transactions API - Functional Tests")
 @Import(ServiceTestDataInitializer.class)
 class PurgeVoidedTransactionsApiTest extends PlaywrightTestBase {
+
+    @Autowired private JournalTemplateRepository templateRepository;
+    @Autowired private ChartOfAccountRepository accountRepository;
+    @Autowired private JdbcTemplate jdbc;
 
     private APIRequestContext apiContext;
     private ObjectMapper objectMapper;
@@ -55,209 +67,136 @@ class PurgeVoidedTransactionsApiTest extends PlaywrightTestBase {
     }
 
     @Test
-    @DisplayName("Should purge voided transaction and return its details")
+    @DisplayName("Purging deletes the voided transaction with its journal and returns its details")
     void shouldPurgeVoidedTransaction() throws Exception {
-        // Create and post a transaction
-        String transactionId = createAndPostTransaction();
+        JsonNode posted = createAndPost("2001-02-10", "Purge tunggal");
+        String id = posted.get("transactionId").asText();
+        voidTransaction(id);
 
-        // Void it
-        voidTransaction(transactionId);
+        JsonNode body = purge("2001-03-01");
 
-        // Purge voided transactions
-        APIResponse purgeResponse = apiContext.delete("/api/transactions/purge-voided",
-                RequestOptions.create()
-                        .setHeader("Authorization", "Bearer " + accessToken));
-
-        assertThat(purgeResponse.ok())
-                .as("Purge failed: %d %s", purgeResponse.status(), purgeResponse.text())
-                .isTrue();
-
-        JsonNode body = objectMapper.readTree(purgeResponse.text());
-        assertThat(body.get("purgedCount").asInt()).isGreaterThanOrEqualTo(1);
-
-        JsonNode purgedList = body.get("purgedTransactions");
-        assertThat(purgedList.isArray()).isTrue();
-
-        // Verify purged transaction details are returned
-        boolean found = false;
-        for (JsonNode purged : purgedList) {
-            if (purged.get("id").asText().equals(transactionId)) {
-                found = true;
-                assertThat(purged.get("transactionNumber").asText()).isNotBlank();
-                assertThat(purged.get("voidReason").asText()).isEqualTo("INPUT_ERROR");
-                assertThat(purged.get("voidedBy").asText()).isNotBlank();
-                break;
-            }
-        }
-        assertThat(found).as("Purged transaction %s not found in response", transactionId).isTrue();
+        assertThat(body.get("purgedCount").asInt()).isEqualTo(1);
+        JsonNode purged = body.get("purgedTransactions").get(0);
+        assertThat(purged.get("id").asText()).isEqualTo(id);
+        assertThat(purged.get("transactionNumber").asText()).isEqualTo(posted.get("transactionNumber").asText());
+        assertThat(purged.get("transactionDate").asText()).isEqualTo("2001-02-10");
+        assertThat(new BigDecimal(purged.get("amount").asText())).isEqualByComparingTo("100000");
+        assertThat(purged.get("description").asText()).isEqualTo("Purge tunggal");
+        assertThat(purged.get("voidReason").asText()).isEqualTo("INPUT_ERROR");
+        assertThat(purged.get("voidedBy").asText()).isEqualTo("admin");
+        assertThat(count("SELECT COUNT(*) FROM transactions WHERE id = ?::uuid", id)).isZero();
+        assertThat(count("SELECT COUNT(*) FROM journal_entries WHERE id_transaction = ?::uuid", id)).isZero();
     }
 
     @Test
-    @DisplayName("Should return empty list when no voided transactions exist")
+    @DisplayName("A bound below every voided transaction purges nothing")
     void shouldReturnEmptyWhenNoVoidedTransactions() throws Exception {
-        // First purge any existing voided transactions
-        apiContext.delete("/api/transactions/purge-voided",
-                RequestOptions.create()
-                        .setHeader("Authorization", "Bearer " + accessToken));
+        assertThat(count("SELECT COUNT(*) FROM transactions WHERE status = 'VOID' AND transaction_date < ?::date", "2001-01-01"))
+                .as("voided transactions dated before 2001").isZero();
 
-        // Second purge should return empty
-        APIResponse response = apiContext.delete("/api/transactions/purge-voided",
-                RequestOptions.create()
-                        .setHeader("Authorization", "Bearer " + accessToken));
+        JsonNode body = purge("2001-01-01");
 
-        assertThat(response.ok()).isTrue();
-
-        JsonNode body = objectMapper.readTree(response.text());
-        assertThat(body.get("purgedCount").asInt()).isEqualTo(0);
-        assertThat(body.get("purgedTransactions").size()).isEqualTo(0);
+        assertThat(body.get("purgedCount").asInt()).isZero();
+        assertThat(body.get("purgedTransactions")).isEmpty();
     }
 
     @Test
-    @DisplayName("Should filter by before date parameter")
+    @DisplayName("Only voided transactions dated before the bound are purged")
     void shouldFilterByBeforeDate() throws Exception {
-        // Purge any existing voided first
-        apiContext.delete("/api/transactions/purge-voided",
-                RequestOptions.create()
-                        .setHeader("Authorization", "Bearer " + accessToken));
+        String early = createAndPost("2001-04-10", "Purge awal").get("transactionId").asText();
+        voidTransaction(early);
+        String late = createAndPost("2001-11-10", "Purge akhir").get("transactionId").asText();
+        voidTransaction(late);
 
-        // Create and void a transaction dated 2026-01-15
-        String earlyId = createPostAndVoidTransaction("2026-01-15");
+        JsonNode body = purge("2001-05-01");
 
-        // Create and void a transaction dated 2026-03-15
-        String lateId = createPostAndVoidTransaction("2026-03-15");
-
-        // Purge only transactions before 2026-02-01
-        APIResponse purgeResponse = apiContext.delete("/api/transactions/purge-voided?before=2026-02-01",
-                RequestOptions.create()
-                        .setHeader("Authorization", "Bearer " + accessToken));
-
-        assertThat(purgeResponse.ok())
-                .as("Purge with before param failed: %d %s", purgeResponse.status(), purgeResponse.text())
-                .isTrue();
-
-        JsonNode body = objectMapper.readTree(purgeResponse.text());
-        JsonNode purgedList = body.get("purgedTransactions");
-
-        // Early transaction should be purged
-        boolean earlyFound = false;
-        boolean lateFound = false;
-        for (JsonNode purged : purgedList) {
-            if (purged.get("id").asText().equals(earlyId)) earlyFound = true;
-            if (purged.get("id").asText().equals(lateId)) lateFound = true;
-        }
-        assertThat(earlyFound).as("Early voided transaction should have been purged").isTrue();
-        assertThat(lateFound).as("Late voided transaction should NOT have been purged").isFalse();
-
-        // Clean up remaining voided transaction
-        apiContext.delete("/api/transactions/purge-voided",
-                RequestOptions.create()
-                        .setHeader("Authorization", "Bearer " + accessToken));
+        assertThat(ids(body)).containsExactly(early);
+        assertThat(count("SELECT COUNT(*) FROM transactions WHERE id = ?::uuid", early)).isZero();
+        assertThat(status(late)).isEqualTo("VOID");
     }
 
     @Test
-    @DisplayName("Should not affect posted or draft transactions")
+    @DisplayName("Posted and draft transactions before the bound are kept")
     void shouldNotAffectNonVoidedTransactions() throws Exception {
-        // Create a posted transaction (should survive purge)
-        String postedId = createAndPostTransaction();
+        String posted = createAndPost("2001-08-05", "Purge tetap posted").get("transactionId").asText();
+        String voided = createAndPost("2001-08-06", "Purge dibatalkan").get("transactionId").asText();
+        voidTransaction(voided);
+        String draft = createDraft("2001-08-07", "Purge tetap draft");
 
-        // Create and void another transaction
-        String voidedId = createAndPostTransaction();
-        voidTransaction(voidedId);
+        JsonNode body = purge("2001-09-01");
 
-        // Purge
-        APIResponse purgeResponse = apiContext.delete("/api/transactions/purge-voided",
-                RequestOptions.create()
-                        .setHeader("Authorization", "Bearer " + accessToken));
-
-        assertThat(purgeResponse.ok()).isTrue();
-
-        // Verify the posted transaction still exists via analysis API
-        APIResponse txResponse = apiContext.get(
-                "/api/analysis/transactions?status=POSTED&size=100",
-                RequestOptions.create()
-                        .setHeader("Authorization", "Bearer " + accessToken));
-
-        assertThat(txResponse.ok()).isTrue();
-
-        JsonNode txBody = objectMapper.readTree(txResponse.text());
-        JsonNode transactions = txBody.get("data").get("transactions");
-
-        boolean postedStillExists = false;
-        for (JsonNode tx : transactions) {
-            if (tx.get("id").asText().equals(postedId)) {
-                postedStillExists = true;
-                break;
-            }
-        }
-        assertThat(postedStillExists).as("Posted transaction %s should not be purged", postedId).isTrue();
+        assertThat(ids(body)).containsExactly(voided);
+        assertThat(status(posted)).isEqualTo("POSTED");
+        assertThat(count("SELECT COUNT(*) FROM journal_entries WHERE id_transaction = ?::uuid", posted)).isEqualTo(2);
+        assertThat(status(draft)).isEqualTo("DRAFT");
     }
 
     // ========== Helper methods ==========
 
-    private String createAndPostTransaction() throws Exception {
-        return createAndPostTransaction("2026-02-12");
+    private JsonNode purge(String before) throws Exception {
+        APIResponse response = apiContext.delete("/api/transactions/purge-voided?before=" + before,
+                RequestOptions.create().setHeader("Authorization", "Bearer " + accessToken));
+        assertThat(response.status()).as("Purge failed: %s", response.text()).isEqualTo(200);
+        JsonNode body = objectMapper.readTree(response.text());
+        assertThat(body.get("purgedCount").asInt()).isEqualTo(body.get("purgedTransactions").size());
+        return body;
     }
 
-    private String createAndPostTransaction(String transactionDate) throws Exception {
-        String templateId = getFirstTemplateId();
+    private static List<String> ids(JsonNode purgeBody) {
+        List<String> ids = new ArrayList<>();
+        purgeBody.get("purgedTransactions").forEach(p -> ids.add(p.get("id").asText()));
+        return ids;
+    }
 
+    private long count(String sql, String param) {
+        return jdbc.queryForObject(sql, Long.class, param);
+    }
+
+    private String status(String transactionId) {
+        return jdbc.queryForObject("SELECT status FROM transactions WHERE id = ?::uuid", String.class, transactionId);
+    }
+
+    private Map<String, Object> request(String date, String description) {
+        String template = "Bayar Beban Listrik";
         Map<String, Object> request = new HashMap<>();
-        request.put("templateId", templateId);
-        request.put("merchant", "Purge Test Merchant");
+        request.put("templateId", templateRepository.findByTemplateNameAndIsCurrentVersionTrue(template)
+                .orElseThrow(() -> new IllegalStateException("Seeded template missing: " + template)).getId().toString());
         request.put("amount", 100000);
-        request.put("transactionDate", transactionDate);
-        request.put("description", "Transaction for purge test");
+        request.put("transactionDate", date);
+        request.put("description", description);
+        request.put("accountSlots", Map.of("BANK", accountRepository.findByAccountCode("1.1.02")
+                .orElseThrow(() -> new IllegalStateException("Seeded account missing: 1.1.02")).getId().toString()));
+        return request;
+    }
+
+    private JsonNode createAndPost(String date, String description) throws Exception {
+        Map<String, Object> request = request(date, description);
+        request.put("merchant", "Purge Test Merchant");
         request.put("source", "purge-test");
         request.put("userApproved", true);
 
-        APIResponse response = apiContext.post("/api/transactions",
-                RequestOptions.create()
-                        .setHeader("Content-Type", "application/json")
-                        .setHeader("Authorization", "Bearer " + accessToken)
-                        .setData(request));
-
-        assertThat(response.status())
-                .as("Create+post failed: %d %s", response.status(), response.text())
-                .isEqualTo(201);
-
-        JsonNode body = objectMapper.readTree(response.text());
-        return body.get("transactionId").asText();
+        APIResponse response = apiContext.post("/api/transactions", json(request));
+        assertThat(response.status()).as("Create+post failed: %s", response.text()).isEqualTo(201);
+        return objectMapper.readTree(response.text());
     }
 
-    private void voidTransaction(String transactionId) throws Exception {
-        Map<String, Object> voidRequest = Map.of(
-                "reason", "INPUT_ERROR",
-                "notes", "Voided for purge test"
-        );
+    private String createDraft(String date, String description) throws Exception {
+        APIResponse response = apiContext.post("/api/drafts", json(request(date, description)));
+        assertThat(response.status()).as("Create draft failed: %s", response.text()).isEqualTo(201);
+        return objectMapper.readTree(response.text()).get("transactionId").asText();
+    }
 
+    private void voidTransaction(String transactionId) {
         APIResponse response = apiContext.post("/api/transactions/" + transactionId + "/void",
-                RequestOptions.create()
-                        .setHeader("Content-Type", "application/json")
-                        .setHeader("Authorization", "Bearer " + accessToken)
-                        .setData(voidRequest));
-
-        assertThat(response.ok())
-                .as("Void failed: %d %s", response.status(), response.text())
-                .isTrue();
+                json(Map.of("reason", "INPUT_ERROR", "notes", "Voided for purge test")));
+        assertThat(response.status()).as("Void failed: %s", response.text()).isEqualTo(200);
     }
 
-    private String createPostAndVoidTransaction(String transactionDate) throws Exception {
-        String id = createAndPostTransaction(transactionDate);
-        voidTransaction(id);
-        return id;
-    }
-
-    private String getFirstTemplateId() throws Exception {
-        APIResponse response = apiContext.get("/api/templates",
-                RequestOptions.create()
-                        .setHeader("Authorization", "Bearer " + accessToken));
-
-        assertThat(response.ok()).isTrue();
-
-        JsonNode templates = objectMapper.readTree(response.text());
-        assertThat(templates.size()).isGreaterThan(0);
-
-        return templates.get(0).get("id").asText();
+    private RequestOptions json(Object data) {
+        return RequestOptions.create()
+                .setHeader("Content-Type", "application/json")
+                .setHeader("Authorization", "Bearer " + accessToken)
+                .setData(data);
     }
 
     private String authenticateViaDeviceFlow() throws Exception {
