@@ -6,6 +6,7 @@ import com.artivisi.accountingfinance.enums.TaxType;
 import com.artivisi.accountingfinance.security.Permission;
 import com.artivisi.accountingfinance.service.TaxTransactionDetailService;
 import com.artivisi.accountingfinance.service.TransactionService;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
@@ -67,7 +68,7 @@ public class TaxDetailController {
     public String showEditForm(@PathVariable UUID transactionId,
                                @PathVariable UUID detailId,
                                Model model) {
-        TaxTransactionDetail detail = taxDetailService.findById(detailId);
+        TaxTransactionDetail detail = findOwnedDetail(transactionId, detailId);
         model.addAttribute(ATTR_TRANSACTION_ID, transactionId);
         model.addAttribute(ATTR_DETAIL, detail);
         model.addAttribute(ATTR_TAX_TYPES, TaxType.values());
@@ -105,6 +106,7 @@ public class TaxDetailController {
                          @PathVariable UUID detailId,
                          TaxDetailFormData form,
                          Model model) {
+        findOwnedDetail(transactionId, detailId);
         TaxTransactionDetail detail = form.toEntity();
 
         try {
@@ -130,6 +132,7 @@ public class TaxDetailController {
     public String delete(@PathVariable UUID transactionId,
                          @PathVariable UUID detailId,
                          Model model) {
+        findOwnedDetail(transactionId, detailId);
         taxDetailService.delete(detailId);
 
         List<TaxTransactionDetail> details = taxDetailService.findByTransactionId(transactionId);
@@ -137,6 +140,14 @@ public class TaxDetailController {
         model.addAttribute(ATTR_TRANSACTION_ID, transactionId);
         model.addAttribute(ATTR_SUCCESS_MESSAGE, "Detail pajak berhasil dihapus");
         return FRAGMENT_PREFIX + ATTR_TAX_DETAIL_SECTION;
+    }
+
+    private TaxTransactionDetail findOwnedDetail(UUID transactionId, UUID detailId) {
+        TaxTransactionDetail detail = taxDetailService.findById(detailId);
+        if (!detail.getTransaction().getId().equals(transactionId)) {
+            throw new EntityNotFoundException("Tax detail " + detailId + " does not belong to transaction " + transactionId);
+        }
+        return detail;
     }
 
     /**

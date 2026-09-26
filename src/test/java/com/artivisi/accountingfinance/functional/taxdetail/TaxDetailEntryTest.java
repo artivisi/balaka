@@ -12,7 +12,10 @@ import com.artivisi.accountingfinance.repository.ProjectRepository;
 import com.artivisi.accountingfinance.repository.TaxTransactionDetailRepository;
 import com.artivisi.accountingfinance.repository.TransactionRepository;
 import com.artivisi.accountingfinance.ui.PlaywrightTestBase;
+import com.microsoft.playwright.APIResponse;
 import com.microsoft.playwright.Locator;
+import com.microsoft.playwright.options.FormData;
+import com.microsoft.playwright.options.RequestOptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -231,6 +234,41 @@ class TaxDetailEntryTest extends PlaywrightTestBase {
         assertThat(page.locator("[data-testid='tax-detail-section']")).containsText("Detail pajak berhasil dihapus");
         assertThat(page.locator("[data-testid='tax-detail-empty']")).isVisible();
         assertThat(taxTransactionDetailRepository.findById(created.getId())).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Edit, update and delete through another transaction's URL are rejected and leave the detail unchanged")
+    void shouldRejectDetailAccessThroughAnotherTransaction() {
+        Transaction ppn = postedPpnTransaction();
+        Transaction other = postedNonTaxTransaction();
+        openAddForm(ppn);
+        String faktur = fakturNumber();
+        fillPpn(faktur, "PT Pemilik Detail");
+        page.locator("[data-testid='btn-save-tax-detail']").click();
+        TaxTransactionDetail created = onlyDetail(ppn);
+
+        String csrfHeader = page.locator("meta[name='_csrf_header']").getAttribute("content");
+        String csrfToken = page.locator("meta[name='_csrf']").getAttribute("content");
+        String foreignUrl = baseUrl() + "/transactions/" + other.getId() + "/tax-details/" + created.getId();
+
+        assertThat(page.request().get(foreignUrl + "/edit").status()).isEqualTo(404);
+        APIResponse update = page.request().post(foreignUrl, RequestOptions.create()
+                .setHeader(csrfHeader, csrfToken)
+                .setForm(FormData.create()
+                        .set("taxType", "PPN_KELUARAN")
+                        .set("fakturNumber", fakturNumber())
+                        .set("dpp", "1")
+                        .set("ppn", "1")
+                        .set("counterpartyName", "PT Penyusup")));
+        assertThat(update.status()).isEqualTo(404);
+        APIResponse delete = page.request().delete(foreignUrl, RequestOptions.create().setHeader(csrfHeader, csrfToken));
+        assertThat(delete.status()).isEqualTo(404);
+
+        TaxTransactionDetail stored = taxTransactionDetailRepository.findById(created.getId())
+                .orElseThrow(() -> new AssertionError("Detail was deleted through another transaction's URL"));
+        assertThat(stored.getCounterpartyName()).isEqualTo("PT Pemilik Detail");
+        assertThat(stored.getFakturNumber()).isEqualTo(faktur);
+        assertThat(stored.getTransaction().getId()).isEqualTo(ppn.getId());
     }
 
     @Test
