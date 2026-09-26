@@ -9,6 +9,10 @@
     <h1 id="page-title">Detail Mutasi Bank</h1>
 
     <section>
+        <div th:if="${successMessage}" data-testid="flash-success" class="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <p class="text-sm text-green-600" th:text="${successMessage}">Success</p>
+        </div>
+
         <!-- Statement Info -->
         <div class="bg-white rounded-lg shadow p-6 mb-6">
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -68,9 +72,9 @@
                             <td class="px-4 py-3 text-sm text-gray-500" th:text="${item.lineNumber}">1</td>
                             <td class="px-4 py-3 text-sm" th:text="${#temporals.format(item.transactionDate, 'dd/MM/yyyy')}">01/01</td>
                             <td class="px-4 py-3 text-sm max-w-xs truncate" th:text="${item.description}" th:title="${item.description}">Transfer</td>
-                            <td class="px-4 py-3 text-sm text-right font-mono" th:text="${item.debitAmount != null ? #numbers.formatDecimal(item.debitAmount, 0, 'COMMA', 0, 'POINT') : ''}">0</td>
-                            <td class="px-4 py-3 text-sm text-right font-mono" th:text="${item.creditAmount != null ? #numbers.formatDecimal(item.creditAmount, 0, 'COMMA', 0, 'POINT') : ''}">0</td>
-                            <td class="px-4 py-3 text-sm text-right font-mono" th:text="${item.balance != null ? #numbers.formatDecimal(item.balance, 0, 'COMMA', 0, 'POINT') : ''}">0</td>
+                            <td class="px-4 py-3 text-sm text-right font-mono" th:text="${item.debitAmount != null ? #numbers.formatDecimal(item.debitAmount, 1, 'COMMA', 0, 'POINT') : ''}">0</td>
+                            <td class="px-4 py-3 text-sm text-right font-mono" th:text="${item.creditAmount != null ? #numbers.formatDecimal(item.creditAmount, 1, 'COMMA', 0, 'POINT') : ''}">0</td>
+                            <td class="px-4 py-3 text-sm text-right font-mono" th:text="${item.balance != null ? #numbers.formatDecimal(item.balance, 1, 'COMMA', 0, 'POINT') : ''}">0</td>
                             <td class="px-4 py-3 text-center">
                                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
                                       th:classappend="${item.matchStatus.name() == 'MATCHED'} ? 'bg-green-100 text-green-800' : (${item.matchStatus.name() == 'BANK_ONLY'} ? 'bg-orange-100 text-orange-800' : (${item.matchStatus.name() == 'BOOK_ONLY'} ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'))"

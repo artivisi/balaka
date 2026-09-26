@@ -14,7 +14,7 @@
             <p class="text-sm text-green-600" th:text="${successMessage}">Success</p>
         </div>
         <div th:if="${errorMessage}" class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <p class="text-sm text-red-600" th:text="${errorMessage}">Error</p>
+            <p class="text-sm text-red-600" data-testid="flash-error" th:text="${errorMessage}">Error</p>
         </div>
 
         <div class="bg-white rounded-lg shadow p-6">

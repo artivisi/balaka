@@ -15,10 +15,10 @@
     <section>
         <!-- Flash Messages -->
         <div th:if="${successMessage}" class="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-            <p class="text-sm text-green-600" th:text="${successMessage}">Success</p>
+            <p class="text-sm text-green-600" data-testid="flash-success" th:text="${successMessage}">Success</p>
         </div>
         <div th:if="${errorMessage}" class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <p class="text-sm text-red-600" th:text="${errorMessage}">Error</p>
+            <p class="text-sm text-red-600" data-testid="flash-error" th:text="${errorMessage}">Error</p>
         </div>
 
         <!-- Summary Cards -->
@@ -32,12 +32,12 @@
             <div class="bg-white rounded-lg shadow p-4">
                 <p class="text-xs text-gray-500">Saldo Buku</p>
                 <p class="text-sm font-medium font-mono" data-testid="recon-book-balance"
-                   th:text="${recon.bookBalance != null ? #numbers.formatDecimal(recon.bookBalance, 0, 'COMMA', 0, 'POINT') : '-'}">0</p>
+                   th:text="${recon.bookBalance != null ? #numbers.formatDecimal(recon.bookBalance, 1, 'COMMA', 0, 'POINT') : '-'}">0</p>
             </div>
             <div class="bg-white rounded-lg shadow p-4">
                 <p class="text-xs text-gray-500">Saldo Bank</p>
                 <p class="text-sm font-medium font-mono" data-testid="recon-bank-balance"
-                   th:text="${recon.bankBalance != null ? #numbers.formatDecimal(recon.bankBalance, 0, 'COMMA', 0, 'POINT') : '-'}">0</p>
+                   th:text="${recon.bankBalance != null ? #numbers.formatDecimal(recon.bankBalance, 1, 'COMMA', 0, 'POINT') : '-'}">0</p>
             </div>
             <div class="bg-white rounded-lg shadow p-4">
                 <p class="text-xs text-gray-500">Cocok</p>
@@ -47,25 +47,25 @@
             <div class="bg-white rounded-lg shadow p-4">
                 <p class="text-xs text-gray-500">Selisih</p>
                 <p class="text-sm font-medium font-mono" data-testid="recon-difference"
-                   th:text="${recon.bookBalance != null && recon.bankBalance != null ? #numbers.formatDecimal(recon.bookBalance.subtract(recon.bankBalance), 0, 'COMMA', 0, 'POINT') : '-'}"
+                   th:text="${recon.bookBalance != null && recon.bankBalance != null ? #numbers.formatDecimal(recon.bookBalance.subtract(recon.bankBalance), 1, 'COMMA', 0, 'POINT') : '-'}"
                    th:classappend="${recon.bookBalance != null && recon.bankBalance != null && recon.bookBalance.compareTo(recon.bankBalance) != 0} ? 'text-red-600' : 'text-green-600'">0</p>
             </div>
         </div>
 
         <!-- Action Buttons -->
-        <div class="flex flex-wrap gap-2 mb-6" th:unless="${recon.completed}">
-            <form sec:authorize="hasAuthority('BANK_RECONCILIATION_MATCH')"
+        <div class="flex flex-wrap gap-2 mb-6">
+            <form th:unless="${recon.completed}" sec:authorize="hasAuthority('BANK_RECONCILIATION_MATCH')"
                   th:action="@{/bank-reconciliation/reconciliations/{id}/auto-match(id=${recon.id})}" method="post" class="inline">
                 <button type="submit" data-testid="btn-auto-match"
                         class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">Auto-Match</button>
             </form>
-            <form sec:authorize="hasAuthority('BANK_RECONCILIATION_COMPLETE')"
+            <form th:unless="${recon.completed}" sec:authorize="hasAuthority('BANK_RECONCILIATION_COMPLETE')"
                   th:action="@{/bank-reconciliation/reconciliations/{id}/complete(id=${recon.id})}" method="post" class="inline"
                   id="form-complete">
                 <button type="submit" data-testid="btn-complete"
                         class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm">Selesaikan</button>
             </form>
-            <a th:href="@{/bank-reconciliation/reconciliations/{id}/report(id=${recon.id})}"
+            <a th:href="@{/bank-reconciliation/reconciliations/{id}/report(id=${recon.id})}" data-testid="link-report"
                class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 text-sm">Laporan</a>
             <a th:href="@{/bank-reconciliation/reconciliations}"
                class="px-4 py-2 text-gray-600 hover:text-gray-900 text-sm">Kembali</a>
@@ -93,7 +93,7 @@
                                 <td class="px-3 py-2 text-xs" th:text="${#temporals.format(item.transactionDate, 'dd/MM')}">01/01</td>
                                 <td class="px-3 py-2 text-xs max-w-32 truncate" th:text="${item.description}" th:title="${item.description}">Transfer</td>
                                 <td class="px-3 py-2 text-xs text-right font-mono"
-                                    th:text="${item.debitAmount != null && item.debitAmount.compareTo(T(java.math.BigDecimal).ZERO) > 0 ? '-' + #numbers.formatDecimal(item.debitAmount, 0, 'COMMA', 0, 'POINT') : '+' + #numbers.formatDecimal(item.creditAmount != null ? item.creditAmount : T(java.math.BigDecimal).ZERO, 0, 'COMMA', 0, 'POINT')}"
+                                    th:text="${item.debitAmount != null && item.debitAmount.compareTo(T(java.math.BigDecimal).ZERO) > 0 ? '-' + #numbers.formatDecimal(item.debitAmount, 1, 'COMMA', 0, 'POINT') : '+' + #numbers.formatDecimal(item.creditAmount != null ? item.creditAmount : T(java.math.BigDecimal).ZERO, 1, 'COMMA', 0, 'POINT')}"
                                     th:classappend="${item.debitAmount != null && item.debitAmount.compareTo(T(java.math.BigDecimal).ZERO) > 0} ? 'text-red-600' : 'text-green-600'">0</td>
                                 <td class="px-3 py-2 text-center" th:unless="${recon.completed}">
                                     <div class="flex gap-1 justify-center">
@@ -133,7 +133,7 @@
                             <tr th:each="txn : ${unmatchedBookTxns}" th:id="'book-txn-' + ${txn.id}">
                                 <td class="px-3 py-2 text-xs" th:text="${#temporals.format(txn.transactionDate, 'dd/MM')}">01/01</td>
                                 <td class="px-3 py-2 text-xs max-w-32 truncate" th:text="${txn.description}" th:title="${txn.description}">Payment</td>
-                                <td class="px-3 py-2 text-xs text-right font-mono" th:text="${#numbers.formatDecimal(txn.amount, 0, 'COMMA', 0, 'POINT')}">0</td>
+                                <td class="px-3 py-2 text-xs text-right font-mono" th:text="${#numbers.formatDecimal(txn.amount, 1, 'COMMA', 0, 'POINT')}">0</td>
                                 <td class="px-3 py-2 text-center" th:unless="${recon.completed}">
                                     <form th:action="@{/bank-reconciliation/reconciliations/{id}/mark-book-only(id=${recon.id})}" method="post" class="inline">
                                         <input type="hidden" name="transactionId" th:value="${txn.id}">
@@ -161,7 +161,7 @@
                             class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
                         <option value="">-- Pilih Item --</option>
                         <option th:each="item : ${unmatchedBankItems}" th:value="${item.id}"
-                                th:text="${#temporals.format(item.transactionDate, 'dd/MM') + ' | ' + (item.description != null && item.description.length() > 30 ? item.description.substring(0, 30) + '...' : item.description) + ' | ' + (item.debitAmount != null && item.debitAmount.compareTo(T(java.math.BigDecimal).ZERO) > 0 ? '-' + #numbers.formatDecimal(item.debitAmount, 0, 'COMMA', 0, 'POINT') : '+' + #numbers.formatDecimal(item.creditAmount != null ? item.creditAmount : T(java.math.BigDecimal).ZERO, 0, 'COMMA', 0, 'POINT'))}">
+                                th:text="${#temporals.format(item.transactionDate, 'dd/MM') + ' | ' + (item.description != null && item.description.length() > 30 ? item.description.substring(0, 30) + '...' : item.description) + ' | ' + (item.debitAmount != null && item.debitAmount.compareTo(T(java.math.BigDecimal).ZERO) > 0 ? '-' + #numbers.formatDecimal(item.debitAmount, 1, 'COMMA', 0, 'POINT') : '+' + #numbers.formatDecimal(item.creditAmount != null ? item.creditAmount : T(java.math.BigDecimal).ZERO, 1, 'COMMA', 0, 'POINT'))}">
                             01/01 | Transfer | -500,000
                         </option>
                     </select>
@@ -172,7 +172,7 @@
                             class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
                         <option value="">-- Pilih Transaksi --</option>
                         <option th:each="txn : ${unmatchedBookTxns}" th:value="${txn.id}"
-                                th:text="${#temporals.format(txn.transactionDate, 'dd/MM') + ' | ' + (txn.description != null && txn.description.length() > 30 ? txn.description.substring(0, 30) + '...' : txn.description) + ' | ' + #numbers.formatDecimal(txn.amount, 0, 'COMMA', 0, 'POINT')}">
+                                th:text="${#temporals.format(txn.transactionDate, 'dd/MM') + ' | ' + (txn.description != null && txn.description.length() > 30 ? txn.description.substring(0, 30) + '...' : txn.description) + ' | ' + #numbers.formatDecimal(txn.amount, 1, 'COMMA', 0, 'POINT')}">
                             01/01 | Payment | 500,000
                         </option>
                     </select>

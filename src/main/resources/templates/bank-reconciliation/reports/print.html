@@ -56,36 +56,40 @@
         <tbody>
         <tr>
             <td>Saldo per Buku Besar</td>
-            <td class="text-right font-mono" th:text="${#numbers.formatDecimal(statement['bookBalance'], 0, 'COMMA', 2, 'POINT')}">0</td>
+            <td class="text-right font-mono" th:text="${#numbers.formatDecimal(statement['bookBalance'], 1, 'COMMA', 2, 'POINT')}">0</td>
         </tr>
         <tr>
             <td class="pl-4">+ Kredit hanya di bank</td>
-            <td class="text-right font-mono text-green" th:text="${#numbers.formatDecimal(statement['bankOnlyCreditTotal'], 0, 'COMMA', 2, 'POINT')}">0</td>
+            <td class="text-right font-mono text-green" th:text="${#numbers.formatDecimal(statement['bankOnlyCreditTotal'], 1, 'COMMA', 2, 'POINT')}">0</td>
         </tr>
         <tr>
             <td class="pl-4">- Debit hanya di bank</td>
-            <td class="text-right font-mono text-red" th:text="${#numbers.formatDecimal(statement['bankOnlyDebitTotal'], 0, 'COMMA', 2, 'POINT')}">0</td>
+            <td class="text-right font-mono text-red" th:text="${#numbers.formatDecimal(statement['bankOnlyDebitTotal'], 1, 'COMMA', 2, 'POINT')}">0</td>
         </tr>
         <tr class="total-row">
             <td>Saldo Buku Disesuaikan</td>
-            <td class="text-right font-mono" th:text="${#numbers.formatDecimal(statement['adjustedBookBalance'], 0, 'COMMA', 2, 'POINT')}">0</td>
+            <td class="text-right font-mono" th:text="${#numbers.formatDecimal(statement['adjustedBookBalance'], 1, 'COMMA', 2, 'POINT')}">0</td>
         </tr>
         <tr class="row-separator">
             <td>Saldo per Bank</td>
-            <td class="text-right font-mono" th:text="${#numbers.formatDecimal(statement['bankBalance'], 0, 'COMMA', 2, 'POINT')}">0</td>
+            <td class="text-right font-mono" th:text="${#numbers.formatDecimal(statement['bankBalance'], 1, 'COMMA', 2, 'POINT')}">0</td>
         </tr>
         <tr>
-            <td class="pl-4">+ Transaksi hanya di buku</td>
-            <td class="text-right font-mono text-green" th:text="${#numbers.formatDecimal(statement['bookOnlyTotal'], 0, 'COMMA', 2, 'POINT')}">0</td>
+            <td class="pl-4">+ Setoran hanya di buku</td>
+            <td class="text-right font-mono text-green" th:text="${#numbers.formatDecimal(statement['bookOnlyDebitTotal'], 1, 'COMMA', 2, 'POINT')}">0</td>
+        </tr>
+        <tr>
+            <td class="pl-4">- Pembayaran hanya di buku</td>
+            <td class="text-right font-mono text-red" th:text="${#numbers.formatDecimal(statement['bookOnlyCreditTotal'], 1, 'COMMA', 2, 'POINT')}">0</td>
         </tr>
         <tr class="total-row">
             <td>Saldo Bank Disesuaikan</td>
-            <td class="text-right font-mono" th:text="${#numbers.formatDecimal(statement['adjustedBankBalance'], 0, 'COMMA', 2, 'POINT')}">0</td>
+            <td class="text-right font-mono" th:text="${#numbers.formatDecimal(statement['adjustedBankBalance'], 1, 'COMMA', 2, 'POINT')}">0</td>
         </tr>
         <tr class="row-difference">
             <td class="cell-emphasis">SELISIH</td>
             <td class="text-right font-mono cell-emphasis"
-                th:text="${#numbers.formatDecimal(statement['difference'], 0, 'COMMA', 2, 'POINT')}"
+                th:text="${#numbers.formatDecimal(statement['difference'], 1, 'COMMA', 2, 'POINT')}"
                 th:classappend="${statement['difference'].compareTo(T(java.math.BigDecimal).ZERO) != 0} ? 'text-red' : 'text-green'">0</td>
         </tr>
         </tbody>
@@ -108,7 +112,7 @@
                     <td th:text="${item.matchStatus.indonesianName}">Type</td>
                     <td th:text="${item.statementItem != null ? #temporals.format(item.statementItem.transactionDate, 'dd/MM/yyyy') : (item.transaction != null ? #temporals.format(item.transaction.transactionDate, 'dd/MM/yyyy') : '-')}">01/01</td>
                     <td th:text="${item.statementItem != null ? item.statementItem.description : (item.transaction != null ? item.transaction.description : '-')}">Desc</td>
-                    <td class="text-right font-mono" th:text="${item.statementItem != null ? #numbers.formatDecimal(item.statementItem.netAmount.abs(), 0, 'COMMA', 0, 'POINT') : (item.transaction != null ? #numbers.formatDecimal(item.transaction.amount, 0, 'COMMA', 0, 'POINT') : '-')}">0</td>
+                    <td class="text-right font-mono" th:text="${item.statementItem != null ? #numbers.formatDecimal(item.statementItem.netAmount.abs(), 1, 'COMMA', 0, 'POINT') : (item.transaction != null ? #numbers.formatDecimal(item.transaction.amount, 1, 'COMMA', 0, 'POINT') : '-')}">0</td>
                     <td th:text="${item.notes != null ? item.notes : '-'}">-</td>
                 </tr>
             </tbody>

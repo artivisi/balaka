@@ -41,8 +41,8 @@
                             <td class="px-6 py-4 text-sm" th:text="${#temporals.format(stmt.statementPeriodStart, 'dd/MM/yyyy') + ' - ' + #temporals.format(stmt.statementPeriodEnd, 'dd/MM/yyyy')}">01/01-31/01</td>
                             <td class="px-6 py-4 text-sm text-gray-500" th:text="${stmt.originalFilename}">mutasi.csv</td>
                             <td class="px-6 py-4 text-sm text-right" th:text="${stmt.totalItems}">150</td>
-                            <td class="px-6 py-4 text-sm text-right font-mono" th:text="${#numbers.formatDecimal(stmt.totalDebit, 0, 'COMMA', 0, 'POINT')}">0</td>
-                            <td class="px-6 py-4 text-sm text-right font-mono" th:text="${#numbers.formatDecimal(stmt.totalCredit, 0, 'COMMA', 0, 'POINT')}">0</td>
+                            <td class="px-6 py-4 text-sm text-right font-mono" th:text="${#numbers.formatDecimal(stmt.totalDebit, 1, 'COMMA', 0, 'POINT')}">0</td>
+                            <td class="px-6 py-4 text-sm text-right font-mono" th:text="${#numbers.formatDecimal(stmt.totalCredit, 1, 'COMMA', 0, 'POINT')}">0</td>
                             <td class="px-6 py-4 text-sm text-gray-500" th:text="${stmt.importedAt != null ? #temporals.format(stmt.importedAt, 'dd/MM/yyyy HH:mm') : '-'}">01/02</td>
                             <td class="px-6 py-4 text-center">
                                 <a th:href="@{/bank-reconciliation/statements/{id}(id=${stmt.id})}"

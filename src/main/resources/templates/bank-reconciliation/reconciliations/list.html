@@ -43,8 +43,8 @@
                                       th:classappend="${recon.status.name() == 'COMPLETED'} ? 'bg-green-100 text-green-800' : (${recon.status.name() == 'IN_PROGRESS'} ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800')"
                                       th:text="${recon.status.indonesianName}">Draft</span>
                             </td>
-                            <td class="px-6 py-4 text-sm text-right font-mono" th:text="${recon.bookBalance != null ? #numbers.formatDecimal(recon.bookBalance, 0, 'COMMA', 0, 'POINT') : '-'}">0</td>
-                            <td class="px-6 py-4 text-sm text-right font-mono" th:text="${recon.bankBalance != null ? #numbers.formatDecimal(recon.bankBalance, 0, 'COMMA', 0, 'POINT') : '-'}">0</td>
+                            <td class="px-6 py-4 text-sm text-right font-mono" th:text="${recon.bookBalance != null ? #numbers.formatDecimal(recon.bookBalance, 1, 'COMMA', 0, 'POINT') : '-'}">0</td>
+                            <td class="px-6 py-4 text-sm text-right font-mono" th:text="${recon.bankBalance != null ? #numbers.formatDecimal(recon.bankBalance, 1, 'COMMA', 0, 'POINT') : '-'}">0</td>
                             <td class="px-6 py-4 text-sm text-right" th:text="${(recon.matchedCount != null ? recon.matchedCount : 0) + '/' + (recon.totalStatementItems != null ? recon.totalStatementItems : 0)}">0/0</td>
                             <td class="px-6 py-4 text-center">
                                 <a th:href="@{/bank-reconciliation/reconciliations/{id}(id=${recon.id})}"

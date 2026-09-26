@@ -2,9 +2,11 @@ package com.artivisi.accountingfinance.service;
 
 import com.artivisi.accountingfinance.entity.BankReconciliation;
 import com.artivisi.accountingfinance.entity.BankStatementItem;
+import com.artivisi.accountingfinance.entity.JournalEntry;
 import com.artivisi.accountingfinance.entity.ReconciliationItem;
 import com.artivisi.accountingfinance.enums.StatementItemMatchStatus;
 import com.artivisi.accountingfinance.repository.BankStatementItemRepository;
+import com.artivisi.accountingfinance.repository.JournalEntryRepository;
 import com.artivisi.accountingfinance.repository.ReconciliationItemRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -23,6 +25,7 @@ public class BankReconciliationReportService {
     private final BankReconciliationService reconciliationService;
     private final BankStatementItemRepository statementItemRepository;
     private final ReconciliationItemRepository reconciliationItemRepository;
+    private final JournalEntryRepository journalEntryRepository;
 
     public Map<String, Object> getSummary(UUID reconciliationId) {
         BankReconciliation recon = reconciliationService.findById(reconciliationId);
@@ -75,10 +78,12 @@ public class BankReconciliationReportService {
         BigDecimal[] bankOnlyTotals = computeBankOnlyTotals(items);
         BigDecimal bankOnlyDebitTotal = bankOnlyTotals[0];
         BigDecimal bankOnlyCreditTotal = bankOnlyTotals[1];
-        BigDecimal bookOnlyTotal = computeBookOnlyTotal(items);
+        BigDecimal[] bookOnlyTotals = computeBookOnlyTotals(items, recon.getBankAccount().getGlAccount().getId());
+        BigDecimal bookOnlyDebitTotal = bookOnlyTotals[0];
+        BigDecimal bookOnlyCreditTotal = bookOnlyTotals[1];
 
         BigDecimal adjustedBookBalance = bookBalance.add(bankOnlyCreditTotal).subtract(bankOnlyDebitTotal);
-        BigDecimal adjustedBankBalance = bankBalance.add(bookOnlyTotal);
+        BigDecimal adjustedBankBalance = bankBalance.add(bookOnlyDebitTotal).subtract(bookOnlyCreditTotal);
         BigDecimal difference = adjustedBookBalance.subtract(adjustedBankBalance);
 
         return Map.of(
@@ -86,7 +91,8 @@ public class BankReconciliationReportService {
                 "bankBalance", bankBalance,
                 "bankOnlyDebitTotal", bankOnlyDebitTotal,
                 "bankOnlyCreditTotal", bankOnlyCreditTotal,
-                "bookOnlyTotal", bookOnlyTotal,
+                "bookOnlyDebitTotal", bookOnlyDebitTotal,
+                "bookOnlyCreditTotal", bookOnlyCreditTotal,
                 "adjustedBookBalance", adjustedBookBalance,
                 "adjustedBankBalance", adjustedBankBalance,
                 "difference", difference
@@ -111,14 +117,25 @@ public class BankReconciliationReportService {
         return new BigDecimal[]{debitTotal, creditTotal};
     }
 
-    private BigDecimal computeBookOnlyTotal(List<ReconciliationItem> items) {
-        BigDecimal total = BigDecimal.ZERO;
+    /**
+     * Book-only transactions split by their effect on the bank GL account: debits are deposits
+     * the bank has not credited yet, credits are payments the bank has not debited yet.
+     */
+    private BigDecimal[] computeBookOnlyTotals(List<ReconciliationItem> items, UUID glAccountId) {
+        BigDecimal debitTotal = BigDecimal.ZERO;
+        BigDecimal creditTotal = BigDecimal.ZERO;
         for (ReconciliationItem ri : items) {
-            if (ri.getMatchStatus() == StatementItemMatchStatus.BOOK_ONLY && ri.getTransaction() != null) {
-                total = total.add(ri.getTransaction().getAmount());
+            if (ri.getMatchStatus() != StatementItemMatchStatus.BOOK_ONLY || ri.getTransaction() == null) {
+                continue;
+            }
+            for (JournalEntry je : journalEntryRepository.findByTransactionIdWithAccount(ri.getTransaction().getId())) {
+                if (je.getAccount().getId().equals(glAccountId)) {
+                    debitTotal = debitTotal.add(je.getDebitAmount());
+                    creditTotal = creditTotal.add(je.getCreditAmount());
+                }
             }
         }
-        return total;
+        return new BigDecimal[]{debitTotal, creditTotal};
     }
 
     public List<ReconciliationItem> getOutstandingItems(UUID reconciliationId) {
