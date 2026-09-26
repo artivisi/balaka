@@ -1,6 +1,8 @@
 package com.artivisi.accountingfinance.service;
 
+import com.artivisi.accountingfinance.entity.ChartOfAccount;
 import com.artivisi.accountingfinance.entity.CompanyConfig;
+import com.artivisi.accountingfinance.exception.MissingConfigurationException;
 import com.artivisi.accountingfinance.repository.CompanyConfigRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +23,15 @@ public class CompanyConfigService {
     public CompanyConfig getConfig() {
         return companyConfigRepository.findFirst()
                 .orElseGet(this::createDefaultConfig);
+    }
+
+    public ChartOfAccount requireReceivableAccount() {
+        ChartOfAccount account = getConfig().getReceivableAccount();
+        if (account == null) {
+            throw new MissingConfigurationException(
+                    "Akun Piutang Usaha belum dikonfigurasi di Pengaturan Perusahaan");
+        }
+        return account;
     }
 
     public CompanyConfig findById(UUID id) {

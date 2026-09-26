@@ -1,2 +1,2 @@
-company_name,company_address,company_phone,company_email,tax_id,npwp,nitku,fiscal_year_start_month,currency_code,signing_officer_name,signing_officer_title,company_logo_path,established_date,is_pkp,pkp_since,industry
-Toko Online Maju Bersama,Jl. Pasar Baru No. 45 Jakarta Pusat,021-3456789,tokoonline@majubersama.com,,,12345678901234,1,IDR,Siti Nurhaliza,Owner,,,,,online-seller
+company_name,company_address,company_phone,company_email,tax_id,npwp,nitku,fiscal_year_start_month,currency_code,signing_officer_name,signing_officer_title,company_logo_path,established_date,is_pkp,pkp_since,industry,id_receivable_account,id_payable_account,id_output_tax_account,id_input_tax_account
+Toko Online Maju Bersama,Jl. Pasar Baru No. 45 Jakarta Pusat,021-3456789,tokoonline@majubersama.com,,,12345678901234,1,IDR,Siti Nurhaliza,Owner,,,,,online-seller,1.1.10,,,

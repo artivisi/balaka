@@ -30,9 +30,9 @@ public class DashboardService {
     private final TransactionRepository transactionRepository;
     private final AmortizationEntryRepository amortizationEntryRepository;
     private final JournalTemplateRepository journalTemplateRepository;
+    private final CompanyConfigService companyConfigService;
 
     // Account codes for specific KPIs
-    private static final String PIUTANG_USAHA_CODE = "1.1.04";
     private static final String HUTANG_USAHA_CODE = "2.1.01";
 
     public DashboardKPI calculateKPIs(YearMonth month) {
@@ -70,7 +70,8 @@ public class DashboardService {
 
         // Calculate balances as of end of current month
         BigDecimal cashBalance = calculateCashBalance(endDate);
-        BigDecimal receivablesBalance = calculateAccountBalance(PIUTANG_USAHA_CODE, endDate);
+        BigDecimal receivablesBalance = calculateAccountBalanceByEntity(
+                companyConfigService.requireReceivableAccount(), endDate);
         BigDecimal payablesBalance = calculateAccountBalance(HUTANG_USAHA_CODE, endDate);
 
         // Transaction count for current month

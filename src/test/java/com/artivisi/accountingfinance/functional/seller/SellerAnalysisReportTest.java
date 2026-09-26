@@ -1,5 +1,10 @@
 package com.artivisi.accountingfinance.functional.seller;
 
+import com.artivisi.accountingfinance.dto.JournalEntryRequest;
+import com.artivisi.accountingfinance.repository.ChartOfAccountRepository;
+import com.artivisi.accountingfinance.repository.TransactionRepository;
+import com.artivisi.accountingfinance.service.TransactionApiService;
+import com.artivisi.accountingfinance.service.TransactionService;
 import com.artivisi.accountingfinance.ui.PlaywrightTestBase;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -12,16 +17,20 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
+import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
@@ -41,6 +50,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class SellerAnalysisReportTest extends PlaywrightTestBase {
 
     private static final Locale ID = Locale.of("id", "ID");
+    private static final int RECEIVABLE_YEAR = 2110;
+
+    @Autowired private TransactionApiService transactionApiService;
+    @Autowired private TransactionService transactionService;
+    @Autowired private TransactionRepository transactionRepository;
+    @Autowired private ChartOfAccountRepository accountRepository;
 
     private APIRequestContext apiContext;
     private ObjectMapper objectMapper;
@@ -240,9 +255,55 @@ class SellerAnalysisReportTest extends PlaywrightTestBase {
         return part.multiply(BigDecimal.valueOf(100)).divide(total, 1, RoundingMode.HALF_UP);
     }
 
+    private static void assertAmount(long expected, BigDecimal actual) {
+        assertEquals(0, BigDecimal.valueOf(expected).compareTo(actual), "expected " + expected + " but was " + actual);
+    }
+
     private static void assertAmount(long expected, JsonNode actual) {
         assertEquals(0, BigDecimal.valueOf(expected).compareTo(actual.decimalValue()),
                 "expected " + expected + " but was " + actual);
+    }
+
+    @Test
+    @DisplayName("Receivables come from the configured receivable account (1.1.10 Piutang Usaha), not from 1.1.04 Saldo Tokopedia")
+    void shouldReportConfiguredReceivableAccountOnly() throws Exception {
+        assertEquals(List.of(), transactionRepository.findByTransactionDateBetweenOrderByTransactionDateDesc(
+                LocalDate.of(RECEIVABLE_YEAR, 1, 1), LocalDate.of(RECEIVABLE_YEAR, 12, 31)),
+                "Another test posted into reserved seller receivable year " + RECEIVABLE_YEAR);
+        String before = (RECEIVABLE_YEAR - 1) + "-12-31";
+        String after = RECEIVABLE_YEAR + "-01-31";
+        JsonNode receivablesBefore = getApi("/api/analysis/receivables?asOfDate=" + before).get("data");
+        JsonNode snapshotBefore = getApi("/api/analysis/snapshot?month=" + (RECEIVABLE_YEAR - 1) + "-12").get("data");
+
+        postJournal("Saldo Tokopedia dicairkan belum", "1.1.04", "4.1.01", "3000000");
+        postJournal("Penjualan offline tempo", "1.1.10", "4.1.06", "2000000");
+
+        JsonNode receivables = getApi("/api/analysis/receivables?asOfDate=" + after).get("data");
+        JsonNode snapshot = getApi("/api/analysis/snapshot?month=" + RECEIVABLE_YEAR + "-01").get("data");
+        List<String> accounts = new ArrayList<>();
+        receivables.get("items").forEach(i -> accounts.add(i.get("accountCode").asText() + " " + i.get("accountName").asText()));
+        assertEquals(List.of("1.1.10 Piutang Usaha"), accounts);
+        assertAmount(2_000_000L, receivables.get("totalBalance").decimalValue()
+                .subtract(receivablesBefore.get("totalBalance").decimalValue()));
+        assertAmount(2_000_000L, snapshot.get("receivablesBalance").decimalValue()
+                .subtract(snapshotBefore.get("receivablesBalance").decimalValue()));
+        assertEquals(0, receivables.get("totalBalance").decimalValue()
+                .compareTo(snapshot.get("receivablesBalance").decimalValue()));
+    }
+
+    private void postJournal(String description, String debitCode, String creditCode, String amount) {
+        BigDecimal value = new BigDecimal(amount);
+        var created = transactionApiService.createJournalEntry(new JournalEntryRequest(
+                LocalDate.of(RECEIVABLE_YEAR, 1, 15), description, null, List.of(
+                        new JournalEntryRequest.JournalLineRequest(accountId(debitCode), value, BigDecimal.ZERO),
+                        new JournalEntryRequest.JournalLineRequest(accountId(creditCode), BigDecimal.ZERO, value))),
+                "admin");
+        transactionService.post(created.transactionId(), "admin");
+    }
+
+    private UUID accountId(String code) {
+        return accountRepository.findByAccountCode(code)
+                .orElseThrow(() -> new IllegalStateException("Seeded account missing: " + code)).getId();
     }
 
     private JsonNode getApi(String path) throws Exception {

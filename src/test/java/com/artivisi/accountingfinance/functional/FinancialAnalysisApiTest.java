@@ -66,6 +66,7 @@ class FinancialAnalysisApiTest extends PlaywrightTestBase {
     private static final String FEB_END = YEAR + "-02-28";
     private static final String MAR_START = YEAR + "-03-01";
     private static final String MAR_END = YEAR + "-03-31";
+    private static final int RECEIVABLE_YEAR = 2109;
 
     @Autowired private TransactionRepository transactionRepository;
     @Autowired private TransactionService transactionService;
@@ -275,6 +276,32 @@ class FinancialAnalysisApiTest extends PlaywrightTestBase {
         assertThat(item.get("accountName").asText()).isEqualTo("Hutang Usaha");
         assertThat(march.get("items")).allSatisfy(i -> assertThat(i.get("accountCode").asText()).startsWith("2.1.01"));
         assertAmount(delta(march.get("totalBalance"), february.get("totalBalance")), "5550000");
+    }
+
+    @Test
+    @DisplayName("GET /api/analysis/receivables and snapshot receivablesBalance follow the configured receivable account 1.1.10")
+    void testReceivables() throws Exception {
+        String before = (RECEIVABLE_YEAR - 1) + "-12-31";
+        String after = RECEIVABLE_YEAR + "-01-31";
+        JsonNode receivablesBefore = ok("/api/analysis/receivables?asOfDate=" + before).get("data");
+        JsonNode snapshotBefore = ok("/api/analysis/snapshot?month=" + (RECEIVABLE_YEAR - 1) + "-12").get("data");
+
+        UUID invoiceJournal = transactionApiService.createJournalEntry(new JournalEntryRequest(
+                LocalDate.of(RECEIVABLE_YEAR, 1, 10), "Tagihan jasa piutang " + RECEIVABLE_YEAR, null, List.of(
+                        new JournalEntryRequest.JournalLineRequest(account("1.1.10").getId(), new BigDecimal("7500000"), BigDecimal.ZERO),
+                        new JournalEntryRequest.JournalLineRequest(account("4.1.01").getId(), BigDecimal.ZERO, new BigDecimal("7500000")))),
+                "admin").transactionId();
+        transactionService.post(invoiceJournal, "admin");
+
+        JsonNode receivables = ok("/api/analysis/receivables?asOfDate=" + after).get("data");
+        JsonNode snapshot = ok("/api/analysis/snapshot?month=" + RECEIVABLE_YEAR + "-01").get("data");
+        JsonNode trialBalance = ok("/api/analysis/trial-balance?asOfDate=" + after).get("data");
+
+        assertThat(lines(receivables.get("items"))).containsExactly(
+                "1.1.10 Piutang Usaha " + plain(item(trialBalance.get("items"), "accountCode", "1.1.10").get("debitBalance")));
+        assertAmount(delta(receivables.get("totalBalance"), receivablesBefore.get("totalBalance")), "7500000");
+        assertAmount(delta(snapshot.get("receivablesBalance"), snapshotBefore.get("receivablesBalance")), "7500000");
+        assertAmount(snapshot.get("receivablesBalance"), receivables.get("totalBalance").asText());
     }
 
     @Test

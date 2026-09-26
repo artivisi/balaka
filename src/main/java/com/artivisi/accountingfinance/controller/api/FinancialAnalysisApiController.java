@@ -7,6 +7,7 @@ import com.artivisi.accountingfinance.enums.AuditEventType;
 import com.artivisi.accountingfinance.enums.TaxFilingStatus;
 import com.artivisi.accountingfinance.enums.TaxFilingType;
 import com.artivisi.accountingfinance.repository.CompanyConfigRepository;
+import com.artivisi.accountingfinance.service.CompanyConfigService;
 import com.artivisi.accountingfinance.service.DashboardService;
 import com.artivisi.accountingfinance.service.ReportService;
 import com.artivisi.accountingfinance.service.SecurityAuditService;
@@ -54,6 +55,7 @@ public class FinancialAnalysisApiController {
     private final TaxReportService taxReportService;
     private final TaxFilingService taxFilingService;
     private final CompanyConfigRepository companyConfigRepository;
+    private final CompanyConfigService companyConfigService;
     private final SecurityAuditService securityAuditService;
 
     @GetMapping("/company")
@@ -291,11 +293,11 @@ public class FinancialAnalysisApiController {
             @RequestParam String asOfDate) {
 
         LocalDate date = LocalDate.parse(asOfDate);
+        ChartOfAccount receivableAccount = companyConfigService.requireReceivableAccount();
         ReportService.TrialBalanceReport report = reportService.generateTrialBalance(date);
 
         List<LineItemDto> items = report.items().stream()
-                .filter(i -> i.account().getAccountType() == AccountType.ASSET
-                        && i.account().getAccountCode().startsWith("1.1.04"))
+                .filter(i -> i.account().getId().equals(receivableAccount.getId()))
                 .map(i -> new LineItemDto(
                         i.account().getAccountCode(), i.account().getAccountName(),
                         i.debitBalance()))
@@ -315,7 +317,8 @@ public class FinancialAnalysisApiController {
                 data,
                 Map.of(META_CURRENCY, META_CURRENCY_IDR,
                         META_DESCRIPTION, "Accounts receivable (Piutang) as of " + asOfDate
-                                + ". ASSET accounts with code prefix 1.1.04.")));
+                                + ". Receivable account configured in company settings: "
+                                + receivableAccount.getAccountCode() + " " + receivableAccount.getAccountName() + ".")));
     }
 
     @GetMapping("/payables")
