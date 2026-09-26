@@ -2,171 +2,96 @@ package com.artivisi.accountingfinance.functional;
 
 import com.artivisi.accountingfinance.functional.service.ServiceTestDataInitializer;
 import com.artivisi.accountingfinance.ui.PlaywrightTestBase;
-import org.junit.jupiter.api.BeforeEach;
+import com.microsoft.playwright.APIResponse;
+import com.microsoft.playwright.Response;
+import com.microsoft.playwright.options.FilePayload;
+import com.microsoft.playwright.options.FormData;
+import com.microsoft.playwright.options.RequestOptions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 import org.springframework.context.annotation.Import;
 
-import java.io.FileOutputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.nio.file.Path;
+import java.nio.charset.StandardCharsets;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * Functional tests for DataImportController.
- * Tests the import page display and file upload functionality.
+ * /settings/import page content, navigation and access control. Nothing here submits an
+ * import that reaches DataImportService (it truncates the tables it loads); import behaviour
+ * is verified in DataImportPersistenceTest, which runs in its own Spring context.
  */
 @DisplayName("Data Import Controller Tests")
 @Import(ServiceTestDataInitializer.class)
 class DataImportControllerFunctionalTest extends PlaywrightTestBase {
 
-    @TempDir
-    Path tempDir;
-
-    @BeforeEach
-    void setupAndLogin() {
-        loginAsAdmin();
-    }
-
     @Test
-    @DisplayName("Should display import page with title")
+    @DisplayName("Import page offers a ZIP upload and explains that tables are truncated and replaced")
     void shouldDisplayImportPage() {
+        loginAsAdmin();
         navigateTo("/settings/import");
         waitForPageLoad();
 
-        assertThat(page.locator("#page-title")).isVisible();
         assertThat(page.locator("#page-title")).hasText("Import Data");
+        assertThat(page.locator("#import-title")).hasText("Import Data Lengkap");
+        assertThat(page.locator("#file")).hasAttribute("type", "file");
+        assertThat(page.locator("#file")).hasAttribute("accept", ".zip");
+        assertThat(page.locator("#file")).hasAttribute("name", "file");
+        assertThat(page.locator("#btn-import")).hasAttribute("type", "submit");
+        assertThat(page.locator("#instructions-title")).hasText("Petunjuk");
+        assertThat(page.locator("section ol li")).hasText(new String[] {
+                "Semua tabel akan dikosongkan (truncate)",
+                "Data dari CSV diimpor sesuai urutan dependensi",
+                "File dokumen dikembalikan ke folder storage"});
+        assertThat(page.locator("#import-success-message")).hasCount(0);
+        assertThat(page.locator("#import-error-message")).hasCount(0);
     }
 
     @Test
-    @DisplayName("Should display file upload input")
-    void shouldDisplayFileUploadInput() {
-        navigateTo("/settings/import");
-        waitForPageLoad();
-
-        assertThat(page.locator("#file")).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should display import button")
-    void shouldDisplayImportButton() {
-        navigateTo("/settings/import");
-        waitForPageLoad();
-
-        assertThat(page.locator("#btn-import")).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should display instructions section")
-    void shouldDisplayInstructionsSection() {
-        navigateTo("/settings/import");
-        waitForPageLoad();
-
-        assertThat(page.locator("#instructions-title")).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should display link to export page")
-    void shouldDisplayLinkToExportPage() {
-        navigateTo("/settings/import");
-        waitForPageLoad();
-
-        assertThat(page.locator("#link-to-export")).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should show error when uploading non-ZIP file")
-    void shouldShowErrorWhenUploadingNonZipFile() throws IOException {
-        // Create a non-ZIP file
-        Path txtFile = tempDir.resolve("invalid.txt");
-        java.nio.file.Files.writeString(txtFile, "This is not a ZIP file");
-
-        navigateTo("/settings/import");
-        waitForPageLoad();
-
-        // Upload the invalid file
-        page.locator("#file").setInputFiles(txtFile);
-
-        // Handle the confirmation dialog
-        page.onDialog(dialog -> dialog.accept());
-
-        page.locator("#btn-import").click();
-        waitForPageLoad();
-
-        // Should stay on import page with error message
-        assertThat(page.locator("#page-title")).isVisible();
-        assertThat(page.locator("#page-title")).hasText("Import Data");
-        // Should show error message for non-ZIP file
-        assertThat(page.locator("#import-error-message")).isVisible();
-    }
-
-    @Test
-    @DisplayName("Should show error when uploading empty ZIP file")
-    void shouldShowErrorWhenUploadingEmptyZipFile() throws IOException {
-        // Create an empty ZIP file
-        Path emptyZip = tempDir.resolve("empty.zip");
-        try (var _ = new ZipOutputStream(new FileOutputStream(emptyZip.toFile()))) {
-            // Empty ZIP - no entries
-        }
-
-        navigateTo("/settings/import");
-        waitForPageLoad();
-
-        // Handle the confirmation dialog
-        page.onDialog(dialog -> dialog.accept());
-
-        // Upload the empty ZIP
-        page.locator("#file").setInputFiles(emptyZip);
-        page.locator("#btn-import").click();
-        waitForPageLoad();
-
-        // Should stay on import page (error or success message shown)
-        assertThat(page.locator("#page-title")).isVisible();
-        assertThat(page.locator("#page-title")).hasText("Import Data");
-    }
-
-    @Test
-    @DisplayName("Should show error when uploading ZIP with invalid structure")
-    void shouldShowErrorWhenUploadingInvalidZipStructure() throws IOException {
-        // Create a ZIP with invalid CSV content
-        Path invalidZip = tempDir.resolve("invalid-structure.zip");
-        try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(invalidZip.toFile()))) {
-            // Add a file that doesn't match expected import structure
-            ZipEntry entry = new ZipEntry("random-file.txt");
-            zos.putNextEntry(entry);
-            zos.write("This is not valid import data".getBytes());
-            zos.closeEntry();
-        }
-
-        navigateTo("/settings/import");
-        waitForPageLoad();
-
-        // Handle the confirmation dialog
-        page.onDialog(dialog -> dialog.accept());
-
-        // Upload the invalid ZIP
-        page.locator("#file").setInputFiles(invalidZip);
-        page.locator("#btn-import").click();
-        waitForPageLoad();
-
-        // Should stay on import page (error or success message shown)
-        assertThat(page.locator("#page-title")).isVisible();
-        assertThat(page.locator("#page-title")).hasText("Import Data");
-    }
-
-    @Test
-    @DisplayName("Should navigate to export page from link")
+    @DisplayName("Back link opens the data export page")
     void shouldNavigateToExportPage() {
+        loginAsAdmin();
         navigateTo("/settings/import");
         waitForPageLoad();
 
+        assertThat(page.locator("#link-to-export")).hasAttribute("href", "/settings/export");
         page.locator("#link-to-export").click();
         waitForPageLoad();
 
-        assertThat(page).hasURL(java.util.regex.Pattern.compile(".*\\/settings\\/export.*"));
+        assertThat(page).hasURL(baseUrl() + "/settings/export");
+        assertThat(page.locator("#page-title")).hasText("Ekspor Data");
+    }
+
+    @Test
+    @DisplayName("A user without DATA_IMPORT gets 403 on the import page and the upload")
+    void shouldDenyWithoutDataImportPermission() throws IOException {
+        login("staff", "password");
+
+        Response pageResponse = page.navigate(baseUrl() + "/settings/import");
+        assertEquals(403, pageResponse.status());
+        assertThat(page.locator("#access-denied-page")).isVisible();
+
+        navigateTo("/dashboard");
+        String csrf = page.locator("meta[name='_csrf']").getAttribute("content");
+        // Header-only CSV: even if the endpoint were reachable, nothing would be truncated.
+        APIResponse upload = page.request().post(baseUrl() + "/settings/import",
+                RequestOptions.create().setHeader("X-CSRF-TOKEN", csrf).setMaxRedirects(0)
+                        .setMultipart(FormData.create().set("file", new FilePayload(
+                                "denied.zip", "application/zip", headerOnlyZip()))));
+        assertEquals(403, upload.status());
+    }
+
+    private static byte[] headerOnlyZip() throws IOException {
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        try (ZipOutputStream zos = new ZipOutputStream(bytes)) {
+            zos.putNextEntry(new ZipEntry("07_clients.csv"));
+            zos.write("code,name\n".getBytes(StandardCharsets.UTF_8));
+            zos.closeEntry();
+        }
+        return bytes.toByteArray();
     }
 }
