@@ -11,17 +11,22 @@ class HttpSecurityUtilTest {
     @Test
     @DisplayName("Should generate attachment Content-Disposition header")
     void shouldGenerateAttachmentContentDisposition() {
-        String result = HttpSecurityUtil.attachmentContentDisposition("report.pdf");
-        assertThat(result).contains("attachment");
-        assertThat(result).contains("report.pdf");
+        assertThat(HttpSecurityUtil.attachmentContentDisposition("report.pdf"))
+                .isEqualTo("attachment; filename=\"report.pdf\"; filename*=UTF-8''report.pdf");
+        assertThat(HttpSecurityUtil.attachmentContentDisposition("Laporan Pajak – Maret.pdf"))
+                .isEqualTo("attachment; filename=\"Laporan Pajak _ Maret.pdf\"; "
+                        + "filename*=UTF-8''Laporan%20Pajak%20%E2%80%93%20Maret.pdf");
+        assertThat(HttpSecurityUtil.attachmentContentDisposition("a\"; filename=evil.bat"))
+                .isEqualTo("attachment; filename=\"a_; filename=evil.bat\"; filename*=UTF-8''a_%3B%20filename%3Devil.bat");
     }
 
     @Test
     @DisplayName("Should generate inline Content-Disposition header")
     void shouldGenerateInlineContentDisposition() {
-        String result = HttpSecurityUtil.inlineContentDisposition("image.png");
-        assertThat(result).contains("inline");
-        assertThat(result).contains("image.png");
+        assertThat(HttpSecurityUtil.inlineContentDisposition("image.png"))
+                .isEqualTo("inline; filename=\"image.png\"; filename*=UTF-8''image.png");
+        assertThat(HttpSecurityUtil.inlineContentDisposition("../../etc/passwd"))
+                .isEqualTo("inline; filename=\".._.._etc_passwd\"; filename*=UTF-8''.._.._etc_passwd");
     }
 
     @Test
@@ -49,9 +54,7 @@ class HttpSecurityUtilTest {
     @DisplayName("Should remove path separators from filename")
     void shouldRemovePathSeparators() {
         String result = HttpSecurityUtil.sanitizeFilename("path/to\\file.txt");
-        assertThat(result).doesNotContain("/");
-        assertThat(result).doesNotContain("\\");
-        assertThat(result).contains("file.txt");
+        assertThat(result).isEqualTo("path_to_file.txt");
     }
 
     @Test
@@ -66,10 +69,7 @@ class HttpSecurityUtilTest {
     @DisplayName("Should replace dangerous characters")
     void shouldReplaceDangerousCharacters() {
         String result = HttpSecurityUtil.sanitizeFilename("file<>:\"|?*.txt");
-        assertThat(result).doesNotContain("<");
-        assertThat(result).doesNotContain(">");
-        assertThat(result).doesNotContain("\"");
-        assertThat(result).endsWith(".txt");
+        assertThat(result).isEqualTo("file_______.txt");
     }
 
     @Test
@@ -77,8 +77,7 @@ class HttpSecurityUtilTest {
     void shouldTruncateLongFilenames() {
         String longName = "a".repeat(250) + ".pdf";
         String result = HttpSecurityUtil.sanitizeFilename(longName);
-        assertThat(result.length()).isLessThanOrEqualTo(200);
-        assertThat(result).endsWith(".pdf");
+        assertThat(result).isEqualTo("a".repeat(196) + ".pdf");
     }
 
     @Test
@@ -86,7 +85,7 @@ class HttpSecurityUtilTest {
     void shouldTruncateLongFilenamesWithoutExtension() {
         String longName = "a".repeat(250);
         String result = HttpSecurityUtil.sanitizeFilename(longName);
-        assertThat(result.length()).isEqualTo(200);
+        assertThat(result).isEqualTo("a".repeat(200));
     }
 
     @Test

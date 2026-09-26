@@ -134,7 +134,7 @@ class LogSanitizerTest {
 
             String sanitized = LogSanitizer.username(malicious);
 
-            assertThat(sanitized).doesNotContain("\n");
+            assertThat(sanitized).isEqualTo("admin_Fake log entry");
         }
 
         @Test
@@ -186,7 +186,7 @@ class LogSanitizerTest {
 
             String sanitized = LogSanitizer.ipAddress(malicious);
 
-            assertThat(sanitized).doesNotContain("\n").contains("192.168.1.1");
+            assertThat(sanitized).isEqualTo("192.168.1.1_Fa_e_e____");
         }
 
         @Test
@@ -196,7 +196,7 @@ class LogSanitizerTest {
 
             String sanitized = LogSanitizer.ipAddress(longIp);
 
-            assertThat(sanitized).hasSize(100 + "...[truncated]".length());
+            assertThat(sanitized).isEqualTo("192.168.1.".repeat(10) + "...[truncated]");
         }
 
         @Test
@@ -235,7 +235,7 @@ class LogSanitizerTest {
 
             String sanitized = LogSanitizer.filename(malicious);
 
-            assertThat(sanitized).doesNotContain("\n");
+            assertThat(sanitized).isEqualTo("file.pdf_Deleted all files");
         }
 
         @Test
@@ -245,7 +245,7 @@ class LogSanitizerTest {
 
             String sanitized = LogSanitizer.filename(longFilename);
 
-            assertThat(sanitized).hasSize(255 + "...[truncated]".length());
+            assertThat(sanitized).isEqualTo("a".repeat(255) + "...[truncated]");
         }
 
         @Test
@@ -271,7 +271,7 @@ class LogSanitizerTest {
 
             String sanitized = LogSanitizer.sanitize(ansiColor);
 
-            assertThat(sanitized).contains("?");
+            assertThat(sanitized).isEqualTo("?[31mRed Text?[0m");
         }
 
         @Test
@@ -279,10 +279,10 @@ class LogSanitizerTest {
         void shouldHandleUnicodeControl() {
             String unicode = "Test\u200BZero-Width\u200CText";
 
-            // These are not in the control char range, should pass through
+            // Zero-width characters are outside the ASCII control range and pass through
             String sanitized = LogSanitizer.sanitize(unicode);
 
-            assertThat(sanitized).isNotNull();
+            assertThat(sanitized).isEqualTo(unicode);
         }
 
         @Test
@@ -292,11 +292,7 @@ class LogSanitizerTest {
 
             String sanitized = LogSanitizer.sanitize(attack);
 
-            assertThat(sanitized)
-                    .doesNotContain("\n")
-                    .doesNotContain("\r")
-                    .doesNotContain("\t")
-                    .doesNotContain("\u0000");
+            assertThat(sanitized).isEqualTo("user_INFO Fake log_More tabs?null");
         }
     }
 }
