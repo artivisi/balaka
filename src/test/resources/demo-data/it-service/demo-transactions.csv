@@ -11,15 +11,15 @@ date,template_name,amount,inputs,description,reference,project,status
 2025-01-29,Bayar Beban Operasional,3000000,,ATK dan supplies Januari,OPS-2025-01,,POST
 2025-01-31,Beban Admin Bank,15000,,Biaya admin BCA Januari,ADM-2025-01,,POST
 # === FEBRUARY 2025 ===
-2025-02-05,Pendapatan Jasa + PPN,80000000,,Driver Onboarding Platform - Feb,INV-SDN-2025-003,PRJ-GRB-01,POST
-2025-02-20,Pendapatan Jasa + PPN + PPh 23,120000000,,Network Monitoring - Feb,INV-SDN-2025-004,PRJ-TLK-01,POST
+2025-02-05,Pendapatan Jasa + PPN,80000000,,Driver Onboarding Platform - Feb,INV-SDN-2025-003,,POST
+2025-02-20,Pendapatan Jasa + PPN + PPh 23,120000000,,Network Monitoring - Feb,INV-SDN-2025-004,,POST
 2025-02-25,Bayar Beban Cloud & Server,5500000,,AWS Cloud Services Februari,AWS-2025-02,,POST
 2025-02-28,Bayar Beban Sewa,15000000,,Sewa kantor Februari,SEWA-2025-02,,POST
 2025-02-28,Bayar Beban Telekomunikasi,2500000,,Internet & telepon Februari,TELKOM-2025-02,,POST
 2025-02-28,Bayar Beban Operasional,2800000,,ATK dan supplies Februari,OPS-2025-02,,POST
 2025-02-28,Beban Admin Bank,15000,,Biaya admin BCA Februari,ADM-2025-02,,POST
 # === MARCH 2025 ===
-2025-03-05,Pendapatan Jasa BUMN (FP 03),180000000,,e-Government Portal - Q1,INV-SDN-2025-005,PRJ-KOM-01,POST
+2025-03-05,Pendapatan Jasa BUMN (FP 03),180000000,,e-Government Portal - Q1,INV-SDN-2025-005,PRJ-KMF-01,POST
 2025-03-20,__ASSET__,,AST-SRV-001|Server Dell PowerEdge R750|KOMPUTER|45000000|48|0|STRAIGHT_LINE,Server production baru,PO-AST-002,,POST
 2025-03-25,Bayar Beban Cloud & Server,5500000,,AWS Cloud Services Maret,AWS-2025-03,,POST
 2025-03-28,Bayar Beban Sewa,15000000,,Sewa kantor Maret,SEWA-2025-03,,POST
@@ -34,7 +34,7 @@ date,template_name,amount,inputs,description,reference,project,status
 2025-04-30,Bayar Beban Operasional,2500000,,ATK dan supplies April,OPS-2025-04,,POST
 2025-04-30,Beban Admin Bank,15000,,Biaya admin BCA April,ADM-2025-04,,POST
 # === MAY 2025 ===
-2025-05-15,Pendapatan Jasa + PPN + PPh 23,130000000,,Network Monitoring Phase 2 - Mei,INV-SDN-2025-008,PRJ-TLK-01,POST
+2025-05-15,Pendapatan Jasa + PPN + PPh 23,130000000,,Network Monitoring Phase 2 - Mei,INV-SDN-2025-008,,POST
 2025-05-25,Bayar Beban Cloud & Server,5500000,,AWS Cloud Services Mei,AWS-2025-05,,POST
 2025-05-28,Bayar Beban Sewa,15000000,,Sewa kantor Mei,SEWA-2025-05,,POST
 2025-05-28,Bayar Beban Telekomunikasi,2500000,,Internet & telepon Mei,TELKOM-2025-05,,POST
@@ -63,14 +63,14 @@ date,template_name,amount,inputs,description,reference,project,status
 2025-08-30,Bayar Beban Operasional,2900000,,ATK dan supplies Agustus,OPS-2025-08,,POST
 2025-08-31,Beban Admin Bank,15000,,Biaya admin BCA Agustus,ADM-2025-08,,POST
 # === SEPTEMBER 2025 ===
-2025-09-05,Pendapatan Jasa BUMN (FP 03),220000000,,e-Government Portal Phase 2 - Q3,INV-SDN-2025-012,PRJ-KOM-01,POST
+2025-09-05,Pendapatan Jasa BUMN (FP 03),220000000,,e-Government Portal Phase 2 - Q3,INV-SDN-2025-012,PRJ-KMF-01,POST
 2025-09-25,Bayar Beban Cloud & Server,5500000,,AWS Cloud Services September,AWS-2025-09,,POST
 2025-09-28,Bayar Beban Sewa,15000000,,Sewa kantor September,SEWA-2025-09,,POST
 2025-09-28,Bayar Beban Telekomunikasi,2500000,,Internet & telepon September,TELKOM-2025-09,,POST
 2025-09-30,Bayar Beban Operasional,3000000,,ATK dan supplies September,OPS-2025-09,,POST
 2025-09-30,Beban Admin Bank,15000,,Biaya admin BCA September,ADM-2025-09,,POST
 # === OCTOBER 2025 ===
-2025-10-08,Pendapatan Jasa + PPN + PPh 23,140000000,,Network Monitoring Phase 3 - Okt,INV-SDN-2025-013,PRJ-TLK-01,POST
+2025-10-08,Pendapatan Jasa + PPN + PPh 23,140000000,,Network Monitoring Phase 3 - Okt,INV-SDN-2025-013,,POST
 2025-10-25,Bayar Beban Cloud & Server,5500000,,AWS Cloud Services Oktober,AWS-2025-10,,POST
 2025-10-28,Bayar Beban Sewa,15000000,,Sewa kantor Oktober,SEWA-2025-10,,POST
 2025-10-28,Bayar Beban Telekomunikasi,2500000,,Internet & telepon Oktober,TELKOM-2025-10,,POST

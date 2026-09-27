@@ -4,6 +4,7 @@ import com.artivisi.accountingfinance.entity.JournalTemplate;
 import com.artivisi.accountingfinance.entity.PayrollRun;
 import com.artivisi.accountingfinance.entity.User;
 import com.artivisi.accountingfinance.enums.Role;
+import com.artivisi.accountingfinance.functional.page.AccountPicker;
 import com.artivisi.accountingfinance.repository.JournalEntryRepository;
 import com.artivisi.accountingfinance.repository.JournalTemplateRepository;
 import com.artivisi.accountingfinance.repository.PayrollRunRepository;
@@ -45,8 +46,7 @@ import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertTha
  * 4. Executing transactions month by month via Playwright UI
  * 5. Running payroll each month via Playwright UI
  * 6. Creating fixed assets and posting depreciation via Playwright UI
- * 7. Closing fiscal periods via Playwright UI
- * 8. Verifying trial balance
+ * 7. Verifying trial balance
  */
 @Slf4j
 public abstract class DemoDataLoaderBase extends PlaywrightTestBase {
@@ -68,31 +68,6 @@ public abstract class DemoDataLoaderBase extends PlaywrightTestBase {
      * rather than silently continuing.
      */
     private final List<String> droppedPostings = new java.util.ArrayList<>();
-
-    /**
-     * Settle time after typing into an account picker, in milliseconds.
-     *
-     * <p>
-     * The picker debounces 300ms in the browser and then fetches; this waits for
-     * that to land before the caller reads the result list. Tune it for a slow
-     * or a fast machine:
-     *
-     * <pre>
-     *   ./run-tests.sh -Dtest=CampusVerificationTest -Ddemo.picker.settle.ms=250
-     * </pre>
-     *
-     * <p>
-     * Deliberately a fixed settle rather than "wait until results appear". The
-     * loader auto-selects accounts by taking the first result it has not used
-     * yet, so <em>which</em> results have rendered when the list is read decides
-     * which account is chosen. Waiting longer surfaces more candidates and
-     * changes the selection: switching to a wait-for-visible dropped the demo's
-     * 35.000.000 lab server onto the wrong account, leaving Tanah at zero and
-     * Bank BCA at CREDIT 35.000.000 instead of its real balance. Keep this a
-     * settle, and keep it close to the 300ms debounce.
-     */
-    private static final double PICKER_SETTLE_MS =
-            Double.parseDouble(System.getProperty("demo.picker.settle.ms", "400"));
 
     /** Records a posting that could not be created, for the end-of-load check. */
     protected void recordDroppedPosting(String what, String detail) {
@@ -241,7 +216,6 @@ public abstract class DemoDataLoaderBase extends PlaywrightTestBase {
      *
      * Special rows:
      * - template_name = __ASSET__: inputs = code|name|category|cost|usefulLife|residualValue|depMethod
-     * - template_name = __INVOICE__: inputs = clientCode|dueDate|itemDesc|qty|unitPrice|taxRate
      */
     protected void executeDemoTransactions(String csvResourcePath) {
         // Populate template cache lazily (after both seed + master data imports)
@@ -250,6 +224,9 @@ public abstract class DemoDataLoaderBase extends PlaywrightTestBase {
         }
 
         List<DemoAction> actions = loadDemoActions(csvResourcePath);
+        if (actions.isEmpty()) {
+            throw new IllegalStateException("No demo actions in " + csvResourcePath);
+        }
         log.info("Loaded {} demo actions from {}", actions.size(), csvResourcePath);
 
         loginAsAdmin();
@@ -263,7 +240,7 @@ public abstract class DemoDataLoaderBase extends PlaywrightTestBase {
         for (DemoAction action : actions) {
             YearMonth actionMonth = YearMonth.from(action.date);
 
-            // Month boundary: run payroll + depreciation + close for completed month
+            // Month boundary: run payroll + depreciation for the completed month
             if (currentMonth != null && !actionMonth.equals(currentMonth)) {
                 completeMonth(currentMonth);
                 currentMonth = actionMonth;
@@ -274,7 +251,6 @@ public abstract class DemoDataLoaderBase extends PlaywrightTestBase {
 
             switch (action.templateName) {
                 case "__ASSET__" -> createFixedAsset(action);
-                case "__INVOICE__" -> createInvoice(action);
                 default -> {
                     createTransaction(action);
                     txCount++;
@@ -282,10 +258,7 @@ public abstract class DemoDataLoaderBase extends PlaywrightTestBase {
             }
         }
 
-        // Complete the last month
-        if (currentMonth != null) {
-            completeMonth(currentMonth);
-        }
+        completeMonth(currentMonth);
 
         // Create fiscal adjustments for the year (typical koreksi fiskal)
         createFiscalAdjustments(2025);
@@ -304,36 +277,34 @@ public abstract class DemoDataLoaderBase extends PlaywrightTestBase {
     }
 
     /**
-     * Complete a month: run payroll → pay salary → pay BPJS → post depreciation → close period.
+     * Complete a month: run payroll → pay salary → pay BPJS → deposit PPh 21/PPN → post depreciation.
      */
     private void completeMonth(YearMonth month) {
         // 1. Run payroll (create + calculate + approve + post)
         PayrollRun payrollResult = runPayroll(month);
 
-        if (payrollResult != null) {
-            // 2. Bayar Hutang Gaji — pay the net salary from payroll
-            LocalDate lastDay = month.atEndOfMonth();
-            createTransactionViaForm("Bayar Hutang Gaji", lastDay,
-                    payrollResult.getTotalNetPay().longValue(),
-                    "Transfer gaji karyawan " + getIndonesianMonthName(month.getMonthValue()),
-                    "GAJI-" + month);
+        // 2. Bayar Hutang Gaji — pay the net salary from payroll
+        LocalDate lastDay = month.atEndOfMonth();
+        createTransactionViaForm("Bayar Hutang Gaji", lastDay,
+                payrollResult.getTotalNetPay().longValue(),
+                "Transfer gaji karyawan " + getIndonesianMonthName(month.getMonthValue()),
+                "GAJI-" + month);
 
-            // 3. Bayar Hutang BPJS — pay total BPJS (employee + company)
-            BigDecimal totalBpjs = payrollResult.getTotalCompanyBpjs()
-                    .add(payrollResult.getTotalDeductions().subtract(payrollResult.getTotalPph21()));
-            createTransactionViaForm("Bayar Hutang BPJS", lastDay,
-                    totalBpjs.longValue(),
-                    "Setor BPJS " + getIndonesianMonthName(month.getMonthValue()),
-                    "BPJS-" + month);
+        // 3. Bayar Hutang BPJS — pay total BPJS (employee + company)
+        BigDecimal totalBpjs = payrollResult.getTotalCompanyBpjs()
+                .add(payrollResult.getTotalDeductions().subtract(payrollResult.getTotalPph21()));
+        createTransactionViaForm("Bayar Hutang BPJS", lastDay,
+                totalBpjs.longValue(),
+                "Setor BPJS " + getIndonesianMonthName(month.getMonthValue()),
+                "BPJS-" + month);
 
-            // 4. Setor PPh 21 — deposit the actual PPh 21 from payroll (next month's 10th)
-            if (payrollResult.getTotalPph21().signum() > 0) {
-                LocalDate depositDate = month.plusMonths(1).atDay(Math.min(10, month.plusMonths(1).atEndOfMonth().getDayOfMonth()));
-                createTransactionViaForm("Setor PPh 21", depositDate,
-                        payrollResult.getTotalPph21().longValue(),
-                        "Setor PPh 21 " + getIndonesianMonthName(month.getMonthValue()),
-                        "PPH21-" + month);
-            }
+        // 4. Setor PPh 21 — deposit the actual PPh 21 from payroll (next month's 10th)
+        if (payrollResult.getTotalPph21().signum() > 0) {
+            LocalDate depositDate = month.plusMonths(1).atDay(Math.min(10, month.plusMonths(1).atEndOfMonth().getDayOfMonth()));
+            createTransactionViaForm("Setor PPh 21", depositDate,
+                    payrollResult.getTotalPph21().longValue(),
+                    "Setor PPh 21 " + getIndonesianMonthName(month.getMonthValue()),
+                    "PPH21-" + month);
         }
 
         // 5. Setor PPN — deposit PPN for previous month (on 15th of current month)
@@ -341,11 +312,6 @@ public abstract class DemoDataLoaderBase extends PlaywrightTestBase {
 
         // 6. Generate and post depreciation entries
         generateDepreciation(month);
-
-        // 7. Close fiscal period (only for months before March 2026)
-        if (month.isBefore(YearMonth.of(2026, 3))) {
-            closeFiscalPeriod(month);
-        }
 
         log.info("Completed month: {}", month);
     }
@@ -355,6 +321,21 @@ public abstract class DemoDataLoaderBase extends PlaywrightTestBase {
 
     @Autowired
     private JournalEntryRepository journalEntryRepository;
+
+    @Autowired
+    private com.artivisi.accountingfinance.repository.DepreciationEntryRepository depreciationEntryRepository;
+
+    @Autowired
+    private com.artivisi.accountingfinance.repository.FixedAssetRepository fixedAssetRepository;
+
+    @Autowired
+    private com.artivisi.accountingfinance.repository.FiscalAdjustmentRepository fiscalAdjustmentRepository;
+
+    @Autowired
+    private com.artivisi.accountingfinance.service.DashboardService dashboardService;
+
+    @Autowired
+    private jakarta.persistence.EntityManager entityManager;
 
     /**
      * Deposit PPN for the previous month. Only for PKP companies.
@@ -369,16 +350,16 @@ public abstract class DemoDataLoaderBase extends PlaywrightTestBase {
         YearMonth ppnMonth = currentMonth.minusMonths(1);
         if (ppnMonth.isBefore(YearMonth.of(2025, 1))) return;
 
-        var ppnAccount = chartOfAccountRepository.findByAccountCode("2.1.03");
-        if (ppnAccount.isEmpty()) return;
+        var ppnAccount = chartOfAccountRepository.findByAccountCode("2.1.03")
+                .orElseThrow(() -> new IllegalStateException("PPN account 2.1.03 missing from " + industryName() + " COA"));
 
         // Calculate PPN credit (keluaran) for the PPN month
         LocalDate start = ppnMonth.atDay(1);
         LocalDate end = ppnMonth.atEndOfMonth();
         BigDecimal ppnCredit = journalEntryRepository.sumCreditByAccountAndDateRange(
-                ppnAccount.get().getId(), start, end);
+                ppnAccount.getId(), start, end);
         BigDecimal ppnDebit = journalEntryRepository.sumDebitByAccountAndDateRange(
-                ppnAccount.get().getId(), start, end);
+                ppnAccount.getId(), start, end);
 
         BigDecimal ppnPayable = ppnCredit.subtract(ppnDebit);
         if (ppnPayable.signum() > 0) {
@@ -395,52 +376,58 @@ public abstract class DemoDataLoaderBase extends PlaywrightTestBase {
      */
     private void createTransactionViaForm(String templateName, LocalDate date, long amount,
                                            String description, String reference) {
-        UUID templateId = templateIdCache.get(templateName);
-        if (templateId == null) {
-            recordDroppedPosting("post-payroll transaction",
-                    "template '" + templateName + "' not found on " + date);
-            return;
-        }
-
-        DemoAction action = new DemoAction(date, templateName, amount, "", description, reference, "", "POST");
-        createTransaction(action);
+        createTransaction(new DemoAction(date, templateName, amount, "", description, reference, "", "POST"));
     }
 
+    /**
+     * Enters one row through the transaction form, posts it unless the row is DRAFT, and
+     * checks the stored transaction: status, amount, project, the account chosen for every
+     * template-line picker, and balanced journal lines on those accounts. Any failure is
+     * recorded against the row and fails the load in {@link #failIfPostingsWereDropped()}.
+     */
     private void createTransaction(DemoAction action) {
+        try {
+            enterTransaction(action);
+            log.info("Transaction created: {} | {} | {} | {}", action.date, action.templateName,
+                    action.amount > 0 ? action.amount : action.inputs, action.description);
+        } catch (RuntimeException | AssertionError e) {
+            recordDroppedPosting("transaction",
+                    action.date + " | " + action.templateName + " | " + action.reference + " | " + action.description
+                            + " — " + e.getClass().getSimpleName() + ": "
+                            + String.valueOf(e.getMessage()).lines().limit(4).collect(java.util.stream.Collectors.joining(" / "))
+                            + " — URL: " + page.url());
+        }
+    }
+
+    private void enterTransaction(DemoAction action) {
         UUID templateId = templateIdCache.get(action.templateName);
         if (templateId == null) {
-            recordDroppedPosting("transaction",
-                    "template '" + action.templateName + "' not found on " + action.date
-                            + " (" + action.description + ")");
-            return;
+            throw new IllegalStateException("template '" + action.templateName + "' not found");
         }
 
         navigateTo("/transactions/new?templateId=" + templateId);
         waitForPageLoad();
         page.waitForTimeout(500); // Wait for Alpine.js init
 
-        // Fill date
         page.locator("#transactionDate").fill(action.date.toString());
 
-        // Fill amount or variables
-        if (action.inputs != null && !action.inputs.isEmpty()) {
-            Map<String, String> inputMap = parseInputs(action.inputs);
-
-            // Handle account hints (BANK, PENDAPATAN, etc.)
-            for (var entry : inputMap.entrySet()) {
-                String key = entry.getKey();
-                String value = entry.getValue();
-
-                if (key.equals("amount")) {
-                    page.locator("#amount").fill(value);
-                } else if (key.startsWith("var_")) {
-                    // Wait for DETAILED template variable inputs to render
-                    page.locator("#" + key).waitFor(
-                            new com.microsoft.playwright.Locator.WaitForOptions().setTimeout(5000));
-                    page.locator("#" + key).fill(value);
-                } else if (isAccountHint(key)) {
-                    selectAccountByHint(key, value);
-                }
+        // Accounts chosen per template-line picker (key: template line id).
+        Map<String, String> pickedAccounts = new LinkedHashMap<>();
+        for (var entry : parseInputs(action.inputs).entrySet()) {
+            String key = entry.getKey();
+            String value = entry.getValue();
+            if (key.equals("amount")) {
+                page.locator("#amount").fill(value);
+            } else if (key.startsWith("var_")) {
+                page.locator("#" + key).waitFor(
+                        new com.microsoft.playwright.Locator.WaitForOptions().setTimeout(5000));
+                page.locator("#" + key).fill(value);
+            } else if (isAccountHint(key)) {
+                var input = pickerInputByHint(key);
+                AccountPicker.select(page, input, value);
+                pickedAccounts.put(lineIdOf(input), value);
+            } else {
+                throw new IllegalArgumentException("unknown input '" + key + "' in: " + action.inputs);
             }
         }
 
@@ -450,125 +437,160 @@ public abstract class DemoDataLoaderBase extends PlaywrightTestBase {
             page.locator("#amount").dispatchEvent("input");
         }
 
-        // Auto-pick accounts for dynamic template-line accountPickers.
-        // Each picker is a search input id=accountMapping_<lineId>; the matching
-        // hidden input that Spring binds is name=accountMapping[<lineId>].
-        var accountInputs = page.locator("input[id^='accountMapping_']").all();
-        Set<String> usedCodes = new java.util.HashSet<>();
-        for (var input : accountInputs) {
-            String inputId = input.getAttribute("id");
-            var label = page.locator("label[for='" + inputId + "']");
-            String hint = label.count() > 0 ? label.textContent().trim() : "";
-            hint = hint.replaceAll("[*?\\s]+$", "").trim();
-
-            // Pick a code prefix to drive the search.
-            String codePrefix;
-            String upper = hint.toUpperCase();
-            if (upper.contains("BANK")) {
-                codePrefix = usedCodes.contains("1.1.02") ? "1.1." : "1.1.02";
-            } else if (upper.contains("PENDAPATAN")) {
-                codePrefix = "4.1.";
-            } else if (upper.contains("BEBAN")) {
-                codePrefix = "5.";
-            } else if (upper.contains("FIXED") || upper.contains("ASET")) {
-                codePrefix = "1.2.";
-            } else if (upper.contains("DEBIT") || upper.contains("CREDIT")) {
-                // Free-form journal hint; leave unset.
+        // Pickers not set by an explicit hint get an account by hint rule: the first account
+        // the server lists for the rule's code query that this transaction has not used yet.
+        Set<String> usedCodes = new java.util.HashSet<>(pickedAccounts.values());
+        for (var input : page.locator("input[id^='accountMapping_']").all()) {
+            String lineId = lineIdOf(input);
+            if (pickedAccounts.containsKey(lineId)) {
                 continue;
-            } else {
-                codePrefix = "1.";
             }
-
-            input.click();
-            input.fill(codePrefix);
-            page.waitForTimeout(PICKER_SETTLE_MS); // debounce + fetch
-            var results = page.locator("[data-testid='account-picker-result']");
-            int n = Math.min(results.count(), 10);
-            String pickedCode = null;
-            for (int i = 0; i < n; i++) {
-                String code = results.nth(i).locator(".font-medium").textContent();
-                if (code == null) continue;
-                if (!usedCodes.contains(code)) {
-                    results.nth(i).click();
-                    pickedCode = code;
-                    break;
-                }
-            }
-            if (pickedCode == null && n > 0) {
-                String code = results.first().locator(".font-medium").textContent();
-                results.first().click();
-                pickedCode = code;
-            }
-            if (pickedCode != null) usedCodes.add(pickedCode);
-            page.waitForTimeout(100);
+            String hint = page.locator("label[for='" + input.getAttribute("id") + "']").textContent()
+                    .replaceAll("[*?\\s]+$", "").trim();
+            String query = accountQueryForHint(hint, usedCodes);
+            List<String> candidates = AccountPicker.searchCodes(page, baseUrl(), query);
+            String code = candidates.stream().filter(c -> !usedCodes.contains(c)).findFirst()
+                    .orElseThrow(() -> new IllegalStateException("no unused account for picker '" + hint
+                            + "' (query '" + query + "', candidates " + candidates + ", used " + usedCodes + ")"));
+            AccountPicker.select(page, input, code);
+            pickedAccounts.put(lineId, code);
+            usedCodes.add(code);
         }
 
-        // Fill description
         page.locator("#description").fill(action.description);
 
-        // Fill reference
-        if (action.reference != null && !action.reference.isEmpty()) {
+        if (!action.reference.isEmpty()) {
             page.locator("#referenceNumber").fill(action.reference);
         }
 
-        // Select project
-        if (action.project != null && !action.project.isEmpty()) {
-            var projectSelect = page.locator("#project");
-            // Find option containing the project code
-            var options = projectSelect.locator("option").all();
-            for (var option : options) {
-                String text = option.textContent();
-                if (text != null && text.contains(action.project)) {
-                    projectSelect.selectOption(option.getAttribute("value"));
-                    break;
-                }
-            }
+        if (!action.project.isEmpty()) {
+            var option = page.locator("#project option")
+                    .filter(new com.microsoft.playwright.Locator.FilterOptions().setHasText(action.project));
+            assertThat(option).hasCount(1);
+            page.locator("#project").selectOption(option.getAttribute("value"));
         }
 
-        // Screenshot: transaction form filled (first occurrence per template)
         tutorialScreenshot("tx-form-" + action.templateName.toLowerCase()
                 .replaceAll("[^a-z0-9]", "-").replaceAll("-+", "-"));
 
-        // Submit: save as draft first, then post via API
         page.waitForTimeout(500);
         page.locator("#btn-simpan-draft").click();
+        page.waitForURL(url -> url.contains("/transactions/") && !url.contains("/new"),
+                new com.microsoft.playwright.Page.WaitForURLOptions().setTimeout(10000));
+        waitForPageLoad();
 
-        // Wait for redirect to detail page
-        try {
-            page.waitForURL(url -> url.contains("/transactions/") && !url.contains("/new"),
-                    new com.microsoft.playwright.Page.WaitForURLOptions().setTimeout(10000));
-            waitForPageLoad();
+        String txUrl = page.url();
+        UUID txId = UUID.fromString(txUrl.substring(txUrl.lastIndexOf('/') + 1));
 
-            if (!"DRAFT".equals(action.status)) {
-                // Post the transaction via API call from the page context
-                String txUrl = page.url();
-                String txId = txUrl.substring(txUrl.lastIndexOf('/') + 1);
-                String postResult = (String) page.evaluate(
-                        "async (txId) => { " +
-                        "  const r = await fetch('/transactions/api/' + txId + '/post', " +
-                        "    { method: 'POST', headers: { 'Content-Type': 'application/json' } }); " +
-                        "  if (r.ok) return 'OK'; " +
-                        "  const body = await r.text(); " +
-                        "  return 'FAIL:' + r.status + ':' + body; " +
-                        "}", txId);
-                if (!"OK".equals(postResult)) {
-                    log.error("Failed to post transaction {}: {}", txId, postResult);
-                }
+        boolean post = action.status.equals("POST");
+        if (post) {
+            String postResult = (String) page.evaluate(
+                    "async (txId) => { " +
+                    "  const r = await fetch('/transactions/api/' + txId + '/post', " +
+                    "    { method: 'POST', headers: { 'Content-Type': 'application/json' } }); " +
+                    "  if (r.ok) return 'OK'; " +
+                    "  const body = await r.text(); " +
+                    "  return 'FAIL:' + r.status + ':' + body; " +
+                    "}", txId.toString());
+            if (!"OK".equals(postResult)) {
+                throw new IllegalStateException("posting " + txId + " failed: " + postResult);
             }
-
-            // Screenshot: transaction detail after posting
-            tutorialScreenshot("tx-detail-" + action.templateName.toLowerCase()
-                    .replaceAll("[^a-z0-9]", "-").replaceAll("-+", "-"));
-
-            log.info("Transaction created: {} | {} | {} | {}", action.date, action.templateName,
-                    action.amount > 0 ? action.amount : action.inputs, action.description);
-        } catch (Exception e) {
-            recordDroppedPosting("transaction",
-                    action.date + " | " + action.templateName + " | " + action.description
-                            + " — " + e.getClass().getSimpleName() + ": "
-                            + String.valueOf(e.getMessage()).lines().findFirst().orElse("")
-                            + " — URL: " + page.url());
         }
+
+        verifyStoredTransaction(action, txId, post, pickedAccounts);
+
+        tutorialScreenshot("tx-detail-" + action.templateName.toLowerCase()
+                .replaceAll("[^a-z0-9]", "-").replaceAll("-+", "-"));
+    }
+
+    private void verifyStoredTransaction(DemoAction action, UUID txId, boolean posted,
+                                         Map<String, String> pickedAccounts) {
+        var tx = transactionRepository.findByIdWithMappingsAndVariables(txId)
+                .orElseThrow(() -> new IllegalStateException("transaction " + txId + " not stored"));
+        var expectedStatus = posted
+                ? com.artivisi.accountingfinance.enums.TransactionStatus.POSTED
+                : com.artivisi.accountingfinance.enums.TransactionStatus.DRAFT;
+        if (tx.getStatus() != expectedStatus) {
+            throw new IllegalStateException("transaction " + tx.getTransactionNumber() + " is " + tx.getStatus()
+                    + ", expected " + expectedStatus);
+        }
+        if (action.amount > 0 && tx.getAmount().compareTo(BigDecimal.valueOf(action.amount)) != 0) {
+            throw new IllegalStateException("transaction " + tx.getTransactionNumber() + " amount " + tx.getAmount()
+                    + ", expected " + action.amount);
+        }
+        List<String> projectCodes = entityManager.createQuery(
+                        "SELECT p.code FROM Transaction t JOIN t.project p WHERE t.id = :id", String.class)
+                .setParameter("id", txId)
+                .getResultList();
+        List<String> expectedProject = action.project.isEmpty() ? List.of() : List.of(action.project);
+        if (!projectCodes.equals(expectedProject)) {
+            throw new IllegalStateException("transaction " + tx.getTransactionNumber() + " project "
+                    + projectCodes + ", expected " + expectedProject);
+        }
+
+        Map<String, String> storedAccounts = new HashMap<>();
+        for (var mapping : tx.getAccountMappings()) {
+            storedAccounts.put(mapping.getTemplateLine().getId().toString(), mapping.getAccount().getAccountCode());
+        }
+        if (!storedAccounts.equals(pickedAccounts)) {
+            throw new IllegalStateException("transaction " + tx.getTransactionNumber() + " account mappings "
+                    + storedAccounts + ", picked " + pickedAccounts);
+        }
+
+        if (!posted) {
+            return;
+        }
+        var entries = journalEntryRepository.findByTransactionIdWithAccount(txId);
+        Set<String> entryCodes = new HashSet<>();
+        BigDecimal debit = BigDecimal.ZERO;
+        BigDecimal credit = BigDecimal.ZERO;
+        for (var e : entries) {
+            entryCodes.add(e.getAccount().getAccountCode());
+            debit = debit.add(e.getDebitAmount());
+            credit = credit.add(e.getCreditAmount());
+        }
+        if (entries.isEmpty() || debit.signum() == 0 || debit.compareTo(credit) != 0
+                || !entryCodes.containsAll(pickedAccounts.values())) {
+            throw new IllegalStateException("transaction " + tx.getTransactionNumber() + " journal: accounts "
+                    + entryCodes + " (picked " + pickedAccounts.values() + "), debit " + debit + ", credit " + credit);
+        }
+    }
+
+    private com.microsoft.playwright.Locator pickerInputByHint(String hint) {
+        var matches = new ArrayList<com.microsoft.playwright.Locator>();
+        for (var input : page.locator("input[id^='accountMapping_']").all()) {
+            if (page.locator("label[for='" + input.getAttribute("id") + "']").textContent().contains(hint)) {
+                matches.add(input);
+            }
+        }
+        if (matches.size() != 1) {
+            throw new IllegalStateException(matches.size() + " account pickers labelled with hint '" + hint + "'");
+        }
+        return matches.get(0);
+    }
+
+    private static String lineIdOf(com.microsoft.playwright.Locator pickerInput) {
+        return pickerInput.getAttribute("id").substring("accountMapping_".length());
+    }
+
+    /**
+     * Code query for an auto-selected picker, by its label: the first BANK line takes Bank BCA
+     * (1.1.02), a second one the next unused 1.1.x account.
+     */
+    private static String accountQueryForHint(String hint, Set<String> usedCodes) {
+        String upper = hint.toUpperCase();
+        if (upper.contains("BANK")) {
+            return usedCodes.contains("1.1.02") ? "1.1." : "1.1.02";
+        } else if (upper.contains("PENDAPATAN")) {
+            return "4.1.";
+        } else if (upper.contains("BEBAN")) {
+            return "5.";
+        } else if (upper.contains("FIXED") || upper.contains("ASET")) {
+            return "1.2.";
+        } else if (upper.contains("DEBIT") || upper.contains("CREDIT") || upper.contains("KREDIT")) {
+            throw new IllegalStateException("picker '" + hint + "' needs an explicit account in the CSV inputs");
+        }
+        return "1.";
     }
 
     private PayrollRun runPayroll(YearMonth period) {
@@ -579,47 +601,40 @@ public abstract class DemoDataLoaderBase extends PlaywrightTestBase {
         page.locator("input[name='baseSalary']").fill(String.valueOf(baseSalary()));
         page.locator("select[name='jkkRiskClass']").selectOption(String.valueOf(jkkRiskClass()));
 
-        // Screenshot: payroll form filled
         tutorialScreenshot("payroll-form");
 
         page.locator("#btn-submit").click();
         waitForPageLoad();
 
-        // Screenshot: payroll detail after calculation
         tutorialScreenshot("payroll-calculated");
 
-        // Should be on detail page now with status CALCULATED
-        // Approve — the create action auto-calculates, so btn-approve should be visible
-        try {
-            page.locator("#btn-approve").waitFor(
-                    new com.microsoft.playwright.Locator.WaitForOptions().setTimeout(5000));
-            page.locator("#btn-approve").click();
-            waitForPageLoad();
-            log.info("Payroll approved for period: {}", period);
+        // The create action auto-calculates, so btn-approve is shown on the detail page.
+        page.locator("#btn-approve").waitFor(
+                new com.microsoft.playwright.Locator.WaitForOptions().setTimeout(5000));
+        page.locator("#btn-approve").click();
+        waitForPageLoad();
+        log.info("Payroll approved for period: {}", period);
 
-            // Post to journal — after approve redirect, btn-post should appear
-            page.locator("#btn-post").waitFor(
-                    new com.microsoft.playwright.Locator.WaitForOptions().setTimeout(5000));
-            page.locator("#btn-post").click();
-            waitForPageLoad();
-            // Screenshot: payroll posted
-            tutorialScreenshot("payroll-posted");
-            log.info("Payroll posted for period: {}", period);
-        } catch (com.microsoft.playwright.TimeoutError e) {
-            // Payroll drives salary, BPJS and PPh 21 postings for the month, so
-            // losing it shifts several expected balances at once.
-            recordDroppedPosting("payroll run",
-                    "period " + period + " — button not found ("
-                            + String.valueOf(e.getMessage()).lines().findFirst().orElse("")
-                            + ") — URL: " + page.url());
+        page.locator("#btn-post").waitFor(
+                new com.microsoft.playwright.Locator.WaitForOptions().setTimeout(5000));
+        page.locator("#btn-post").click();
+        waitForPageLoad();
+        tutorialScreenshot("payroll-posted");
+
+        PayrollRun run = payrollRunRepository.findByPayrollPeriod(period.toString())
+                .orElseThrow(() -> new IllegalStateException("Payroll run " + period + " not stored"));
+        if (run.getStatus() != com.artivisi.accountingfinance.entity.PayrollStatus.POSTED) {
+            throw new IllegalStateException("Payroll run " + period + " is " + run.getStatus() + ", expected POSTED");
         }
-
-        // Return the payroll run so caller can use the amounts
-        return payrollRunRepository.findByPayrollPeriod(period.toString()).orElse(null);
+        log.info("Payroll posted for period: {}", period);
+        return run;
     }
 
+    /**
+     * Generates depreciation for the month, posts every entry generated for it from the
+     * depreciation page, and checks that all of them are POSTED.
+     */
     private void generateDepreciation(YearMonth month) {
-        // Step 1: Generate depreciation entries
         navigateTo("/assets/depreciation");
         waitForPageLoad();
         tutorialScreenshot("depreciation-list");
@@ -627,68 +642,43 @@ public abstract class DemoDataLoaderBase extends PlaywrightTestBase {
         page.locator("form[action*='/depreciation/generate'] button[type='submit']").click();
         waitForPageLoad();
 
-        // Step 2: Re-navigate to get a clean page with pending entries
-        navigateTo("/assets/depreciation");
-        waitForPageLoad();
-
-        // Step 3: Post entries for this month only (max 5 attempts to avoid infinite loop)
-        int posted = 0;
-        for (int attempt = 0; attempt < 5; attempt++) {
+        LocalDate periodEnd = month.atEndOfMonth();
+        var pending = depreciationEntryRepository.findByPeriodEndAndOptionalStatus(
+                periodEnd, com.artivisi.accountingfinance.entity.DepreciationEntryStatus.PENDING);
+        for (var entry : pending) {
             navigateTo("/assets/depreciation");
             waitForPageLoad();
-
-            var postForms = page.locator("form[method='post']").all().stream()
-                    .filter(f -> {
-                        String action = f.getAttribute("action");
-                        return action != null && action.matches(".*/assets/depreciation/[0-9a-f-]+/post");
-                    })
-                    .toList();
-
-            if (postForms.isEmpty()) break;
-
-            // Only post the first entry (for this month's asset)
-            postForms.get(0).locator("button[type='submit']").click();
+            page.locator("form[action$='/assets/depreciation/" + entry.getId() + "/post'] button[type='submit']").click();
             waitForPageLoad();
-            posted++;
-
-            // If we've posted enough for the expected number of assets, stop
-            if (posted >= 2) break;
         }
 
-        if (posted > 0) {
-            log.info("Depreciation: generated and posted {} entries for {}", posted, month);
+        var entries = depreciationEntryRepository.findByPeriodEndAndOptionalStatus(periodEnd, null);
+        var notPosted = entries.stream()
+                .filter(e -> e.getStatus() != com.artivisi.accountingfinance.entity.DepreciationEntryStatus.POSTED)
+                .map(e -> e.getFixedAsset().getAssetCode() + "=" + e.getStatus())
+                .toList();
+        if (!notPosted.isEmpty()) {
+            throw new IllegalStateException("Depreciation " + month + " not posted: " + notPosted);
         }
-    }
-
-    private void closeFiscalPeriod(YearMonth month) {
-        navigateTo("/fiscal-periods");
-        waitForPageLoad();
-
-        // Find and click the period row to go to detail
-        var periodLink = page.locator("a[href*='/fiscal-periods/']")
-                .filter(new com.microsoft.playwright.Locator.FilterOptions()
-                        .setHasText(getIndonesianMonthName(month.getMonthValue()) + " " + month.getYear()));
-
-        if (periodLink.count() > 0) {
-            periodLink.first().click();
-            waitForPageLoad();
-
-            // Screenshot: fiscal period detail before closing
-            tutorialScreenshot("fiscal-period-detail");
-
-            // Click close month button
-            var closeBtn = page.locator("[data-testid='btn-close-month']");
-            if (closeBtn.isVisible()) {
-                closeBtn.click();
-                waitForPageLoad();
-                log.debug("Closed fiscal period: {}", month);
-            }
+        long depreciable = fixedAssetRepository.findAll().stream()
+                .filter(a -> !a.getDepreciationStartDate().isAfter(periodEnd))
+                .count();
+        if (entries.size() != depreciable) {
+            throw new IllegalStateException("Depreciation " + month + ": " + entries.size()
+                    + " entries for " + depreciable + " assets in service");
+        }
+        if (!entries.isEmpty()) {
+            log.info("Depreciation: generated and posted {} entries for {}", entries.size(), month);
         }
     }
 
     private void createFixedAsset(DemoAction action) {
         // inputs format: code|name|category|cost|usefulLife|residualValue|depMethod
         String[] parts = action.inputs.split("\\|");
+        if (parts.length != 7) {
+            throw new IllegalArgumentException("__ASSET__ inputs need code|name|category|cost|usefulLife|residualValue|depMethod: "
+                    + action.inputs);
+        }
 
         navigateTo("/assets/new");
         waitForPageLoad();
@@ -696,35 +686,31 @@ public abstract class DemoDataLoaderBase extends PlaywrightTestBase {
         page.locator("#assetCode").fill(parts[0]);
         page.locator("#name").fill(parts[1]);
 
-        // Select category by text match
-        var categorySelect = page.locator("#category");
-        var options = categorySelect.locator("option").all();
-        for (var option : options) {
-            String text = option.textContent();
-            if (text != null && text.toUpperCase().contains(parts[2].toUpperCase())) {
-                categorySelect.selectOption(option.getAttribute("value"));
-                break;
-            }
+        List<Object[]> categoryRows = entityManager.createQuery(
+                        "SELECT c.id, c.assetAccount.accountCode FROM AssetCategory c WHERE c.code = :code", Object[].class)
+                .setParameter("code", parts[2])
+                .getResultList();
+        if (categoryRows.size() != 1) {
+            throw new IllegalStateException("Asset category " + parts[2] + " missing for " + parts[0]);
         }
+        String categoryId = categoryRows.get(0)[0].toString();
+        String assetAccountCode = (String) categoryRows.get(0)[1];
+        page.locator("#category").selectOption(categoryId);
 
         page.locator("#purchaseDate").fill(action.date.toString());
         page.locator("#purchaseCost").fill(parts[3]);
         page.locator("#depreciationStartDate").fill(action.date.toString());
-
-        if (parts.length > 6) {
-            page.locator("#depreciationMethod").selectOption(parts[6]);
-        } else {
-            page.locator("#depreciationMethod").selectOption("STRAIGHT_LINE");
-        }
-
+        page.locator("#depreciationMethod").selectOption(parts[6]);
         page.locator("#usefulLifeMonths").fill(parts[4]);
-        page.locator("#residualValue").fill(parts.length > 5 ? parts[5] : "0");
+        page.locator("#residualValue").fill(parts[5]);
 
-        // Funding account picker is a combobox: focus → top 10 results → pick the first.
-        var fundingInput = page.locator("#fundingAccount");
-        fundingInput.click();
-        page.waitForTimeout(600);
-        page.locator("[data-testid='account-picker-result']").first().click();
+        // Funding account: the first account the picker lists. The acquisition journal it
+        // funds stays DRAFT; the purchase is posted by the Pembelian Aset Tetap row below.
+        List<String> accounts = AccountPicker.searchCodes(page, baseUrl(), "");
+        if (accounts.isEmpty()) {
+            throw new IllegalStateException("Account picker lists no accounts for funding " + parts[0]);
+        }
+        AccountPicker.select(page, page.locator("#fundingAccount"), accounts.get(0));
 
         // Demo assets auto-post their depreciation so balances reflect the periods.
         page.locator("#autoPost").check();
@@ -734,56 +720,29 @@ public abstract class DemoDataLoaderBase extends PlaywrightTestBase {
         page.locator("#btn-simpan").click();
         waitForPageLoad();
 
+        List<Object[]> stored = entityManager.createQuery(
+                        "SELECT a.purchaseCost, a.category.code FROM FixedAsset a WHERE a.assetCode = :code", Object[].class)
+                .setParameter("code", parts[0])
+                .getResultList();
+        if (stored.size() != 1) {
+            throw new IllegalStateException("Fixed asset " + parts[0] + " not stored — URL: " + page.url());
+        }
+        if (((BigDecimal) stored.get(0)[0]).compareTo(new BigDecimal(parts[3])) != 0 || !parts[2].equals(stored.get(0)[1])) {
+            throw new IllegalStateException("Fixed asset " + parts[0] + " stored with cost " + stored.get(0)[0]
+                    + " and category " + stored.get(0)[1] + ", expected " + parts[3] + " and " + parts[2]);
+        }
+
         tutorialScreenshot("asset-detail");
 
         log.info("Fixed asset created: {} - {}", parts[0], parts[1]);
 
-        // Also create a purchase transaction via "Pembelian Aset Tetap" template
-        // This records the journal entry: debit fixed asset account, credit bank
-        // Template is DETAILED with variable "assetCost"
+        // Purchase journal via the DETAILED "Pembelian Aset Tetap" template: debit the
+        // category's asset account, credit bank.
         DemoAction purchaseAction = new DemoAction(
                 action.date, "Pembelian Aset Tetap", 0,
-                "var_assetCost:" + parts[3],
+                "var_assetCost:" + parts[3] + "|ASET_TETAP:" + assetAccountCode,
                 "Pembelian " + parts[1], action.reference, "", "POST");
         createTransaction(purchaseAction);
-    }
-
-    private void createInvoice(DemoAction action) {
-        // inputs format: clientCode|dueDate|itemDesc|qty|unitPrice|taxRate
-        String[] parts = action.inputs.split("\\|");
-
-        navigateTo("/invoices/new");
-        waitForPageLoad();
-        page.waitForTimeout(500);
-
-        // Select client via combobox: type substring, click first match.
-        var clientInput = page.locator("#clientLabel");
-        clientInput.click();
-        clientInput.fill(parts[0]);
-        page.waitForTimeout(400);
-        var clientResults = page.locator("[data-testid='client-picker-result']");
-        if (clientResults.count() > 0) {
-            clientResults.first().click();
-        }
-
-        page.locator("#invoiceDate").fill(action.date.toString());
-        page.locator("#dueDate").fill(parts[1]);
-
-        // Add line item
-        page.locator("button:has-text('Tambah')").click();
-        page.waitForTimeout(300);
-
-        page.locator("#inv-lineDescription-0").fill(parts[2]);
-        page.locator("#inv-lineQuantity-0").fill(parts[3]);
-        page.locator("#inv-lineUnitPrice-0").fill(parts[4]);
-        if (parts.length > 5 && !parts[5].isEmpty()) {
-            page.locator("#inv-lineTaxRate-0").fill(parts[5]);
-        }
-
-        page.locator("#btn-simpan").click();
-        waitForPageLoad();
-
-        log.debug("Invoice created for client: {}", parts[0]);
     }
 
     // ========== VALIDATION ==========
@@ -835,8 +794,15 @@ public abstract class DemoDataLoaderBase extends PlaywrightTestBase {
         loginAsAdmin();
         navigateTo("/dashboard");
         waitForPageLoad();
-        assertThat(page.locator("body")).isVisible();
-        log.info("Dashboard loaded successfully");
+        assertThat(page.locator("#page-title")).hasText("Dashboard");
+        var cashBank = dashboardService.calculateCashBankBreakdown(YearMonth.now().atEndOfMonth());
+        if (cashBank.isEmpty()) {
+            throw new IllegalStateException("No cash/bank accounts for the dashboard breakdown");
+        }
+        for (var item : cashBank) {
+            assertThat(page.locator("#section-saldo-kas")).containsText(item.accountName().replace("Bank ", ""));
+        }
+        log.info("Dashboard shows {} cash/bank accounts", cashBank.size());
     }
 
     // ========== HELPERS ==========
@@ -864,18 +830,25 @@ public abstract class DemoDataLoaderBase extends PlaywrightTestBase {
                 if (line.trim().isEmpty() || line.startsWith("#")) continue;
 
                 String[] parts = line.split(",", -1);
-                if (parts.length >= 6) {
-                    actions.add(new DemoAction(
-                            LocalDate.parse(parts[0].trim()),
-                            parts[1].trim(),
-                            parseLong(parts[2].trim()),
-                            parts[3].trim(),
-                            parts[4].trim(),
-                            parts[5].trim(),
-                            parts.length > 6 ? parts[6].trim() : "",
-                            parts.length > 7 ? parts[7].trim() : "POST"
-                    ));
+                if (parts.length != 8) {
+                    throw new IllegalStateException(resourcePath + ": expected 8 columns, got "
+                            + parts.length + ": " + line);
                 }
+                String status = parts[7].trim();
+                if (!status.equals("POST") && !status.equals("DRAFT")) {
+                    throw new IllegalStateException(resourcePath + ": status must be POST or DRAFT: " + line);
+                }
+                String amount = parts[2].trim();
+                actions.add(new DemoAction(
+                        LocalDate.parse(parts[0].trim()),
+                        parts[1].trim(),
+                        amount.isEmpty() ? 0 : Long.parseLong(amount),
+                        parts[3].trim(),
+                        parts[4].trim(),
+                        parts[5].trim(),
+                        parts[6].trim(),
+                        status
+                ));
             }
         } catch (IOException e) {
             throw new RuntimeException("Failed to load demo actions: " + resourcePath, e);
@@ -883,42 +856,10 @@ public abstract class DemoDataLoaderBase extends PlaywrightTestBase {
         return actions;
     }
 
-    private long parseLong(String s) {
-        if (s == null || s.isEmpty()) return 0;
-        try { return Long.parseLong(s); } catch (NumberFormatException _) { return 0; }
-    }
-
     private boolean isAccountHint(String key) {
         return key.equals("BANK") || key.equals("PENDAPATAN") || key.equals("BEBAN") ||
-               key.equals("PIUTANG") || key.equals("HUTANG") || key.equals("FIXED_ASSET") ||
+               key.equals("PIUTANG") || key.equals("HUTANG") || key.equals("FIXED_ASSET") || key.equals("ASET_TETAP") ||
                key.equals("DEBIT_ACCOUNT") || key.equals("CREDIT_ACCOUNT");
-    }
-
-    private void selectAccountByHint(String hint, String accountCode) {
-        var inputs = page.locator("input[id^='accountMapping_']").all();
-        for (var input : inputs) {
-            String inputId = input.getAttribute("id");
-            var label = page.locator("label[for='" + inputId + "']");
-            String labelText = label.textContent();
-            if (labelText == null || !labelText.contains(hint)) continue;
-
-            input.click();
-            input.fill(accountCode);
-            page.waitForTimeout(PICKER_SETTLE_MS); // debounce + fetch
-            var results = page.locator("[data-testid='account-picker-result']");
-            int n = Math.min(results.count(), 10);
-            for (int i = 0; i < n; i++) {
-                String code = results.nth(i).locator(".font-medium").textContent();
-                if (code != null && code.startsWith(accountCode)) {
-                    results.nth(i).click();
-                    return;
-                }
-            }
-            if (n > 0) {
-                results.first().click();
-            }
-            return;
-        }
     }
 
     private Map<String, String> parseInputs(String inputs) {
@@ -926,7 +867,10 @@ public abstract class DemoDataLoaderBase extends PlaywrightTestBase {
         if (inputs == null || inputs.isEmpty()) return result;
         for (String pair : inputs.split("\\|")) {
             String[] kv = pair.split(":", 2);
-            if (kv.length == 2) result.put(kv[0].trim(), kv[1].trim());
+            if (kv.length != 2) {
+                throw new IllegalArgumentException("Malformed input '" + pair + "' in: " + inputs);
+            }
+            result.put(kv[0].trim(), kv[1].trim());
         }
         return result;
     }
@@ -961,25 +905,21 @@ public abstract class DemoDataLoaderBase extends PlaywrightTestBase {
      * Create typical fiscal adjustments for the year via the Rekonsiliasi Fiskal page.
      * Override fiscalAdjustments() in subclass to customize.
      */
-    protected record FiscalAdj(String description, String category, String direction, long amount, String accountCode, String notes) {}
+    protected record FiscalAdj(String description, String category, String direction, long amount) {}
 
     protected List<FiscalAdj> fiscalAdjustments() {
         return List.of(
                 // Beda Tetap - Positif: entertainment/jamuan tidak ada daftar nominatif
-                new FiscalAdj("Beban entertainment tanpa daftar nominatif", "PERMANENT", "POSITIVE",
-                        5000000, "5.1.99", "Pasal 6 ayat 1 huruf a — jamuan tanpa daftar nominatif"),
+                new FiscalAdj("Beban entertainment tanpa daftar nominatif", "PERMANENT", "POSITIVE", 5000000),
                 // Beda Tetap - Positif: sumbangan/donasi non-deductible
-                new FiscalAdj("Sumbangan non-deductible", "PERMANENT", "POSITIVE",
-                        2000000, "5.1.99", "Pasal 9 ayat 1 huruf g — sumbangan"),
+                new FiscalAdj("Sumbangan non-deductible", "PERMANENT", "POSITIVE", 2000000),
                 // Beda Waktu - Positif: penyusutan komersial > fiskal
-                new FiscalAdj("Selisih penyusutan komersial vs fiskal", "TEMPORARY", "POSITIVE",
-                        3000000, "5.1.12", "Penyusutan komersial 48 bulan, fiskal sesuai kelompok")
+                new FiscalAdj("Selisih penyusutan komersial vs fiskal", "TEMPORARY", "POSITIVE", 3000000)
         );
     }
 
     private void createFiscalAdjustments(int year) {
         var adjustments = fiscalAdjustments();
-        if (adjustments.isEmpty()) return;
 
         for (var adj : adjustments) {
             navigateTo("/reports/rekonsiliasi-fiskal?year=" + year);
@@ -992,6 +932,16 @@ public abstract class DemoDataLoaderBase extends PlaywrightTestBase {
 
             page.locator("#btn-add-adjustment").click();
             waitForPageLoad();
+
+            long stored = fiscalAdjustmentRepository.findByYearOrderByAdjustmentCategoryAscDescriptionAsc(year).stream()
+                    .filter(a -> a.getDescription().equals(adj.description())
+                            && a.getAdjustmentCategory().name().equals(adj.category())
+                            && a.getAdjustmentDirection().name().equals(adj.direction())
+                            && a.getAmount().compareTo(BigDecimal.valueOf(adj.amount())) == 0)
+                    .count();
+            if (stored != 1) {
+                throw new IllegalStateException(stored + " stored fiscal adjustments match " + adj + " for " + year);
+            }
         }
 
         log.info("Created {} fiscal adjustments for year {}", adjustments.size(), year);

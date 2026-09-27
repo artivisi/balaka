@@ -16,10 +16,9 @@ For each month:
   4. Auto-create: Setor PPh 21 (amount from payroll, deposited next month 10th)
   5. Auto-create: Setor PPN (PKP only, previous month's PPN Keluaran, deposited 15th)
   6. Generate + post depreciation via depreciation UI
-  7. Close fiscal period via period management UI
         ↓
 After all months:
-  8. Create fiscal adjustments via rekonsiliasi fiskal UI
+  7. Create fiscal adjustments via rekonsiliasi fiskal UI
         ↓
 DemoVerificationTest validates everything
 ```
@@ -47,24 +46,19 @@ date,template_name,amount,inputs,description,reference,project,status
 | Column | Description |
 |--------|-------------|
 | `date` | YYYY-MM-DD |
-| `template_name` | Exact template name from seed data, or `__ASSET__` / `__INVOICE__` |
+| `template_name` | Exact template name from seed data, or `__ASSET__` |
 | `amount` | Amount for SIMPLE templates (0 for DETAILED) |
 | `inputs` | Pipe-separated key:value for DETAILED variables or account hints |
 | `description` | Transaction description |
 | `reference` | Reference number |
-| `project` | Project code (links to client for tax auto-populate) |
+| `project` | Code of an ACTIVE project (the transaction form lists only active projects; links to client for tax auto-populate) |
 | `status` | POST or DRAFT |
 
 ### Special Actions
 
-**`__ASSET__`** — Creates fixed asset via asset form + purchase transaction:
+**`__ASSET__`** — Creates fixed asset via asset form (CATEGORY is the asset category code) + purchase transaction debiting the category's asset account:
 ```csv
 2025-01-15,__ASSET__,,AST-CODE|Asset Name|CATEGORY|cost|usefulLife|residualValue|depMethod,Description,reference,,POST
-```
-
-**`__INVOICE__`** — Creates invoice:
-```csv
-2025-01-15,__INVOICE__,,clientCode|dueDate|itemDesc|qty|unitPrice|taxRate,Description,,,POST
 ```
 
 ### DETAILED Template Variables

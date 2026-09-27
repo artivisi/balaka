@@ -40,6 +40,9 @@ function searchPicker(endpoint) {
         results: [],
         label: '',
         selectedId: '',
+        // Sequence of the latest search; responses of earlier searches are dropped so the
+        // unfiltered focus search cannot overwrite the results of the query typed after it.
+        searchSeq: 0,
         init() {
             this.label = this.$el.dataset.initialLabel || ''
             this.selectedId = this.$el.dataset.initialId || ''
@@ -49,12 +52,14 @@ function searchPicker(endpoint) {
             if (this.results.length === 0) this.search()
         },
         search() {
+            const seq = ++this.searchSeq
             const q = encodeURIComponent(this.label || '')
             fetch(endpoint + '?q=' + q, { headers: { 'Accept': 'application/json' } })
                 .then(r => r.ok ? r.json() : [])
-                .then(data => { this.results = data })
+                .then(data => { if (seq === this.searchSeq) this.results = data })
         },
         select(item) {
+            this.searchSeq++
             this.selectedId = item.id
             this.label = item.code + ' - ' + item.name
             this.results = []
@@ -244,6 +249,7 @@ function blankJournalLine() {
         label: '',
         selectedId: '',
         results: [],
+        searchSeq: 0,
         pickerOpen: false,
         debit: 0,
         credit: 0,
@@ -503,16 +509,18 @@ function registerFormComponents() {
 
         // Combobox callbacks (per-line picker state)
         searchAccounts(line) {
+            const seq = ++line.searchSeq
             const q = encodeURIComponent(line.label || '')
             fetch('/accounts/search?q=' + q, { headers: { 'Accept': 'application/json' } })
                 .then(r => r.ok ? r.json() : [])
-                .then(data => { line.results = data })
+                .then(data => { if (seq === line.searchSeq) line.results = data })
         },
         focusLine(line) {
             line.pickerOpen = true
             if (!line.results || line.results.length === 0) this.searchAccounts(line)
         },
         selectAccount(line, a) {
+            line.searchSeq++
             line.selectedId = a.id
             line.label = a.code + ' - ' + a.name
             line.results = []

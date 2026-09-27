@@ -42,8 +42,7 @@ class DemoCoffeeShopDataLoader extends DemoDataLoaderBase {
     @Override
     protected List<FiscalAdj> fiscalAdjustments() {
         return List.of(
-                new FiscalAdj("Beban konsumsi karyawan tanpa daftar nominatif", "PERMANENT", "POSITIVE",
-                        3000000, "", "Pasal 9 ayat 1 — jamuan karyawan")
+                new FiscalAdj("Beban konsumsi karyawan tanpa daftar nominatif", "PERMANENT", "POSITIVE", 3000000)
         );
     }
 

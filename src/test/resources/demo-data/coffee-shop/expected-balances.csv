@@ -7,7 +7,10 @@ account_code,account_name,position,amount,notes
 1.1.02,Bank BCA,DEBIT,14525000,Modal + transfers in - payroll/BPJS/PPh/sewa/listrik out
 1.1.20,Persediaan Bahan Baku,DEBIT,145300000,Total raw material purchases
 1.1.21,Persediaan Barang Jadi,CREDIT,169480000,COGS consumed > production (demo limitation)
-1.2.01,Peralatan Kopi,DEBIT,33000000,Espresso machine 25M + seed data 8M
+1.2.01,Peralatan Kopi,DEBIT,25000000,Espresso machine (category CAT-COFFEE)
+1.2.02,Akum. Penyusutan Peralatan Kopi,CREDIT,4166666.70,25M/60 = 416666.67 × 10 months (Mar-Dec)
+1.2.05,Komputer & POS,DEBIT,8000000,POS computer (category CAT-COMPUTER)
+1.2.06,Akum. Penyusutan Komputer,CREDIT,833333.35,8M/48 = 166666.67 × 5 months (Aug-Dec)
 2.1.02,Hutang Supplier,CREDIT,10000000,Kredit purchase Q1 unpaid
 2.1.14,Hutang PPh 21,CREDIT,600000,December PPh 21 (deposited Jan 2026)
 3.1.01,Modal Pemilik,CREDIT,250000000,Setoran modal awal (to Kas)
@@ -21,4 +24,5 @@ account_code,account_name,position,amount,notes
 6.2.10,Beban Administrasi Bank,DEBIT,180000,15K × 12
 6.2.11,Beban Potongan Platform,DEBIT,17400000,GrabFood/GoFood admin fees 20%
 6.2.12,Beban Operasional Lainnya,DEBIT,5400000,Quarterly ops expenses
+6.3.01,Beban Penyusutan Peralatan,DEBIT,5000000.05,Matches both Akum. Penyusutan accounts
 8.1.03,Beban PPh Final UMKM,DEBIT,3151000,0.5% monthly revenue

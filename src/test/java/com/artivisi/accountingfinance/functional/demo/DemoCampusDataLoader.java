@@ -42,8 +42,7 @@ class DemoCampusDataLoader extends DemoDataLoaderBase {
     @Override
     protected List<FiscalAdj> fiscalAdjustments() {
         return List.of(
-                new FiscalAdj("Beban beasiswa (beda tetap)", "PERMANENT", "POSITIVE",
-                        10000000, "", "Pasal 9 ayat 1 — beasiswa non-deductible portion")
+                new FiscalAdj("Beban beasiswa (beda tetap)", "PERMANENT", "POSITIVE", 10000000)
         );
     }
 

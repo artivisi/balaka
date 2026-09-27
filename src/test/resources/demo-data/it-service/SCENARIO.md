@@ -82,7 +82,8 @@ For each month January-December 2025:
 7. **Setor PPh 21** — amount from payrollRun.totalPph21, deposited 10th of next month (auto-generated)
 8. **Setor PPN** — previous month's PPN Keluaran, deposited 15th of current month (auto-generated)
 9. **Generate + post depreciation** — via depreciation management UI
-10. **Close fiscal period** — via fiscal period management UI
+
+The loader does not close fiscal periods; all 2025 periods stay OPEN.
 
 ## Verified Trial Balance at 2025-12-31
 
