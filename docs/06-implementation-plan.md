@@ -1823,6 +1823,10 @@ Gaps found during actual SPT Tahunan Badan 2025 filing via Coretax (2026-03-18).
 
 ---
 
+## Test Suite Audit 2026-09 🔄
+
+Rewrote ~80 test classes that asserted nothing (skip guards, `body` visible, weak-only checks, shared-DB resets) and fixed the application bugs they exposed, including web + API authorization hardening (V006) and explicit journal line order (V007). Tracker (status, resume/deploy checklists, release-notes draft, open decisions): `docs/test-suite-audit-2026-09.md`. Rules and reserved test years: `docs/developer-guide/extending/05-testing.md`.
+
 ## Future Enhancements (As Needed)
 
 Items below are not planned phases. They are implemented only when a concrete client need arises.

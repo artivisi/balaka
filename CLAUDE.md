@@ -44,6 +44,7 @@ Indonesian accounting application for small businesses. Spring Boot 4.0 + Thymel
 - **Depreciation Fixes (issues #31, #32):** ✅ Complete (schedule-derived periodNumber + `uk_asset_period(id_fixed_asset, period_end)`; scheduler catch-up for late-registered assets; `/api/fixed-assets/depreciation` endpoints)
 - **Fixed Asset API (issue #30):** ✅ Complete (`/api/fixed-assets` CRUD + `/categories`, scopes `assets:read`/`assets:write`, register via funding account → acquisition DRAFT or `purchaseTransactionId` → link existing posted journal without new draft)
 - **Tax Filing Register (issue #35):** ✅ Complete (`/api/tax-filings` CRUD + document attachments, `tax_filings`/`tax_documents` tables, scopes `tax-filings:read`/`tax-filings:write`, per-masa SPT/BPE/STP/SP2DK records with STP→teguran chains, filing status surfaced on `GET /api/analysis/tax-summary`)
+- **Test Suite Audit 2026-09:** 🔄 In progress (~80 classes rewritten to verify real behavior; web + API authorization hardening; V006/V007). Status, resume checklist, deploy checklist, release-notes draft and open decisions: `docs/test-suite-audit-2026-09.md`. Test rules + reserved test years: `docs/developer-guide/extending/05-testing.md`
 - See `docs/06-implementation-plan.md` for full plan
 
 ## Key Files
@@ -205,6 +206,6 @@ Frontend assets (Tailwind, Alpine) are built automatically during Maven `generat
 
 ## Current Focus
 
-Phases 0-20 complete.
+Phases 0-20 complete. Finishing the 2026-09 test-suite audit — see `docs/test-suite-audit-2026-09.md` (Resume Checklist).
 
 See `docs/06-implementation-plan.md` for full plan
