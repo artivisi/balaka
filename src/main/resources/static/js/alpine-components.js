@@ -9,12 +9,13 @@
  *   NEW: <div x-data="toggleState">
  */
 
-// Reinitialize Alpine.js components after HTMX settles
+// Initialize Alpine.js components in HTMX-swapped content that Alpine's
+// MutationObserver has not initialized. initTree skips initialized elements, so
+// components already bound keep their state: destroying and re-creating them here
+// reset input typed between the swap and htmx:afterSettle.
 // See: https://github.com/alpinejs/alpine/discussions/4478
 document.addEventListener('htmx:afterSettle', (event) => {
-    // Destroy and reinitialize Alpine components in the swapped content
     if (globalThis.Alpine && event.detail.target) {
-        Alpine.destroyTree(event.detail.target)
         Alpine.initTree(event.detail.target)
     }
 });

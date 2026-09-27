@@ -142,6 +142,25 @@ class QuickTransactionTest extends PlaywrightTestBase {
     }
 
     @Test
+    @DisplayName("An amount typed as soon as the form appears survives HTMX settling")
+    void shouldKeepAmountTypedBeforeSettle() {
+        modal.openModal();
+        // Widen the window between the swap (Alpine initializes the form) and htmx:afterSettle
+        page.evaluate("() => { htmx.config.defaultSettleDelay = 1000;"
+                + " window.__quickFormSettled = false;"
+                + " document.addEventListener('htmx:afterSettle', () => { window.__quickFormSettled = true; }, { once: true }); }");
+        page.getByTestId("template-frequent-" + fixed.getId()).click();
+        waitForQuickForm();
+
+        page.locator("#quick-amount-display").pressSequentially("7500000");
+        assertThat(page.locator("#quick-amount")).hasValue("7500000");
+        page.waitForFunction("() => window.__quickFormSettled");
+
+        assertThat(page.locator("#quick-amount")).hasValue("7500000");
+        assertThat(page.locator("#quick-amount-display")).hasValue("7.500.000");
+    }
+
+    @Test
     @DisplayName("A template with an account hint asks for the account and stores the chosen one")
     void shouldStoreAccountPickedInQuickForm() {
         String description = "Transaksi cepat bank " + UUID.randomUUID().toString().substring(0, 8);
@@ -220,7 +239,7 @@ class QuickTransactionTest extends PlaywrightTestBase {
         assertThat(formPage.getPreviewTotalCredit()).isEqualTo(5_000_000L);
     }
 
-    /** The form is swapped in by HTMX; typing before Alpine binds it would be overwritten by the empty amount. */
+    /** The form is swapped in by HTMX; Alpine has bound it once the hidden amount reads "0". */
     private void waitForQuickForm() {
         assertThat(page.getByTestId("quick-transaction-form")).isVisible();
         assertThat(page.locator("#quick-amount")).hasValue("0");
