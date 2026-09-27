@@ -1,9 +1,9 @@
-journal_number,journal_date,transaction_id,transaction_number,description,status,account_code,debit_amount,credit_amount,posted_at,voided_at,void_reason
-JRN-TAX-001-D,2025-01-15,aaaaaaaa-aaaa-aaaa-aaaa-000000000001,TAX-TRX-001,Test PPN Keluaran - Pendapatan Jasa IT,,1.1.02,11100000,0,2025-01-15 10:00:00,,
-JRN-TAX-001-C1,2025-01-15,aaaaaaaa-aaaa-aaaa-aaaa-000000000001,TAX-TRX-001,Test PPN Keluaran - Pendapatan Jasa IT,,4.1.01,0,10000000,2025-01-15 10:00:00,,
-JRN-TAX-001-C2,2025-01-15,aaaaaaaa-aaaa-aaaa-aaaa-000000000001,TAX-TRX-001,Test PPN Keluaran - Pendapatan Jasa IT,,2.1.03,0,1100000,2025-01-15 10:00:00,,
-JRN-TAX-002-D1,2025-01-20,aaaaaaaa-aaaa-aaaa-aaaa-000000000002,TAX-TRX-002,Test PPh 23 - Pembayaran Jasa Konsultan,,5.1.01,5000000,0,2025-01-20 10:00:00,,
-JRN-TAX-002-C1,2025-01-20,aaaaaaaa-aaaa-aaaa-aaaa-000000000002,TAX-TRX-002,Test PPh 23 - Pembayaran Jasa Konsultan,,1.1.02,0,4900000,2025-01-20 10:00:00,,
-JRN-TAX-002-C2,2025-01-20,aaaaaaaa-aaaa-aaaa-aaaa-000000000002,TAX-TRX-002,Test PPh 23 - Pembayaran Jasa Konsultan,,2.1.21,0,100000,2025-01-20 10:00:00,,
-JRN-TAX-003-D,2025-01-25,aaaaaaaa-aaaa-aaaa-aaaa-000000000003,TAX-TRX-003,Test Non-Tax - Pendapatan Training,,1.1.02,15000000,0,2025-01-25 10:00:00,,
-JRN-TAX-003-C,2025-01-25,aaaaaaaa-aaaa-aaaa-aaaa-000000000003,TAX-TRX-003,Test Non-Tax - Pendapatan Training,,4.1.01,0,15000000,2025-01-25 10:00:00,,
+journal_number,journal_date,transaction_id,transaction_number,description,status,account_code,debit_amount,credit_amount,posted_at,voided_at,void_reason,line_order
+JRN-TAX-001-D,2025-01-15,aaaaaaaa-aaaa-aaaa-aaaa-000000000001,TAX-TRX-001,Test PPN Keluaran - Pendapatan Jasa IT,,1.1.02,11100000,0,2025-01-15 10:00:00,,,1
+JRN-TAX-001-C1,2025-01-15,aaaaaaaa-aaaa-aaaa-aaaa-000000000001,TAX-TRX-001,Test PPN Keluaran - Pendapatan Jasa IT,,4.1.01,0,10000000,2025-01-15 10:00:00,,,2
+JRN-TAX-001-C2,2025-01-15,aaaaaaaa-aaaa-aaaa-aaaa-000000000001,TAX-TRX-001,Test PPN Keluaran - Pendapatan Jasa IT,,2.1.03,0,1100000,2025-01-15 10:00:00,,,3
+JRN-TAX-002-D1,2025-01-20,aaaaaaaa-aaaa-aaaa-aaaa-000000000002,TAX-TRX-002,Test PPh 23 - Pembayaran Jasa Konsultan,,5.1.01,5000000,0,2025-01-20 10:00:00,,,1
+JRN-TAX-002-C1,2025-01-20,aaaaaaaa-aaaa-aaaa-aaaa-000000000002,TAX-TRX-002,Test PPh 23 - Pembayaran Jasa Konsultan,,1.1.02,0,4900000,2025-01-20 10:00:00,,,2
+JRN-TAX-002-C2,2025-01-20,aaaaaaaa-aaaa-aaaa-aaaa-000000000002,TAX-TRX-002,Test PPh 23 - Pembayaran Jasa Konsultan,,2.1.21,0,100000,2025-01-20 10:00:00,,,3
+JRN-TAX-003-D,2025-01-25,aaaaaaaa-aaaa-aaaa-aaaa-000000000003,TAX-TRX-003,Test Non-Tax - Pendapatan Training,,1.1.02,15000000,0,2025-01-25 10:00:00,,,1
+JRN-TAX-003-C,2025-01-25,aaaaaaaa-aaaa-aaaa-aaaa-000000000003,TAX-TRX-003,Test Non-Tax - Pendapatan Training,,4.1.01,0,15000000,2025-01-25 10:00:00,,,2

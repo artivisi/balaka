@@ -84,7 +84,7 @@ class JournalEntryPersistenceTest extends PlaywrightTestBase {
                     .containsExactly(tuple(BANK, new BigDecimal("196200000.00")));
             assertThat(journalEntryService.findByTransactionId(transactionId))
                     .extracting(JournalEntry::getJournalNumber)
-                    .containsExactly("JRN-SVC-002-C", "JRN-SVC-002-D");
+                    .containsExactly("JRN-SVC-002-D", "JRN-SVC-002-C");
             return null;
         });
 

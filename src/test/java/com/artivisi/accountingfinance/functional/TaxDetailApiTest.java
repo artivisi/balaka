@@ -387,6 +387,7 @@ class TaxDetailApiTest extends PlaywrightTestBase {
         for (Line l : lines) {
             JournalEntry entry = new JournalEntry();
             entry.setJournalNumber(number + "-" + String.format("%02d", ++index));
+            entry.setLineOrder(index);
             entry.setTransaction(saved);
             entry.setAccount(accountRepository.findByAccountCode(l.accountCode())
                     .orElseThrow(() -> new IllegalStateException("Seeded account missing: " + l.accountCode())));

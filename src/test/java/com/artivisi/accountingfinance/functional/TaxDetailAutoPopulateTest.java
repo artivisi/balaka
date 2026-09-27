@@ -191,7 +191,7 @@ class TaxDetailAutoPopulateTest extends PlaywrightTestBase {
     private BigDecimal creditOn(String transactionId, String accountCode) {
         UUID accountId = chartOfAccountRepository.findByAccountCode(accountCode)
                 .orElseThrow(() -> new IllegalStateException("Seeded account missing: " + accountCode)).getId();
-        return journalEntryRepository.findByTransactionIdOrderByJournalNumberAsc(UUID.fromString(transactionId)).stream()
+        return journalEntryRepository.findByTransactionIdOrderByLineOrderAsc(UUID.fromString(transactionId)).stream()
                 .filter(e -> e.getAccount().getId().equals(accountId))
                 .map(JournalEntry::getCreditAmount)
                 .reduce(BigDecimal::add)

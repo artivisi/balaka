@@ -36,7 +36,7 @@ VALUES (
 
 -- Journal entries for posted transaction (TRX-TEST-0002)
 -- Debit: Bank BCA (1.1.02)
-INSERT INTO journal_entries (id, journal_number, id_transaction, id_account, debit_amount, credit_amount, posted_at, created_at, updated_at)
+INSERT INTO journal_entries (id, journal_number, id_transaction, id_account, debit_amount, credit_amount, posted_at, created_at, updated_at, line_order)
 VALUES (
     'b0000000-0000-0000-0000-000000000001',
     'JE-TEST-0001',
@@ -46,11 +46,12 @@ VALUES (
     0,
     NOW(),
     NOW(),
-    NOW()
+    NOW(),
+    1
 );
 
 -- Credit: Pendapatan Jasa Konsultasi (4.1.01)
-INSERT INTO journal_entries (id, journal_number, id_transaction, id_account, debit_amount, credit_amount, posted_at, created_at, updated_at)
+INSERT INTO journal_entries (id, journal_number, id_transaction, id_account, debit_amount, credit_amount, posted_at, created_at, updated_at, line_order)
 VALUES (
     'b0000000-0000-0000-0000-000000000002',
     'JE-TEST-0001',
@@ -60,7 +61,8 @@ VALUES (
     15000000,
     NOW(),
     NOW(),
-    NOW()
+    NOW(),
+    2
 );
 
 -- Test transaction for document empty state test (should never have documents uploaded)

@@ -14,6 +14,7 @@ import com.microsoft.playwright.APIRequestContext;
 import com.microsoft.playwright.APIResponse;
 import com.microsoft.playwright.options.RequestOptions;
 import lombok.extern.slf4j.Slf4j;
+import org.assertj.core.groups.Tuple;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -21,15 +22,19 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
@@ -48,6 +53,7 @@ class JournalEntryApiTest extends PlaywrightTestBase {
     @Autowired private ChartOfAccountRepository accountRepository;
     @Autowired private TransactionRepository transactionRepository;
     @Autowired private JournalEntryRepository journalEntryRepository;
+    @Autowired private JdbcTemplate jdbc;
 
     private APIRequestContext apiContext;
     private ObjectMapper objectMapper;
@@ -193,21 +199,43 @@ class JournalEntryApiTest extends PlaywrightTestBase {
     class PostJournalEntry {
 
         @Test
-        @DisplayName("Posting assigns a transaction number and one journal number with per-line suffixes")
+        @DisplayName("Posting assigns a transaction number and numbers the lines in request order, even after the rows moved on disk")
         void fullLifecycle() throws Exception {
-            Map<String, Object> request = buildJournalEntryRequest(
-                    DATE,
-                    "Adjusting entry for depreciation",
-                    null,
-                    List.of(
-                            line(debitAccountId, 750000, 0),
-                            line(creditAccountId, 0, 750000)
-                    )
-            );
+            List<Map<String, Object>> lines = List.of(
+                    line(thirdAccountId, 100000, 0),
+                    line(creditAccountId, 0, 200000),
+                    line(debitAccountId, 300000, 0),
+                    line(creditAccountId, 0, 50000),
+                    line(debitAccountId, 150000, 0),
+                    line(creditAccountId, 0, 300000));
+            List<Tuple> requestOrder = List.of(
+                    tuple("5.1.06", new BigDecimal("100000.00"), new BigDecimal("0.00")),
+                    tuple("4.1.02", new BigDecimal("0.00"), new BigDecimal("200000.00")),
+                    tuple("1.1.02", new BigDecimal("300000.00"), new BigDecimal("0.00")),
+                    tuple("4.1.02", new BigDecimal("0.00"), new BigDecimal("50000.00")),
+                    tuple("1.1.02", new BigDecimal("150000.00"), new BigDecimal("0.00")),
+                    tuple("4.1.02", new BigDecimal("0.00"), new BigDecimal("300000.00")));
 
-            APIResponse createResponse = post("/api/transactions/journal-entry", request);
-            assertThat(createResponse.status()).isEqualTo(201);
+            APIResponse createResponse = post("/api/transactions/journal-entry",
+                    buildJournalEntryRequest(DATE, "Adjusting entry " + UUID.randomUUID(), null, lines));
+            assertThat(createResponse.status()).as(createResponse.text()).isEqualTo(201);
             String transactionId = parse(createResponse).get("transactionId").asText();
+
+            // A non-HOT update writes a new row version at a new physical position, so the
+            // first three lines are no longer read back first. Only an explicit line order
+            // keeps the request order.
+            String firstThree = "id_transaction = ?::uuid AND (debit_amount IN (100000, 300000) OR credit_amount = 200000)";
+            assertThat(jdbc.update("UPDATE journal_entries SET journal_number = 'moved-' || id WHERE " + firstThree,
+                    transactionId)).isEqualTo(3);
+            assertThat(jdbc.update("UPDATE journal_entries SET journal_number = NULL WHERE " + firstThree,
+                    transactionId)).isEqualTo(3);
+
+            JsonNode preview = parse(get("/api/transactions/" + transactionId + "/journal-preview"));
+            assertThat(elements(preview.get("entries"))
+                    .map(e -> tuple(e.get("accountCode").asText(), e.get("debitAmount").decimalValue().setScale(2),
+                            e.get("creditAmount").decimalValue().setScale(2)))
+                    .toList())
+                    .containsExactlyElementsOf(requestOrder);
 
             APIResponse postResponse = post("/api/transactions/" + transactionId + "/post", Map.of());
             assertThat(postResponse.status())
@@ -220,12 +248,21 @@ class JournalEntryApiTest extends PlaywrightTestBase {
             assertThat(saved.getTransactionNumber()).matches("TRX-\\d{4}-\\d{4}")
                     .isEqualTo(posted.get("transactionNumber").asText());
 
-            List<JournalEntry> entries = journalEntryRepository.findByTransactionIdWithAccount(UUID.fromString(transactionId));
-            assertThat(entries).hasSize(2);
+            List<JournalEntry> entries = journalEntryRepository.findByTransactionIdWithAccount(UUID.fromString(transactionId))
+                    .stream()
+                    .sorted(Comparator.comparing(JournalEntry::getJournalNumber))
+                    .toList();
             String base = entries.get(0).getJournalNumber().substring(0, entries.get(0).getJournalNumber().length() - 3);
             assertThat(base).matches("JE-\\d{4}-\\d{4}");
-            assertThat(entries).extracting(JournalEntry::getJournalNumber, e -> e.getAccount().getAccountCode())
-                    .containsExactly(tuple(base + "-01", "1.1.02"), tuple(base + "-02", "4.1.02"));
+            assertThat(entries).extracting(JournalEntry::getJournalNumber)
+                    .containsExactly(base + "-01", base + "-02", base + "-03", base + "-04", base + "-05", base + "-06");
+            assertThat(entries)
+                    .extracting(e -> e.getAccount().getAccountCode(), JournalEntry::getDebitAmount, JournalEntry::getCreditAmount)
+                    .containsExactlyElementsOf(requestOrder);
+            assertThat(elements(posted.get("journalEntries"))
+                    .map(e -> e.get("journalNumber").asText())
+                    .toList())
+                    .containsExactly(base + "-01", base + "-02", base + "-03", base + "-04", base + "-05", base + "-06");
             assertThat(post("/api/transactions/" + transactionId + "/post", Map.of()).status()).isEqualTo(409);
         }
     }
@@ -352,6 +389,10 @@ class JournalEntryApiTest extends PlaywrightTestBase {
                         .setHeader("Authorization", "Bearer " + accessToken)
                         .setHeader("Content-Type", "application/json")
                         .setData(data));
+    }
+
+    private static Stream<JsonNode> elements(JsonNode array) {
+        return StreamSupport.stream(array.spliterator(), false);
     }
 
     private JsonNode parse(APIResponse response) throws Exception {

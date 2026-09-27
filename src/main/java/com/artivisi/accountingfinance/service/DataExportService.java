@@ -714,9 +714,9 @@ public class DataExportService {
         StringBuilder csv = new StringBuilder();
         // Use transaction_id (UUID) as primary key for linking (handles null transaction_number)
         csv.append("journal_number,journal_date,transaction_id,transaction_number,description,status,");
-        csv.append("account_code,debit_amount,credit_amount,posted_at,voided_at,void_reason\n");
+        csv.append("account_code,debit_amount,credit_amount,posted_at,voided_at,void_reason,line_order\n");
 
-        List<JournalEntry> entries = journalEntryRepository.findAll(Sort.by("journalNumber"));
+        List<JournalEntry> entries = journalEntryRepository.findAll(Sort.by("journalNumber", "lineOrder"));
         for (JournalEntry je : entries) {
             csv.append(escapeCsv(je.getJournalNumber())).append(",");
             csv.append(je.getJournalDate().format(DATE_FORMATTER)).append(",");
@@ -729,7 +729,8 @@ public class DataExportService {
             csv.append(je.getCreditAmount()).append(",");
             csv.append(je.getPostedAt() != null ? je.getPostedAt().format(DATETIME_FORMATTER) : "").append(",");
             csv.append(je.getVoidedAt() != null ? je.getVoidedAt().format(DATETIME_FORMATTER) : "").append(",");
-            csv.append(escapeCsv(je.getVoidReason())).append("\n");
+            csv.append(escapeCsv(je.getVoidReason())).append(",");
+            csv.append(je.getLineOrder()).append("\n");
         }
         return csv.toString();
     }

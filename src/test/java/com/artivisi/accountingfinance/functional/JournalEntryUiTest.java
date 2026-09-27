@@ -130,7 +130,7 @@ class JournalEntryUiTest extends PlaywrightTestBase {
         assertThat(draft.getClosingEntry()).isFalse();
         assertThat(templateName(id)).isEqualTo("Jurnal Manual");
         assertThat(lines(id)).containsExactlyInAnyOrder("5.1.07 D500000", "1.1.02 C500000");
-        assertThat(journalEntryRepository.findByTransactionIdOrderByJournalNumberAsc(id))
+        assertThat(journalEntryRepository.findByTransactionIdOrderByLineOrderAsc(id))
                 .allSatisfy(je -> assertThat(je.getJournalNumber()).isNull());
     }
 
@@ -159,7 +159,7 @@ class JournalEntryUiTest extends PlaywrightTestBase {
         assertThat(posted.getClosingEntry()).isTrue();
         assertThat(posted.getNotes()).isEqualTo("CLOSING");
         assertThat(lines(id)).containsExactlyInAnyOrder("4.1.01 D750000", "3.2.02 C750000");
-        assertThat(journalEntryRepository.findByTransactionIdOrderByJournalNumberAsc(id))
+        assertThat(journalEntryRepository.findByTransactionIdOrderByLineOrderAsc(id))
                 .allSatisfy(je -> assertThat(je.getJournalNumber()).isNotBlank());
     }
 

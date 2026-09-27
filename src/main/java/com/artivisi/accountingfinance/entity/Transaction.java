@@ -11,6 +11,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
@@ -134,6 +135,7 @@ public class Transaction extends BaseEntity {
     @JsonIgnore
     @Getter(AccessLevel.NONE)
     @OneToMany(mappedBy = "transaction", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OrderBy("lineOrder ASC")
     private List<JournalEntry> journalEntries = new ArrayList<>();
 
     @JsonIgnore
@@ -179,7 +181,15 @@ public class Transaction extends BaseEntity {
         variable.setTransaction(this);
     }
 
+    /**
+     * Appends a journal line; its line order is the next position after the lines already present.
+     */
     public void addJournalEntry(JournalEntry entry) {
+        int nextLineOrder = journalEntries.stream()
+                .mapToInt(JournalEntry::getLineOrder)
+                .max()
+                .orElse(0) + 1;
+        entry.setLineOrder(nextLineOrder);
         journalEntries.add(entry);
         entry.setTransaction(this);
     }

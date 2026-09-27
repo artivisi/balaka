@@ -39,6 +39,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -297,7 +298,10 @@ public class TransactionService {
         if (needsJournalNumber) {
             String journalNumber = generateJournalNumber();
             int lineIndex = 0;
-            for (JournalEntry entry : transaction.getJournalEntries()) {
+            List<JournalEntry> inLineOrder = transaction.getJournalEntries().stream()
+                    .sorted(Comparator.comparing(JournalEntry::getLineOrder))
+                    .toList();
+            for (JournalEntry entry : inLineOrder) {
                 entry.setJournalNumber(journalNumber + "-" + String.format("%02d", ++lineIndex));
             }
         }

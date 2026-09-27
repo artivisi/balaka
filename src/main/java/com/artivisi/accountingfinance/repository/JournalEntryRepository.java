@@ -22,9 +22,9 @@ public interface JournalEntryRepository extends JpaRepository<JournalEntry, UUID
 
     List<JournalEntry> findByJournalNumberIn(Collection<String> journalNumbers);
 
-    List<JournalEntry> findByTransactionIdOrderByJournalNumberAsc(UUID transactionId);
+    List<JournalEntry> findByTransactionIdOrderByLineOrderAsc(UUID transactionId);
 
-    @Query("SELECT j FROM JournalEntry j LEFT JOIN FETCH j.account WHERE j.transaction.id = :transactionId ORDER BY j.journalNumber ASC")
+    @Query("SELECT j FROM JournalEntry j LEFT JOIN FETCH j.account WHERE j.transaction.id = :transactionId ORDER BY j.lineOrder ASC")
     List<JournalEntry> findByTransactionIdWithAccount(@Param("transactionId") UUID transactionId);
 
     @Query("SELECT j FROM JournalEntry j JOIN j.transaction t WHERE " +
@@ -168,6 +168,6 @@ public interface JournalEntryRepository extends JpaRepository<JournalEntry, UUID
     @Query("SELECT COUNT(j) FROM JournalEntry j JOIN j.transaction t WHERE t.referenceNumber LIKE :pattern AND t.status = 'POSTED'")
     long countByReferenceNumberLike(@Param("pattern") String pattern);
 
-    @Query("SELECT j FROM JournalEntry j JOIN j.transaction t WHERE t.referenceNumber LIKE :pattern ORDER BY t.referenceNumber, j.id")
+    @Query("SELECT j FROM JournalEntry j JOIN j.transaction t WHERE t.referenceNumber LIKE :pattern ORDER BY t.referenceNumber, t.id, j.lineOrder")
     List<JournalEntry> findByReferenceNumberLike(@Param("pattern") String pattern);
 }

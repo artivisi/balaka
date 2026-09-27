@@ -1423,7 +1423,7 @@ public class DataImportService {
     private int importJournalEntries(String content) {
         List<String[]> rows = parseCsv(content);
         // CSV columns: journal_number,journal_date,transaction_id,transaction_number,description,status,
-        //   account_code,debit_amount,credit_amount,posted_at,voided_at,void_reason
+        //   account_code,debit_amount,credit_amount,posted_at,voided_at,void_reason,line_order
 
         for (String[] row : rows) {
             String txId = getField(row, 2);
@@ -1446,6 +1446,12 @@ public class DataImportService {
             je.setPostedAt(parseDateTime(getField(row, 9)));
             je.setVoidedAt(parseDateTime(getField(row, 10)));
             je.setVoidReason(getField(row, 11));
+            Integer lineOrder = parseInteger(getField(row, 12));
+            if (lineOrder == null) {
+                throw new IllegalArgumentException("line_order is required for journal entry "
+                        + LogSanitizer.sanitize(getField(row, 0)) + " of transaction " + txId);
+            }
+            je.setLineOrder(lineOrder);
 
             journalEntryRepository.save(je);
         }

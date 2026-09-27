@@ -17,13 +17,16 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 
 /**
  * Integration tests for DataExportService and DataImportService.
@@ -95,6 +98,9 @@ class DataExportImportTest {
 
     @Autowired
     private InventoryBalanceRepository inventoryBalanceRepository;
+
+    @Autowired
+    private JournalEntryRepository journalEntryRepository;
 
     @Test
     @DisplayName("Should export company config with tax profile fields")
@@ -205,6 +211,46 @@ class DataExportImportTest {
             assertThat(result).isNotNull();
             assertThat(result.totalRecords()).isGreaterThanOrEqualTo(0);
             assertThat(result.durationMs()).isGreaterThanOrEqualTo(0);
+        }
+
+        @Test
+        @DisplayName("Journal line order survives export and import")
+        @Transactional
+        void journalLineOrderRoundTrip() throws IOException {
+            byte[] exportedData = dataExportService.exportAllData();
+            assertThat(extractFileFromZip(exportedData, "20_journal_entries.csv").lines().findFirst().orElseThrow())
+                    .endsWith(",void_reason,line_order");
+
+            dataImportService.importAllData(exportedData);
+
+            assertThat(linesOf("TRX-TAX-0001"))
+                    .extracting(JournalEntry::getLineOrder, e -> e.getAccount().getAccountCode())
+                    .containsExactly(
+                            tuple(1, "1.1.02"),
+                            tuple(2, "4.1.01"),
+                            tuple(3, "2.1.03"));
+        }
+
+        @Test
+        @DisplayName("Journal entries without line_order are rejected")
+        @Transactional
+        void journalEntriesWithoutLineOrderRejected() throws IOException {
+            byte[] exportedData = dataExportService.exportAllData();
+            String withoutLineOrder = extractFileFromZip(exportedData, "20_journal_entries.csv").lines()
+                    .map(line -> line.substring(0, line.lastIndexOf(',')))
+                    .collect(Collectors.joining("\n", "", "\n"));
+            byte[] zip = replaceInZip(exportedData, "20_journal_entries.csv", withoutLineOrder);
+
+            assertThatThrownBy(() -> dataImportService.importAllData(zip))
+                    .hasMessageContaining("20_journal_entries.csv")
+                    .hasMessageContaining("line_order is required for journal entry ");
+        }
+
+        private List<JournalEntry> linesOf(String transactionNumber) {
+            return journalEntryRepository.findAll().stream()
+                    .filter(e -> transactionNumber.equals(e.getTransaction().getTransactionNumber()))
+                    .sorted(Comparator.comparing(JournalEntry::getLineOrder))
+                    .toList();
         }
     }
 
@@ -1001,6 +1047,29 @@ class DataExportImportTest {
             }
         }
         throw new IllegalArgumentException("File not found in ZIP: " + filename);
+    }
+
+    private byte[] replaceInZip(byte[] zipData, String filename, String content) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        boolean replaced = false;
+        try (ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(zipData));
+             ZipOutputStream zos = new ZipOutputStream(baos)) {
+            ZipEntry entry;
+            while ((entry = zis.getNextEntry()) != null) {
+                zos.putNextEntry(new ZipEntry(entry.getName()));
+                if (entry.getName().equals(filename)) {
+                    zos.write(content.getBytes());
+                    replaced = true;
+                } else {
+                    zos.write(zis.readAllBytes());
+                }
+                zos.closeEntry();
+            }
+        }
+        if (!replaced) {
+            throw new IllegalArgumentException("File not found in ZIP: " + filename);
+        }
+        return baos.toByteArray();
     }
 
     private byte[] buildZipWithFiles(String filename, String content) throws IOException {

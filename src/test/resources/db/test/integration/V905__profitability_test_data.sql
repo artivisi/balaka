@@ -84,48 +84,48 @@ VALUES
 
 -- PRJ-TEST-001: Website Development ABC
 -- Revenue Entry 1: Development payment 15M (Feb 2024)
-INSERT INTO journal_entries (id, journal_number, posted_at, id_transaction, id_account, id_project, debit_amount, credit_amount, created_at, updated_at, created_by, updated_by)
+INSERT INTO journal_entries (id, journal_number, posted_at, id_transaction, id_account, id_project, debit_amount, credit_amount, created_at, updated_at, created_by, updated_by, line_order)
 VALUES
-('90500000-0000-0000-0000-000000000001', 'JRN-PRJ-T001-01', '2024-02-15 10:00:00', '90500000-0000-0000-1000-000000000001', '10000000-0000-0000-0000-000000000102', 'a0500000-0000-0000-0000-000000000001', 15000000.00, 0.00, NOW(), NOW(), 'system', 'system'),
-('90500000-0000-0000-0000-000000000002', 'JRN-PRJ-T001-01', '2024-02-15 10:00:00', '90500000-0000-0000-1000-000000000001', '40000000-0000-0000-0000-000000000102', 'a0500000-0000-0000-0000-000000000001', 0.00, 15000000.00, NOW(), NOW(), 'system', 'system');
+('90500000-0000-0000-0000-000000000001', 'JRN-PRJ-T001-01', '2024-02-15 10:00:00', '90500000-0000-0000-1000-000000000001', '10000000-0000-0000-0000-000000000102', 'a0500000-0000-0000-0000-000000000001', 15000000.00, 0.00, NOW(), NOW(), 'system', 'system', 1),
+('90500000-0000-0000-0000-000000000002', 'JRN-PRJ-T001-01', '2024-02-15 10:00:00', '90500000-0000-0000-1000-000000000001', '40000000-0000-0000-0000-000000000102', 'a0500000-0000-0000-0000-000000000001', 0.00, 15000000.00, NOW(), NOW(), 'system', 'system', 2);
 
 -- Revenue Entry 2: Consulting payment 10M (Apr 2024)
-INSERT INTO journal_entries (id, journal_number, posted_at, id_transaction, id_account, id_project, debit_amount, credit_amount, created_at, updated_at, created_by, updated_by)
+INSERT INTO journal_entries (id, journal_number, posted_at, id_transaction, id_account, id_project, debit_amount, credit_amount, created_at, updated_at, created_by, updated_by, line_order)
 VALUES
-('90500000-0000-0000-0000-000000000003', 'JRN-PRJ-T001-02', '2024-04-20 10:00:00', '90500000-0000-0000-1000-000000000002', '10000000-0000-0000-0000-000000000102', 'a0500000-0000-0000-0000-000000000001', 10000000.00, 0.00, NOW(), NOW(), 'system', 'system'),
-('90500000-0000-0000-0000-000000000004', 'JRN-PRJ-T001-02', '2024-04-20 10:00:00', '90500000-0000-0000-1000-000000000002', '40000000-0000-0000-0000-000000000101', 'a0500000-0000-0000-0000-000000000001', 0.00, 10000000.00, NOW(), NOW(), 'system', 'system');
+('90500000-0000-0000-0000-000000000003', 'JRN-PRJ-T001-02', '2024-04-20 10:00:00', '90500000-0000-0000-1000-000000000002', '10000000-0000-0000-0000-000000000102', 'a0500000-0000-0000-0000-000000000001', 10000000.00, 0.00, NOW(), NOW(), 'system', 'system', 1),
+('90500000-0000-0000-0000-000000000004', 'JRN-PRJ-T001-02', '2024-04-20 10:00:00', '90500000-0000-0000-1000-000000000002', '40000000-0000-0000-0000-000000000101', 'a0500000-0000-0000-0000-000000000001', 0.00, 10000000.00, NOW(), NOW(), 'system', 'system', 2);
 
 -- Expense Entry 1: Salary 8M (Mar 2024)
-INSERT INTO journal_entries (id, journal_number, posted_at, id_transaction, id_account, id_project, debit_amount, credit_amount, created_at, updated_at, created_by, updated_by)
+INSERT INTO journal_entries (id, journal_number, posted_at, id_transaction, id_account, id_project, debit_amount, credit_amount, created_at, updated_at, created_by, updated_by, line_order)
 VALUES
-('90500000-0000-0000-0000-000000000005', 'JRN-PRJ-T001-03', '2024-03-31 16:00:00', '90500000-0000-0000-1000-000000000003', '50000000-0000-0000-0000-000000000101', 'a0500000-0000-0000-0000-000000000001', 8000000.00, 0.00, NOW(), NOW(), 'system', 'system'),
-('90500000-0000-0000-0000-000000000006', 'JRN-PRJ-T001-03', '2024-03-31 16:00:00', '90500000-0000-0000-1000-000000000003', '10000000-0000-0000-0000-000000000101', 'a0500000-0000-0000-0000-000000000001', 0.00, 8000000.00, NOW(), NOW(), 'system', 'system');
+('90500000-0000-0000-0000-000000000005', 'JRN-PRJ-T001-03', '2024-03-31 16:00:00', '90500000-0000-0000-1000-000000000003', '50000000-0000-0000-0000-000000000101', 'a0500000-0000-0000-0000-000000000001', 8000000.00, 0.00, NOW(), NOW(), 'system', 'system', 1),
+('90500000-0000-0000-0000-000000000006', 'JRN-PRJ-T001-03', '2024-03-31 16:00:00', '90500000-0000-0000-1000-000000000003', '10000000-0000-0000-0000-000000000101', 'a0500000-0000-0000-0000-000000000001', 0.00, 8000000.00, NOW(), NOW(), 'system', 'system', 2);
 
 -- Expense Entry 2: Cloud/Server 2M (Apr 2024)
-INSERT INTO journal_entries (id, journal_number, posted_at, id_transaction, id_account, id_project, debit_amount, credit_amount, created_at, updated_at, created_by, updated_by)
+INSERT INTO journal_entries (id, journal_number, posted_at, id_transaction, id_account, id_project, debit_amount, credit_amount, created_at, updated_at, created_by, updated_by, line_order)
 VALUES
-('90500000-0000-0000-0000-000000000007', 'JRN-PRJ-T001-04', '2024-04-30 09:00:00', '90500000-0000-0000-1000-000000000004', '50000000-0000-0000-0000-000000000102', 'a0500000-0000-0000-0000-000000000001', 2000000.00, 0.00, NOW(), NOW(), 'system', 'system'),
-('90500000-0000-0000-0000-000000000008', 'JRN-PRJ-T001-04', '2024-04-30 09:00:00', '90500000-0000-0000-1000-000000000004', '10000000-0000-0000-0000-000000000102', 'a0500000-0000-0000-0000-000000000001', 0.00, 2000000.00, NOW(), NOW(), 'system', 'system');
+('90500000-0000-0000-0000-000000000007', 'JRN-PRJ-T001-04', '2024-04-30 09:00:00', '90500000-0000-0000-1000-000000000004', '50000000-0000-0000-0000-000000000102', 'a0500000-0000-0000-0000-000000000001', 2000000.00, 0.00, NOW(), NOW(), 'system', 'system', 1),
+('90500000-0000-0000-0000-000000000008', 'JRN-PRJ-T001-04', '2024-04-30 09:00:00', '90500000-0000-0000-1000-000000000004', '10000000-0000-0000-0000-000000000102', 'a0500000-0000-0000-0000-000000000001', 0.00, 2000000.00, NOW(), NOW(), 'system', 'system', 2);
 
 -- PRJ-TEST-002: Mobile App ABC
 -- Revenue Entry: Development payment 12M (May 2024)
-INSERT INTO journal_entries (id, journal_number, posted_at, id_transaction, id_account, id_project, debit_amount, credit_amount, created_at, updated_at, created_by, updated_by)
+INSERT INTO journal_entries (id, journal_number, posted_at, id_transaction, id_account, id_project, debit_amount, credit_amount, created_at, updated_at, created_by, updated_by, line_order)
 VALUES
-('90500000-0000-0000-0000-000000000009', 'JRN-PRJ-T002-01', '2024-05-15 10:00:00', '90500000-0000-0000-1000-000000000005', '10000000-0000-0000-0000-000000000102', 'a0500000-0000-0000-0000-000000000002', 12000000.00, 0.00, NOW(), NOW(), 'system', 'system'),
-('90500000-0000-0000-0000-000000000010', 'JRN-PRJ-T002-01', '2024-05-15 10:00:00', '90500000-0000-0000-1000-000000000005', '40000000-0000-0000-0000-000000000102', 'a0500000-0000-0000-0000-000000000002', 0.00, 12000000.00, NOW(), NOW(), 'system', 'system');
+('90500000-0000-0000-0000-000000000009', 'JRN-PRJ-T002-01', '2024-05-15 10:00:00', '90500000-0000-0000-1000-000000000005', '10000000-0000-0000-0000-000000000102', 'a0500000-0000-0000-0000-000000000002', 12000000.00, 0.00, NOW(), NOW(), 'system', 'system', 1),
+('90500000-0000-0000-0000-000000000010', 'JRN-PRJ-T002-01', '2024-05-15 10:00:00', '90500000-0000-0000-1000-000000000005', '40000000-0000-0000-0000-000000000102', 'a0500000-0000-0000-0000-000000000002', 0.00, 12000000.00, NOW(), NOW(), 'system', 'system', 2);
 
 -- Expense Entry: Salary 8M (May 2024)
-INSERT INTO journal_entries (id, journal_number, posted_at, id_transaction, id_account, id_project, debit_amount, credit_amount, created_at, updated_at, created_by, updated_by)
+INSERT INTO journal_entries (id, journal_number, posted_at, id_transaction, id_account, id_project, debit_amount, credit_amount, created_at, updated_at, created_by, updated_by, line_order)
 VALUES
-('90500000-0000-0000-0000-000000000011', 'JRN-PRJ-T002-02', '2024-05-31 16:00:00', '90500000-0000-0000-1000-000000000006', '50000000-0000-0000-0000-000000000101', 'a0500000-0000-0000-0000-000000000002', 8000000.00, 0.00, NOW(), NOW(), 'system', 'system'),
-('90500000-0000-0000-0000-000000000012', 'JRN-PRJ-T002-02', '2024-05-31 16:00:00', '90500000-0000-0000-1000-000000000006', '10000000-0000-0000-0000-000000000101', 'a0500000-0000-0000-0000-000000000002', 0.00, 8000000.00, NOW(), NOW(), 'system', 'system');
+('90500000-0000-0000-0000-000000000011', 'JRN-PRJ-T002-02', '2024-05-31 16:00:00', '90500000-0000-0000-1000-000000000006', '50000000-0000-0000-0000-000000000101', 'a0500000-0000-0000-0000-000000000002', 8000000.00, 0.00, NOW(), NOW(), 'system', 'system', 1),
+('90500000-0000-0000-0000-000000000012', 'JRN-PRJ-T002-02', '2024-05-31 16:00:00', '90500000-0000-0000-1000-000000000006', '10000000-0000-0000-0000-000000000101', 'a0500000-0000-0000-0000-000000000002', 0.00, 8000000.00, NOW(), NOW(), 'system', 'system', 2);
 
 -- PRJ-TEST-003: IT Consulting XYZ
 -- Revenue Entry: Consulting payment 18M (Mar 2024)
-INSERT INTO journal_entries (id, journal_number, posted_at, id_transaction, id_account, id_project, debit_amount, credit_amount, created_at, updated_at, created_by, updated_by)
+INSERT INTO journal_entries (id, journal_number, posted_at, id_transaction, id_account, id_project, debit_amount, credit_amount, created_at, updated_at, created_by, updated_by, line_order)
 VALUES
-('90500000-0000-0000-0000-000000000013', 'JRN-PRJ-T003-01', '2024-03-20 10:00:00', '90500000-0000-0000-1000-000000000007', '10000000-0000-0000-0000-000000000102', 'a0500000-0000-0000-0000-000000000003', 18000000.00, 0.00, NOW(), NOW(), 'system', 'system'),
-('90500000-0000-0000-0000-000000000014', 'JRN-PRJ-T003-01', '2024-03-20 10:00:00', '90500000-0000-0000-1000-000000000007', '40000000-0000-0000-0000-000000000101', 'a0500000-0000-0000-0000-000000000003', 0.00, 18000000.00, NOW(), NOW(), 'system', 'system');
+('90500000-0000-0000-0000-000000000013', 'JRN-PRJ-T003-01', '2024-03-20 10:00:00', '90500000-0000-0000-1000-000000000007', '10000000-0000-0000-0000-000000000102', 'a0500000-0000-0000-0000-000000000003', 18000000.00, 0.00, NOW(), NOW(), 'system', 'system', 1),
+('90500000-0000-0000-0000-000000000014', 'JRN-PRJ-T003-01', '2024-03-20 10:00:00', '90500000-0000-0000-1000-000000000007', '40000000-0000-0000-0000-000000000101', 'a0500000-0000-0000-0000-000000000003', 0.00, 18000000.00, NOW(), NOW(), 'system', 'system', 2);
 
 -- =============================================================================
 -- EXPECTED PROFITABILITY RESULTS (for test assertions)

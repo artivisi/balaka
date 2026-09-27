@@ -422,7 +422,7 @@ public class ReportService {
     }
 
     private BigDecimal calculateCashImpact(Transaction transaction, List<ChartOfAccount> cashAccounts) {
-        List<JournalEntry> entries = journalEntryRepository.findByTransactionIdOrderByJournalNumberAsc(transaction.getId());
+        List<JournalEntry> entries = journalEntryRepository.findByTransactionIdOrderByLineOrderAsc(transaction.getId());
 
         BigDecimal cashInflow = BigDecimal.ZERO;
         BigDecimal cashOutflow = BigDecimal.ZERO;

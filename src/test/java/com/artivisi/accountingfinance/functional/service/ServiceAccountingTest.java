@@ -151,13 +151,15 @@ class ServiceAccountingTest extends PlaywrightTestBase {
         tx.setPostedBy("admin");
         tx.setCreatedBy("admin");
         tx = transactionRepository.save(tx);
-        entry(tx, account(debitCode), value, BigDecimal.ZERO, number + "-01");
-        entry(tx, account(creditCode), BigDecimal.ZERO, value, number + "-02");
+        entry(tx, account(debitCode), value, BigDecimal.ZERO, number + "-01", 1);
+        entry(tx, account(creditCode), BigDecimal.ZERO, value, number + "-02", 2);
     }
 
-    private void entry(Transaction tx, ChartOfAccount account, BigDecimal debit, BigDecimal credit, String journalNumber) {
+    private void entry(Transaction tx, ChartOfAccount account, BigDecimal debit, BigDecimal credit, String journalNumber,
+                       int lineOrder) {
         JournalEntry entry = new JournalEntry();
         entry.setJournalNumber(journalNumber);
+        entry.setLineOrder(lineOrder);
         entry.setTransaction(tx);
         entry.setAccount(account);
         entry.setDebitAmount(debit);

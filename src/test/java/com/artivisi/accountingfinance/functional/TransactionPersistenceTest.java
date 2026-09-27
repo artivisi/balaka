@@ -110,7 +110,7 @@ class TransactionPersistenceTest extends PlaywrightTestBase {
         assertThat(draft.getDescription()).isEqualTo(description);
         assertThat(draft.getTransactionDate()).isEqualTo(LocalDate.of(2058, 1, 10));
         assertThat(draft.getAmount()).isEqualByComparingTo("10000000");
-        assertThat(journalEntryRepository.findByTransactionIdOrderByJournalNumberAsc(id)).isEmpty();
+        assertThat(journalEntryRepository.findByTransactionIdOrderByLineOrderAsc(id)).isEmpty();
         assertThat(mappedAccountCodes(id)).containsExactlyInAnyOrder("1.1.02", "4.1.02");
 
         Locator preview = page.locator("#journal-preview-content");
@@ -145,6 +145,7 @@ class TransactionPersistenceTest extends PlaywrightTestBase {
         String base = journalBase(entries.get(0).getJournalNumber());
         assertThat(entries).extracting(JournalEntry::getJournalNumber)
                 .containsExactly(base + "-01", base + "-02", base + "-03", base + "-04");
+        assertThat(entries).extracting(JournalEntry::getLineOrder).containsExactly(1, 2, 3, 4);
         assertThat(page.locator("#journal-totals #total-debit")).hasText("Rp 11.100.000");
         assertThat(page.locator("#journal-totals #total-credit")).hasText("Rp 11.100.000");
         assertThat(page.locator("#entry-account-code-0")).hasText("1.1.02");
@@ -165,8 +166,8 @@ class TransactionPersistenceTest extends PlaywrightTestBase {
         assertThat(secondTrx.group(1)).isEqualTo(firstTrx.group(1));
         assertThat(Integer.parseInt(secondTrx.group(2))).isEqualTo(Integer.parseInt(firstTrx.group(2)) + 1);
 
-        Matcher firstJe = matcher(JOURNAL_NUMBER, journalEntryRepository.findByTransactionIdOrderByJournalNumberAsc(first).get(0).getJournalNumber());
-        Matcher secondJe = matcher(JOURNAL_NUMBER, journalEntryRepository.findByTransactionIdOrderByJournalNumberAsc(second).get(0).getJournalNumber());
+        Matcher firstJe = matcher(JOURNAL_NUMBER, journalEntryRepository.findByTransactionIdOrderByLineOrderAsc(first).get(0).getJournalNumber());
+        Matcher secondJe = matcher(JOURNAL_NUMBER, journalEntryRepository.findByTransactionIdOrderByLineOrderAsc(second).get(0).getJournalNumber());
         assertThat(secondJe.group(1)).isEqualTo(firstJe.group(1));
         assertThat(Integer.parseInt(secondJe.group(2))).isEqualTo(Integer.parseInt(firstJe.group(2)) + 1);
     }
@@ -201,7 +202,9 @@ class TransactionPersistenceTest extends PlaywrightTestBase {
 
         inTx(() -> {
             List<JournalEntry> entries = journalEntryRepository.findByTransactionIdWithAccount(id);
-            assertThat(entries).hasSize(4);
+            assertThat(entries).extracting(JournalEntry::getLineOrder, JournalEntry::getIsReversal)
+                    .containsExactly(tuple(1, false), tuple(2, false), tuple(3, true), tuple(4, true));
+            assertThat(entries.subList(2, 4)).extracting(e -> e.getReversedEntry().getLineOrder()).containsExactly(1, 2);
             List<JournalEntry> originals = entries.stream().filter(e -> !e.getIsReversal()).toList();
             List<JournalEntry> reversals = entries.stream().filter(JournalEntry::getIsReversal).toList();
             assertThat(originals).extracting(e -> e.getAccount().getAccountCode(), JournalEntry::getDebitAmount, JournalEntry::getCreditAmount)
@@ -243,7 +246,7 @@ class TransactionPersistenceTest extends PlaywrightTestBase {
         assertThat(afterRejected.getStatus()).isEqualTo(TransactionStatus.POSTED);
         assertThat(afterRejected.getTransactionNumber()).isEqualTo(postedNumber);
         assertThat(afterRejected.getAmount()).isEqualByComparingTo("95000");
-        assertThat(journalEntryRepository.findByTransactionIdOrderByJournalNumberAsc(posted)).hasSize(2);
+        assertThat(journalEntryRepository.findByTransactionIdOrderByLineOrderAsc(posted)).hasSize(2);
 
         navigateTo("/transactions/" + posted + "/edit");
         waitForPageLoad();
@@ -257,7 +260,7 @@ class TransactionPersistenceTest extends PlaywrightTestBase {
 
         assertThat(voidTransaction(posted).status()).isEqualTo(200);
         assertThat(voidTransaction(posted).status()).isEqualTo(409);
-        assertThat(journalEntryRepository.findByTransactionIdOrderByJournalNumberAsc(posted)).hasSize(4);
+        assertThat(journalEntryRepository.findByTransactionIdOrderByLineOrderAsc(posted)).hasSize(4);
     }
 
     @Test
@@ -334,7 +337,7 @@ class TransactionPersistenceTest extends PlaywrightTestBase {
         Transaction blocked = transactionRepository.findById(id).orElseThrow();
         assertThat(blocked.getStatus()).isEqualTo(TransactionStatus.DRAFT);
         assertThat(blocked.getTransactionNumber()).isNull();
-        assertThat(journalEntryRepository.findByTransactionIdOrderByJournalNumberAsc(id)).isEmpty();
+        assertThat(journalEntryRepository.findByTransactionIdOrderByLineOrderAsc(id)).isEmpty();
 
         assertThat(postForm("/fiscal-periods/" + period.getId() + "/reopen", FormData.create().set("reason", "Koreksi")).status())
                 .isEqualTo(302);

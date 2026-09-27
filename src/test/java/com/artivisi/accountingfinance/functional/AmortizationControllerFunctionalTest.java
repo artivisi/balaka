@@ -606,7 +606,7 @@ class AmortizationControllerFunctionalTest extends PlaywrightTestBase {
         assertThat(entry.getJournalEntryId()).as("journal of period " + entry.getPeriodNumber()).isNotNull();
         return new TransactionTemplate(transactionManager).execute(status -> {
             Transaction tx = journalEntryRepository.findById(entry.getJournalEntryId()).orElseThrow().getTransaction();
-            List<String> lines = journalEntryRepository.findByTransactionIdOrderByJournalNumberAsc(tx.getId()).stream()
+            List<String> lines = journalEntryRepository.findByTransactionIdOrderByLineOrderAsc(tx.getId()).stream()
                     .map(l -> l.getAccount().getAccountCode()
                             + " D" + l.getDebitAmount().setScale(2, RoundingMode.UNNECESSARY).toPlainString()
                             + " C" + l.getCreditAmount().setScale(2, RoundingMode.UNNECESSARY).toPlainString())
