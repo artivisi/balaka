@@ -356,7 +356,7 @@
                             <a sec:authorize="hasAuthority('DATA_SUBJECT_VIEW')" id="nav-data-subjects" th:href="@{/settings/data-subjects}"
                                th:classappend="${#strings.equals(currentPage, 'data-subjects')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
                                class="flex items-center px-3 py-2 rounded-lg transition-colors">Subjek Data</a>
-                            <a sec:authorize="hasAuthority('AUDIT_LOG_VIEW')" id="nav-audit-log" th:href="@{/audit-log}"
+                            <a sec:authorize="hasAuthority('AUDIT_LOG_VIEW')" id="nav-audit-log" th:href="@{/settings/audit-logs}"
                                th:classappend="${#strings.equals(currentPage, 'audit-log')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
                                class="flex items-center px-3 py-2 rounded-lg transition-colors">Log Audit</a>
                         </div>
@@ -634,7 +634,7 @@
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Import Data</a>
                             <a sec:authorize="hasAuthority('DATA_SUBJECT_VIEW')" th:href="@{/settings/data-subjects}"
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Subjek Data</a>
-                            <a sec:authorize="hasAuthority('AUDIT_LOG_VIEW')" th:href="@{/audit-log}"
+                            <a sec:authorize="hasAuthority('AUDIT_LOG_VIEW')" th:href="@{/settings/audit-logs}"
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Log Audit</a>
                         </div>
                     </details>
