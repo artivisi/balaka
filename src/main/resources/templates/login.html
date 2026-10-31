@@ -17,10 +17,10 @@
         <!-- Logo and Title -->
         <div class="text-center mb-8">
             <img th:if="${company != null and company.companyLogoPath != null and !company.companyLogoPath.isEmpty()}"
-                 th:src="@{/settings/company/logo}" th:alt="${theme.footerText}" class="h-12 mx-auto mb-4"
+                 th:src="@{/settings/company/logo}" th:alt="${theme.footerText}" class="h-14 mx-auto mb-4 w-auto max-w-[180px] object-contain"
                  onerror="this.style.display='none'">
             <img th:unless="${company != null and company.companyLogoPath != null and !company.companyLogoPath.isEmpty()}"
-                 th:src="@{${theme.logoPath}}" th:alt="${theme.footerText}" class="h-12 mx-auto mb-4"
+                 th:src="@{${theme.logoPath}}" th:alt="${theme.footerText}" class="h-14 mx-auto mb-4 w-auto max-w-[180px] object-contain"
                  onerror="this.style.display='none'">
             <h1 class="text-2xl font-bold text-gray-900">Balaka</h1>
             <p class="text-gray-600 mt-1"
