@@ -344,6 +344,9 @@
                             <a sec:authorize="hasAuthority('SECURITY_SETTINGS_VIEW')" id="nav-security-settings" th:href="@{/settings/security}"
                                th:classappend="${#strings.equals(currentPage, 'security-settings')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
                                class="flex items-center px-3 py-2 rounded-lg transition-colors">Keamanan</a>
+                            <a sec:authorize="hasAuthority('SETTINGS_VIEW')" id="nav-mfa" th:href="@{/settings/mfa}"
+                               th:classappend="${#strings.equals(currentPage, 'mfa')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
+                               class="flex items-center px-3 py-2 rounded-lg transition-colors">MFA (2FA)</a>
                             <a sec:authorize="hasAuthority('SETTINGS_VIEW')" id="nav-devices" th:href="@{/settings/devices}"
                                th:classappend="${#strings.equals(currentPage, 'devices')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
                                class="flex items-center px-3 py-2 rounded-lg transition-colors">Perangkat API</a>
@@ -356,7 +359,7 @@
                             <a sec:authorize="hasAuthority('DATA_SUBJECT_VIEW')" id="nav-data-subjects" th:href="@{/settings/data-subjects}"
                                th:classappend="${#strings.equals(currentPage, 'data-subjects')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
                                class="flex items-center px-3 py-2 rounded-lg transition-colors">Subjek Data</a>
-                            <a sec:authorize="hasAuthority('AUDIT_LOG_VIEW')" id="nav-audit-log" th:href="@{/audit-log}"
+                            <a sec:authorize="hasAuthority('AUDIT_LOG_VIEW')" id="nav-audit-log" th:href="@{/settings/audit-logs}"
                                th:classappend="${#strings.equals(currentPage, 'audit-log')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
                                class="flex items-center px-3 py-2 rounded-lg transition-colors">Log Audit</a>
                         </div>
@@ -634,7 +637,7 @@
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Import Data</a>
                             <a sec:authorize="hasAuthority('DATA_SUBJECT_VIEW')" th:href="@{/settings/data-subjects}"
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Subjek Data</a>
-                            <a sec:authorize="hasAuthority('AUDIT_LOG_VIEW')" th:href="@{/audit-log}"
+                            <a sec:authorize="hasAuthority('AUDIT_LOG_VIEW')" th:href="@{/settings/audit-logs}"
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Log Audit</a>
                         </div>
                     </details>

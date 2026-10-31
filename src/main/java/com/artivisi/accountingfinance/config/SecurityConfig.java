@@ -1,6 +1,9 @@
 package com.artivisi.accountingfinance.config;
 
+import com.artivisi.accountingfinance.security.AuthSuccessHandler;
 import com.artivisi.accountingfinance.security.BearerTokenAuthenticationFilter;
+import com.artivisi.accountingfinance.security.MfaPendingFilter;
+import com.artivisi.accountingfinance.security.RateLimitFilter;
 import com.artivisi.accountingfinance.security.CspNonceHeaderWriter;
 import com.artivisi.accountingfinance.service.SecurityAuditService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -44,10 +47,15 @@ public class SecurityConfig {
             HttpSecurity http,
             UserDetailsService userDetailsService,
             BearerTokenAuthenticationFilter bearerTokenAuthenticationFilter,
+            RateLimitFilter rateLimitFilter,
+            MfaPendingFilter mfaPendingFilter,
+            AuthSuccessHandler authSuccessHandler,
             SecurityAuditService securityAuditService) throws Exception {
         http
             .userDetailsService(userDetailsService)
             // Add Bearer token authentication filter before username/password filter
+            .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterBefore(mfaPendingFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(bearerTokenAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
             .authorizeHttpRequests(auth -> {
                 auth.requestMatchers("/css/**", "/js/**", "/img/**", "/themes/**", "/webjars/**").permitAll()
@@ -63,7 +71,8 @@ public class SecurityConfig {
                     // Container/platform health probes. Only the health group is
                     // exposed and show-details is never, so this returns status only.
                     .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
-                    .requestMatchers("/device/**").permitAll();
+                    .requestMatchers("/device/**").permitAll()
+                    .requestMatchers("/settings/company/logo").permitAll();  // Allow logo on login page
 
                 // API endpoints require Bearer token authentication (handled by filter)
                 // No need for special handling here - filter sets authentication
@@ -82,13 +91,13 @@ public class SecurityConfig {
                     PathPatternRequestMatcher.withDefaults().matcher("/api/oauth/token"),
                     PathPatternRequestMatcher.withDefaults().matcher("/api/telegram/webhook"))
             )
-            // Disable CORS processing - this is a same-origin web application
+            // Disable CORS processing - this is a same-origin web app
             // When CORS is disabled, Spring Security doesn't apply CORS filter
             // and the browser's same-origin policy handles security
             .cors(cors -> cors.disable())
             .formLogin(form -> form
                 .loginPage("/login")
-                .defaultSuccessUrl("/dashboard", false)
+                .successHandler(authSuccessHandler)
                 .failureHandler(loginFailureHandler(securityAuditService))
                 .permitAll()
             )

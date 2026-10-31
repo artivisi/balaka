@@ -42,6 +42,15 @@ public class User extends BaseEntity {
     @Column(name = "active", nullable = false)
     private Boolean active = true;
 
+    @Column(name = "mfa_secret", length = 32)
+    private String mfaSecret;
+
+    @Column(name = "mfa_enabled", nullable = false)
+    private Boolean mfaEnabled = false;
+
+    @Column(name = "password_last_changed", nullable = false)
+    private java.time.LocalDateTime passwordLastChanged = java.time.LocalDateTime.now();
+
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private Set<UserRole> userRoles = new HashSet<>();
 
