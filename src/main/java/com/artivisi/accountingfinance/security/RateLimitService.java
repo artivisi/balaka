@@ -1,6 +1,7 @@
 package com.artivisi.accountingfinance.security;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -147,6 +148,14 @@ public class RateLimitService {
         loginLimits.entrySet().removeIf(e -> e.getValue().isExpired(now, LOGIN_WINDOW_SECONDS));
         apiLimits.entrySet().removeIf(e -> e.getValue().isExpired(now, API_WINDOW_SECONDS));
         generalLimits.entrySet().removeIf(e -> e.getValue().isExpired(now, GENERAL_WINDOW_SECONDS));
+    }
+
+    /**
+     * Scheduled cleanup of expired rate limit entries (every 10 minutes).
+     */
+    @Scheduled(fixedRate = 600000)
+    public void scheduledCleanup() {
+        cleanup();
     }
 
     /**
