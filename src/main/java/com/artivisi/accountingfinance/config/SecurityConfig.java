@@ -1,6 +1,9 @@
 package com.artivisi.accountingfinance.config;
 
+import com.artivisi.accountingfinance.security.AuthSuccessHandler;
 import com.artivisi.accountingfinance.security.BearerTokenAuthenticationFilter;
+import com.artivisi.accountingfinance.security.MfaPendingFilter;
+import com.artivisi.accountingfinance.security.RateLimitFilter;
 import com.artivisi.accountingfinance.security.CspNonceHeaderWriter;
 import com.artivisi.accountingfinance.service.SecurityAuditService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -44,10 +47,15 @@ public class SecurityConfig {
             HttpSecurity http,
             UserDetailsService userDetailsService,
             BearerTokenAuthenticationFilter bearerTokenAuthenticationFilter,
+            RateLimitFilter rateLimitFilter,
+            MfaPendingFilter mfaPendingFilter,
+            AuthSuccessHandler authSuccessHandler,
             SecurityAuditService securityAuditService) throws Exception {
         http
             .userDetailsService(userDetailsService)
             // Add Bearer token authentication filter before username/password filter
+            .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterBefore(mfaPendingFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(bearerTokenAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
             .authorizeHttpRequests(auth -> {
                 auth.requestMatchers("/css/**", "/js/**", "/img/**", "/themes/**", "/webjars/**").permitAll()
@@ -89,7 +97,7 @@ public class SecurityConfig {
             .cors(cors -> cors.disable())
             .formLogin(form -> form
                 .loginPage("/login")
-                .defaultSuccessUrl("/dashboard", false)
+                .successHandler(authSuccessHandler)
                 .failureHandler(loginFailureHandler(securityAuditService))
                 .permitAll()
             )

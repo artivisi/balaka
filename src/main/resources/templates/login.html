@@ -16,14 +16,21 @@
     <div class="w-full max-w-md">
         <!-- Logo and Title -->
         <div class="text-center mb-8">
-            <img th:src="@{${theme.logoPath}}" th:alt="${theme.footerText}" class="h-12 mx-auto mb-4">
+            <img th:if="${company != null and company.companyLogoPath != null and !company.companyLogoPath.isEmpty()}"
+                 th:src="@{/settings/company/logo}" th:alt="${theme.footerText}" class="h-12 mx-auto mb-4"
+                 onerror="this.style.display='none'">
+            <img th:unless="${company != null and company.companyLogoPath != null and !company.companyLogoPath.isEmpty()}"
+                 th:src="@{${theme.logoPath}}" th:alt="${theme.footerText}" class="h-12 mx-auto mb-4"
+                 onerror="this.style.display='none'">
             <h1 class="text-2xl font-bold text-gray-900">Balaka</h1>
-            <p class="text-gray-600 mt-1">Masuk ke akun Anda</p>
+            <p class="text-gray-600 mt-1"
+               th:text="${mfaPending != null and mfaPending} ? 'Verifikasi Multi-Factor Authentication' : (${mfaSetup != null and mfaSetup} ? 'Aktifkan Multi-Factor Authentication' : 'Masuk ke akun Anda')">
+               Masuk ke akun Anda</p>
         </div>
 
         <!-- Login Card -->
         <div class="bg-white rounded-xl shadow-lg p-8">
-            <!-- Error Message -->
+            <!-- Error Message (login) -->
             <div th:if="${param.error}" class="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
                 <div class="flex items-center">
                     <svg class="w-5 h-5 text-red-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -43,8 +50,120 @@
                 </div>
             </div>
 
-            <!-- Login Form -->
-            <form th:action="@{/login}" method="post" class="space-y-6">
+            <!-- MFA Error Message -->
+            <div th:if="${errorMessage}" class="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <div class="flex items-center">
+                    <svg class="w-5 h-5 text-red-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <span class="text-sm text-red-700" th:text="${errorMessage}">Kode OTP tidak valid</span>
+                </div>
+            </div>
+
+            <!-- MFA Setup Form (shown when MFA needs to be activated) -->
+            <div th:if="${mfaSetup != null and mfaSetup}">
+                <!-- Instructions -->
+                <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <h3 class="text-sm font-semibold text-blue-800 mb-2">📋 Langkah-langkah Aktivasi MFA:</h3>
+                    <ol class="text-xs text-blue-700 space-y-1 list-decimal list-inside">
+                        <li>Download aplikasi authenticator (Google Authenticator, Authy, atau Microsoft Authenticator) di HP Anda</li>
+                        <li>Buka aplikasi → pilih <strong>"Tambah akun"</strong> atau <strong>"+"</strong></li>
+                        <li>Pilih <strong>"Scan QR code"</strong> lalu scan gambar di bawah</li>
+                        <li>Jika tidak bisa scan, pilih <strong>"Masukkan kunci setup"</strong> dan masukkan secret key di bawah</li>
+                        <li>Aplikasi akan menampilkan <strong>6-digit kode OTP</strong> yang berubah setiap 30 detik</li>
+                        <li>Masukkan kode OTP tersebut di form di bawah, lalu klik <strong>"Aktifkan MFA"</strong></li>
+                    </ol>
+                </div>
+
+                <!-- QR Code -->
+                <div class="flex justify-center mb-4">
+                    <img th:if="${qrCodeDataUri != null}" th:src="${qrCodeDataUri}" alt="QR Code"
+                         style="border: 1px solid #e5e7eb; padding: 4px; border-radius: 8px; width: 180px; height: 180px;" />
+                    <div th:unless="${qrCodeDataUri != null}" style="border: 1px solid #e5e7eb; padding: 4px; border-radius: 8px; width: 180px; height: 180px; display: flex; align-items: center; justify-content: center;">
+                        <p style="color: #9ca3af; font-size: 12px;">QR code tidak tersedia</p>
+                    </div>
+                </div>
+
+                <!-- Secret manual entry -->
+                <div class="mb-4 p-3 bg-gray-50 rounded-lg">
+                    <p class="text-xs text-gray-600 mb-1">
+                        <strong>Secret Key (untuk manual entry):</strong>
+                    </p>
+                    <p class="text-xs text-gray-500 mb-1">
+                        Secret: <code th:text="${mfaSecret}" class="bg-white px-2 py-1 rounded font-mono text-xs break-all">SECRET</code>
+                    </p>
+                    <p class="text-xs text-gray-400 mt-1">
+                        Account: <strong>Balaka: <span th:text="${mfaUsername}">superadmin</span></strong> | Type: Time based (TOTP)
+                    </p>
+                </div>
+
+                <!-- Tips -->
+                <div class="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                    <p class="text-xs text-amber-700">
+                        <strong>⚠️ Tips:</strong> Simpan secret key di tempat aman. Jika kehilangan akses ke aplikasi authenticator,
+                        gunakan secret key ini untuk setup ulang. Kode OTP berubah setiap 30 detik — masukkan segera setelah muncul.
+                    </p>
+                </div>
+
+                <!-- Enable MFA Form -->
+                <form th:action="@{/settings/mfa/enable}" method="post" class="space-y-4">
+                    <input type="hidden" name="secret" th:value="${mfaSecret}" />
+                    <div>
+                        <label for="code" class="block text-sm font-medium text-gray-700 mb-2">Kode OTP (6 digit)</label>
+                        <input type="text"
+                               id="code"
+                               name="code"
+                               maxlength="6"
+                               pattern="[0-9]{6}"
+                               required
+                               autofocus
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors text-center text-2xl tracking-widest"
+                               placeholder="000000">
+                    </div>
+                    <button type="submit"
+                            class="w-full py-3 px-4 bg-primary-700 hover:bg-primary-800 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
+                        Aktifkan MFA
+                    </button>
+                </form>
+            </div>
+
+            <!-- MFA Verify Form (shown when MFA is pending) -->
+            <div th:if="${mfaPending != null and mfaPending}">
+                <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p class="text-xs text-blue-700">
+                        <strong>Cara mendapatkan kode OTP:</strong><br>
+                        1. Buka aplikasi authenticator (Google Authenticator, Authy, dll)<br>
+                        2. Cari akun <strong>Balaka: <span th:text="${mfaUsername}">user</span></strong><br>
+                        3. Masukkan 6-digit kode yang ditampilkan (berubah setiap 30 detik)<br>
+                        4. Jika kode ditolak, tunggu kode baru muncul dan coba lagi
+                    </p>
+                </div>
+                <p class="text-sm text-gray-600 mb-4">
+                    Masukkan 6-digit kode OTP dari aplikasi authenticator untuk akun <strong th:text="${mfaUsername}">user</strong>.
+                </p>
+                <form th:action="@{/mfa-verify}" method="post" class="space-y-6">
+                    <div>
+                        <label for="code" class="block text-sm font-medium text-gray-700 mb-2">Kode OTP (6 digit)</label>
+                        <input type="text"
+                               id="code"
+                               name="code"
+                               maxlength="6"
+                               pattern="[0-9]{6}"
+                               required
+                               autofocus
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors text-center text-2xl tracking-widest"
+                               placeholder="000000">
+                    </div>
+
+                    <button type="submit"
+                            class="w-full py-3 px-4 bg-primary-700 hover:bg-primary-800 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
+                        Verifikasi
+                    </button>
+                </form>
+            </div>
+
+            <!-- Login Form (shown when no MFA pending/setup) -->
+            <form th:if="${(mfaPending == null or !mfaPending) and (mfaSetup == null or !mfaSetup)}" th:action="@{/login}" method="post" class="space-y-6">
                 <div>
                     <label for="username" class="block text-sm font-medium text-gray-700 mb-2">Username</label>
                     <input type="text"
@@ -86,5 +205,7 @@
             <p class="text-xs text-gray-400">Powered by Balaka</p>
         </div>
     </div>
+
+
 </body>
 </html>

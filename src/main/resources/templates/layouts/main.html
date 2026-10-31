@@ -344,6 +344,9 @@
                             <a sec:authorize="hasAuthority('SECURITY_SETTINGS_VIEW')" id="nav-security-settings" th:href="@{/settings/security}"
                                th:classappend="${#strings.equals(currentPage, 'security-settings')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
                                class="flex items-center px-3 py-2 rounded-lg transition-colors">Keamanan</a>
+                            <a sec:authorize="hasAuthority('SETTINGS_VIEW')" id="nav-mfa" th:href="@{/settings/mfa}"
+                               th:classappend="${#strings.equals(currentPage, 'mfa')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
+                               class="flex items-center px-3 py-2 rounded-lg transition-colors">MFA (2FA)</a>
                             <a sec:authorize="hasAuthority('SETTINGS_VIEW')" id="nav-devices" th:href="@{/settings/devices}"
                                th:classappend="${#strings.equals(currentPage, 'devices')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
                                class="flex items-center px-3 py-2 rounded-lg transition-colors">Perangkat API</a>
