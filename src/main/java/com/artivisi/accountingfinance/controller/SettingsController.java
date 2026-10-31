@@ -297,7 +297,7 @@ public class SettingsController {
 
     // Rendered on invoice and report prints, which roles without SETTINGS_VIEW (e.g. AUDITOR) can open
     @GetMapping("/company/logo")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("permitAll()")
     @ResponseBody
     public ResponseEntity<Resource> getCompanyLogo() {
         CompanyConfig config = companyConfigService.getConfig();
