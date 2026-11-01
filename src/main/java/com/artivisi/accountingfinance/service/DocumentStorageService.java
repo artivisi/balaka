@@ -62,7 +62,7 @@ public class DocumentStorageService {
                     log.info("Document storage initialized at: {}", rootLocation);
                     // Verify directory is writable by testing a listing
                     try (var stream = Files.list(rootLocation)) {
-                        stream.findFirst(); // just verify we can list
+                        stream.findFirst().orElse(null); // just verify we can list
                     }
                 }
             } catch (IOException e) {
