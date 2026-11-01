@@ -27,6 +27,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -61,27 +62,46 @@ public class DocumentController {
     @PreAuthorize("hasAnyAuthority('" + Permission.TRANSACTION_CREATE + "', '" + Permission.TRANSACTION_EDIT + "')")
     public String uploadForTransaction(
             @PathVariable UUID transactionId,
-            @RequestParam("file") MultipartFile file,
+            @RequestParam("file") MultipartFile[] files,
             Authentication authentication,
             Model model) {
         String username = authentication != null ? authentication.getName() : USER_SYSTEM;
 
-        try {
-            Document document = documentService.uploadForTransaction(transactionId, file, username);
-            securityAuditService.log(AuditEventType.DOCUMENT_UPLOAD,
-                    AUDIT_UPLOADED_DOC + document.getOriginalFilename() + " for transaction: " + transactionId);
-            model.addAttribute(ATTR_DOCUMENT, document);
+        int successCount = 0;
+        List<String> errors = new ArrayList<>();
+
+        if (files != null) {
+            for (MultipartFile file : files) {
+                if (file == null || file.isEmpty()) {
+                    continue;
+                }
+                try {
+                    Document document = documentService.uploadForTransaction(transactionId, file, username);
+                    securityAuditService.log(AuditEventType.DOCUMENT_UPLOAD,
+                            AUDIT_UPLOADED_DOC + document.getOriginalFilename() + " for transaction: " + transactionId);
+                    successCount++;
+                } catch (IOException e) {
+                    log.error("Failed to upload document for transaction {}: {}", transactionId, e.getMessage());
+                    errors.add(file.getOriginalFilename() + ": " + e.getMessage());
+                } catch (IllegalArgumentException e) {
+                    errors.add(file.getOriginalFilename() + ": " + e.getMessage());
+                }
+            }
+        }
+
+        if (successCount > 0 && errors.isEmpty()) {
             model.addAttribute(ATTR_SUCCESS, true);
-            model.addAttribute(ATTR_MESSAGE, MSG_UPLOAD_SUCCESS);
-        } catch (IOException e) {
-            log.error("Failed to upload document for transaction {}: {}", transactionId, e.getMessage());
+            model.addAttribute(ATTR_MESSAGE, successCount + " dokumen berhasil diunggah");
+        } else if (successCount > 0) {
+            model.addAttribute(ATTR_SUCCESS, true);
+            model.addAttribute(ATTR_MESSAGE, successCount + " dokumen berhasil diunggah; " + errors.size() + " gagal: " + String.join("; ", errors));
+        } else if (!errors.isEmpty()) {
             model.addAttribute(ATTR_SUCCESS, false);
             // nosemgrep: semgrep.missing-html-escape-in-model - rendered only via th:text in fragments/document-list.html, which escapes
-            model.addAttribute(ATTR_MESSAGE, MSG_UPLOAD_FAILED + e.getMessage());
-        } catch (IllegalArgumentException e) {
+            model.addAttribute(ATTR_MESSAGE, MSG_UPLOAD_FAILED + String.join("; ", errors));
+        } else {
             model.addAttribute(ATTR_SUCCESS, false);
-            // nosemgrep: semgrep.missing-html-escape-in-model - rendered only via th:text in fragments/document-list.html, which escapes
-            model.addAttribute(ATTR_MESSAGE, e.getMessage());
+            model.addAttribute(ATTR_MESSAGE, "Tidak ada file yang dipilih");
         }
 
         // Return updated document list fragment
