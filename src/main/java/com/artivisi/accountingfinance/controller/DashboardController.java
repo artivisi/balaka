@@ -121,7 +121,7 @@ public class DashboardController {
                 try {
                     String encodedUri = java.net.URLEncoder.encode(otpAuthUri, java.nio.charset.StandardCharsets.UTF_8);
                     String qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=" + encodedUri;
-                    java.net.URL url = new java.net.URL(qrUrl);
+                    java.net.URL url = java.net.URI.create(qrUrl).toURL();
                     java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
                     conn.setConnectTimeout(5000);
                     conn.setReadTimeout(5000);

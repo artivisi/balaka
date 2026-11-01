@@ -15,8 +15,6 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-
 @Controller
 public class MfaVerifyController {
 
@@ -41,8 +39,7 @@ public class MfaVerifyController {
     @PostMapping("/mfa-verify")
     public String mfaVerifySubmit(@RequestParam("code") String code,
                                  HttpServletRequest request,
-                                 HttpServletResponse response,
-                                 RedirectAttributes redirectAttributes) throws Exception {
+                                 HttpServletResponse response) throws Exception {
         HttpSession session = request.getSession(false);
         if (session == null || session.getAttribute("MFA_PENDING_USER") == null) {
             return "redirect:/login";
