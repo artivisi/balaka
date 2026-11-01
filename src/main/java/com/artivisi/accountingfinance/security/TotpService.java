@@ -7,11 +7,10 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.security.SecureRandom;
 import java.time.Instant;
-import java.util.Base64;
 
 /**
  * TOTP (Time-based One-Time Password) service implementing RFC 6238.
- * Uses HMAC-SHA1 with 30-second time window and 6-digit codes.
+ * Uses HMAC-SHA256 with 30-second time window and 6-digit codes.
  */
 @Service
 public class TotpService {
@@ -46,8 +45,8 @@ public class TotpService {
                 counter >>= 8;
             }
 
-            Mac mac = Mac.getInstance("HmacSHA1");
-            mac.init(new SecretKeySpec(key, "HmacSHA1"));
+            Mac mac = Mac.getInstance("HmacSHA256");
+            mac.init(new SecretKeySpec(key, "HmacSHA256"));
             byte[] hash = mac.doFinal(data);
 
             int offset = hash[hash.length - 1] & 0x0F;
@@ -87,7 +86,7 @@ public class TotpService {
      * Generate the otpauth URI for QR code generation.
      */
     public String getOtpAuthUri(String secret, String accountName, String issuer) {
-        return String.format("otpauth://totp/%s:%s?secret=%s&issuer=%s&algorithm=SHA1&digits=%d&period=%d",
+        return String.format("otpauth://totp/%s:%s?secret=%s&issuer=%s&algorithm=SHA256&digits=%d&period=%d",
                 issuer, accountName, secret, issuer, DIGITS, WINDOW_SIZE);
     }
 }
