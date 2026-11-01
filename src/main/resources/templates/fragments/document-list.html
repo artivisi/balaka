@@ -53,24 +53,6 @@
             <span>Mengunggah...</span>
         </div>
     </form>
-    <script th:attr="nonce=${cspNonce}">
-        (function() {
-            var input = document.getElementById('document-file-input');
-            var list = document.getElementById('selected-files');
-            if (input && list) {
-                input.addEventListener('change', function() {
-                    list.innerHTML = '';
-                    if (input.files && input.files.length > 0) {
-                        for (var i = 0; i < input.files.length; i++) {
-                            var p = document.createElement('p');
-                            p.textContent = (i + 1) + '. ' + input.files[i].name + ' (' + Math.round(input.files[i].size / 1024) + ' KB)';
-                            list.appendChild(p);
-                        }
-                    }
-                });
-            }
-        })();
-    </script>
 
     <!-- Document List -->
     <div th:if="${documents != null and !documents.isEmpty()}" data-testid="document-list" class="space-y-2">
