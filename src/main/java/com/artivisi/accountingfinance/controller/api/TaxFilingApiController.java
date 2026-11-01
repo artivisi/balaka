@@ -267,11 +267,19 @@ public class TaxFilingApiController {
     }
 
     private int parseYear(String period) {
-        return Integer.parseInt(period.substring(0, 4));
+        try {
+            return Integer.parseInt(period.substring(0, 4));
+        } catch (NumberFormatException | StringIndexOutOfBoundsException e) {
+            throw new IllegalArgumentException("Invalid period format: " + period, e);
+        }
     }
 
     private Integer parseMonth(String period) {
-        return period.length() == 4 ? null : Integer.valueOf(period.substring(5, 7));
+        try {
+            return period.length() == 4 ? null : Integer.valueOf(period.substring(5, 7));
+        } catch (NumberFormatException | StringIndexOutOfBoundsException e) {
+            throw new IllegalArgumentException("Invalid period format: " + period, e);
+        }
     }
 
     // ==================== DTOs ====================

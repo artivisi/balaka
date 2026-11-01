@@ -23,23 +23,24 @@ public class TagReportService {
 
     public List<TagTypeSummary> generateReport(LocalDate startDate, LocalDate endDate) {
         @SuppressWarnings("unchecked")
-        List<Object[]> rows = entityManager.createNativeQuery(
-                "SELECT tt.name AS tag_type_name, tg.name AS tag_name, " +
-                "       jt.category, " +
-                "       COALESCE(SUM(t.amount), 0) AS total_amount, " +
-                "       COUNT(DISTINCT t.id) AS transaction_count " +
-                "FROM transaction_tags txn_tag " +
-                "JOIN transactions t ON t.id = txn_tag.id_transaction " +
-                "JOIN tags tg ON tg.id = txn_tag.id_tag " +
-                "JOIN tag_types tt ON tt.id = tg.id_tag_type " +
-                "JOIN journal_templates jt ON jt.id = t.id_journal_template " +
-                "WHERE t.status = 'POSTED' " +
-                "AND t.transaction_date >= :startDate " +
-                "AND t.transaction_date <= :endDate " +
-                "AND tt.deleted_at IS NULL " +
-                "AND tg.deleted_at IS NULL " +
-                "GROUP BY tt.name, tg.name, jt.category " +
-                "ORDER BY tt.name, tg.name, jt.category")
+        List<Object[]> rows = entityManager.createNativeQuery("""
+                SELECT tt.name AS tag_type_name, tg.name AS tag_name,
+                       jt.category,
+                       COALESCE(SUM(t.amount), 0) AS total_amount,
+                       COUNT(DISTINCT t.id) AS transaction_count
+                FROM transaction_tags txn_tag
+                JOIN transactions t ON t.id = txn_tag.id_transaction
+                JOIN tags tg ON tg.id = txn_tag.id_tag
+                JOIN tag_types tt ON tt.id = tg.id_tag_type
+                JOIN journal_templates jt ON jt.id = t.id_journal_template
+                WHERE t.status = 'POSTED'
+                AND t.transaction_date >= :startDate
+                AND t.transaction_date <= :endDate
+                AND tt.deleted_at IS NULL
+                AND tg.deleted_at IS NULL
+                GROUP BY tt.name, tg.name, jt.category
+                ORDER BY tt.name, tg.name, jt.category
+                """)
                 .setParameter("startDate", startDate)
                 .setParameter("endDate", endDate)
                 .getResultList();
