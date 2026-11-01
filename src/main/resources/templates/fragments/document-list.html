@@ -28,6 +28,7 @@
           hx-target="#document-list-container"
           hx-swap="outerHTML"
           hx-encoding="multipart/form-data"
+          hx-indicator="#upload-progress"
           class="mb-4">
         <div class="flex items-center gap-2">
             <label class="flex-1 cursor-pointer">
@@ -43,7 +44,33 @@
                 Unggah
             </button>
         </div>
+        <div id="selected-files" class="mt-2 text-xs text-gray-600 space-y-1"></div>
+        <div id="upload-progress" class="htmx-indicator mt-2 text-sm text-primary-600 flex items-center gap-2">
+            <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+            </svg>
+            <span>Mengunggah...</span>
+        </div>
     </form>
+    <script th:attr="nonce=${cspNonce}">
+        (function() {
+            var input = document.getElementById('document-file-input');
+            var list = document.getElementById('selected-files');
+            if (input && list) {
+                input.addEventListener('change', function() {
+                    list.innerHTML = '';
+                    if (input.files && input.files.length > 0) {
+                        for (var i = 0; i < input.files.length; i++) {
+                            var p = document.createElement('p');
+                            p.textContent = (i + 1) + '. ' + input.files[i].name + ' (' + Math.round(input.files[i].size / 1024) + ' KB)';
+                            list.appendChild(p);
+                        }
+                    }
+                });
+            }
+        })();
+    </script>
 
     <!-- Document List -->
     <div th:if="${documents != null and !documents.isEmpty()}" data-testid="document-list" class="space-y-2">
