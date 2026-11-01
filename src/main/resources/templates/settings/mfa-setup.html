@@ -74,10 +74,10 @@
         </div>
     </section>
 
-    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js" th:attr="nonce=${cspNonce}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js" integrity="sha384-8FWZA6BGMXhsfO+BLtrJK0We6gg5o1JyO8xQm6peWDEUs17ACA5ziE/NIAkl9z2k" crossorigin="anonymous" th:attr="nonce=${cspNonce}"></script>
     <script th:inline="javascript" th:attr="nonce=${cspNonce}">
         (function() {
-            var uri = document.getElementById('otp-uri').getAttribute('data-uri');
+            var uri = document.getElementById('otp-uri').dataset.uri;
             var qrDiv = document.getElementById('qrcode');
             var loading = document.getElementById('qr-loading');
 
