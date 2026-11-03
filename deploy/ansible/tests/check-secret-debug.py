@@ -183,7 +183,7 @@ def main(argv: list[str]) -> int:
             for task in walk_debug_tasks(document):
                 debug_tasks += 1
                 task_name, secrets = scan_task(task)
-                for _ in sorted(secrets):
+                if secrets:
                     findings.append(
                         f"{path}: debug task '{task_name}' interpolates "
                         f"a secret variable"
