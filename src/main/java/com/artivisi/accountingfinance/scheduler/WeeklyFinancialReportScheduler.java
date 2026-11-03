@@ -65,6 +65,9 @@ public class WeeklyFinancialReportScheduler {
             } else {
                 log.warn("Failed to send weekly report: {} - {}", resp.statusCode(), resp.body());
             }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("Error sending weekly financial report", e);
         } catch (Exception e) {
             log.error("Error sending weekly financial report", e);
         }
