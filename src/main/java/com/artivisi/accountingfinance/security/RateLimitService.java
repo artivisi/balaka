@@ -159,6 +159,14 @@ public class RateLimitService {
     }
 
     /**
+     * Scheduled cleanup of expired rate limit entries (every 10 minutes).
+     */
+    @Scheduled(fixedRate = 600000)
+    public void scheduledCleanup() {
+        cleanup();
+    }
+
+    /**
      * Internal class to track rate limit information per IP.
      */
     private static class RateLimitInfo {
