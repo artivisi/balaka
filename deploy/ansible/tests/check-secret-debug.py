@@ -158,11 +158,6 @@ def yaml_files(paths: list[str]) -> list[Path]:
     return sorted(set(files))
 
 
-def _redact_secret_for_log(secret: str) -> str:
-    """Return a non-sensitive representation for log output."""
-    return "[REDACTED_SECRET]"
-
-
 def main(argv: list[str]) -> int:
     default_root = Path(__file__).resolve().parents[1]
     paths = argv[1:] or [str(default_root)]
@@ -188,11 +183,10 @@ def main(argv: list[str]) -> int:
             for task in walk_debug_tasks(document):
                 debug_tasks += 1
                 task_name, secrets = scan_task(task)
-                for secret in sorted(secrets):
-                    safe_secret = _redact_secret_for_log(secret)
+                for _ in sorted(secrets):
                     findings.append(
                         f"{path}: debug task '{task_name}' interpolates "
-                        f"secret variable '{safe_secret}'"
+                        f"a secret variable"
                     )
 
     for finding in findings:
