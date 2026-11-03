@@ -69,7 +69,7 @@
     </section>
         <script th:inline="javascript" th:attr="nonce=${cspNonce}">
             document.getElementById('year-select')?.addEventListener('change', function() {
-                globalThis.location.href = '/tax-calendar/yearly?year=' + this.value;
+                globalThis.location.href = '/tax-calendar/yearly?year=' + encodeURIComponent(this.value);
             });
         </script>
 </body>
