@@ -139,7 +139,7 @@
         function reloadPeriod() {
             const year = document.getElementById('year-selector').value;
             const month = document.getElementById('month-selector').value;
-            globalThis.location.href = '/tax-calendar?year=' + year + '&month=' + month;
+            globalThis.location.href = '/tax-calendar?year=' + encodeURIComponent(year) + '&month=' + encodeURIComponent(month);
         }
         document.getElementById('month-selector').addEventListener('change', reloadPeriod);
         document.getElementById('year-selector').addEventListener('change', reloadPeriod);
