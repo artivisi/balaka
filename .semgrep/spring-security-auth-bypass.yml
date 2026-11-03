@@ -25,7 +25,7 @@ rules:
               $HTTP.antMatchers($MATCHER).permitAll()
       - metavariable-regex:
           metavariable: $MATCHER
-          regex: .*(admin|user|employee|payroll|transaction|account|report|settings|api).*((?!login|public|health|actuator).)*
+          regex: .*(admin|user|employee|payroll|transaction|account|report|settings|api).*
     fix: $HTTP.requestMatchers($MATCHER).authenticated()
     paths:
       include:
@@ -181,7 +181,7 @@ rules:
           - pattern: $AUTH.inMemoryAuthentication()...password("...")
       - metavariable-regex:
           metavariable: $PASSWORD
-          regex: (?!.*(\$\{|env\.|System\.getenv)).*
+          regex: ^(?!.*(\$\{|env\.|System\.getenv)).*$
     paths:
       include:
         - '**/SecurityConfig.java'
