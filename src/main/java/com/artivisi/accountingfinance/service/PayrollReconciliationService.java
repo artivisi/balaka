@@ -233,6 +233,21 @@ public class PayrollReconciliationService {
                 journalsOutsideRun(period, run, salaryAccounts));
     }
 
+    // ==================== Rows behind the figures ====================
+
+    /** Lines behind {@link PeriodReconciliation#ledgerSalaryExpense()}: posted, non-closing, on salary accounts. */
+    public List<JournalEntry> salaryExpenseLines(YearMonth period) {
+        return journalEntryRepository.findPostedLinesByAccountsExcludingClosing(
+                salaryAccounts().keySet(), period.atDay(1), period.atEndOfMonth());
+    }
+
+    /** Details behind {@link PeriodReconciliation#runTaxableIncome()}: the active run's rows, empty without a run. */
+    public List<PayrollDetail> runDetails(YearMonth period) {
+        return activeRun(period)
+                .map(run -> payrollDetailRepository.findByPayrollRunIdWithEmployee(run.getId()))
+                .orElse(List.of());
+    }
+
     // ==================== Helpers ====================
 
     private Optional<PayrollRun> activeRun(YearMonth period) {

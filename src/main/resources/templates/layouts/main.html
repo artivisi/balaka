@@ -243,6 +243,9 @@
                             <a sec:authorize="hasAuthority('TAX_REPORT_VIEW')" id="nav-sales-tax-chain" th:href="@{/sales-tax-chain}"
                                th:classappend="${#strings.equals(currentPage, 'sales-tax-chain')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
                                class="flex items-center px-3 py-2 rounded-lg transition-colors">Rantai Pajak Penjualan</a>
+                            <a sec:authorize="hasAuthority('TAX_REPORT_VIEW')" id="nav-self-test" th:href="@{/reports/self-test}"
+                               th:classappend="${#strings.equals(currentPage, 'self-test')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
+                               class="flex items-center px-3 py-2 rounded-lg transition-colors">Uji Mandiri Pajak</a>
                         </div>
                     </details>
 
@@ -565,6 +568,8 @@
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Pemotongan PPh</a>
                             <a sec:authorize="hasAuthority('TAX_REPORT_VIEW')" th:href="@{/sales-tax-chain}"
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Rantai Pajak Penjualan</a>
+                            <a sec:authorize="hasAuthority('TAX_REPORT_VIEW')" th:href="@{/reports/self-test}"
+                               class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Uji Mandiri Pajak</a>
                         </div>
                     </details>
 

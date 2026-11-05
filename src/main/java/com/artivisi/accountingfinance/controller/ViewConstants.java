@@ -83,6 +83,7 @@ public final class ViewConstants {
     public static final String PAGE_CLIENT_STATEMENT = "client-statement";
     public static final String PAGE_VENDOR_STATEMENT = "vendor-statement";
     public static final String PAGE_SHAREHOLDER_STATEMENT = "shareholder-statement";
+    public static final String PAGE_SELF_TEST = "self-test";
 
     // Current page values - Bills
     public static final String PAGE_BILLS = "bills";

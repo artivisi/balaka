@@ -8,6 +8,8 @@ import com.artivisi.accountingfinance.enums.TaxType;
 import com.artivisi.accountingfinance.enums.TransactionStatus;
 import com.artivisi.accountingfinance.enums.WithholdingDepositStatus;
 import com.artivisi.accountingfinance.enums.WithholdingTreatment;
+import com.artivisi.accountingfinance.entity.TaxTransactionDetail;
+import com.artivisi.accountingfinance.repository.TaxTransactionDetailRepository;
 import com.artivisi.accountingfinance.repository.VendorRepository;
 import com.artivisi.accountingfinance.repository.WithholdingDepositRepository;
 import com.artivisi.accountingfinance.repository.WithholdingPaymentRepository;
@@ -41,6 +43,7 @@ public class WithholdingQueryService {
     private final WithholdingDepositRepository depositRepository;
     private final VendorRepository vendorRepository;
     private final TaxDeadlineService taxDeadlineService;
+    private final TaxTransactionDetailRepository taxDetailRepository;
 
     /**
      * One tax in one masa. withheld and deposited count POSTED rows only; draftWithheld shows what is pending.
@@ -95,6 +98,19 @@ public class WithholdingQueryService {
                 .toList();
         BigDecimal total = rows.stream().map(UndocumentedRow::amount).reduce(BigDecimal.ZERO, BigDecimal::add);
         return new UndocumentedReport(year, month, rows, unclassified, total);
+    }
+
+    /**
+     * PPh 23, 26 or 4(2) tax details this company withholds, on POSTED transactions dated in the range: the rows of
+     * the e-Bupot Unifikasi export. Bupot received from customers on invoices are excluded.
+     */
+    public List<TaxTransactionDetail> findWithheldDetails(TaxType taxType, LocalDate from, LocalDate to) {
+        if (taxType != TaxType.PPH_23 && taxType != TaxType.PPH_26 && taxType != TaxType.PPH_42) {
+            throw new IllegalArgumentException("Bukan jenis PPh unifikasi: " + taxType);
+        }
+        return taxDetailRepository.findEBupotUnifikasiByDateRange(from, to).stream()
+                .filter(d -> d.getTaxType() == taxType)
+                .toList();
     }
 
     private MasaStatus masaStatus(YearMonth masa, WithholdingTreatment treatment, List<WithholdingDeposit> deposits, LocalDate asOf) {

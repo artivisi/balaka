@@ -6,6 +6,8 @@ import com.artivisi.accountingfinance.entity.AssetMovement;
 import com.artivisi.accountingfinance.entity.AssetStatus;
 import com.artivisi.accountingfinance.entity.DepreciationEntry;
 import com.artivisi.accountingfinance.entity.FixedAsset;
+import com.artivisi.accountingfinance.entity.ChartOfAccount;
+import com.artivisi.accountingfinance.repository.AssetCategoryRepository;
 import com.artivisi.accountingfinance.repository.AssetDisposalRepository;
 import com.artivisi.accountingfinance.repository.AssetMovementRepository;
 import com.artivisi.accountingfinance.repository.DepreciationEntryRepository;
@@ -18,6 +20,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
@@ -33,6 +36,7 @@ public class AssetRegisterQueryService {
     private final AssetMovementRepository movementRepository;
     private final FixedAssetRepository fixedAssetRepository;
     private final DepreciationEntryRepository depreciationEntryRepository;
+    private final AssetCategoryRepository assetCategoryRepository;
 
     /**
      * Yearly roll-forward of one category. Disposals count from the posted disposal date. Accumulated depreciation
@@ -59,6 +63,11 @@ public class AssetRegisterQueryService {
     public record CostMovement(int year, List<CostMovementRow> rows, CostMovementRow total) {
     }
 
+    /** One asset's part of {@link #costMovement(int)}. */
+    public record AssetCostMovement(UUID assetId, String assetCode, String assetName, LocalDate purchaseDate,
+                                    LocalDate disposalDate, CostMovementRow movement) {
+    }
+
     /** Disposal records dated in the range. A null status returns all statuses. */
     public List<AssetDisposal> findDisposals(LocalDate from, LocalDate to, AssetDisposalStatus status) {
         return disposalRepository.findByDateRange(from, to, status);
@@ -78,23 +87,49 @@ public class AssetRegisterQueryService {
     }
 
     public CostMovement costMovement(int year) {
+        Map<String, CostMovementRow> byCategory = new TreeMap<>();
+        for (AssetCostMovement asset : costMovementByAsset(year)) {
+            byCategory.merge(asset.movement().categoryCode(), asset.movement(), CostMovementRow::plus);
+        }
+        CostMovementRow total = byCategory.values().stream()
+                .reduce(CostMovementRow.empty(null, null), CostMovementRow::plus);
+        return new CostMovement(year, new ArrayList<>(byCategory.values()), total);
+    }
+
+    /** Rows behind {@link #costMovement(int)}: every asset on the register during the year, ordered by code. */
+    public List<AssetCostMovement> costMovementByAsset(int year) {
         LocalDate start = LocalDate.of(year, 1, 1);
         LocalDate end = LocalDate.of(year, 12, 31);
         Map<UUID, List<DepreciationEntry>> posted = depreciationEntryRepository.findAllPostedWithAsset().stream()
                 .collect(Collectors.groupingBy(e -> e.getFixedAsset().getId()));
 
-        Map<String, CostMovementRow> byCategory = new TreeMap<>();
+        List<AssetCostMovement> rows = new ArrayList<>();
         for (FixedAsset asset : fixedAssetRepository.findAllWithCategory()) {
             LocalDate disposedOn = asset.getStatus() == AssetStatus.DISPOSED ? asset.getDisposalDate() : null;
             if (asset.getPurchaseDate().isAfter(end) || (disposedOn != null && disposedOn.isBefore(start))) {
                 continue;
             }
-            CostMovementRow row = rowOf(asset, disposedOn, posted.getOrDefault(asset.getId(), List.of()), start, end);
-            byCategory.merge(row.categoryCode(), row, CostMovementRow::plus);
+            rows.add(new AssetCostMovement(asset.getId(), asset.getAssetCode(), asset.getName(), asset.getPurchaseDate(),
+                    disposedOn, rowOf(asset, disposedOn, posted.getOrDefault(asset.getId(), List.of()), start, end)));
         }
-        CostMovementRow total = byCategory.values().stream()
-                .reduce(CostMovementRow.empty(null, null), CostMovementRow::plus);
-        return new CostMovement(year, new ArrayList<>(byCategory.values()), total);
+        rows.sort(java.util.Comparator.comparing(AssetCostMovement::assetCode));
+        return rows;
+    }
+
+    /** Cost accounts of the register: the asset account of every category and of every asset. */
+    public Map<UUID, ChartOfAccount> costAccounts() {
+        Map<UUID, ChartOfAccount> accounts = new LinkedHashMap<>();
+        assetCategoryRepository.findAll().forEach(c -> {
+            if (c.getAssetAccount() != null) {
+                accounts.putIfAbsent(c.getAssetAccount().getId(), c.getAssetAccount());
+            }
+        });
+        fixedAssetRepository.findAllWithCategory().forEach(a -> {
+            if (a.getAssetAccount() != null) {
+                accounts.putIfAbsent(a.getAssetAccount().getId(), a.getAssetAccount());
+            }
+        });
+        return accounts;
     }
 
     private CostMovementRow rowOf(FixedAsset asset, LocalDate disposedOn, List<DepreciationEntry> entries,

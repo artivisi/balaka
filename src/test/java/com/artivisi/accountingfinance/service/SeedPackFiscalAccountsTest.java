@@ -33,7 +33,7 @@ class SeedPackFiscalAccountsTest {
     void packCarriesSeedAccounts(String pack) throws IOException {
         List<String[]> rows = Files.readAllLines(Path.of("industry-seed", pack, "seed-data", "02_chart_of_accounts.csv"))
                 .stream().skip(1).map(l -> l.split(",", -1)).toList();
-        rows.forEach(r -> assertThat(r).as(String.join(",", r)).hasSize(10));
+        rows.forEach(r -> assertThat(r).as(String.join(",", r)).hasSize(11));
         Map<String, String[]> byCode = rows.stream().collect(Collectors.toMap(r -> r[CODE], Function.identity()));
 
         assertAccount(byCode, "2.1.25", "Hutang PPh 26", "LIABILITY", "");
@@ -58,6 +58,20 @@ class SeedPackFiscalAccountsTest {
                 .extracting(r -> r[CODE] + "=" + r[9])
                 .containsExactlyInAnyOrder("1.1.26=TAX_CREDIT", "2.1.50=SHAREHOLDER_CURRENT");
         assertAccount(byCode, "2.1.50", "Rekening Koran Pemegang Saham/Direksi", "LIABILITY", "");
+
+        // Self-test roles: only on leaf expense accounts; PPh 23 and 4(2) roles only on service accounts.
+        assertThat(rows).as("one OTHER_EXPENSE account in %s", pack).filteredOn(r -> "OTHER_EXPENSE".equals(r[10]))
+                .singleElement().satisfies(r -> assertThat(r[NAME]).isEqualTo("Beban Operasional Lainnya"));
+        assertThat(rows).as("SERVICE_PPH23 accounts in %s", pack).filteredOn(r -> "SERVICE_PPH23".equals(r[10]))
+                .isNotEmpty().allSatisfy(r -> assertThat(r[8]).isEqualTo("true"));
+        assertThat(rows).as("RENT_PPH42 accounts in %s", pack).filteredOn(r -> "RENT_PPH42".equals(r[10]))
+                .allSatisfy(r -> {
+                    assertThat(r[8]).isEqualTo("true");
+                    assertThat(r[NAME]).contains("Sewa");
+                })
+                .hasSize("campus".equals(pack) ? 0 : 1);
+        assertThat(rows).as("self-test roles on expense accounts only").filteredOn(r -> !r[10].isEmpty())
+                .allSatisfy(r -> assertThat(r[TYPE]).isEqualTo("EXPENSE"));
 
         Set<String> parents = rows.stream().map(r -> r[PARENT]).collect(Collectors.toSet());
         for (String[] r : rows) {

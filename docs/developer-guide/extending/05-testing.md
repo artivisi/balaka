@@ -162,6 +162,9 @@ Period-scoped data (transactions, payroll runs, fiscal periods, schedules) goes 
 | 2194-2198, 2018-2019, 2012 (integration DB; 2018-2019: tax filings stop at 2100; 2012: the alert evaluates against today) | CloseCheckServiceTest |
 | 2016 | CloseCheckFunctionalTest |
 | 2017, 2018-01 | CloseCheckApiTest |
+| 2199 (integration DB) | SelfTestServiceTest |
+| 2020 | SelfTestApiTest |
+| 2021 | SelfTestFunctionalTest |
 | 2031–2034 | PayrollControllerFunctionalTest, ServicePayrollComprehensiveTest |
 | 2040, 2042 | TaxFilingApiTest |
 | 2043 | ServiceReportsTest |

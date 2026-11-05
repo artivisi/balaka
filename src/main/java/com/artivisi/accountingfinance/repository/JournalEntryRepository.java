@@ -204,6 +204,23 @@ public interface JournalEntryRepository extends JpaRepository<JournalEntry, UUID
     @Query("SELECT j.transaction.id, j.account.id FROM JournalEntry j WHERE j.transaction.id IN :ids")
     List<Object[]> findTransactionAccountPairs(@Param("ids") Collection<UUID> ids);
 
+    /** Posted, non-closing lines on the accounts in a period, in ledger order. */
+    @Query("SELECT j FROM JournalEntry j JOIN FETCH j.transaction t JOIN FETCH j.account a "
+            + "WHERE a.id IN :accountIds AND t.status = com.artivisi.accountingfinance.enums.TransactionStatus.POSTED "
+            + "AND t.closingEntry = false AND t.transactionDate BETWEEN :from AND :to "
+            + "ORDER BY t.transactionDate, t.transactionNumber, j.lineOrder")
+    List<JournalEntry> findPostedLinesByAccountsExcludingClosing(@Param("accountIds") Collection<UUID> accountIds,
+                                                                 @Param("from") LocalDate from, @Param("to") LocalDate to);
+
+    /** Posted, non-closing lines on accounts of one type in a period, in ledger order. */
+    @Query("SELECT j FROM JournalEntry j JOIN FETCH j.transaction t JOIN FETCH j.account a "
+            + "WHERE a.accountType = :type AND t.status = com.artivisi.accountingfinance.enums.TransactionStatus.POSTED "
+            + "AND t.closingEntry = false AND t.transactionDate BETWEEN :from AND :to "
+            + "ORDER BY t.transactionDate, t.transactionNumber, j.lineOrder")
+    List<JournalEntry> findPostedLinesByAccountTypeExcludingClosing(
+            @Param("type") com.artivisi.accountingfinance.enums.AccountType type,
+            @Param("from") LocalDate from, @Param("to") LocalDate to);
+
     /** Posted lines in a period, in ledger order, for the audit pack. */
     @Query("SELECT j FROM JournalEntry j JOIN FETCH j.transaction t JOIN FETCH j.account a "
             + "WHERE t.status = com.artivisi.accountingfinance.enums.TransactionStatus.POSTED "

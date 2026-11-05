@@ -190,6 +190,20 @@
                             <p class="mt-1 text-xs text-gray-500">Kredit pajak: akun aset. Akun antara dan rekening koran pemegang saham/direksi: akun aset atau liabilitas. Akun header tidak boleh diberi peran.</p>
                         </div>
 
+                        <!-- Self-test role -->
+                        <div>
+                            <label for="selfTestRole" class="block text-sm font-medium text-gray-700 mb-1">
+                                Peran Uji Mandiri Pajak
+                            </label>
+                            <select id="selfTestRole" th:field="*{selfTestRole}" data-testid="self-test-role"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+                                <option value="">Tidak ada</option>
+                                <option th:each="role : ${selfTestRoles}" th:value="${role.name()}"
+                                        th:text="${role.indonesianName}"></option>
+                            </select>
+                            <p class="mt-1 text-xs text-gray-500">Jasa/sewa objek PPh 23, sewa tanah/bangunan, dan beban lain-lain: akun beban. Aset non-operasional: akun aset. Akun header tidak boleh diberi peran.</p>
+                        </div>
+
                         <!-- Description -->
                         <div>
                             <label for="description" class="block text-sm font-medium text-gray-700 mb-1">

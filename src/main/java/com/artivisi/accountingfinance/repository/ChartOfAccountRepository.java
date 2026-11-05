@@ -69,4 +69,6 @@ public interface ChartOfAccountRepository extends JpaRepository<ChartOfAccount, 
     List<ChartOfAccount> findRevenueAccounts();
 
     List<ChartOfAccount> findByCloseCheckRoleOrderByAccountCodeAsc(com.artivisi.accountingfinance.enums.CloseCheckRole role);
+
+    List<ChartOfAccount> findBySelfTestRoleOrderByAccountCodeAsc(com.artivisi.accountingfinance.enums.SelfTestRole role);
 }

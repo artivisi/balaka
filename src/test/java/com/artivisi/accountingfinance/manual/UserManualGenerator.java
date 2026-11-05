@@ -345,7 +345,16 @@ public class UserManualGenerator {
                 new Section("pemeriksaan-tutup-buku-lihat-juga", "Lihat Juga", "19-pemeriksaan-tutup-buku.md", List.of())
             )),
 
-            // 20. LAMPIRAN (last)
+            // 20. UJI MANDIRI PAJAK
+            new SectionGroup("uji-mandiri-pajak", "Uji Mandiri Pajak", "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z", List.of(
+                new Section("membuka-uji-mandiri", "Membuka Laporan", "20-uji-mandiri-pajak.md", List.of()),
+                new Section("baris-pemeriksaan", "Baris Pemeriksaan", "20-uji-mandiri-pajak.md", List.of()),
+                new Section("peran-akun-uji-mandiri", "Peran Akun", "20-uji-mandiri-pajak.md", List.of()),
+                new Section("penjelasan-uji-mandiri", "Penjelasan", "20-uji-mandiri-pajak.md", List.of()),
+                new Section("uji-mandiri-lihat-juga", "Lihat Juga", "20-uji-mandiri-pajak.md", List.of())
+            )),
+
+            // 21. LAMPIRAN (last)
             new SectionGroup("lampiran", "Lampiran", "M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4", List.of(
                 new Section("glosarium", "Glosarium", "12-lampiran-glosarium.md", List.of()),
                 new Section("referensi-template", "Referensi Template", "12-lampiran-template.md", List.of("service/templates-list", "service/templates-metadata-detail", "service/templates-metadata-form")),
@@ -476,7 +485,8 @@ public class UserManualGenerator {
                 new Section("dev-tax-filings", "Tax Filings API", "09-tax-filings.md", List.of()),
                 new Section("dev-withholding", "Withholding API", "10-withholding.md", List.of()),
                 new Section("dev-evidence", "Evidence API", "12-evidence.md", List.of()),
-                new Section("dev-close-checks", "Close Checks API", "13-close-checks.md", List.of())
+                new Section("dev-close-checks", "Close Checks API", "13-close-checks.md", List.of()),
+                new Section("dev-self-test", "Tax Self-Test API", "14-self-test.md", List.of())
             )),
 
             new SectionGroup("dev-extending", "Developer: Extending Balaka", "M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z", List.of(

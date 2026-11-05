@@ -375,6 +375,25 @@ public class SalesTaxChainService {
                 .toList();
     }
 
+    /** Rows behind {@link Reconciliation#bookedRevenue()} of a masa: posted, non-closing revenue per transaction. */
+    public List<TransactionAmount> revenueRows(int year, int month) {
+        YearMonth masa = YearMonth.of(year, month);
+        return journalEntryRepository.findPostedRevenueByTransaction().stream()
+                .filter(r -> !r.transactionDate().isBefore(masa.atDay(1)) && !r.transactionDate().isAfter(masa.atEndOfMonth()))
+                .sorted(Comparator.comparing(TransactionAmount::transactionDate).thenComparing(TransactionAmount::transactionId))
+                .toList();
+    }
+
+    /** Fakturs behind {@link Reconciliation#sptDpp()} of a masa: numbered, on POSTED transactions, by faktur date. */
+    public List<FakturLink> sptFakturs(int year, int month) {
+        YearMonth masa = YearMonth.of(year, month);
+        return load().sptFakturs().stream()
+                .filter(f -> !f.getFakturDate().isBefore(masa.atDay(1)) && !f.getFakturDate().isAfter(masa.atEndOfMonth()))
+                .sorted(Comparator.comparing(TaxTransactionDetail::getFakturDate).thenComparing(TaxTransactionDetail::getFakturNumber))
+                .map(this::fakturLink)
+                .toList();
+    }
+
     private FakturLink fakturLink(TaxTransactionDetail d) {
         Transaction t = d.getTransaction();
         return new FakturLink(d.getId(), t.getId(), t.getTransactionNumber(), t.getStatus(), d.getFakturNumber(), d.getFakturDate(),

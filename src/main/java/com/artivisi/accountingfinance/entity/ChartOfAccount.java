@@ -2,6 +2,7 @@ package com.artivisi.accountingfinance.entity;
 
 import com.artivisi.accountingfinance.enums.AccountType;
 import com.artivisi.accountingfinance.enums.CloseCheckRole;
+import com.artivisi.accountingfinance.enums.SelfTestRole;
 import com.artivisi.accountingfinance.enums.FiscalTreatment;
 import com.artivisi.accountingfinance.enums.NormalBalance;
 import jakarta.persistence.Column;
@@ -92,4 +93,9 @@ public class ChartOfAccount extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "close_check_role", length = 30)
     private CloseCheckRole closeCheckRole;
+
+    /** Role in the tax-office self-test. Only on non-header accounts of the type the role allows. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "self_test_role", length = 30)
+    private SelfTestRole selfTestRole;
 }

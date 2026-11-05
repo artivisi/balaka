@@ -275,7 +275,7 @@ public class DataExportService {
     // ============================================
     private String exportChartOfAccounts() {
         StringBuilder csv = new StringBuilder();
-        csv.append("account_code,account_name,account_type,parent_code,normal_balance,active,created_at,fiscal_treatment,service_expense,close_check_role\n");
+        csv.append("account_code,account_name,account_type,parent_code,normal_balance,active,created_at,fiscal_treatment,service_expense,close_check_role,self_test_role\n");
 
         List<ChartOfAccount> accounts = accountRepository.findAll(Sort.by("accountCode"));
         for (ChartOfAccount a : accounts) {
@@ -288,7 +288,8 @@ public class DataExportService {
             csv.append(a.getCreatedAt() != null ? a.getCreatedAt().format(DATETIME_FORMATTER) : "").append(",");
             csv.append(a.getFiscalTreatment() != null ? a.getFiscalTreatment().name() : "").append(",");
             csv.append(a.getServiceExpense() != null ? a.getServiceExpense().toString() : "").append(",");
-            csv.append(a.getCloseCheckRole() != null ? a.getCloseCheckRole().name() : "").append("\n");
+            csv.append(a.getCloseCheckRole() != null ? a.getCloseCheckRole().name() : "").append(",");
+            csv.append(a.getSelfTestRole() != null ? a.getSelfTestRole().name() : "").append("\n");
         }
         return csv.toString();
     }

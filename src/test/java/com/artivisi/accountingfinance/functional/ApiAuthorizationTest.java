@@ -163,7 +163,8 @@ class ApiAuthorizationTest extends PlaywrightTestBase {
                 "/api/evidence/index?from=2041-01-01&to=2041-01-31", "/api/evidence/contracts",
                 "/api/evidence/bank-statements/missing?asOf=2041-01-31&graceDays=10",
                 "/api/close-checks?from=2041-01-01&to=2041-01-31", "/api/close-checks/unmoved-liabilities?asOf=2041-01-31",
-                "/api/close-checks/cut-off?from=2041-01-01&to=2041-01-31", "/api/close-checks/tax-credits?returnYear=2040&asOf=2041-01-31")) {
+                "/api/close-checks/cut-off?from=2041-01-01&to=2041-01-31", "/api/close-checks/tax-credits?returnYear=2040&asOf=2041-01-31",
+                "/api/self-test?year=2041", "/api/self-test/trace?year=2041&line=CAPITAL_MOVEMENT&month=0")) {
             APIResponse response = api.get(path, bearer(token));
             assertThat(response.status()).as("GET %s: %s", path, response.text()).isEqualTo(200);
         }
@@ -261,7 +262,7 @@ class ApiAuthorizationTest extends PlaywrightTestBase {
     }
 
     @Test
-    @DisplayName("Draft, bank reconciliation and template endpoints require their own scopes")
+    @DisplayName("Draft, bank reconciliation, template and self-test endpoints require their own scopes")
     void draftBankReconTemplateEndpointsRequireScopes() {
         String token = serviceToken("transactions:post");
         String marker = uid();
@@ -275,9 +276,11 @@ class ApiAuthorizationTest extends PlaywrightTestBase {
                 .isEqualTo(403);
         assertThat(api.get("/api/templates", bearer(token)).status()).isEqualTo(403);
         assertThat(api.post("/api/templates", json(token, template(marker))).status()).isEqualTo(403);
+        assertThat(api.get("/api/self-test?year=2041", bearer(token)).status()).isEqualTo(403);
         assertThat(draftRepository.findByCreatedBy("admin")).noneMatch(d -> marker.equals(d.getMerchantName()));
 
-        String scoped = serviceToken("drafts:create,drafts:read,templates:read,bank-recon:read");
+        String scoped = serviceToken("drafts:create,drafts:read,templates:read,bank-recon:read,self-test:read");
+        assertThat(api.get("/api/self-test?year=2041", bearer(scoped)).status()).isEqualTo(200);
         assertThat(api.get("/api/drafts/templates", bearer(scoped)).status()).isEqualTo(200);
         assertThat(api.get("/api/templates", bearer(scoped)).status()).isEqualTo(200);
         assertThat(api.get("/api/bank-reconciliation/parser-configs", bearer(scoped)).status()).isEqualTo(200);

@@ -403,3 +403,44 @@ V014 runs on deploy. Before deploy, check that `2.1.50` is unused or already nam
 1. Mark clearing accounts with the role Akun antara, and other tax credit accounts (PPh 22, PPh 25 prepayments) with Kredit pajak.
 2. Create one shareholder current account per shareholder or director if more than one is needed.
 3. Review the `LIABILITY_UNMOVED` threshold under Peringatan > Konfigurasi; the first evaluation lists every old liability balance.
+
+## Issue #45: Tax-office self-test
+
+### Built
+
+- `SelfTestService.report(year)`: nine lines with book figure, tax figure, difference (book minus tax), status and explanation. Revenue vs PPN DPP and salary vs PPh 21 DPP have a year total and twelve masa rows.
+- `SelfTestService.trace(year, line, month)`: rows behind each figure (journal lines, revenue per transaction, faktur, bupot, payroll details, register assets); book rows add up to the book figure, tax rows to the tax figure. For #51.
+- Figures come from the owning services: `SalesTaxChainService.getReconciliation` (`bookedRevenue`, `sptDpp`), `PayrollReconciliationService.reconcileYear` (`ledgerSalaryExpense`, `runTaxableIncome`), `WithholdingQueryService.findWithheldDetails` (new; e-Bupot Unifikasi rows), `AssetRegisterQueryService.costMovement`, `EvidenceQueryService.evidenceFor`. New row methods on them: `revenueRows`, `sptFakturs`, `salaryExpenseLines`, `runDetails`, `costMovementByAsset`, `costAccounts`.
+- Account role `ChartOfAccount.selfTestRole`: `SERVICE_PPH23`, `RENT_PPH42`, `OTHER_EXPENSE` (expense), `NON_OPERATING_ASSET` (asset); account form, account API, seed CSV column 11, export/import.
+- Page `/reports/self-test` (sidebar next to Rantai Pajak Penjualan) with an explanation form per row. API `GET /api/self-test?year=` and `/api/self-test/trace`, scope `self-test:read`.
+
+### Schema (V015)
+
+`chart_of_accounts.self_test_role` with a type/header CHECK; table `self_test_explanations` (year, line, month 0-12, unique); `self-test:read` for device tokens holding `tax-export:read`. No test migration.
+
+### Decisions made on the owner's behalf
+
+- Service vs rent: a separate account role, not the boolean `service_expense` from #43, because the two lines need different accounts and `service_expense` also covers PPh 21 honoraria. Seeded: Sewa gedung/tempat accounts `RENT_PPH42`; other `service_expense = true` accounts `SERVICE_PPH23` except campus honorarium dosen (PPh 21); `Beban Operasional Lainnya` `OTHER_EXPENSE`. Campus has no rent account, so its rent line is `NOT_CONFIGURED`. No `NON_OPERATING_ASSET` account is seeded. Existing production accounts stay NULL.
+- A line whose role no account carries is `NOT_CONFIGURED` with null figures and a message, not zero.
+- PPh 23 and 4(2) tax figure: gross of the details in the e-Bupot Unifikasi export (POSTED, source not INVOICE). Legacy revenue-template PPh 23 rows stay in it, as noted under #44. Object codes are not filtered: any PPh 4(2) detail counts, not only rent.
+- Salary tax figure counts a run only when POSTED; an unposted run shows 0 with a message. Natura in the run is in the tax figure but not on salary accounts, so it is a difference by design.
+- Fixed assets: two lines. Book figures are debits and credits on the register cost accounts (category and asset `assetAccount`); tax figures are the register additions and disposals by purchase and disposal date. The register feeds L9.
+- Capital: every EQUITY account, credit minus debit, closing entries excluded. Non-operating assets: accounts with the role, debit minus credit. The return has no counterpart figure, so tax figure is null, difference is the movement, status `MOVEMENT`.
+- Unitemised: a debit line of at least `app.self-test.unitemised-threshold` (set to 5,000,000 in `application.properties`; no default in code, startup fails without it; a business choice) on an `OTHER_EXPENSE` account whose transaction has a blank description or no evidence item. Journal lines have no description of their own. Unclassified attachments are not evidence (#48 rule). Tax figure = book figure less unitemised lines.
+- Explanations: per year, line and month; blank text deletes. Writes need `FISCAL_PERIOD_MANAGE` (same as fiscal adjustment drafts), reads `TAX_REPORT_VIEW`. API is read-only.
+
+### Unverified regulatory values
+
+No rate is introduced. PPh 23 on rent of property other than land and buildings, and PPh 4(2) on land and building rent (PP 34/2017), from memory.
+
+### Cut
+
+- No web view of the trace rows; the API and the service carry them (#51 builds the drill-down).
+- `self_test_explanations` is not in the data export/import ZIP.
+- No PDF or export of the report.
+
+### Deploy
+
+V015 runs on deploy, additive only. After deploy:
+1. Set Peran Uji Mandiri Pajak on service, rent, other-expense and non-operating asset accounts under Bagan Akun.
+2. Check `app.self-test.unitemised-threshold` in the deployed properties.
