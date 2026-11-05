@@ -2,6 +2,7 @@ package com.artivisi.accountingfinance.controller.api;
 
 import com.artivisi.accountingfinance.entity.ChartOfAccount;
 import com.artivisi.accountingfinance.enums.AccountType;
+import com.artivisi.accountingfinance.enums.FiscalTreatment;
 import com.artivisi.accountingfinance.enums.NormalBalance;
 import com.artivisi.accountingfinance.security.LogSanitizer;
 import com.artivisi.accountingfinance.service.ChartOfAccountService;
@@ -130,6 +131,7 @@ public class ChartOfAccountApiController {
         entity.setIsHeader(request.isHeader() != null && request.isHeader());
         entity.setPermanent(request.permanent() != null && request.permanent());
         entity.setDescription(request.description());
+        entity.setFiscalTreatment(request.fiscalTreatment());
 
         if (request.parentId() != null) {
             ChartOfAccount parent = chartOfAccountService.findById(request.parentId());
@@ -159,7 +161,9 @@ public class ChartOfAccountApiController {
 
             Boolean permanent,
 
-            String description
+            String description,
+
+            FiscalTreatment fiscalTreatment
     ) {}
 
     public record AccountResponse(
@@ -174,7 +178,8 @@ public class ChartOfAccountApiController {
             boolean isHeader,
             boolean permanent,
             boolean active,
-            String description
+            String description,
+            FiscalTreatment fiscalTreatment
     ) {
         public static AccountResponse from(ChartOfAccount entity) {
             return new AccountResponse(
@@ -189,7 +194,8 @@ public class ChartOfAccountApiController {
                     Boolean.TRUE.equals(entity.getIsHeader()),
                     Boolean.TRUE.equals(entity.getPermanent()),
                     Boolean.TRUE.equals(entity.getActive()),
-                    entity.getDescription()
+                    entity.getDescription(),
+                    entity.getFiscalTreatment()
             );
         }
     }

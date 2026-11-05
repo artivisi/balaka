@@ -660,14 +660,14 @@ public class PayrollReportService {
             incomeTable.setSpacingAfter(15);
 
             // Calculate biaya jabatan (5% of gross, max 6,000,000/year)
-            var biayaJabatan = summary.totalGross().multiply(new java.math.BigDecimal("0.05"));
+            var biayaJabatan = summary.getTotalBruto().multiply(new java.math.BigDecimal("0.05"));
             var maxBiayaJabatan = new java.math.BigDecimal("6000000");
             if (biayaJabatan.compareTo(maxBiayaJabatan) > 0) {
                 biayaJabatan = maxBiayaJabatan;
             }
 
             // Penghasilan Neto = Gross - Biaya Jabatan - BPJS JHT (employee) - BPJS JP (employee)
-            var penghasilanNeto = summary.totalGross().subtract(biayaJabatan).subtract(summary.totalBpjsEmployee());
+            var penghasilanNeto = summary.getTotalBruto().subtract(biayaJabatan).subtract(summary.totalBpjsEmployee());
 
             // Get PTKP
             var ptkp = getPtkpAmount(employee.getPtkpStatus());
@@ -678,7 +678,9 @@ public class PayrollReportService {
                 pkp = java.math.BigDecimal.ZERO;
             }
 
-            addIncomeRow(incomeTable, "9. Penghasilan Bruto (Setahun)", "Rp " + formatNumber(summary.totalGross()));
+            addIncomeRow(incomeTable, "8a. Gaji dan Tunjangan", "Rp " + formatNumber(summary.totalGross()));
+            addIncomeRow(incomeTable, "8b. Natura dan Kenikmatan", "Rp " + formatNumber(summary.totalBenefitInKind()));
+            addIncomeRow(incomeTable, "9. Penghasilan Bruto (8a + 8b)", "Rp " + formatNumber(summary.getTotalBruto()));
             addIncomeRow(incomeTable, "10. Biaya Jabatan (5% maks Rp 6.000.000)", "Rp " + formatNumber(biayaJabatan));
             addIncomeRow(incomeTable, "11. Iuran Pensiun/JHT/JP yang dibayar karyawan", "Rp " + formatNumber(summary.totalBpjsEmployee()));
             addIncomeRow(incomeTable, "12. Penghasilan Neto (9 - 10 - 11)", "Rp " + formatNumber(penghasilanNeto));
@@ -707,6 +709,13 @@ public class PayrollReportService {
             summaryTable.addCell(valueCell);
 
             document.add(summaryTable);
+
+            if (summary.unprocessedBenefitInKind().signum() > 0) {
+                Paragraph warning = new Paragraph("PERHATIAN: natura Rp " + formatNumber(summary.unprocessedBenefitInKind())
+                        + " belum masuk payroll yang diposting. Nilai ini belum dihitung pada bukti potong ini.", getBoldFont());
+                warning.setSpacingBefore(10);
+                document.add(warning);
+            }
 
             // Footer
             Paragraph footer = new Paragraph("\n\nDokumen ini dibuat secara otomatis oleh sistem.", getSmallFont());

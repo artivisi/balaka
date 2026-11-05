@@ -647,7 +647,8 @@ class PayrollControllerFunctionalTest extends PlaywrightTestBase {
             assertThat(cells.nth(3)).hasText("2");
             assertThat(cells.nth(4)).hasText("Rp 20,000,000");
             assertThat(cells.nth(5)).hasText(rupiah(e.pph21().multiply(BigDecimal.TWO)));
-            assertThat(cells.nth(6).locator("a"))
+            assertThat(cells.nth(6)).hasText("Rp 0");
+            assertThat(cells.nth(7).locator("a"))
                 .hasAttribute("href", "/payroll/bukti-potong/" + employeeUuid(e) + "/" + BUKTI_POTONG_YEAR + "/pdf");
         }
     }

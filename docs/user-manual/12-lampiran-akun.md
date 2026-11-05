@@ -97,6 +97,7 @@ Daftar akun standar yang tersedia dalam seed data. Akun dikelompokkan berdasarka
 | 3.1.02 | Modal Disetor | Tambahan modal dari pemilik |
 | 3.2.01 | Laba Ditahan | Akumulasi laba tahun lalu |
 | 3.2.02 | Laba Tahun Berjalan | Laba periode berjalan |
+| 3.2.03 | Dividen | Pembagian laba, mengurangi ekuitas (tidak ada pada paket kampus) |
 | 3.3.01 | Prive | Pengambilan oleh pemilik |
 
 ---
@@ -172,6 +173,19 @@ Daftar akun standar yang tersedia dalam seed data. Akun dikelompokkan berdasarka
 | 5.5.01 | HPP Barang Dagang | HPP untuk industri dagang |
 | 5.5.02 | HPP Produksi | HPP untuk industri manufaktur |
 | 5.5.10 | Beban Selisih Persediaan | Selisih stock opname |
+
+### 5.8 Beban Karyawan dan Koreksi Fiskal
+
+Kode akun berikut sama pada semua paket industri. Kolom terakhir menunjukkan Perlakuan Fiskal bawaan.
+
+| Kode | Nama Akun | Perlakuan Fiskal |
+|------|-----------|------------------|
+| 5.8.01 | Beban Bonus | Dapat dikurangkan |
+| 5.8.02 | Beban THR | Dapat dikurangkan |
+| 5.8.03 | Beban Natura/Kenikmatan | Bersyarat |
+| 5.8.04 | Beban Tidak Dapat Dikurangkan | Tidak dapat dikurangkan |
+
+Akun kewajiban pasangannya: 2.1.25 Hutang PPh 26 dan 2.1.40 Hutang Dividen (2.1.40 tidak ada pada paket kampus).
 
 ---
 

@@ -17,6 +17,7 @@ import com.artivisi.accountingfinance.enums.JournalPosition;
 import com.artivisi.accountingfinance.enums.TemplateCategory;
 import com.artivisi.accountingfinance.enums.TransactionStatus;
 import com.artivisi.accountingfinance.enums.VoidReason;
+import com.artivisi.accountingfinance.repository.BenefitInKindRepository;
 import com.artivisi.accountingfinance.repository.ChartOfAccountRepository;
 import com.artivisi.accountingfinance.repository.DraftTransactionRepository;
 import com.artivisi.accountingfinance.repository.JournalEntryRepository;
@@ -61,6 +62,7 @@ public class TransactionService {
     private final DraftTransactionRepository draftTransactionRepository;
     private final ProjectRepository projectRepository;
     private final TagRepository tagRepository;
+    private final BenefitInKindRepository benefitInKindRepository;
     private final JournalTemplateService journalTemplateService;
     private final FormulaEvaluator formulaEvaluator;
     private final TaxTransactionDetailService taxTransactionDetailService;
@@ -363,6 +365,10 @@ public class TransactionService {
 
         if (!transaction.isPosted()) {
             throw new IllegalStateException("Only posted transactions can be voided");
+        }
+        if (benefitInKindRepository.existsByTransactionIdAndPayrollDetailIsNotNull(id)) {
+            throw new IllegalStateException("Transaksi memuat natura yang sudah masuk payroll. "
+                    + "Hitung ulang atau batalkan payroll tersebut sebelum membatalkan transaksi.");
         }
 
         String reversalJournalNumber = generateJournalNumber();

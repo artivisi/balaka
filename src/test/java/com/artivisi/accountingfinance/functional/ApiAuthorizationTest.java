@@ -452,6 +452,13 @@ class ApiAuthorizationTest extends PlaywrightTestBase {
         c.add(new WriteCase("PUT", "/api/fiscal-adjustments" + r, data(fiscalAdjustment(m)),
                 all(Permission.FISCAL_PERIOD_MANAGE)));
         c.add(new WriteCase("DELETE", "/api/fiscal-adjustments" + r, none(), all(Permission.FISCAL_PERIOD_MANAGE)));
+        c.add(new WriteCase("POST", "/api/fiscal-adjustments/generate?year=" + ADJUSTMENT_YEAR, none(),
+                all(Permission.FISCAL_PERIOD_MANAGE)));
+        c.add(new WriteCase("POST", "/api/fiscal-adjustments" + r + "/confirm", none(),
+                all(Permission.FISCAL_PERIOD_MANAGE)));
+        c.add(new WriteCase("POST", "/api/benefits-in-kind", data(Map.of("transactionId", id, "employeeId", id,
+                "amount", 1000, "description", "Natura " + m)), all(Permission.PAYROLL_CREATE)));
+        c.add(new WriteCase("DELETE", "/api/benefits-in-kind" + r, none(), all(Permission.PAYROLL_CREATE)));
         c.add(new WriteCase("POST", "/api/fiscal-adjustments/loss-carryforward",
                 data(Map.of("originYear", ADJUSTMENT_YEAR, "originalAmount", 1000)), all(Permission.FISCAL_PERIOD_MANAGE)));
         c.add(new WriteCase("DELETE", "/api/fiscal-adjustments/loss-carryforward" + r, none(),

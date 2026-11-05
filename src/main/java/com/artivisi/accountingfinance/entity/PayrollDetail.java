@@ -39,6 +39,10 @@ public class PayrollDetail extends TimestampedEntity {
     @Column(name = "gross_salary", nullable = false, precision = 19, scale = 2)
     private BigDecimal grossSalary = BigDecimal.ZERO;
 
+    // Benefit-in-kind counted in this run: PPh 21 base only, never paid out in cash
+    @Column(name = "benefit_in_kind", nullable = false, precision = 19, scale = 2)
+    private BigDecimal benefitInKind = BigDecimal.ZERO;
+
     // BPJS Kesehatan
     @Column(name = "bpjs_kes_company", precision = 15, scale = 2)
     private BigDecimal bpjsKesCompany = BigDecimal.ZERO;
@@ -86,6 +90,13 @@ public class PayrollDetail extends TimestampedEntity {
 
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;
+
+    /**
+     * PPh 21 base for this run: cash gross plus benefit-in-kind.
+     */
+    public BigDecimal getTaxableGross() {
+        return grossSalary.add(benefitInKind);
+    }
 
     /**
      * Get total BPJS company contribution.

@@ -1,6 +1,7 @@
 package com.artivisi.accountingfinance.service;
 
 import com.artivisi.accountingfinance.dto.FormulaContext;
+import com.artivisi.accountingfinance.entity.BenefitInKind;
 import com.artivisi.accountingfinance.entity.Employee;
 import com.artivisi.accountingfinance.entity.EmploymentStatus;
 import com.artivisi.accountingfinance.entity.JournalTemplate;
@@ -9,6 +10,7 @@ import com.artivisi.accountingfinance.entity.PayrollRun;
 import com.artivisi.accountingfinance.entity.PayrollSchedule;
 import com.artivisi.accountingfinance.entity.PayrollStatus;
 import com.artivisi.accountingfinance.entity.Transaction;
+import com.artivisi.accountingfinance.repository.BenefitInKindRepository;
 import com.artivisi.accountingfinance.repository.EmployeeRepository;
 import com.artivisi.accountingfinance.repository.JournalTemplateRepository;
 import com.artivisi.accountingfinance.repository.PayrollDetailRepository;
@@ -23,6 +25,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.List;
@@ -61,6 +64,7 @@ public class PayrollService {
     private final BpjsCalculationService bpjsCalculationService;
     private final Pph21CalculationService pph21CalculationService;
     private final TransactionService transactionService;
+    private final BenefitInKindRepository benefitInKindRepository;
 
     public PayrollService(
             PayrollRunRepository payrollRunRepository,
@@ -70,7 +74,8 @@ public class PayrollService {
             JournalTemplateRepository journalTemplateRepository,
             BpjsCalculationService bpjsCalculationService,
             Pph21CalculationService pph21CalculationService,
-            TransactionService transactionService) {
+            TransactionService transactionService,
+            BenefitInKindRepository benefitInKindRepository) {
         this.payrollRunRepository = payrollRunRepository;
         this.payrollDetailRepository = payrollDetailRepository;
         this.payrollScheduleRepository = payrollScheduleRepository;
@@ -79,6 +84,7 @@ public class PayrollService {
         this.bpjsCalculationService = bpjsCalculationService;
         this.pph21CalculationService = pph21CalculationService;
         this.transactionService = transactionService;
+        this.benefitInKindRepository = benefitInKindRepository;
     }
 
     /**
@@ -107,6 +113,9 @@ public class PayrollService {
             throw new IllegalStateException("Payroll tidak dapat dikalkulasi karena status: " + payrollRun.getStatus());
         }
 
+        // A recalculation returns the run's benefit-in-kind to the pending pool before the details go
+        releaseBenefitsInKind(payrollRun);
+
         // Clear existing details
         payrollDetailRepository.deleteByPayrollRun(payrollRun);
         payrollRun.clearDetails();
@@ -123,8 +132,15 @@ public class PayrollService {
 
         // Calculate for each employee
         YearMonth period = payrollRun.getPeriod();
+        Map<UUID, List<BenefitInKind>> benefits = new java.util.HashMap<>();
         for (Employee employee : activeEmployees) {
-            PayrollDetail detail = calculateEmployeePayroll(employee, baseSalary, jkkRiskClass, period);
+            List<BenefitInKind> pending = benefitInKindRepository.findPendingForPayroll(
+                    employee.getId(), period.atDay(1).withDayOfYear(1), period.atEndOfMonth());
+            benefits.put(employee.getId(), pending);
+            BigDecimal benefitInKind = pending.stream()
+                    .map(BenefitInKind::getAmount)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            PayrollDetail detail = calculateEmployeePayroll(employee, baseSalary, benefitInKind, jkkRiskClass, period);
             payrollRun.addDetail(detail);
         }
 
@@ -134,7 +150,18 @@ public class PayrollService {
 
         log.info("Calculated payroll for {} employees, period {}", activeEmployees.size(), payrollRun.getPayrollPeriod());
 
-        return payrollRunRepository.save(payrollRun);
+        // Link after saving: the rows must reference the persisted detail instances
+        PayrollRun saved = payrollRunRepository.save(payrollRun);
+        for (PayrollDetail detail : saved.getDetails()) {
+            benefits.get(detail.getEmployee().getId()).forEach(b -> b.setPayrollDetail(detail));
+        }
+        return saved;
+    }
+
+    private void releaseBenefitsInKind(PayrollRun payrollRun) {
+        List<BenefitInKind> linked = benefitInKindRepository.findByPayrollDetailPayrollRun(payrollRun);
+        linked.forEach(b -> b.setPayrollDetail(null));
+        benefitInKindRepository.flush();
     }
 
     /**
@@ -142,12 +169,13 @@ public class PayrollService {
      * Jan-Nov: TER rate × gross salary.
      * December: annual reconciliation (progressive brackets minus Jan-Nov withholdings).
      */
-    private PayrollDetail calculateEmployeePayroll(Employee employee, BigDecimal baseSalary,
+    private PayrollDetail calculateEmployeePayroll(Employee employee, BigDecimal baseSalary, BigDecimal benefitInKind,
                                                     int jkkRiskClass, YearMonth period) {
         PayrollDetail detail = new PayrollDetail();
         detail.setEmployee(employee);
         detail.setBaseSalary(baseSalary);
         detail.setGrossSalary(baseSalary);
+        detail.setBenefitInKind(benefitInKind);
         detail.setJkkRiskClass(jkkRiskClass);
 
         // Calculate BPJS
@@ -168,8 +196,8 @@ public class PayrollService {
                     employee.getId(), String.valueOf(period.getYear()), period.toString());
 
             List<BigDecimal> allGrossAmounts = new java.util.ArrayList<>(
-                    priorMonths.stream().map(PayrollDetail::getGrossSalary).toList());
-            allGrossAmounts.add(baseSalary); // Add December gross
+                    priorMonths.stream().map(PayrollDetail::getTaxableGross).toList());
+            allGrossAmounts.add(detail.getTaxableGross()); // Add December gross
 
             BigDecimal janNovPph21 = priorMonths.stream()
                     .map(PayrollDetail::getPph21)
@@ -180,7 +208,7 @@ public class PayrollService {
             detail.setPph21(decResult.decemberPph21());
         } else {
             // Jan-Nov: TER rate lookup
-            var terResult = pph21CalculationService.calculateTer(baseSalary, employee.getPtkpStatus());
+            var terResult = pph21CalculationService.calculateTer(detail.getTaxableGross(), employee.getPtkpStatus());
             detail.setPph21(terResult.monthlyPph21());
         }
 
@@ -218,6 +246,7 @@ public class PayrollService {
             throw new IllegalStateException("Payroll tidak dapat dibatalkan karena status: " + payrollRun.getStatus());
         }
 
+        releaseBenefitsInKind(payrollRun);
         payrollRun.setStatus(PayrollStatus.CANCELLED);
         payrollRun.setCancelledAt(LocalDateTime.now());
         payrollRun.setCancelReason(reason);
@@ -409,6 +438,11 @@ public class PayrollService {
         BigDecimal totalBpjsEmployee = details.stream()
             .map(PayrollDetail::getTotalEmployeeBpjs)
             .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalBenefitInKind = details.stream()
+            .map(PayrollDetail::getBenefitInKind)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal unprocessedBenefitInKind = benefitInKindRepository.sumNotInPostedPayroll(
+            employeeId, LocalDate.of(year, 1, 1), LocalDate.of(year, 12, 31));
 
         return new YearlyPayrollSummary(
             employee,
@@ -416,7 +450,9 @@ public class PayrollService {
             details.size(),
             totalGross,
             totalBpjsEmployee,
-            totalPph21
+            totalPph21,
+            totalBenefitInKind,
+            unprocessedBenefitInKind
         );
     }
 
@@ -475,8 +511,15 @@ public class PayrollService {
         int monthCount,
         BigDecimal totalGross,
         BigDecimal totalBpjsEmployee,
-        BigDecimal totalPph21
+        BigDecimal totalPph21,
+        BigDecimal totalBenefitInKind,
+        BigDecimal unprocessedBenefitInKind
     ) {
+        /** Gross income on 1721-A1: cash gross plus benefit-in-kind that entered a posted run. */
+        public BigDecimal getTotalBruto() {
+            return totalGross.add(totalBenefitInKind);
+        }
+
         public BigDecimal getNetIncome() {
             return totalGross.subtract(totalBpjsEmployee).subtract(totalPph21);
         }

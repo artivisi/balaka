@@ -7,6 +7,28 @@ Fiscal adjustments (`/api/fiscal-adjustments`) and loss carryforwards
 deleting them needs `tax-export:write`, effective only when the token user holds `FISCAL_PERIOD_MANAGE`
 (see [Authentication](01-authentication.md#scopes-and-authorization)).
 
+### Generated fiscal adjustment drafts
+
+```http
+POST /api/fiscal-adjustments/generate?year=2025
+POST /api/fiscal-adjustments/{id}/confirm
+GET  /api/fiscal-adjustments?year=2025&status=DRAFT
+```
+
+`generate` reads `fiscalTreatment` on expense accounts (`GET/PUT /api/accounts`) and replaces the generated `DRAFT` rows of the year. Amount per account: `NON_DEDUCTIBLE` = year balance minus confirmed net adjustments on that `accountCode`; `CONDITIONAL` = the same minus benefit-in-kind recipients booked on that account. `DEDUCTIBLE` produces nothing. Response:
+
+```json
+{
+  "year": 2025,
+  "drafts": [{"id": "...", "accountCode": "5.8.04", "amount": 1000000.00, "adjustmentCategory": "PERMANENT",
+              "adjustmentDirection": "POSITIVE", "pasal": "Pasal 9 ayat (1) UU PPh", "status": "DRAFT", "source": "GENERATED"}],
+  "unclassifiedAccounts": ["5.1.99 Beban Operasional Lainnya"],
+  "taggedTransactionsWithoutRecipient": ["TRX-2025-0001"]
+}
+```
+
+Rows carry `status` (`DRAFT`, `CONFIRMED`) and `source` (`MANUAL`, `GENERATED`). `POST /api/fiscal-adjustments` creates `CONFIRMED`/`MANUAL`. Edit a draft with `PUT`, reject it with `DELETE`. `confirm` returns 409 on a confirmed row. Only `CONFIRMED` rows enter `rekonsiliasi-fiskal`, L1 and SPT exports; `rekonsiliasi-fiskal` reports the remainder as `pendingDraftAdjustments`.
+
 Base URL: `/api/tax-export`
 
 ## Coretax Excel Exports

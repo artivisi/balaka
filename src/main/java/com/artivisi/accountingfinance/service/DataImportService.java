@@ -824,7 +824,7 @@ public class DataImportService {
         Map<String, String> parentCodes = new HashMap<>();
 
         // First pass: create all accounts without parents
-        // CSV columns: account_code,account_name,account_type,parent_code,normal_balance,active,is_permanent
+        // CSV columns: account_code,account_name,account_type,parent_code,normal_balance,active,is_permanent,fiscal_treatment
         for (String[] row : rows) {
             ChartOfAccount account = new ChartOfAccount();
             account.setAccountCode(getField(row, 0));
@@ -837,6 +837,10 @@ public class DataImportService {
             String permanentField = getField(row, 6);
             if (permanentField != null && !permanentField.isBlank()) {
                 account.setPermanent(parseBoolean(permanentField));
+            }
+            String fiscalTreatment = getField(row, 7);
+            if (fiscalTreatment != null && !fiscalTreatment.isBlank()) {
+                account.setFiscalTreatment(FiscalTreatment.valueOf(fiscalTreatment));
             }
             accounts.add(account);
         }
@@ -1511,6 +1515,11 @@ public class DataImportService {
             pd.setBpjsJkk(parseBigDecimal(getField(row, 11)));
             pd.setBpjsJkm(parseBigDecimal(getField(row, 12)));
             pd.setPph21(parseBigDecimal(getField(row, 13)));
+            // Exports made before V008 have no benefit_in_kind column; the amount was zero then
+            String benefitInKind = getField(row, 14);
+            if (benefitInKind != null && !benefitInKind.isBlank()) {
+                pd.setBenefitInKind(parseBigDecimal(benefitInKind));
+            }
 
             payrollDetailRepository.save(pd);
         }

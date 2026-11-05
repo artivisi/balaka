@@ -11,6 +11,7 @@ import com.artivisi.accountingfinance.service.ProjectProfitabilityService;
 import com.artivisi.accountingfinance.service.ProjectService;
 import com.artivisi.accountingfinance.service.ReportExportService;
 import com.artivisi.accountingfinance.service.DepreciationReportService;
+import com.artivisi.accountingfinance.service.FiscalAdjustmentDraftService;
 import com.artivisi.accountingfinance.service.FiscalPeriodService;
 import com.artivisi.accountingfinance.service.FiscalYearClosingService;
 import com.artivisi.accountingfinance.service.ReportService;
@@ -70,6 +71,7 @@ public class ReportController {
     private final CompanyConfigService companyConfigService;
     private final TaxReportService taxReportService;
     private final TaxReportDetailService taxReportDetailService;
+    private final FiscalAdjustmentDraftService fiscalAdjustmentDraftService;
     private final DepreciationReportService depreciationReportService;
     private final FiscalYearClosingService fiscalYearClosingService;
     private final FiscalPeriodService fiscalPeriodService;
@@ -698,8 +700,31 @@ public class ReportController {
         model.addAttribute(ATTR_REPORT, taxReportDetailService.generateRekonsiliasiFiskal(reportYear));
         model.addAttribute("categories", FiscalAdjustmentCategory.values());
         model.addAttribute("directions", FiscalAdjustmentDirection.values());
+        model.addAttribute("draftAdjustments", taxReportDetailService.findDraftAdjustmentsByYear(reportYear));
 
         return "reports/rekonsiliasi-fiskal";
+    }
+
+    @PostMapping("/rekonsiliasi-fiskal/adjustments/generate")
+    @PreAuthorize("hasAuthority('" + Permission.FISCAL_PERIOD_MANAGE + "')")
+    public String generateFiscalAdjustmentDrafts(@RequestParam int year, RedirectAttributes redirectAttributes) {
+        var result = fiscalAdjustmentDraftService.generate(year);
+        redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, result.drafts().size() + " draf koreksi fiskal dibuat");
+        redirectAttributes.addFlashAttribute("unclassifiedAccounts", result.unclassifiedAccounts());
+        redirectAttributes.addFlashAttribute("taggedWithoutRecipient", result.taggedTransactionsWithoutRecipient());
+        return "redirect:/reports/rekonsiliasi-fiskal?year=" + year;
+    }
+
+    @PostMapping("/rekonsiliasi-fiskal/adjustments/{id}/confirm")
+    @PreAuthorize("hasAuthority('" + Permission.FISCAL_PERIOD_MANAGE + "')")
+    public String confirmFiscalAdjustment(
+            @PathVariable UUID id,
+            @RequestParam int year,
+            @RequestParam BigDecimal amount,
+            RedirectAttributes redirectAttributes) {
+        fiscalAdjustmentDraftService.confirm(id, amount);
+        redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Koreksi fiskal dikonfirmasi");
+        return "redirect:/reports/rekonsiliasi-fiskal?year=" + year;
     }
 
     @PostMapping("/rekonsiliasi-fiskal/adjustments")

@@ -177,6 +177,22 @@ Response:
 
 Returns `404` if the employee has no `POSTED` payroll data for the given year.
 
+## Benefit in Kind (Natura)
+
+```http
+GET    /api/benefits-in-kind?year=2025        # tax-export:read + PAYROLL_VIEW
+POST   /api/benefits-in-kind                  # payroll:write + PAYROLL_CREATE
+DELETE /api/benefits-in-kind/{id}             # payroll:write + PAYROLL_CREATE
+```
+
+```json
+{"transactionId": "...", "employeeId": "...", "amount": 2000000, "description": "Fasilitas mobil"}
+```
+
+The transaction must be `POSTED` (409 otherwise) and the recipients' total cannot exceed its expense debit (400). The first recipient adds the system tag `NATURA`. `POST /api/payroll/{id}/calculate` adds rows dated from 1 January to the period end, not yet counted by a run, to the recipient's PPh 21 base; cash `grossSalary` is unchanged. `payrollPeriod` in the response shows the counting run; such a row cannot be deleted (409) and its transaction cannot be voided until the run is recalculated or cancelled.
+
+`penghasilanBruto` on 1721-A1, `totalGross` on the PPh 21 annual summary, and the annual e-Bupot export include natura from `POSTED` runs.
+
 ## PPh 21 Annual Summary
 
 ```http

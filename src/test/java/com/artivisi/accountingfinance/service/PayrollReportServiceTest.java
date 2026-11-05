@@ -197,7 +197,9 @@ class PayrollReportServiceTest {
                 1, // monthCount
                 new java.math.BigDecimal("12000000"), // totalGross
                 new java.math.BigDecimal("324000"), // totalBpjsEmployee (JHT + JP + Kes)
-                new java.math.BigDecimal("720000") // totalPph21
+                new java.math.BigDecimal("720000"), // totalPph21
+                java.math.BigDecimal.ZERO,
+                java.math.BigDecimal.ZERO
         );
 
         byte[] pdf = payrollReportService.generateBuktiPotong1721A1(summary);
@@ -314,6 +316,8 @@ class PayrollReportServiceTest {
                 employee,
                 2025,
                 0,
+                java.math.BigDecimal.ZERO,
+                java.math.BigDecimal.ZERO,
                 java.math.BigDecimal.ZERO,
                 java.math.BigDecimal.ZERO,
                 java.math.BigDecimal.ZERO

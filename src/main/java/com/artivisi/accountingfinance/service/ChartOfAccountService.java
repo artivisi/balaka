@@ -2,6 +2,7 @@ package com.artivisi.accountingfinance.service;
 
 import com.artivisi.accountingfinance.entity.ChartOfAccount;
 import com.artivisi.accountingfinance.enums.AccountType;
+import com.artivisi.accountingfinance.enums.FiscalTreatment;
 import com.artivisi.accountingfinance.enums.NormalBalance;
 import com.artivisi.accountingfinance.repository.ChartOfAccountRepository;
 import com.artivisi.accountingfinance.repository.JournalEntryRepository;
@@ -100,8 +101,15 @@ public class ChartOfAccountService {
         } else if (account.getNormalBalance() == null && account.getAccountType() != null) {
             account.setNormalBalance(deriveNormalBalance(account.getAccountType()));
         }
+        validateFiscalTreatment(account.getFiscalTreatment(), account.getAccountType(), account.getIsHeader());
 
         return chartOfAccountRepository.save(account);
+    }
+
+    private void validateFiscalTreatment(FiscalTreatment treatment, AccountType type, Boolean isHeader) {
+        if (treatment != null && (type != AccountType.EXPENSE || Boolean.TRUE.equals(isHeader))) {
+            throw new IllegalArgumentException("Perlakuan fiskal hanya berlaku untuk akun beban yang bukan header");
+        }
     }
 
     private NormalBalance deriveNormalBalance(AccountType accountType) {
@@ -135,6 +143,8 @@ public class ChartOfAccountService {
             existing.setAccountType(accountData.getAccountType());
             existing.setNormalBalance(accountData.getNormalBalance());
         }
+        validateFiscalTreatment(accountData.getFiscalTreatment(), existing.getAccountType(), existing.getIsHeader());
+        existing.setFiscalTreatment(accountData.getFiscalTreatment());
 
         return chartOfAccountRepository.save(existing);
     }

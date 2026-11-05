@@ -78,6 +78,7 @@ public class SptTahunanExportService {
     private static final String OPERATING_REVENUE_PREFIX = "4.1";
     private static final String OTHER_INCOME_PREFIX = "4.2";
     private static final String OPERATING_EXPENSE_PREFIX = "5.1";
+    private static final String EMPLOYEE_EXPENSE_PREFIX = "5.8";
     // OTHER_EXPENSE_PREFIX and TAX_EXPENSE_PREFIX removed — otherExpenses now captures
     // all non-operating expenses (5.2, 5.3, 5.9, etc.) via exclusion filter
 
@@ -100,8 +101,16 @@ public class SptTahunanExportService {
         BigDecimal totalOtherIncome = sumLineItems(otherIncome);
 
         // Categorize expense items: operating (5.1) vs everything else (5.2, 5.3, 5.9, etc.)
-        List<L1LineItem> operatingExpenses = categorizeItems(incomeStatement.expenseItems(), OPERATING_EXPENSE_PREFIX);
-        List<L1LineItem> otherExpenses = categorizeItemsExcludingPrefix(incomeStatement.expenseItems(), OPERATING_EXPENSE_PREFIX);
+        List<L1LineItem> operatingExpenses = incomeStatement.expenseItems().stream()
+                .filter(item -> isOperatingExpense(item.account().getAccountCode()))
+                .filter(item -> item.balance().signum() != 0)
+                .map(item -> new L1LineItem(item.account().getAccountCode(), item.account().getAccountName(), item.balance()))
+                .toList();
+        List<L1LineItem> otherExpenses = incomeStatement.expenseItems().stream()
+                .filter(item -> !isOperatingExpense(item.account().getAccountCode()))
+                .filter(item -> item.balance().signum() != 0)
+                .map(item -> new L1LineItem(item.account().getAccountCode(), item.account().getAccountName(), item.balance()))
+                .toList();
 
         BigDecimal totalOperatingExpenses = sumLineItems(operatingExpenses);
         BigDecimal totalOtherExpenses = sumLineItems(otherExpenses);
@@ -322,7 +331,7 @@ public class SptTahunanExportService {
             YearlyPayrollSummary summary = payrollService.getYearlyPayrollSummary(employeeId, year);
             Employee employee = summary.employee();
 
-            BigDecimal penghasilanBruto = summary.totalGross();
+            BigDecimal penghasilanBruto = summary.getTotalBruto();
             BigDecimal biayaJabatan = penghasilanBruto.multiply(new BigDecimal("5"))
                     .divide(new BigDecimal("100"), 0, RoundingMode.HALF_UP)
                     .min(Pph21CalculationService.BIAYA_JABATAN_ANNUAL_MAX);
@@ -597,7 +606,10 @@ public class SptTahunanExportService {
         // P&L summary
         BigDecimal pendapatanUsaha = sumByPrefix(is.revenueItems(), "4.1");
         BigDecimal pendapatanLainnya = sumByPrefix(is.revenueItems(), "4.2");
-        BigDecimal bebanUsaha = sumByPrefix(is.expenseItems(), "5.1");
+        BigDecimal bebanUsaha = is.expenseItems().stream()
+                .filter(item -> isOperatingExpense(item.account().getAccountCode()))
+                .map(IncomeStatementItem::balance)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal bebanLainnya = is.totalExpense().subtract(bebanUsaha);
 
         SptLabaRugi labaRugi = new SptLabaRugi(
@@ -677,7 +689,9 @@ public class SptTahunanExportService {
         for (BalanceSheetItem item : bs.equityItems()) {
             String code = item.account().getAccountCode();
             String field = mapEquityCodeToField(code);
-            groups.computeIfPresent(field, (k, v) -> new SptFieldItem(k, v.label(), v.amount().add(item.balance())));
+            BigDecimal signed = item.account().getNormalBalance() == NormalBalance.DEBIT
+                    ? item.balance().negate() : item.balance();
+            groups.computeIfPresent(field, (k, v) -> new SptFieldItem(k, v.label(), v.amount().add(signed)));
         }
 
         // Current year earnings from balance sheet
@@ -726,7 +740,7 @@ public class SptTahunanExportService {
 
     private SptLampiranII buildLampiranII(IncomeStatementReport is) {
         List<SptExpenseItem> bebanUsaha = is.expenseItems().stream()
-                .filter(item -> item.account().getAccountCode().startsWith("5.1"))
+                .filter(item -> isOperatingExpense(item.account().getAccountCode()))
                 .map(item -> new SptExpenseItem(
                         item.account().getAccountCode(),
                         item.account().getAccountName(),
@@ -736,7 +750,7 @@ public class SptTahunanExportService {
                 .map(SptExpenseItem::amount).reduce(BigDecimal.ZERO, BigDecimal::add);
 
         List<SptExpenseItem> bebanLuarUsaha = is.expenseItems().stream()
-                .filter(item -> !item.account().getAccountCode().startsWith("5.1"))
+                .filter(item -> !isOperatingExpense(item.account().getAccountCode()))
                 .map(item -> new SptExpenseItem(
                         item.account().getAccountCode(),
                         item.account().getAccountName(),
@@ -776,20 +790,14 @@ public class SptTahunanExportService {
 
     // ==================== HELPERS ====================
 
+    /** 5.1 is the operating expense group; 5.8 holds employee costs (bonus, THR, natura) shared by all seed packs. */
+    private boolean isOperatingExpense(String code) {
+        return code.startsWith(OPERATING_EXPENSE_PREFIX) || code.startsWith(EMPLOYEE_EXPENSE_PREFIX);
+    }
+
     private List<L1LineItem> categorizeItems(List<IncomeStatementItem> items, String prefix) {
         return items.stream()
                 .filter(item -> item.account().getAccountCode().startsWith(prefix))
-                .filter(item -> item.balance().compareTo(BigDecimal.ZERO) != 0)
-                .map(item -> new L1LineItem(
-                        item.account().getAccountCode(),
-                        item.account().getAccountName(),
-                        item.balance()))
-                .toList();
-    }
-
-    private List<L1LineItem> categorizeItemsExcludingPrefix(List<IncomeStatementItem> items, String excludePrefix) {
-        return items.stream()
-                .filter(item -> !item.account().getAccountCode().startsWith(excludePrefix))
                 .filter(item -> item.balance().compareTo(BigDecimal.ZERO) != 0)
                 .map(item -> new L1LineItem(
                         item.account().getAccountCode(),

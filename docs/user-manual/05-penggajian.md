@@ -461,6 +461,25 @@ Karyawan dengan role EMPLOYEE dapat mengakses:
 - PPh 21 terutang
 - PPh 21 dipotong
 
+### Natura dan Kenikmatan
+
+Natura dicatat per penerima pada transaksi berstatus POSTED. Beban natura tetap dijurnal lewat transaksi biasa, misalnya ke akun 5.8.03 Beban Natura/Kenikmatan.
+
+1. Buka detail transaksi, bagian **Penerima Natura**. Bagian ini tampil untuk pemegang izin `PAYROLL_VIEW`. Mencatat dan menghapus butuh izin `PAYROLL_CREATE`.
+2. Pilih karyawan, isi nilai dan keterangan, lalu klik **Catat Penerima**. Total nilai tidak boleh melebihi total debit akun beban pada transaksi tersebut.
+3. Transaksi otomatis mendapat label Natura, sehingga filter label dan laporan label mencakup transaksi ini.
+
+Dampak ke penggajian:
+
+- Saat payroll dihitung, natura berstatus **Menunggu payroll** yang bertanggal sampai akhir periode, pada tahun yang sama, masuk ke dasar PPh 21 karyawan. Natura yang dicatat setelah bulannya lewat masuk ke payroll berikutnya.
+- Natura menambah dasar TER bulanan dan rekonsiliasi Desember. Gaji bruto kas tidak berubah. PPh 21 atas natura mengurangi gaji bersih.
+- Pada 1721-A1, natura tampil pada baris **8b. Natura dan Kenikmatan** dan menambah penghasilan bruto. Hanya natura dari payroll berstatus POSTED yang dihitung. Natura lain tampil sebagai peringatan pada PDF.
+
+Pembatasan:
+
+- Baris natura yang sudah masuk payroll tidak bisa dihapus, dan transaksinya tidak bisa dibatalkan. Hitung ulang atau batalkan payroll tersebut lebih dulu. Payroll berstatus POSTED tidak bisa dihitung ulang.
+- Nilai yang dicatat adalah nilai yang kena PPh 21. Natura yang dikecualikan PMK 66/2023 tidak perlu dicatat. Sistem tidak menghitung batas pengecualian.
+
 ---
 
 ## Contoh Lengkap: Proses Payroll Januari 2025

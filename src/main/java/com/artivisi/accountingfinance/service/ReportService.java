@@ -167,8 +167,11 @@ public class ReportService {
                 .map(BalanceSheetItem::balance)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
+        // Contra-equity (DEBIT normal balance like Prive and Dividen) reduces total equity
         BigDecimal totalEquity = equityItems.stream()
-                .map(BalanceSheetItem::balance)
+                .map(item -> item.account().getNormalBalance() == NormalBalance.DEBIT
+                        ? item.balance().negate()
+                        : item.balance())
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         LocalDate fiscalYearStart = asOfDate.withDayOfYear(1);

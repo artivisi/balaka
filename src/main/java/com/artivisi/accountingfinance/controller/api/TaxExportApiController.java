@@ -564,7 +564,8 @@ public class TaxExportApiController {
                 report.pkp(),
                 report.lossCompensation(),
                 report.pkpAfterLoss(),
-                pphBadan);
+                pphBadan,
+                taxReportDetailService.findDraftAdjustmentsByYear(report.year()).size());
     }
 
     private TaxDetailItem toTaxDetailItem(TaxTransactionDetail d) {
@@ -651,7 +652,8 @@ public class TaxExportApiController {
             BigDecimal pkp,
             BigDecimal lossCompensation,
             BigDecimal pkpAfterLoss,
-            PPhBadanData pphBadan
+            PPhBadanData pphBadan,
+            int pendingDraftAdjustments
     ) {}
 
     public record PPhBadanData(

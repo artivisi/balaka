@@ -72,6 +72,8 @@
                             <p class="text-sm text-gray-600" th:if="${checklist.hasFiscalAdjustments()}"
                                th:text="|${checklist.adjustmentCount()} item koreksi fiskal|"></p>
                             <p class="text-sm text-yellow-700" th:unless="${checklist.hasFiscalAdjustments()}">Belum ada koreksi fiskal</p>
+                            <p class="text-sm text-yellow-700" data-testid="draft-adjustment-warning" th:if="${checklist.draftAdjustmentCount() > 0}"
+                               th:text="|${checklist.draftAdjustmentCount()} draf koreksi belum ditinjau dan belum masuk perhitungan|"></p>
                         </div>
                     </div>
 

@@ -5,7 +5,7 @@
 | Level | Tool | Data Source | Location | Count |
 |-------|------|-------------|----------|-------|
 | Unit | JUnit 5 + Mockito | Mocks | `src/test/java/.../unit/` | Fast |
-| Integration | Testcontainers (PostgreSQL) | V800-V912 migrations | `src/test/java/.../integration/` | ~30s startup |
+| Integration | Testcontainers (PostgreSQL) | V800-V913 migrations | `src/test/java/.../integration/` | ~30s startup |
 | Functional (E2E) | Playwright | Industry seed initializers | `src/test/java/.../functional/` | ~60-90 min total |
 | Security (SAST) | SpotBugs | Source code | N/A | ~1 min |
 | Security (DAST) | OWASP ZAP | Running app | `src/test/java/.../functional/ZapDastTest.java` | ~5-15 min |
@@ -64,7 +64,7 @@ Use Flyway test migrations in `src/test/resources/db/test/integration/`:
 | Migration | Content |
 |-----------|---------|
 | `V800__base_test_data.sql` | Base test data (users, roles) |
-| `V900-V912` | Domain-specific data (templates, transactions, payroll, drafts, etc.) |
+| `V900-V913` | Domain-specific data (templates, transactions, payroll, drafts, etc.) |
 
 These migrations run automatically when Testcontainers spins up the PostgreSQL instance.
 
@@ -138,6 +138,10 @@ Period-scoped data (transactions, payroll runs, fiscal periods, schedules) goes 
 | 2024-01 (seller, coffee-shop ctx), 2024-07 (campus ctx) | Seed data asserted exactly — never post into these months in those contexts |
 | 2028 | PayrollApiTest |
 | 2029 | PayrollSchedulerTest |
+| 2113-2121 (integration DB) | BenefitInKindPayrollTest |
+| 2122-2129 (integration DB) | FiscalAdjustmentDraftServiceTest |
+| 2130 | FiscalTreatmentFunctionalTest |
+| 2131 | FiscalDraftAndBenefitApiTest |
 | 2031–2034 | PayrollControllerFunctionalTest, ServicePayrollComprehensiveTest |
 | 2040, 2042 | TaxFilingApiTest |
 | 2043 | ServiceReportsTest |

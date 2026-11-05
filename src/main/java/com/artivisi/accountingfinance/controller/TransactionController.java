@@ -20,7 +20,10 @@ import com.artivisi.accountingfinance.service.InvoiceService;
 import com.artivisi.accountingfinance.service.JournalTemplateService;
 import com.artivisi.accountingfinance.service.ProjectService;
 import com.artivisi.accountingfinance.service.TemplateExecutionEngine;
+import com.artivisi.accountingfinance.service.BenefitInKindService;
+import com.artivisi.accountingfinance.service.EmployeeService;
 import com.artivisi.accountingfinance.service.TagService;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.artivisi.accountingfinance.service.TaxTransactionDetailService;
 import com.artivisi.accountingfinance.service.TransactionApiService;
 import com.artivisi.accountingfinance.service.TransactionService;
@@ -80,6 +83,8 @@ public class TransactionController {
     private final ProjectService projectService;
     private final InvoiceService invoiceService;
     private final TagService tagService;
+    private final BenefitInKindService benefitInKindService;
+    private final EmployeeService employeeService;
     private final TaxTransactionDetailService taxTransactionDetailService;
     private final TemplateExecutionEngine templateExecutionEngine;
     private final TransactionApiService transactionApiService;
@@ -217,6 +222,14 @@ public class TransactionController {
                 .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
         model.addAttribute("totalDebit", totalDebit);
         model.addAttribute("totalCredit", totalCredit);
+
+        // Rendered only for PAYROLL_VIEW holders: recipient and value are personal income data
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (transaction.isPosted() && authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(a -> Permission.PAYROLL_VIEW.equals(a.getAuthority()))) {
+            model.addAttribute("benefits", benefitInKindService.findByTransaction(id));
+            model.addAttribute("benefitEmployees", employeeService.findActiveEmployees());
+        }
 
         return "transactions/detail";
     }

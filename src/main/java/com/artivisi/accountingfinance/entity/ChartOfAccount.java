@@ -1,6 +1,7 @@
 package com.artivisi.accountingfinance.entity;
 
 import com.artivisi.accountingfinance.enums.AccountType;
+import com.artivisi.accountingfinance.enums.FiscalTreatment;
 import com.artivisi.accountingfinance.enums.NormalBalance;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -76,4 +77,9 @@ public class ChartOfAccount extends BaseEntity {
 
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
+
+    /** Only on EXPENSE accounts. Null means the account has not been classified yet. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "fiscal_treatment", length = 20)
+    private FiscalTreatment fiscalTreatment;
 }

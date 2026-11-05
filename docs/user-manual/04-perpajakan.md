@@ -284,6 +284,37 @@ Buka menu **Laporan** > **Rekonsiliasi Fiskal**. Di halaman ini:
 
 Hasil koreksi fiskal ditampilkan dalam laporan rekonsiliasi fiskal dan digunakan dalam perhitungan PPh Badan.
 
+### Perlakuan Fiskal Akun
+
+Setiap akun beban yang bukan header memiliki atribut **Perlakuan Fiskal** pada form akun (**Master Data** > **Bagan Akun**):
+
+| Nilai | Dampak pada draf koreksi |
+|-------|--------------------------|
+| Dapat dikurangkan | Tidak ada draf |
+| Tidak dapat dikurangkan | Draf sebesar saldo akun setahun |
+| Bersyarat | Draf sebesar saldo akun setahun dikurangi natura yang punya penerima |
+| Belum diklasifikasi | Tidak ada draf. Akun bersaldo tampil sebagai peringatan |
+
+Akun lama pada basis data yang sudah berjalan berstatus **Belum diklasifikasi** sampai diisi. Atribut ini ditolak pada akun selain beban dan pada akun header.
+
+### Draf Koreksi dari Perlakuan Fiskal
+
+Di halaman **Rekonsiliasi Fiskal**, bagian **Draf Koreksi dari Perlakuan Fiskal Akun**:
+
+1. Klik **Buat Draf Koreksi**. Sistem membuat draf Beda Tetap, arah Positif, untuk akun Tidak dapat dikurangkan dan Bersyarat.
+2. Baca kolom Catatan. Kolom ini memuat saldo akun, natura dengan penerima, dan koreksi yang sudah dikonfirmasi.
+3. Ubah jumlah bila perlu, lalu klik **Konfirmasi**. Koreksi masuk ke perhitungan PKP.
+4. Klik **Tolak** untuk menghapus draf yang tidak berlaku.
+
+Draf tidak masuk ke total koreksi, PKP, PPh Badan, L1, maupun ekspor SPT sebelum dikonfirmasi. **Checklist SPT** menampilkan jumlah draf yang belum ditinjau.
+
+Klik **Buat Draf Koreksi** sekali lagi akan mengganti seluruh draf hasil pembuatan sebelumnya pada tahun tersebut, termasuk draf yang jumlahnya sudah diubah tetapi belum dikonfirmasi dan draf yang sudah ditolak. Koreksi yang sudah dikonfirmasi tetap ada dan mengurangi jumlah draf baru untuk akun yang sama.
+
+Peringatan setelah pembuatan draf:
+
+- **Akun bersaldo tanpa perlakuan fiskal**: isi Perlakuan Fiskal akun tersebut, lalu buat ulang draf.
+- **Transaksi berlabel Natura tanpa penerima**: catat penerima pada detail transaksi (lihat [Natura dan Kenikmatan](05-penggajian.md)).
+
 ### Mengelola Koreksi Fiskal via API
 
 Endpoint CRUD tersedia untuk integrasi dengan sistem eksternal:
@@ -293,6 +324,8 @@ GET    /api/fiscal-adjustments?year=2025     — daftar koreksi per tahun
 POST   /api/fiscal-adjustments               — buat koreksi baru
 PUT    /api/fiscal-adjustments/{id}           — update koreksi
 DELETE /api/fiscal-adjustments/{id}           — hapus koreksi
+POST   /api/fiscal-adjustments/generate?year=2025 — buat draf dari perlakuan fiskal akun
+POST   /api/fiscal-adjustments/{id}/confirm   — konfirmasi draf
 ```
 
 Contoh request membuat koreksi:
@@ -315,17 +348,18 @@ Validasi:
 - `amount`: harus positif
 - `year` dan `description`: wajib diisi
 
-Autentikasi: Bearer token dengan scope `tax-export:read`.
+Autentikasi: Bearer token. Scope `tax-export:read` untuk membaca, `tax-export:write` untuk menulis.
 
 ### Skenario Penggunaan
 
 **Persiapan SPT Tahunan Badan:**
 
 1. Setelah tutup buku komersial, buka Rekonsiliasi Fiskal
-2. Tambahkan koreksi positif untuk biaya yang tidak diakui pajak (denda, natura, biaya tanpa bukti potong)
-3. Tambahkan koreksi negatif jika ada pendapatan yang sudah dikenai pajak final
-4. Verifikasi total koreksi dan PKP yang dihasilkan
-5. Gunakan hasil untuk mengisi SPT Tahunan Badan di Coretax
+2. Klik **Buat Draf Koreksi**, tinjau, lalu konfirmasi atau tolak setiap draf
+3. Tambahkan koreksi positif untuk biaya lain yang tidak diakui pajak dan tidak tercakup draf (biaya tanpa bukti potong)
+4. Tambahkan koreksi negatif jika ada pendapatan yang sudah dikenai pajak final
+5. Verifikasi total koreksi dan PKP yang dihasilkan
+6. Gunakan hasil untuk mengisi SPT Tahunan Badan di Coretax
 
 ---
 

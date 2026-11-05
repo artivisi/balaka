@@ -116,4 +116,18 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
 
     List<Transaction> findBySourceDocumentTypeAndSourceDocumentIdOrderByTransactionDateAsc(
             String sourceDocumentType, UUID sourceDocumentId);
+
+    /** Posted transactions carrying the given tag that have no benefit-in-kind recipient. */
+    @Query("""
+            SELECT t.transactionNumber FROM TransactionTag tt
+            JOIN tt.transaction t
+            WHERE tt.tag.code = :tagCode
+              AND t.status = com.artivisi.accountingfinance.enums.TransactionStatus.POSTED
+              AND t.transactionDate BETWEEN :start AND :end
+              AND NOT EXISTS (SELECT 1 FROM BenefitInKind b WHERE b.transaction = t)
+            ORDER BY t.transactionNumber
+            """)
+    List<String> findPostedNumbersWithTagWithoutBenefit(@Param("tagCode") String tagCode,
+                                                        @Param("start") LocalDate start,
+                                                        @Param("end") LocalDate end);
 }

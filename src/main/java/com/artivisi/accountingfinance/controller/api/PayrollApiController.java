@@ -222,7 +222,7 @@ public class PayrollApiController {
         YearlyPayrollSummary summary = payrollService.getYearlyPayrollSummary(employeeId, year);
 
         // Calculate 1721-A1 using annual reconciliation method
-        BigDecimal penghasilanBruto = summary.totalGross();
+        BigDecimal penghasilanBruto = summary.getTotalBruto();
         BigDecimal biayaJabatan = penghasilanBruto.multiply(new BigDecimal("5"))
                 .divide(new BigDecimal("100"), 0, RoundingMode.HALF_UP)
                 .min(Pph21CalculationService.BIAYA_JABATAN_ANNUAL_MAX);
@@ -292,10 +292,10 @@ public class PayrollApiController {
                     summary.employee().getName(),
                     summary.employee().getNpwp(),
                     summary.monthCount(),
-                    summary.totalGross(),
+                    summary.getTotalBruto(),
                     summary.totalPph21()
             ));
-            totalGross = totalGross.add(summary.totalGross());
+            totalGross = totalGross.add(summary.getTotalBruto());
             totalPph21 = totalPph21.add(summary.totalPph21());
         }
 

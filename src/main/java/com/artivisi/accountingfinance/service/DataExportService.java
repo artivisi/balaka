@@ -275,7 +275,7 @@ public class DataExportService {
     // ============================================
     private String exportChartOfAccounts() {
         StringBuilder csv = new StringBuilder();
-        csv.append("account_code,account_name,account_type,parent_code,normal_balance,active,created_at\n");
+        csv.append("account_code,account_name,account_type,parent_code,normal_balance,active,created_at,fiscal_treatment\n");
 
         List<ChartOfAccount> accounts = accountRepository.findAll(Sort.by("accountCode"));
         for (ChartOfAccount a : accounts) {
@@ -285,7 +285,8 @@ public class DataExportService {
             csv.append(a.getParent() != null ? escapeCsv(a.getParent().getAccountCode()) : "").append(",");
             csv.append(a.getNormalBalance()).append(",");
             csv.append(a.getActive()).append(",");
-            csv.append(a.getCreatedAt() != null ? a.getCreatedAt().format(DATETIME_FORMATTER) : "").append("\n");
+            csv.append(a.getCreatedAt() != null ? a.getCreatedAt().format(DATETIME_FORMATTER) : "").append(",");
+            csv.append(a.getFiscalTreatment() != null ? a.getFiscalTreatment().name() : "").append("\n");
         }
         return csv.toString();
     }
@@ -771,7 +772,7 @@ public class DataExportService {
         StringBuilder csv = new StringBuilder();
         csv.append("payroll_period,employee_id,gross_salary,total_deductions,net_pay,");
         csv.append("bpjs_kes_employee,bpjs_kes_company,bpjs_jht_employee,bpjs_jht_company,");
-        csv.append("bpjs_jp_employee,bpjs_jp_company,bpjs_jkk,bpjs_jkm,pph21\n");
+        csv.append("bpjs_jp_employee,bpjs_jp_company,bpjs_jkk,bpjs_jkm,pph21,benefit_in_kind\n");
 
         List<PayrollRun> payrollRuns = payrollRunRepository.findAll(Sort.by("payrollPeriod"));
         for (PayrollRun pr : payrollRuns) {
@@ -790,7 +791,8 @@ public class DataExportService {
                 csv.append(pd.getBpjsJpCompany()).append(",");
                 csv.append(pd.getBpjsJkk()).append(",");
                 csv.append(pd.getBpjsJkm()).append(",");
-                csv.append(pd.getPph21()).append("\n");
+                csv.append(pd.getPph21()).append(",");
+                csv.append(pd.getBenefitInKind()).append("\n");
             }
         }
         return csv.toString();

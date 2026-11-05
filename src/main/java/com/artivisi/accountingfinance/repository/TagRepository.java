@@ -14,6 +14,8 @@ public interface TagRepository extends JpaRepository<Tag, UUID> {
 
     List<Tag> findByTagTypeIdOrderByName(UUID tagTypeId);
 
+    java.util.Optional<Tag> findByTagTypeIdAndCode(UUID tagTypeId, String code);
+
     @Query("SELECT t FROM Tag t WHERE t.tagType.id = :tagTypeId " +
            "AND (COALESCE(:search, '') = '' OR LOWER(t.code) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) OR LOWER(t.name) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))) " +
            "ORDER BY t.code")

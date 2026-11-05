@@ -2,6 +2,7 @@ package com.artivisi.accountingfinance.controller;
 
 import com.artivisi.accountingfinance.entity.ChartOfAccount;
 import com.artivisi.accountingfinance.enums.AccountType;
+import com.artivisi.accountingfinance.enums.FiscalTreatment;
 import com.artivisi.accountingfinance.enums.NormalBalance;
 import com.artivisi.accountingfinance.security.Permission;
 import com.artivisi.accountingfinance.service.ChartOfAccountService;
@@ -98,6 +99,7 @@ public class ChartOfAccountsController {
         private Boolean permanent;
         private Boolean active;
         private String description;
+        private FiscalTreatment fiscalTreatment;
 
         // Used by Thymeleaf for dropdown pre-selection (account.parent.id)
         private ParentRef parent;
@@ -136,6 +138,7 @@ public class ChartOfAccountsController {
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_ACCOUNTS);
         model.addAttribute("account", new AccountForm());
         model.addAttribute(ATTR_ACCOUNT_TYPES, AccountType.values());
+        model.addAttribute("fiscalTreatments", FiscalTreatment.values());
         model.addAttribute(ATTR_PARENT_ACCOUNTS, chartOfAccountService.findAll());
         model.addAttribute(ATTR_HAS_CHILDREN, false);
         model.addAttribute(ATTR_HAS_PARENT, false);
@@ -155,6 +158,7 @@ public class ChartOfAccountsController {
         if (bindingResult.hasErrors()) {
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_ACCOUNTS);
             model.addAttribute(ATTR_ACCOUNT_TYPES, AccountType.values());
+            model.addAttribute("fiscalTreatments", FiscalTreatment.values());
             model.addAttribute(ATTR_PARENT_ACCOUNTS, chartOfAccountService.findAll());
             model.addAttribute(ATTR_HAS_CHILDREN, false);
             model.addAttribute(ATTR_HAS_PARENT, parentId != null);
@@ -174,6 +178,7 @@ public class ChartOfAccountsController {
             bindingResult.rejectValue("accountCode", "duplicate", e.getMessage());
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_ACCOUNTS);
             model.addAttribute(ATTR_ACCOUNT_TYPES, AccountType.values());
+            model.addAttribute("fiscalTreatments", FiscalTreatment.values());
             model.addAttribute(ATTR_PARENT_ACCOUNTS, chartOfAccountService.findAll());
             model.addAttribute(ATTR_HAS_CHILDREN, false);
             model.addAttribute(ATTR_HAS_PARENT, parentId != null);
@@ -191,6 +196,7 @@ public class ChartOfAccountsController {
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_ACCOUNTS);
         model.addAttribute("account", toForm(existing));
         model.addAttribute(ATTR_ACCOUNT_TYPES, AccountType.values());
+        model.addAttribute("fiscalTreatments", FiscalTreatment.values());
         model.addAttribute(ATTR_PARENT_ACCOUNTS, chartOfAccountService.findAll());
         model.addAttribute(ATTR_HAS_CHILDREN, !existing.getChildren().isEmpty());
         model.addAttribute(ATTR_HAS_PARENT, existing.getParent() != null);
@@ -224,6 +230,7 @@ public class ChartOfAccountsController {
             }
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_ACCOUNTS);
             model.addAttribute(ATTR_ACCOUNT_TYPES, AccountType.values());
+            model.addAttribute("fiscalTreatments", FiscalTreatment.values());
             model.addAttribute(ATTR_PARENT_ACCOUNTS, chartOfAccountService.findAll());
             model.addAttribute(ATTR_HAS_CHILDREN, hasChildren);
             model.addAttribute(ATTR_HAS_PARENT, hasParent);
@@ -243,6 +250,7 @@ public class ChartOfAccountsController {
             form.setId(id);
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_ACCOUNTS);
             model.addAttribute(ATTR_ACCOUNT_TYPES, AccountType.values());
+            model.addAttribute("fiscalTreatments", FiscalTreatment.values());
             model.addAttribute(ATTR_PARENT_ACCOUNTS, chartOfAccountService.findAll());
             model.addAttribute(ATTR_HAS_CHILDREN, hasChildren);
             model.addAttribute(ATTR_HAS_PARENT, hasParent);
@@ -252,6 +260,7 @@ public class ChartOfAccountsController {
             form.setId(id);
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_ACCOUNTS);
             model.addAttribute(ATTR_ACCOUNT_TYPES, AccountType.values());
+            model.addAttribute("fiscalTreatments", FiscalTreatment.values());
             model.addAttribute(ATTR_PARENT_ACCOUNTS, chartOfAccountService.findAll());
             model.addAttribute(ATTR_HAS_CHILDREN, hasChildren);
             model.addAttribute(ATTR_HAS_PARENT, hasParent);
