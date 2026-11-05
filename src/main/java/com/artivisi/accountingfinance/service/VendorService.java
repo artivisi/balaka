@@ -6,11 +6,15 @@ import com.artivisi.accountingfinance.repository.ChartOfAccountRepository;
 import com.artivisi.accountingfinance.repository.VendorRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import com.artivisi.accountingfinance.enums.PayeeType;
+import com.artivisi.accountingfinance.enums.TaxObjectCode;
+import com.artivisi.accountingfinance.enums.WithholdingTreatment;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -71,6 +75,7 @@ public class VendorService {
 
     @Transactional
     public Vendor create(Vendor vendor) {
+        validatePayee(vendor);
         if (vendorRepository.existsByCode(vendor.getCode())) {
             throw new IllegalArgumentException("Kode vendor sudah digunakan: " + vendor.getCode());
         }
@@ -89,6 +94,7 @@ public class VendorService {
 
     @Transactional
     public Vendor update(UUID id, Vendor updatedVendor) {
+        validatePayee(updatedVendor);
         Vendor existing = findById(id);
 
         if (!existing.getCode().equals(updatedVendor.getCode()) &&
@@ -107,6 +113,14 @@ public class VendorService {
         existing.setNitku(updatedVendor.getNitku());
         existing.setNik(updatedVendor.getNik());
         existing.setIdType(updatedVendor.getIdType());
+        existing.setPayeeType(updatedVendor.getPayeeType());
+        existing.setDefaultWithholding(updatedVendor.getDefaultWithholding());
+        existing.setDefaultTaxObjectCode(updatedVendor.getDefaultTaxObjectCode());
+        existing.setCountryCode(updatedVendor.getCountryCode());
+        existing.setForeignTin(updatedVendor.getForeignTin());
+        existing.setTreatyRate(updatedVendor.getTreatyRate());
+        existing.setDgtFormNumber(updatedVendor.getDgtFormNumber());
+        existing.setDgtValidUntil(updatedVendor.getDgtValidUntil());
         existing.setPaymentTermDays(updatedVendor.getPaymentTermDays());
         existing.setBankName(updatedVendor.getBankName());
         existing.setBankAccountNumber(updatedVendor.getBankAccountNumber());
@@ -121,6 +135,50 @@ public class VendorService {
         }
 
         return vendorRepository.save(existing);
+    }
+
+    private void validatePayee(Vendor vendor) {
+        requireDigits(vendor.getNik(), 16, 16, "NIK harus 16 digit");
+        requireDigits(vendor.getNpwp(), 15, 16, "NPWP harus 15 atau 16 digit");
+
+        PayeeType type = vendor.getPayeeType();
+        WithholdingTreatment treatment = vendor.getDefaultWithholding();
+        if (treatment != null && type == null) {
+            throw new IllegalArgumentException("Jenis penerima wajib diisi jika perlakuan pajak diisi");
+        }
+        if (treatment != null && !treatment.allows(type)) {
+            throw new IllegalArgumentException(treatment.getIndonesianName()
+                    + " tidak berlaku untuk " + type.getIndonesianName());
+        }
+        String objectCode = vendor.getDefaultTaxObjectCode();
+        if (objectCode != null && !objectCode.isBlank()) {
+            TaxObjectCode code = TaxObjectCode.fromCode(objectCode);
+            if (code == null || treatment == null || code.getTaxType() != treatment.getTaxType()) {
+                throw new IllegalArgumentException("Kode objek pajak " + objectCode + " tidak sesuai perlakuan pajak penerima");
+            }
+        }
+        if (type == PayeeType.LUAR_NEGERI && (vendor.getCountryCode() == null || !vendor.getCountryCode().matches("[A-Z]{2}"))) {
+            throw new IllegalArgumentException("Kode negara (2 huruf kapital) wajib diisi untuk penerima luar negeri");
+        }
+        BigDecimal treatyRate = vendor.getTreatyRate();
+        if (treatyRate != null) {
+            if (type != PayeeType.LUAR_NEGERI) {
+                throw new IllegalArgumentException("Tarif P3B hanya berlaku untuk penerima luar negeri");
+            }
+            if (treatyRate.signum() < 0 || treatyRate.compareTo(new BigDecimal("100")) > 0) {
+                throw new IllegalArgumentException("Tarif P3B harus antara 0 dan 100");
+            }
+        }
+    }
+
+    private void requireDigits(String value, int min, int max, String message) {
+        if (value == null || value.isBlank()) {
+            return;
+        }
+        int digits = value.replaceAll("\\D", "").length();
+        if (digits < min || digits > max) {
+            throw new IllegalArgumentException(message);
+        }
     }
 
     @Transactional

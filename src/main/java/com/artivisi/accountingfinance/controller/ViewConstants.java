@@ -24,6 +24,7 @@ public final class ViewConstants {
 
     // Current page values (navigation)
     public static final String PAGE_DASHBOARD = "dashboard";
+    public static final String PAGE_WITHHOLDING = "withholding";
     public static final String PAGE_ACCOUNTS = "accounts";
     public static final String PAGE_TRANSACTIONS = "transactions";
     public static final String PAGE_TEMPLATES = "templates";

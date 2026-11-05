@@ -151,7 +151,10 @@ class ApiAuthorizationTest extends PlaywrightTestBase {
                 "/api/employees", "/api/salary-components", "/api/payroll",
                 "/api/fiscal-adjustments?year=" + ADJUSTMENT_YEAR, "/api/templates",
                 "/api/bank-reconciliation/parser-configs", "/api/drafts/templates", "/api/drafts/accounts",
-                "/api/accounts", "/api/fixed-assets", "/api/tax-filings", "/api/bills", "/api/analysis/reports")) {
+                "/api/accounts", "/api/fixed-assets", "/api/tax-filings", "/api/bills", "/api/analysis/reports",
+                "/api/withholding/payees", "/api/withholding/payments?year=2041&month=1",
+                "/api/withholding/deposits?year=2041&month=1", "/api/withholding/masa-status?year=2041&month=1",
+                "/api/withholding/undocumented-service-payments?year=2041&month=1")) {
             APIResponse response = api.get(path, bearer(token));
             assertThat(response.status()).as("GET %s: %s", path, response.text()).isEqualTo(200);
         }
@@ -504,6 +507,19 @@ class ApiAuthorizationTest extends PlaywrightTestBase {
                 all(Permission.TAX_CALENDAR_MANAGE)));
         c.add(new WriteCase("DELETE", "/api/tax-filings" + r + "/documents" + r2, none(),
                 all(Permission.TAX_CALENDAR_MANAGE)));
+
+        // withholding
+        Map<String, Object> payee = Map.of("code", "WH-" + m, "name", "Penerima " + m, "payeeType", "BADAN");
+        c.add(new WriteCase("POST", "/api/withholding/payees", data(payee), all(Permission.VENDOR_CREATE)));
+        c.add(new WriteCase("PUT", "/api/withholding/payees" + r, data(payee), all(Permission.VENDOR_EDIT)));
+        c.add(new WriteCase("POST", "/api/withholding/payments", data(Map.of("vendorId", id, "paymentDate", "2041-01-10",
+                "grossAmount", 1000, "bankAccountId", id, "description", "Bayar " + m)), all(Permission.TRANSACTION_CREATE)));
+        c.add(new WriteCase("POST", "/api/withholding/payments" + r + "/post", none(), all(Permission.TRANSACTION_POST)));
+        c.add(new WriteCase("DELETE", "/api/withholding/payments" + r, none(), all(Permission.TRANSACTION_DELETE)));
+        c.add(new WriteCase("POST", "/api/withholding/deposits", data(Map.of("treatment", "PPH_23", "year", 2041, "month", 1,
+                "amount", 1000, "depositDate", "2041-02-10", "bankAccountId", id)), all(Permission.TRANSACTION_CREATE)));
+        c.add(new WriteCase("POST", "/api/withholding/deposits" + r + "/post", none(), all(Permission.TRANSACTION_POST)));
+        c.add(new WriteCase("DELETE", "/api/withholding/deposits" + r, none(), all(Permission.TRANSACTION_DELETE)));
 
         // analysis and import
         c.add(new WriteCase("POST", "/api/analysis/reports", data(Map.of("title", "Laporan " + m,

@@ -96,6 +96,54 @@
                 <!-- Tax Info -->
                 <div class="border-t pt-4">
                     <h3 class="text-sm font-medium text-gray-900 mb-3">Informasi Pajak</h3>
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label for="payeeType" class="block text-sm font-medium text-gray-700 mb-1">Jenis Penerima</label>
+                            <select id="payeeType" th:field="*{payeeType}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
+                                <option value="">Belum diklasifikasi</option>
+                                <option th:each="t : ${payeeTypes}" th:value="${t.name()}" th:text="${t.indonesianName}"></option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="defaultWithholding" class="block text-sm font-medium text-gray-700 mb-1">Perlakuan Pajak Bawaan</label>
+                            <select id="defaultWithholding" th:field="*{defaultWithholding}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
+                                <option value="">Tidak ada</option>
+                                <option th:each="t : ${withholdingTreatments}" th:value="${t.name()}" th:text="${t.indonesianName}"></option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="defaultTaxObjectCode" class="block text-sm font-medium text-gray-700 mb-1">Kode Objek Pajak Bawaan</label>
+                            <select id="defaultTaxObjectCode" th:field="*{defaultTaxObjectCode}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
+                                <option value="">Tidak ada</option>
+                                <option th:each="c : ${withholdingObjectCodes}" th:value="${c.code}" th:text="${c.displayName}"></option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="nik" class="block text-sm font-medium text-gray-700 mb-1">NIK</label>
+                            <input type="text" id="nik" th:field="*{nik}" maxlength="16" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
+                        </div>
+                        <div>
+                            <label for="countryCode" class="block text-sm font-medium text-gray-700 mb-1">Kode Negara (luar negeri)</label>
+                            <input type="text" id="countryCode" th:field="*{countryCode}" maxlength="2" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
+                        </div>
+                        <div>
+                            <label for="foreignTin" class="block text-sm font-medium text-gray-700 mb-1">TIN Luar Negeri</label>
+                            <input type="text" id="foreignTin" th:field="*{foreignTin}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
+                        </div>
+                        <div>
+                            <label for="treatyRate" class="block text-sm font-medium text-gray-700 mb-1">Tarif P3B (%)</label>
+                            <input type="number" step="0.01" min="0" max="100" id="treatyRate" th:field="*{treatyRate}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
+                            <p class="mt-1 text-xs text-gray-500">Berlaku hanya jika DGT masih berlaku pada tanggal bayar. Tanpa DGT berlaku, tarif umum PPh 26 yang dihitung.</p>
+                        </div>
+                        <div>
+                            <label for="dgtFormNumber" class="block text-sm font-medium text-gray-700 mb-1">Nomor Formulir DGT</label>
+                            <input type="text" id="dgtFormNumber" th:field="*{dgtFormNumber}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
+                        </div>
+                        <div>
+                            <label for="dgtValidUntil" class="block text-sm font-medium text-gray-700 mb-1">DGT Berlaku Sampai</label>
+                            <input type="date" id="dgtValidUntil" th:field="*{dgtValidUntil}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
+                        </div>
+                    </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label for="npwp" class="block text-sm font-medium text-gray-700 mb-1">NPWP</label>

@@ -221,6 +221,9 @@
                             <a sec:authorize="hasAuthority('BILL_VIEW')" id="nav-bills" th:href="@{/bills}"
                                th:classappend="${#strings.equals(currentPage, 'bills')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
                                class="flex items-center px-3 py-2 rounded-lg transition-colors">Tagihan</a>
+                            <a sec:authorize="hasAuthority('TAX_REPORT_VIEW')" id="nav-withholding" th:href="@{/withholding}"
+                               th:classappend="${#strings.equals(currentPage, 'withholding')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
+                               class="flex items-center px-3 py-2 rounded-lg transition-colors">Pemotongan PPh</a>
                         </div>
                     </details>
 
@@ -521,6 +524,8 @@
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Vendor</a>
                             <a sec:authorize="hasAuthority('BILL_VIEW')" th:href="@{/bills}"
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Tagihan</a>
+                            <a sec:authorize="hasAuthority('TAX_REPORT_VIEW')" th:href="@{/withholding}"
+                               class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Pemotongan PPh</a>
                         </div>
                     </details>
 

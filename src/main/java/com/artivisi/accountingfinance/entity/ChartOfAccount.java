@@ -82,4 +82,8 @@ public class ChartOfAccount extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "fiscal_treatment", length = 20)
     private FiscalTreatment fiscalTreatment;
+
+    /** TRUE: a payment on this account normally needs withholding. Null = not classified. */
+    @Column(name = "service_expense")
+    private Boolean serviceExpense;
 }

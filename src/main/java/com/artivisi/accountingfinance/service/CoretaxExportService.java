@@ -119,7 +119,25 @@ public class CoretaxExportService {
 
         try (Workbook workbook = new XSSFWorkbook()) {
             createBupotSheet(workbook, details, config);
+            createPph26Sheet(workbook, details);
             createBupotReferenceSheet(workbook);
+
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            workbook.write(outputStream);
+            return outputStream.toByteArray();
+        }
+    }
+
+    /**
+     * Export BP21 data: PPh 21 bukan pegawai and other PPh 21 tax details. These rows are not in Bupot Unifikasi,
+     * so a masa is never uploaded twice. Column layout unverified against the Coretax BP21 converter.
+     */
+    public byte[] exportBp21(LocalDate startDate, LocalDate endDate) throws IOException {
+        List<TaxTransactionDetail> details = taxTransactionDetailRepository.findByTaxTypeAndDateRange(TaxType.PPH_21, startDate, endDate);
+        CompanyConfig config = getCompanyConfig();
+
+        try (Workbook workbook = new XSSFWorkbook()) {
+            createBp21Sheet(workbook, details, config);
 
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             workbook.write(outputStream);
@@ -300,7 +318,70 @@ public class CoretaxExportService {
         setNumberCell(row, 9, detail.getGrossAmount(), numberStyle);
         setNumberCell(row, 10, detail.getTaxRate(), numberStyle);
         setNumberCell(row, 11, detail.getTaxAmount(), numberStyle);
-        setStringCell(row, 12, ""); // FacilityType - empty for normal
+        setStringCell(row, 12, detail.getDgtFormNumber() != null ? "DGT" : ""); // FacilityType - empty for normal
+    }
+
+    private void createPph26Sheet(Workbook workbook, List<TaxTransactionDetail> details) {
+        Sheet sheet = workbook.createSheet("PPH26");
+        CellStyle headerStyle = createHeaderStyle(workbook);
+        CellStyle numberStyle = createNumberStyle(workbook);
+        String[] headers = {"RecipientName", "Country", "ForeignTin", "DgtFormNumber", "TaxObjectCode", "GrossAmount", "TaxRate", "TaxAmount"};
+        writeHeader(sheet, headers, headerStyle);
+
+        int rowNum = 1;
+        for (TaxTransactionDetail detail : details) {
+            if (detail.getTaxType() != TaxType.PPH_26) {
+                continue;
+            }
+            Row row = sheet.createRow(rowNum++);
+            setStringCell(row, 0, detail.getCounterpartyName());
+            setStringCell(row, 1, detail.getCounterpartyCountry());
+            setStringCell(row, 2, detail.getCounterpartyForeignTin());
+            setStringCell(row, 3, detail.getDgtFormNumber());
+            setStringCell(row, 4, detail.getTaxObjectCode());
+            setNumberCell(row, 5, detail.getGrossAmount(), numberStyle);
+            setNumberCell(row, 6, detail.getTaxRate(), numberStyle);
+            setNumberCell(row, 7, detail.getTaxAmount(), numberStyle);
+        }
+    }
+
+    private void createBp21Sheet(Workbook workbook, List<TaxTransactionDetail> details, CompanyConfig config) {
+        Sheet sheet = workbook.createSheet("DATA");
+        CellStyle headerStyle = createHeaderStyle(workbook);
+        CellStyle numberStyle = createNumberStyle(workbook);
+        String[] headers = {"BupotNumber", "BupotDate", "CutterTaxId", "CutterNitku", "RecipientIdType", "RecipientIdNumber",
+                "RecipientName", "RecipientAddress", "TaxObjectCode", "GrossAmount", "Dpp", "TaxRate", "TaxAmount"};
+        writeHeader(sheet, headers, headerStyle);
+
+        int rowNum = 1;
+        for (TaxTransactionDetail detail : details) {
+            Row row = sheet.createRow(rowNum++);
+            setStringCell(row, 0, detail.getBupotNumber());
+            setDateCell(row, 1, detail.getTransaction().getTransactionDate());
+            setStringCell(row, 2, config.getNpwp());
+            setStringCell(row, 3, config.getNitku());
+            setStringCell(row, 4, detail.getCounterpartyIdType());
+            setStringCell(row, 5, detail.getCounterpartyIdNumber());
+            setStringCell(row, 6, detail.getCounterpartyName());
+            setStringCell(row, 7, detail.getCounterpartyAddress());
+            setStringCell(row, 8, detail.getTaxObjectCode());
+            setNumberCell(row, 9, detail.getGrossAmount(), numberStyle);
+            setNumberCell(row, 10, detail.getDpp(), numberStyle);
+            setNumberCell(row, 11, detail.getTaxRate(), numberStyle);
+            setNumberCell(row, 12, detail.getTaxAmount(), numberStyle);
+        }
+        for (int i = 0; i < headers.length; i++) {
+            sheet.autoSizeColumn(i);
+        }
+    }
+
+    private void writeHeader(Sheet sheet, String[] headers, CellStyle headerStyle) {
+        Row headerRow = sheet.createRow(0);
+        for (int i = 0; i < headers.length; i++) {
+            Cell cell = headerRow.createCell(i);
+            cell.setCellValue(headers[i]);
+            cell.setCellStyle(headerStyle);
+        }
     }
 
     private void createBupotReferenceSheet(Workbook workbook) {

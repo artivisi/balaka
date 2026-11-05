@@ -127,6 +127,7 @@ public class UserManualGenerator {
                 new Section("jenis-pajak", "Jenis Pajak di Indonesia", "04-perpajakan.md", List.of()),
                 new Section("transaksi-ppn", "Transaksi PPN", "04-perpajakan.md", List.of("reports-ppn-summary")),
                 new Section("transaksi-pph", "Transaksi PPh", "04-perpajakan.md", List.of("reports-pph23-withholding", "reports-tax-summary")),
+                new Section("pemotongan-pph", "Pemotongan PPh atas Pembayaran", "04-perpajakan.md", List.of()),
                 new Section("periode-fiskal", "Periode Fiskal", "04-perpajakan.md", List.of("fiscal-periods-list")),
                 new Section("kalender-pajak", "Kalender Pajak", "04-perpajakan.md", List.of("tax-calendar", "tax-calendar-yearly")),
                 new Section("perpajakan-referensi-regulasi", "Referensi Regulasi", "04-perpajakan.md", List.of()),
@@ -442,7 +443,8 @@ public class UserManualGenerator {
                 new Section("dev-tax", "Tax Export API", "06-tax-export.md", List.of()),
                 new Section("dev-pagination", "Pagination", "07-pagination.md", List.of()),
                 new Section("dev-fixed-assets", "Fixed Assets API", "08-fixed-assets.md", List.of()),
-                new Section("dev-tax-filings", "Tax Filings API", "09-tax-filings.md", List.of())
+                new Section("dev-tax-filings", "Tax Filings API", "09-tax-filings.md", List.of()),
+                new Section("dev-withholding", "Withholding API", "10-withholding.md", List.of())
             )),
 
             new SectionGroup("dev-extending", "Developer: Extending Balaka", "M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z", List.of(

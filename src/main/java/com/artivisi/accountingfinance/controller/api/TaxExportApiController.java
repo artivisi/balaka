@@ -133,6 +133,23 @@ public class TaxExportApiController {
                 .body(excel);
     }
 
+    @GetMapping("/bp21")
+    @Operation(summary = "Export BP21 (PPh 21 bukan pegawai) to Excel")
+    public ResponseEntity<byte[]> exportBp21(
+            @Parameter(description = "Start month (yyyy-MM)") @RequestParam String startMonth,
+            @Parameter(description = "End month (yyyy-MM)") @RequestParam String endMonth) throws IOException {
+
+        LocalDate[] range = parseMonthRange(startMonth, endMonth);
+        byte[] excel = coretaxExportService.exportBp21(range[0], range[1]);
+        auditAccess("bp21", Map.of(PARAM_START_MONTH, startMonth, PARAM_END_MONTH, endMonth));
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=bp21-" + startMonth + "-" + endMonth + FILE_EXT_XLSX)
+                .contentType(MediaType.parseMediaType(XLSX_CONTENT_TYPE))
+                .body(excel);
+    }
+
     // ==================== JSON / EXCEL ENDPOINTS ====================
 
     @GetMapping("/ppn-detail")

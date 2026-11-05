@@ -1560,6 +1560,10 @@ Setiap user dapat melihat dan mencabut device token miliknya di halaman **Perang
 |--------|----------|-----------|
 | POST | `/api/analysis/reports` | Publikasi laporan analisis terstruktur |
 
+### Pemotongan PPh (scope: `withholding:*`)
+
+Lihat [Withholding API](../developer-guide/api/10-withholding.md). Pembayaran dan setoran berstatus DRAFT sampai diposting.
+
 ### Tagihan Vendor (scope: `bills:*`)
 
 | Method | Endpoint | Deskripsi |

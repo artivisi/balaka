@@ -255,6 +255,7 @@ public class TransactionApiService {
         if (!transaction.isDraft()) {
             throw new IllegalStateException("Only draft transactions can be updated: " + transaction.getStatus());
         }
+        transactionService.assertEditable(transactionId);
 
         if (request.templateId() != null) {
             JournalTemplate template = journalTemplateService.findByIdWithLines(request.templateId());

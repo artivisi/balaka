@@ -119,6 +119,80 @@ Buka menu **Laporan** > **Ringkasan Pajak**.
 
 ---
 
+## Pemotongan PPh atas Pembayaran
+
+Menu **Pembelian** > **Pemotongan PPh** mencatat pembayaran ke freelancer, vendor dan penerima luar negeri. Sistem menghitung bruto, PPh dan jumlah yang dibayar, mencatat hutang PPh, lalu memantau setoran per masa.
+
+### Tarif
+
+| Perlakuan | Penerima | Dasar | Tarif | Tanpa NPWP/NIK |
+|-----------|----------|-------|-------|----------------|
+| PPh 21 Bukan Pegawai | Orang pribadi | 50% bruto per masa | Pasal 17 | Lebih tinggi 20% |
+| PPh 23 | Badan atau orang pribadi | Bruto | 2% | Lebih tinggi 100% |
+| PPh 26 | Luar negeri | Bruto | 20% atau tarif P3B | Tidak berpengaruh |
+
+Tarif PPh 23, PPh 26 dan kode objek pajak belum diperiksa konsultan pajak. Periksa dengan konsultan sebelum menyetor.
+
+Tarif berjenjang Pasal 17 dihitung dari total bruto penerima dalam satu masa dan dimulai dari awal lagi pada masa berikutnya. PTKP tidak dikurangkan. Contoh dengan NIK: pembayaran pertama Rp 100.000.000 dipotong Rp 2.500.000, pembayaran kedua Rp 100.000.000 pada bulan yang sama dipotong Rp 6.500.000.
+
+Tarif P3B berlaku hanya jika nomor DGT terisi dan DGT masih berlaku pada tanggal bayar. Jika tidak, sistem menghitung tarif umum 20% dan kolom Dasar Tarif menampilkan alasannya.
+
+### Data Penerima
+
+Buka **Pembelian** > **Vendor**, lalu isi bagian Informasi Pajak:
+
+1. **Jenis Penerima**: Badan dalam negeri, Orang pribadi dalam negeri, atau Penerima luar negeri
+2. **Perlakuan Pajak Bawaan** dan **Kode Objek Pajak Bawaan**
+3. **NPWP** atau **NIK**. Untuk penerima luar negeri: **Kode Negara**, **TIN Luar Negeri**, **Tarif P3B**, **Nomor Formulir DGT**, **DGT Berlaku Sampai**
+
+NPWP dan NIK vendor tersimpan terenkripsi.
+
+### Mencatat Pembayaran
+
+1. Klik **Pembayaran Baru**
+2. Pilih penerima, isi tanggal bayar, jumlah bruto, akun beban, akun bank dan keterangan
+3. Klik **Hitung dan Simpan Draf**
+4. Periksa PPh Dipotong dan Dibayar ke Penerima, lalu klik **Posting**
+
+Draf belum masuk jurnal. **Batalkan Draf** menghapus draf dan menghitung ulang draf PPh 21 lain ke penerima yang sama pada masa itu. Pembayaran terposting dibatalkan lewat void transaksi. Void ditolak jika masih ada pembayaran PPh 21 yang lebih baru ke penerima yang sama pada masa itu.
+
+Jurnal setelah posting:
+
+```
+Dr. Beban Jasa Profesional  10.000.000
+    Cr. Bank                 9.750.000
+    Cr. Hutang PPh 21          250.000
+```
+
+Akun hutang dicari berdasarkan nama: **Hutang PPh 21**, **Hutang PPh 23**, **Hutang PPh 26**. Jika nama tersebut tidak ada atau ganda, penyimpanan draf ditolak.
+
+### Melunasi Tagihan dengan Pemotongan
+
+Pada form pembayaran, kosongkan Akun Beban dan isi **Nomor Tagihan**, **Jumlah Pelunasan** (termasuk PPN) dan **Metode Pembayaran**. Jumlah Bruto tetap dasar pemotongan, tanpa PPN. Jurnal mendebit Hutang Usaha. Status tagihan berubah saat draf diposting.
+
+### Setoran dan Jatuh Tempo
+
+Pilih masa pada halaman **Pemotongan PPh**. Tabel Status Setor menampilkan PPh dipotong, disetor, sisa, tanggal jatuh tempo dari Kalender Pajak dan statusnya. Hanya transaksi terposting yang dihitung; nilai draf tampil di kolom tersendiri.
+
+Untuk mencatat setoran, isi form Setoran, klik **Simpan Draf Setoran**, lalu **Posting**. Tanggal jatuh tempo belum digeser ke hari kerja berikutnya.
+
+Setoran di menu ini hanya untuk PPh hasil pemotongan di menu ini. PPh 21 karyawan disetor lewat template Setor PPh 21.
+
+### Ekspor
+
+- **Ekspor BP21**: PPh 21 bukan pegawai
+- **Ekspor Bupot Unifikasi**: PPh 23, PPh 26 dan PPh 4(2). PPh 21 tidak lagi masuk ekspor ini
+
+Format kolom belum dicocokkan dengan konverter Coretax terbaru.
+
+### Pembayaran Jasa Tanpa Detail PPh
+
+Bagian ini menampilkan transaksi terposting pada akun jasa yang tidak punya detail PPh 21, 23, 26 atau 4(2) pada masa terpilih. Detail PPN tidak dihitung.
+
+Akun jasa diatur di **Bagan Akun**, kolom **Akun Jasa (Pemotongan PPh)**. Akun beban yang belum diklasifikasi dan punya transaksi pada masa itu muncul sebagai peringatan, karena laporan tidak bisa menilainya.
+
+---
+
 ## Periode Fiskal
 
 Periode fiskal mengontrol kapan transaksi dapat diposting. Setiap bulan memiliki status yang menentukan apakah jurnal dapat dibuat di bulan tersebut.

@@ -71,7 +71,7 @@ public interface TaxTransactionDetailRepository extends JpaRepository<TaxTransac
     // For e-Bupot Unifikasi (PPh withholding)
     @Query("SELECT t FROM TaxTransactionDetail t " +
             "JOIN t.transaction trx " +
-            "WHERE t.taxType IN ('PPH_21', 'PPH_23', 'PPH_42') " +
+            "WHERE t.taxType IN ('PPH_23', 'PPH_26', 'PPH_42') " +
             "AND trx.transactionDate BETWEEN :startDate AND :endDate " +
             "AND trx.status = 'POSTED' " +
             "ORDER BY trx.transactionDate ASC, t.bupotNumber ASC")

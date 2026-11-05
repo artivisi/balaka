@@ -18,6 +18,8 @@ public interface ChartOfAccountRepository extends JpaRepository<ChartOfAccount, 
 
     Optional<ChartOfAccount> findByAccountCode(String accountCode);
 
+    List<ChartOfAccount> findByAccountName(String accountName);
+
     boolean existsByAccountCode(String accountCode);
 
     List<ChartOfAccount> findByActiveOrderByAccountCodeAsc(Boolean active);

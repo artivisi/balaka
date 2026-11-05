@@ -4,3 +4,4 @@ PPH_23_PAYMENT,Setor PPh 23,Pembayaran PPh Pasal 23 atas jasa dividen bunga roya
 PPH_42_PAYMENT,Setor PPh 4(2),Pembayaran PPh Pasal 4 ayat 2 (final) atas sewa tanah/bangunan. Jatuh tempo tanggal 15 bulan berikutnya (PMK 81/2024).,15,false,7,true
 SPT_PPH_21,Lapor SPT PPh 21,Pelaporan SPT Masa PPh 21 untuk gaji dosen dan karyawan. Jatuh tempo tanggal 20 bulan berikutnya.,20,false,7,true
 SPT_PPH_23,Lapor SPT PPh 23,Pelaporan SPT Masa PPh 23 (e-Bupot Unifikasi). Jatuh tempo tanggal 20 bulan berikutnya.,20,false,7,true
+PPH_26_PAYMENT,Setor PPh 26,Pembayaran PPh Pasal 26 atas penghasilan penerima luar negeri. Jatuh tempo tanggal 15 bulan berikutnya.,15,false,7,true

@@ -42,6 +42,12 @@ public enum TaxObjectCode {
     PPH42_UMKM("28-423-01", "PPh Final UMKM (PP 55/2022)", new BigDecimal("0.50"), TaxType.PPH_42),
 
     // ========================================
+    // PPh Pasal 26 - rate comes from WithholdingProperties or the payee's treaty rate.
+    // Code unverified against the current KEP-143/PJ/2022 list.
+    // ========================================
+    PPH26_IMBALAN_JASA("27-100-99", "Imbalan Jasa Penerima Luar Negeri", new BigDecimal("20.00"), TaxType.PPH_26),
+
+    // ========================================
     // PPh Pasal 21 - Bukan Pegawai
     // ========================================
     PPH21_HONORARIUM("21-100-09", "Honorarium/Imbalan Bukan Pegawai", new BigDecimal("0.00"), TaxType.PPH_21); // Progressive rate

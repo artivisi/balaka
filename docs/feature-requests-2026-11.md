@@ -50,3 +50,76 @@ No rate is introduced. Pasal references on drafts (`Pasal 9 ayat (1) UU PPh`, `P
 V008 runs on deploy. It fails if `2.1.25`, `2.1.40`, `3.2.03`, `5.8` or `5.8.0x` exists with another account type; rename the account first. A code used with the same type is kept as is, including its name. It also fails if parents `2.1`, `3.2` or `5` are missing from a non-empty chart; create them first. An empty chart skips the insert. A flyway failure rolls back and leaves the previous schema.
 
 After deploy, classify existing expense accounts under Bagan Akun.
+
+## Issue #43: Withholding on non-employee and vendor payments
+
+### Built
+
+- Payee master on `Vendor`: `payeeType`, `defaultWithholding`, `defaultTaxObjectCode`, NPWP, NIK, `countryCode`, `foreignTin`, `treatyRate`, `dgtFormNumber`, `dgtValidUntil`. Web form and `/api/withholding/payees`.
+- Payment flow: `WithholdingPaymentService.create` computes gross, tax and net, composes a DRAFT transaction with template `Pembayaran dengan Pemotongan PPh` and attaches a `TaxTransactionDetail`. Nothing reaches the ledger until posted, on `/withholding` or through the transaction screens. Credits Hutang PPh 21/23/26.
+- Bills: a payment can settle an approved bill. It debits Hutang Usaha, records the `BillPayment` on post through `TransactionPostedEvent`, and reverses it on void through `TransactionVoidedEvent` and `BillService.reversePayment`.
+- Deposits: `WithholdingDepositService` with DRAFT transactions from template `Setor PPh Dipotong`; status per masa against `TaxDeadline` (`PPH_26_PAYMENT` is new).
+- Exports: `CoretaxExportService.exportBp21`, web and `/api/tax-export/bp21`; PPh 26 in Bupot Unifikasi with a `PPH26` sheet.
+- Report: posted debits on service accounts with no PPh detail, per masa. `ChartOfAccount.serviceExpense` is nullable; form, API, CSV import and export carry it.
+- Read API for #45 and #51: `WithholdingQueryService`. API scopes `withholding:read`, `withholding:write`.
+
+### Schema (V009)
+
+`vendors`: payee columns; `npwp`, `nik` widened. `chart_of_accounts.service_expense`. `tax_transaction_details`: `PPH_26` in the check, `counterparty_country`, `counterparty_foreign_tin`, `dgt_form_number`, `counterparty_nik` widened. `tax_deadlines`: `PPH_26_PAYMENT`. New tables `withholding_payments`, `withholding_deposits`. Test data V914. V914 also renames V903's second "Hutang PPh 23" (2.1.05).
+
+### Decisions made on the owner's behalf
+
+- "Per masa" means the Pasal 17 brackets run over the payee's cumulated gross within one calendar month of the payment date and restart the next month. Each payment carries the increment. Annual accumulation and PTKP are not applied. Masa order: posted first, then drafts by creation.
+- 20% higher only when both NPWP and NIK are absent or blank.
+- Cancelling a draft recomputes later PPh 21 drafts of that payee and masa. Drafts are not editable: cancel and recreate. Generic transaction edit and delete refuse these drafts. Voiding a PPh 21 payment with a later non-void payment in the same masa is refused, because the later tax depends on it.
+- Payee identity on a draft is a snapshot. Adding an NPWP later does not change existing payments.
+- Hutang accounts resolve by exact name, since codes differ per pack (`Hutang PPh 21` is 2.1.20, 2.1.14, 2.1.03). Zero or several matches fail. Packs without Hutang PPh 23 (coffee-shop, campus) get `2.1.21`.
+- New pack account `Beban Jasa Profesional`: it-service 5.1.22, online-seller 5.4.07, coffee-shop 6.2.13, campus 5.2.23.
+- Seed `service_expense = true` on leaf expense names containing Sewa, Pemeliharaan, Kebersihan, Keamanan, Marketing, Iklan, Cloud, Software, Honorarium, Jasa Profesional; `false` on other leaf expenses. Marketplace admin fees are `false`. Unverified by a tax reviewer.
+- Report: a PPN detail does not document a service payment; a PPh 4(2) detail does. All posted debits count, not only cash ones, so bill accruals are caught; an accrual leaves the report once the bill has a non-void withholding payment. No per-transaction "not subject to withholding" flag exists, so an exempt payment stays listed.
+- Bupot Unifikasi no longer contains PPh 21, so a masa is not uploaded twice. This changes that export for existing PPh 21 tax details.
+- Deposits count only tax withheld through this flow. Payroll PPh 21 shares the Hutang PPh 21 account and keeps its own deposit template. A single SSP covering both is recorded in two parts.
+- Templates have `is_system = false`, same as `Tagihan Vendor`: `DataImportService` skips the lines of system templates, which left a template without lines and posted empty journals. `DocumentPostingService` now rejects a template with no lines.
+- `vendors.npwp`, `vendors.nik`, `tax_transaction_details.counterparty_nik` are encrypted through `EncryptedStringConverter`. Existing rows stay plaintext until saved again, because SQL has no key. `counterparty_npwp` stays plaintext because `ClientController` queries it by equality; an individual's 16-digit NPWP is therefore plaintext there. API responses mask NPWP and NIK; the vendor page hides them without `VENDOR_EDIT`.
+- Permissions reuse existing ones: reads `TAX_REPORT_VIEW`, writes `TRANSACTION_CREATE`/`POST`/`DELETE`, exports `TAX_EXPORT`, payees `VENDOR_*`. V009 grants the new scopes to device tokens holding `tax-export:read` / `transactions:post`; API clients get none.
+
+### Fixed along the way
+
+The vendor form had no NIK input, so saving it erased a stored NIK. Added.
+
+### Unverified regulatory values
+
+Set in `application.properties` (`app.withholding.*`).
+
+- PPh 21 bukan pegawai: 50% and 20% come from the issue. Implemented as stated; the "per masa" reading above and the PMK 168/2023 citation are from memory. Pasal 17 brackets are the existing `Pph21CalculationService` values.
+- PPh 23: 2% on all `TaxObjectCode` PPh 23 entries, 100% higher without NPWP or NIK. NIK treated as NPWP. UU PPh Pasal 23, PMK 141/2015, PMK 112/2022, from memory. Objects at 15% (dividend, interest, royalty, prize) have no object code and cannot be selected.
+- PPh 26: 20% of gross (UU PPh Pasal 26 ayat (1)). Tax treaty: the rate is entered per payee, no treaty table exists. It applies only when a DGT form number is on file and valid on the payment date (PER-25/PJ/2018, from memory); otherwise 20% with the reason in `rateBasis`. No check on DGT form content or beneficial ownership. A 0% treaty rate posts no tax line. Branch-profit and 26(4) cases are not handled.
+- Object code `27-100-99` and the BP21 and `PPH26` sheet layouts are unchecked against Coretax. `21-100-09` is the only PPh 21 object code offered.
+- Due day 15 for PPh 26 mirrors PPh 23.
+
+### Cut
+
+- No project link on payments, and no PPN on non-bill payments: a service with PPN goes through a bill.
+- No screen to edit a draft; cancel and recreate.
+- No reduced base for individuals with an SKB or NPPN.
+- New tables are not in the export/import ZIP, like `benefit_in_kind`. After a restore their transactions and tax details remain, but the payment and deposit rows do not.
+- No dashboard alert: the warning is the report and the deposit status on `/withholding`.
+
+### Noted, not fixed
+
+- Auto-populated PPh 23 still uses the project's client as counterparty. This flow attaches its detail before posting, so auto-populate skips it. The legacy template `Pembayaran Jasa dengan PPh 23` keeps the problem, and such a transaction leaves the report with the wrong counterparty.
+- Audit tracker item confirmed: posting a template with no lines creates a POSTED transaction with no journal. Guarded only in `DocumentPostingService`.
+- Lampiran III / pph23-detail still counts PPh 23 withheld from vendors as credit; this flow adds rows there.
+- Due dates are not moved to the next working day.
+- `DataExportService` has no vendors section although the importer reads `28_vendors.csv`.
+
+### Deploy
+
+V009 runs on deploy. It fails if a template named `Pembayaran dengan Pemotongan PPh` or `Setor PPh Dipotong` exists; rename it first.
+
+After deploy:
+1. Make sure the chart has exactly one each of `Hutang PPh 21`, `Hutang PPh 23`, `Hutang PPh 26`.
+2. Classify expense accounts under Bagan Akun, column Akun Jasa. Until then the report only warns about them.
+3. Fill Jenis Penerima on vendors that receive withheld payments.
+4. Re-save vendors holding NPWP or NIK to encrypt them.
+5. Have a tax reviewer check PPh 23/26 rates and the export columns.

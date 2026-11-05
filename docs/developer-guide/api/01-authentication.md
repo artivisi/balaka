@@ -188,6 +188,8 @@ authenticated by the token only, and an invalid token returns 401 even if a sess
 | `assets:write` | Register (`ASSET_CREATE`), update (`ASSET_EDIT`), delete (`ASSET_DELETE`) assets; generate/post/skip depreciation (`ASSET_DEPRECIATE`) | `ASSET_CREATE`, `ASSET_EDIT`, `ASSET_DELETE`, `ASSET_DEPRECIATE` |
 | `tax-filings:read` | Read the tax filing register and documents | `TAX_CALENDAR_VIEW` |
 | `tax-filings:write` | Register tax filings, attach documents | `TAX_CALENDAR_MANAGE` |
+| `withholding:read` | Read payees, withheld payments, deposits and withholding reports | `TAX_REPORT_VIEW` |
+| `withholding:write` | Payees (`VENDOR_CREATE`, `VENDOR_EDIT`); create (`TRANSACTION_CREATE`), post (`TRANSACTION_POST`), cancel (`TRANSACTION_DELETE`) payments and deposits | `VENDOR_CREATE`, `VENDOR_EDIT`, `TRANSACTION_CREATE`, `TRANSACTION_POST`, `TRANSACTION_DELETE` |
 | `bank-recon:read` | Read parser configs, statements, reconciliations | `BANK_RECONCILIATION_VIEW` |
 | `bank-recon:write` | Parser configs (`BANK_RECONCILIATION_CONFIG`), statement import (`BANK_RECONCILIATION_IMPORT`), matching / create transaction (`BANK_RECONCILIATION_MATCH`), complete (`BANK_RECONCILIATION_COMPLETE`) | any `BANK_RECONCILIATION_*` write permission |
 

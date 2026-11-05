@@ -100,6 +100,7 @@ public class ChartOfAccountsController {
         private Boolean active;
         private String description;
         private FiscalTreatment fiscalTreatment;
+        private Boolean serviceExpense;
 
         // Used by Thymeleaf for dropdown pre-selection (account.parent.id)
         private ParentRef parent;

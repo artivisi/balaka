@@ -18,6 +18,11 @@ import com.artivisi.accountingfinance.enums.TemplateCategory;
 import com.artivisi.accountingfinance.enums.TransactionStatus;
 import com.artivisi.accountingfinance.enums.VoidReason;
 import com.artivisi.accountingfinance.repository.BenefitInKindRepository;
+import com.artivisi.accountingfinance.repository.WithholdingDepositRepository;
+import com.artivisi.accountingfinance.repository.WithholdingPaymentRepository;
+import com.artivisi.accountingfinance.service.event.TransactionPostedEvent;
+import com.artivisi.accountingfinance.service.event.TransactionVoidedEvent;
+import org.springframework.context.ApplicationEventPublisher;
 import com.artivisi.accountingfinance.repository.ChartOfAccountRepository;
 import com.artivisi.accountingfinance.repository.DraftTransactionRepository;
 import com.artivisi.accountingfinance.repository.JournalEntryRepository;
@@ -63,6 +68,9 @@ public class TransactionService {
     private final ProjectRepository projectRepository;
     private final TagRepository tagRepository;
     private final BenefitInKindRepository benefitInKindRepository;
+    private final WithholdingPaymentRepository withholdingPaymentRepository;
+    private final WithholdingDepositRepository withholdingDepositRepository;
+    private final ApplicationEventPublisher eventPublisher;
     private final JournalTemplateService journalTemplateService;
     private final FormulaEvaluator formulaEvaluator;
     private final TaxTransactionDetailService taxTransactionDetailService;
@@ -187,6 +195,7 @@ public class TransactionService {
         if (!existing.isDraft()) {
             throw new IllegalStateException("Only draft transactions can be edited");
         }
+        assertNotManagedByWithholding(existing.getId());
 
         // Update only the editable fields, preserve system-generated fields like transactionNumber
         // The existing entity already has transactionNumber from database, we don't touch it
@@ -291,6 +300,7 @@ public class TransactionService {
 
         Transaction saved = transactionRepository.save(transaction);
         taxTransactionDetailService.autoPopulateFromTransaction(saved);
+        eventPublisher.publishEvent(new TransactionPostedEvent(saved));
         return saved;
     }
 
@@ -370,6 +380,7 @@ public class TransactionService {
             throw new IllegalStateException("Transaksi memuat natura yang sudah masuk payroll. "
                     + "Hitung ulang atau batalkan payroll tersebut sebelum membatalkan transaksi.");
         }
+        assertNoLaterWithholdingInMasa(id);
 
         String reversalJournalNumber = generateJournalNumber();
         int lineIndex = 0;
@@ -394,7 +405,39 @@ public class TransactionService {
         transaction.setVoidedAt(LocalDateTime.now());
         transaction.setVoidedBy(voidedBy);
 
-        return transactionRepository.save(transaction);
+        Transaction voided = transactionRepository.save(transaction);
+        eventPublisher.publishEvent(new TransactionVoidedEvent(voided));
+        return voided;
+    }
+
+    /**
+     * PPh 21 bukan pegawai on a later payment in the masa starts where this one ended on the Pasal 17 brackets,
+     * so removing this one would leave the later tax wrong.
+     */
+    private void assertNoLaterWithholdingInMasa(UUID transactionId) {
+        withholdingPaymentRepository.findByTransactionId(transactionId).ifPresent(payment -> {
+            if (payment.getTreatment() != com.artivisi.accountingfinance.enums.WithholdingTreatment.PPH_21_BUKAN_PEGAWAI) {
+                return;
+            }
+            java.time.YearMonth masa = java.time.YearMonth.from(payment.getPaymentDate());
+            if (withholdingPaymentRepository.existsLaterInMasa(payment.getVendor().getId(), payment.getTreatment(),
+                    masa.atDay(1), masa.atEndOfMonth(), payment.getCreatedAt())) {
+                throw new IllegalStateException("Masih ada pembayaran lebih baru ke penerima ini pada masa yang sama. "
+                        + "Batalkan pembayaran tersebut lebih dulu.");
+            }
+        });
+    }
+
+    public void assertEditable(UUID transactionId) {
+        assertNotManagedByWithholding(transactionId);
+    }
+
+    /** Journal amounts of these drafts are derived from the withholding row; edits go through its menu. */
+    private void assertNotManagedByWithholding(UUID transactionId) {
+        if (withholdingPaymentRepository.findByTransactionId(transactionId).isPresent()
+                || withholdingDepositRepository.findByTransactionId(transactionId).isPresent()) {
+            throw new IllegalStateException("Draf ini dikelola lewat menu Pemotongan PPh. Batalkan dari menu tersebut.");
+        }
     }
 
     @Transactional
@@ -410,6 +453,7 @@ public class TransactionService {
      */
     @Transactional
     public void replaceAccountMappings(Transaction transaction, Map<UUID, UUID> accountMappings) {
+        assertNotManagedByWithholding(transaction.getId());
         JournalTemplate template = journalTemplateService.findByIdWithLines(transaction.getJournalTemplate().getId());
 
         transaction.clearAccountMappings();
@@ -538,6 +582,7 @@ public class TransactionService {
         if (!transaction.isDraft()) {
             throw new IllegalStateException("Only draft transactions can be deleted");
         }
+        assertNotManagedByWithholding(id);
 
         // Clear DraftTransaction FK reference if this transaction was created from a draft
         draftTransactionRepository.findByTransactionId(id).ifPresent(draft -> {

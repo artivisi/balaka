@@ -11,11 +11,11 @@ Version: 1.0
 
 ## Export Contents
 
-- Chart of Accounts: 75 records
+- Chart of Accounts: 85 records
 - Salary Components: 17 records
-- Journal Templates: 40 records
+- Journal Templates: 45 records
 - Asset Categories: 3 records
-- Tax Deadlines: 8 records
+- Tax Deadlines: 9 records
 
 All other tables are empty placeholders for user data.
 

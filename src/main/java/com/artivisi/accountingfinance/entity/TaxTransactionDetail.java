@@ -1,7 +1,9 @@
 package com.artivisi.accountingfinance.entity;
 
 import com.artivisi.accountingfinance.enums.TaxType;
+import com.artivisi.accountingfinance.security.EncryptedStringConverter;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -86,12 +88,26 @@ public class TaxTransactionDetail extends TimestampedEntity {
     private String counterpartyNitku;
 
     @Size(max = 16, message = "NIK max 16 characters")
-    @Column(name = "counterparty_nik", length = 16)
+    @Column(name = "counterparty_nik", length = 255)  // Extended for encrypted data
+    @Convert(converter = EncryptedStringConverter.class)
     private String counterpartyNik;
+
+    @Size(max = 2, message = "Country code max 2 characters")
+    @Column(name = "counterparty_country", length = 2)
+    private String counterpartyCountry;
+
+    @Size(max = 50, message = "Foreign TIN max 50 characters")
+    @Column(name = "counterparty_foreign_tin", length = 50)
+    private String counterpartyForeignTin;
+
+    /** DGT form backing a treaty rate on a PPh 26 row. */
+    @Size(max = 50, message = "DGT form number max 50 characters")
+    @Column(name = "dgt_form_number", length = 50)
+    private String dgtFormNumber;
 
     @Size(max = 10, message = "ID type max 10 characters")
     @Column(name = "counterparty_id_type", length = 10)
-    private String counterpartyIdType;  // TIN or NIK
+    private String counterpartyIdType;  // TIN, NIK, FOREIGN or NONE
 
     @Size(max = 255, message = "Counterparty name max 255 characters")
     @Column(name = "counterparty_name", length = 255)
@@ -117,12 +133,15 @@ public class TaxTransactionDetail extends TimestampedEntity {
     }
 
     public boolean isEBupot() {
-        return taxType == TaxType.PPH_21 || taxType == TaxType.PPH_23 || taxType == TaxType.PPH_42;
+        return taxType == TaxType.PPH_21 || taxType == TaxType.PPH_23 || taxType == TaxType.PPH_26 || taxType == TaxType.PPH_42;
     }
 
     public String getCounterpartyIdNumber() {
         if ("NIK".equals(counterpartyIdType)) {
             return counterpartyNik;
+        }
+        if ("FOREIGN".equals(counterpartyIdType)) {
+            return counterpartyForeignTin;
         }
         return counterpartyNpwp;
     }

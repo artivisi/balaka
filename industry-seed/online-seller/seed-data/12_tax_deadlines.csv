@@ -7,3 +7,4 @@ PPN_PAYMENT,Setor PPN,Pembayaran PPN terutang. Jatuh tempo akhir bulan berikutny
 SPT_PPH_21,Lapor SPT PPh 21,Pelaporan SPT Masa PPh 21. Jatuh tempo tanggal 20 bulan berikutnya.,20,false,7,true
 SPT_PPH_23,Lapor SPT PPh 23,Pelaporan SPT Masa PPh 23 (e-Bupot Unifikasi). Jatuh tempo tanggal 20 bulan berikutnya.,20,false,7,true
 SPT_PPN,Lapor SPT PPN,Pelaporan SPT Masa PPN (e-Faktur). Jatuh tempo akhir bulan berikutnya.,31,true,7,true
+PPH_26_PAYMENT,Setor PPh 26,Pembayaran PPh Pasal 26 atas penghasilan penerima luar negeri. Jatuh tempo tanggal 15 bulan berikutnya.,15,false,7,true

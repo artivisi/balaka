@@ -102,6 +102,7 @@ public class ChartOfAccountService {
             account.setNormalBalance(deriveNormalBalance(account.getAccountType()));
         }
         validateFiscalTreatment(account.getFiscalTreatment(), account.getAccountType(), account.getIsHeader());
+        validateServiceExpense(account.getServiceExpense(), account.getAccountType(), account.getIsHeader());
 
         return chartOfAccountRepository.save(account);
     }
@@ -109,6 +110,12 @@ public class ChartOfAccountService {
     private void validateFiscalTreatment(FiscalTreatment treatment, AccountType type, Boolean isHeader) {
         if (treatment != null && (type != AccountType.EXPENSE || Boolean.TRUE.equals(isHeader))) {
             throw new IllegalArgumentException("Perlakuan fiskal hanya berlaku untuk akun beban yang bukan header");
+        }
+    }
+
+    private void validateServiceExpense(Boolean serviceExpense, AccountType type, Boolean isHeader) {
+        if (serviceExpense != null && (type != AccountType.EXPENSE || Boolean.TRUE.equals(isHeader))) {
+            throw new IllegalArgumentException("Klasifikasi akun jasa hanya berlaku untuk akun beban yang bukan header");
         }
     }
 
@@ -145,6 +152,8 @@ public class ChartOfAccountService {
         }
         validateFiscalTreatment(accountData.getFiscalTreatment(), existing.getAccountType(), existing.getIsHeader());
         existing.setFiscalTreatment(accountData.getFiscalTreatment());
+        validateServiceExpense(accountData.getServiceExpense(), existing.getAccountType(), existing.getIsHeader());
+        existing.setServiceExpense(accountData.getServiceExpense());
 
         return chartOfAccountRepository.save(existing);
     }

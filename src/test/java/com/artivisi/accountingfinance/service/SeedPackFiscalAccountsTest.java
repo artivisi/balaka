@@ -33,10 +33,12 @@ class SeedPackFiscalAccountsTest {
     void packCarriesSeedAccounts(String pack) throws IOException {
         List<String[]> rows = Files.readAllLines(Path.of("industry-seed", pack, "seed-data", "02_chart_of_accounts.csv"))
                 .stream().skip(1).map(l -> l.split(",", -1)).toList();
-        rows.forEach(r -> assertThat(r).as(String.join(",", r)).hasSize(8));
+        rows.forEach(r -> assertThat(r).as(String.join(",", r)).hasSize(9));
         Map<String, String[]> byCode = rows.stream().collect(Collectors.toMap(r -> r[CODE], Function.identity()));
 
         assertAccount(byCode, "2.1.25", "Hutang PPh 26", "LIABILITY", "");
+        assertAccount(byCode, "2.1.21", "Hutang PPh 23", "LIABILITY", "");
+        assertThat(rows).as("exactly one Hutang PPh 21").filteredOn(r -> "Hutang PPh 21".equals(r[NAME])).hasSize(1);
         assertAccount(byCode, "5.8.01", "Beban Bonus", "EXPENSE", "DEDUCTIBLE");
         assertAccount(byCode, "5.8.02", "Beban THR", "EXPENSE", "DEDUCTIBLE");
         assertAccount(byCode, "5.8.03", "Beban Natura/Kenikmatan", "EXPENSE", "CONDITIONAL");
@@ -48,12 +50,32 @@ class SeedPackFiscalAccountsTest {
             assertAccount(byCode, "3.2.03", "Dividen", "EQUITY", "");
         }
 
+        assertThat(rows).as("Beban Jasa Profesional is a service account")
+                .filteredOn(r -> "Beban Jasa Profesional".equals(r[NAME])).singleElement()
+                .satisfies(r -> assertThat(r[8]).isEqualTo("true"));
+
         Set<String> parents = rows.stream().map(r -> r[PARENT]).collect(Collectors.toSet());
         for (String[] r : rows) {
             boolean leafExpense = "EXPENSE".equals(r[TYPE]) && !parents.contains(r[CODE]);
             assertThat(r[TREATMENT].isEmpty()).as("fiscal_treatment of %s in %s", r[CODE], pack).isEqualTo(!leafExpense);
+            assertThat(r[8].isEmpty()).as("service_expense of %s in %s", r[CODE], pack).isEqualTo(!leafExpense);
             assertThat(byCode).as("parent of %s", r[CODE]).matches(m -> r[PARENT].isEmpty() || m.containsKey(r[PARENT]));
         }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"it-service", "online-seller", "coffee-shop", "campus"})
+    @DisplayName("Withholding templates are not system templates: the importer skips the lines of system templates")
+    void withholdingTemplatesImportWithLines(String pack) throws IOException {
+        Path seed = Path.of("industry-seed", pack, "seed-data");
+        List<String> templates = Files.readAllLines(seed.resolve("04_journal_templates.csv"));
+        assertThat(templates).filteredOn(l -> l.startsWith("Pembayaran dengan Pemotongan PPh,")).singleElement()
+                .satisfies(l -> assertThat(l.split(",")[5]).isEqualTo("false"));
+        assertThat(templates).filteredOn(l -> l.startsWith("Setor PPh Dipotong,")).singleElement()
+                .satisfies(l -> assertThat(l.split(",")[5]).isEqualTo("false"));
+        List<String> lines = Files.readAllLines(seed.resolve("05_journal_template_lines.csv"));
+        assertThat(lines).filteredOn(l -> l.startsWith("Pembayaran dengan Pemotongan PPh,")).hasSize(3);
+        assertThat(lines).filteredOn(l -> l.startsWith("Setor PPh Dipotong,")).hasSize(2);
     }
 
     private void assertAccount(Map<String, String[]> byCode, String code, String name, String type, String treatment) {

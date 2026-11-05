@@ -58,3 +58,8 @@ Penyusutan Aset,1,,BEBAN_PENYUSUTAN,DEBIT,depreciationAmount,Beban penyusutan
 Penyusutan Aset,2,,AKUM_PENYUSUTAN,CREDIT,depreciationAmount,Akumulasi penyusutan
 Penyelesaian Produksi,1,,PERSEDIAAN_JADI,DEBIT,componentCost,Persediaan barang jadi
 Penyelesaian Produksi,2,,PERSEDIAAN_BAHAN,CREDIT,componentCost,Persediaan bahan baku
+Pembayaran dengan Pemotongan PPh,1,,BEBAN,DEBIT,settledAmount,Beban atau hutang usaha
+Pembayaran dengan Pemotongan PPh,2,,BANK,CREDIT,netAmount,Pembayaran dari bank
+Pembayaran dengan Pemotongan PPh,3,,HUTANG_PPH,CREDIT,taxAmount,Hutang PPh
+Setor PPh Dipotong,1,,HUTANG_PPH,DEBIT,amount,Hutang PPh
+Setor PPh Dipotong,2,,BANK,CREDIT,amount,Pembayaran dari bank

@@ -21,6 +21,15 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
+import com.artivisi.accountingfinance.enums.PayeeType;
+import com.artivisi.accountingfinance.enums.TaxObjectCode;
+import com.artivisi.accountingfinance.enums.TaxType;
+import com.artivisi.accountingfinance.enums.WithholdingTreatment;
+import org.springframework.format.annotation.DateTimeFormat;
+import java.math.BigDecimal;
+import java.util.Arrays;
+import java.util.List;
+import java.time.LocalDate;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -79,6 +88,23 @@ public class VendorController {
         private UUID id;
     }
 
+    @ModelAttribute("payeeTypes")
+    public PayeeType[] payeeTypes() {
+        return PayeeType.values();
+    }
+
+    @ModelAttribute("withholdingTreatments")
+    public WithholdingTreatment[] withholdingTreatments() {
+        return WithholdingTreatment.values();
+    }
+
+    @ModelAttribute("withholdingObjectCodes")
+    public List<TaxObjectCode> withholdingObjectCodes() {
+        return Arrays.stream(TaxObjectCode.values())
+                .filter(c -> c.getTaxType() == TaxType.PPH_21 || c.getTaxType() == TaxType.PPH_23 || c.getTaxType() == TaxType.PPH_26)
+                .toList();
+    }
+
     @Getter
     @Setter
     static class VendorForm {
@@ -116,6 +142,26 @@ public class VendorController {
 
         @Size(max = 10, message = "Tipe ID maksimal 10 karakter")
         private String idType;
+
+        private PayeeType payeeType;
+        private WithholdingTreatment defaultWithholding;
+
+        @Size(max = 20, message = "Kode objek pajak maksimal 20 karakter")
+        private String defaultTaxObjectCode;
+
+        @Size(max = 2, message = "Kode negara 2 huruf")
+        private String countryCode;
+
+        @Size(max = 50, message = "TIN luar negeri maksimal 50 karakter")
+        private String foreignTin;
+
+        private BigDecimal treatyRate;
+
+        @Size(max = 50, message = "Nomor DGT maksimal 50 karakter")
+        private String dgtFormNumber;
+
+        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+        private LocalDate dgtValidUntil;
 
         private Integer paymentTermDays;
 

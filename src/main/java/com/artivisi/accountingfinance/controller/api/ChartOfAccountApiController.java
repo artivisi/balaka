@@ -132,6 +132,7 @@ public class ChartOfAccountApiController {
         entity.setPermanent(request.permanent() != null && request.permanent());
         entity.setDescription(request.description());
         entity.setFiscalTreatment(request.fiscalTreatment());
+        entity.setServiceExpense(request.serviceExpense());
 
         if (request.parentId() != null) {
             ChartOfAccount parent = chartOfAccountService.findById(request.parentId());
@@ -163,7 +164,9 @@ public class ChartOfAccountApiController {
 
             String description,
 
-            FiscalTreatment fiscalTreatment
+            FiscalTreatment fiscalTreatment,
+
+            Boolean serviceExpense
     ) {}
 
     public record AccountResponse(
@@ -179,7 +182,8 @@ public class ChartOfAccountApiController {
             boolean permanent,
             boolean active,
             String description,
-            FiscalTreatment fiscalTreatment
+            FiscalTreatment fiscalTreatment,
+            Boolean serviceExpense
     ) {
         public static AccountResponse from(ChartOfAccount entity) {
             return new AccountResponse(
@@ -195,7 +199,8 @@ public class ChartOfAccountApiController {
                     Boolean.TRUE.equals(entity.getPermanent()),
                     Boolean.TRUE.equals(entity.getActive()),
                     entity.getDescription(),
-                    entity.getFiscalTreatment()
+                    entity.getFiscalTreatment(),
+                    entity.getServiceExpense()
             );
         }
     }

@@ -30,7 +30,7 @@ import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertTha
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Tax calendar for the eight seeded deadlines (industry-seed/it-service 12_tax_deadlines.csv).
+ * Tax calendar for the nine seeded deadlines (industry-seed/it-service 12_tax_deadlines.csv).
  * Completions are recorded only in {@link #YEAR}, reserved for this class; each test uses its own month.
  */
 @DisplayName("Tax Calendar Controller Tests")
@@ -43,6 +43,7 @@ class TaxCalendarControllerFunctionalTest extends PlaywrightTestBase {
     private static final Map<TaxDeadlineType, String> NAMES = Map.of(
             TaxDeadlineType.PPH_21_PAYMENT, "Setor PPh 21",
             TaxDeadlineType.PPH_23_PAYMENT, "Setor PPh 23",
+            TaxDeadlineType.PPH_26_PAYMENT, "Setor PPh 26",
             TaxDeadlineType.PPH_42_PAYMENT, "Setor PPh 4(2)",
             TaxDeadlineType.PPH_25_PAYMENT, "Setor PPh 25",
             TaxDeadlineType.PPN_PAYMENT, "Setor PPN",
@@ -67,11 +68,11 @@ class TaxCalendarControllerFunctionalTest extends PlaywrightTestBase {
         assertThat(page.locator("[data-testid='checklist-title']")).hasText("Checklist Kewajiban Pajak - Januari " + YEAR);
         assertThat(page.locator("#month-selector")).hasValue("1");
         assertThat(page.locator("#year-selector")).hasValue(String.valueOf(YEAR));
-        assertThat(page.locator("[data-testid='total-count']")).hasText("8");
+        assertThat(page.locator("[data-testid='total-count']")).hasText("9");
         assertThat(page.locator("[data-testid='completed-count']")).hasText("0");
         assertThat(page.locator("[data-testid='overdue-count']")).hasText("0");
         assertThat(page.locator("[data-testid='due-soon-count']")).hasText("0");
-        assertThat(page.locator(".deadline-row")).hasCount(8);
+        assertThat(page.locator(".deadline-row")).hasCount(9);
 
         for (TaxDeadlineType type : TaxDeadlineType.values()) {
             Locator row = row(type);
@@ -105,7 +106,7 @@ class TaxCalendarControllerFunctionalTest extends PlaywrightTestBase {
     void shouldMarkPastPeriodOverdue() {
         openPeriod(2021, 7);
 
-        assertThat(page.locator("[data-testid='overdue-count']")).hasText("8");
+        assertThat(page.locator("[data-testid='overdue-count']")).hasText("9");
         assertThat(page.locator("[data-testid='completed-count']")).hasText("0");
         assertThat(page.locator("[data-testid='due-soon-count']")).hasText("0");
         LocalDate today = LocalDate.now();
@@ -227,10 +228,10 @@ class TaxCalendarControllerFunctionalTest extends PlaywrightTestBase {
         assertThat(page.locator("[data-testid^='month-card-']")).hasCount(12);
         Locator june = page.locator("[data-testid='month-card-6']");
         assertThat(june).containsText("Juni");
-        assertThat(june.locator(".completion-count")).hasText("2/8");
-        assertThat(june.locator(".completion-percent")).hasText("25%");
+        assertThat(june.locator(".completion-count")).hasText("2/9");
+        assertThat(june.locator(".completion-percent")).hasText("22%");
         Locator november = page.locator("[data-testid='month-card-11']");
-        assertThat(november.locator(".completion-count")).hasText("0/8");
+        assertThat(november.locator(".completion-count")).hasText("0/9");
         assertThat(november.locator(".completion-percent")).hasText("0%");
         takeManualScreenshot("tax-calendar-yearly");
 
@@ -241,7 +242,7 @@ class TaxCalendarControllerFunctionalTest extends PlaywrightTestBase {
         navigateTo("/tax-calendar/yearly?year=" + YEAR);
         page.locator("#year-select").selectOption(String.valueOf(YEAR - 1));
         page.waitForURL("**/tax-calendar/yearly?year=" + (YEAR - 1));
-        assertThat(page.locator("[data-testid='month-card-6'] .completion-count")).hasText("0/8");
+        assertThat(page.locator("[data-testid='month-card-6'] .completion-count")).hasText("0/9");
 
         page.locator("a[href='/tax-calendar']").filter(new Locator.FilterOptions().setHasText("Kembali")).click();
         page.waitForURL("**/tax-calendar");
@@ -351,7 +352,7 @@ class TaxCalendarControllerFunctionalTest extends PlaywrightTestBase {
     private static LocalDate expectedDueDate(TaxDeadlineType type, int year, int month) {
         YearMonth next = YearMonth.of(year, month).plusMonths(1);
         return switch (type) {
-            case PPH_21_PAYMENT, PPH_23_PAYMENT, PPH_42_PAYMENT, PPH_25_PAYMENT -> next.atDay(15);
+            case PPH_21_PAYMENT, PPH_23_PAYMENT, PPH_26_PAYMENT, PPH_42_PAYMENT, PPH_25_PAYMENT -> next.atDay(15);
             case SPT_PPH_21, SPT_PPH_23 -> next.atDay(20);
             case PPN_PAYMENT, SPT_PPN -> next.atEndOfMonth();
         };
