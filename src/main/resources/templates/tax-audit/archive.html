@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{layouts/main :: layout('Arsip Dokumen Pajak', ~{::#page-title}, ~{::section}, ~{})}"
+      lang="id">
+<head>
+    <title>Arsip Dokumen Pajak</title>
+</head>
+<body>
+    <h1 id="page-title">Arsip Dokumen Pajak</h1>
+
+    <section class="h-full flex flex-col overflow-y-auto space-y-6" data-testid="document-archive-page">
+        <div th:if="${successMessage}" data-testid="flash-success" class="p-4 bg-green-50 border border-green-200 rounded-lg text-sm text-green-800" th:text="${successMessage}"></div>
+        <div class="flex justify-end">
+            <a sec:authorize="hasAuthority('TAX_AUDIT_MANAGE')" th:href="@{/tax-audit/archive/import}" id="btn-archive-import"
+               class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">Impor ZIP</a>
+        </div>
+        <form th:action="@{/tax-audit/archive}" method="get" id="archive-search"
+              class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 grid grid-cols-1 md:grid-cols-5 gap-2 text-sm">
+            <input type="text" name="q" th:value="${q}" placeholder="Cari nomor, lawan transaksi, isi teks" data-testid="archive-query"
+                   class="md:col-span-2 px-3 py-2 border border-gray-300 rounded-lg">
+            <input type="number" name="year" th:value="${year}" placeholder="Tahun" data-testid="archive-year" class="px-3 py-2 border border-gray-300 rounded-lg">
+            <select name="type" data-testid="archive-type" class="px-3 py-2 border border-gray-300 rounded-lg">
+                <option value="">-- Semua jenis --</option>
+                <option th:each="t : ${types}" th:value="${t.name()}" th:text="${t.indonesianName}" th:selected="${t == type}">Faktur</option>
+            </select>
+            <div class="flex gap-2">
+                <select name="source" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                    <option value="">-- Semua sumber --</option>
+                    <option th:each="s : ${sources}" th:value="${s.name()}" th:text="${s.indonesianName}" th:selected="${s == source}">Bank</option>
+                </select>
+                <button type="submit" data-testid="btn-archive-search" class="px-3 py-2 text-white bg-primary-600 rounded-lg hover:bg-primary-700">Cari</button>
+            </div>
+        </form>
+        <p class="text-xs text-gray-500">Pencarian teks memakai kata utuh (tanpa imbuhan). Teks dibaca dari PDF; gambar hasil pindai hanya dapat dicari dari metadatanya.</p>
+
+        <div th:if="${searched}" class="bg-white rounded-lg shadow-sm border border-gray-200">
+            <p th:if="${hits.isEmpty()}" data-testid="archive-no-hits" class="p-4 text-sm text-gray-500">Tidak ada dokumen yang cocok.</p>
+            <table th:unless="${hits.isEmpty()}" class="w-full text-sm">
+                <thead>
+                <tr class="text-left text-xs text-gray-500 border-b border-gray-200">
+                    <th class="p-3">Dokumen</th><th class="p-3">Tahun</th><th class="p-3">Lawan transaksi</th>
+                    <th class="p-3 text-right">Nilai</th><th class="p-3">Sumber</th><th class="p-3">Transaksi</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="h : ${hits}" th:with="a=${h.document()}" class="border-b border-gray-100 align-top" data-testid="archive-hit"
+                    th:attr="data-doc-number=${a.docNumber}">
+                    <td class="p-3">
+                        <a th:href="@{/tax-audit/archive/{id}(id=${a.id})}" class="text-primary-700 hover:underline"
+                           th:text="|${a.docType.indonesianName} ${a.docNumber != null ? a.docNumber : a.document.originalFilename}|">Faktur</a>
+                        <p th:if="${h.excerpt()}" class="text-xs text-gray-500" data-testid="archive-excerpt" th:text="${h.excerpt()}">...</p>
+                    </td>
+                    <td class="p-3" th:text="${a.docYear}">2020</td>
+                    <td class="p-3" th:text="${a.counterparty}">PT</td>
+                    <td class="p-3 text-right font-mono" th:text="${a.amount != null} ? ${#numbers.formatDecimal(a.amount, 1, 'POINT', 2, 'COMMA')} : '-'">0</td>
+                    <td class="p-3 text-xs" th:text="|${a.source.indonesianName}, diunduh ${a.downloadedOn}|">Bank</td>
+                    <td class="p-3">
+                        <a th:if="${a.transaction != null}" th:href="@{/tax-audit/transactions/{id}(id=${a.transaction.id})}"
+                           class="text-primary-700 hover:underline" th:text="${a.transaction.transactionNumber}">TRX</a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</body>
+</html>

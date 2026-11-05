@@ -444,3 +444,55 @@ No rate is introduced. PPh 23 on rent of property other than land and buildings,
 V015 runs on deploy, additive only. After deploy:
 1. Set Peran Uji Mandiri Pajak on service, rent, other-expense and non-operating asset accounts under Bagan Akun.
 2. Check `app.self-test.unitemised-threshold` in the deployed properties.
+
+## Issue #51: Tax audit workspace
+
+### Built
+
+All three steps of the build order.
+
+- Step 1, evidence at posting: `company_config.evidence_required_from`, set on Master Data > Aturan Bukti. `EvidencePostingGuard.check` runs inside `TransactionService.postWithContext` after the journal lines exist and refuses posting a transaction dated on or after that date while `EvidenceQueryService.evidenceFor` reports a missing type. The evidence panel on a draft says posting will be refused.
+- Year view `/tax-audit?year=` (`TaxAuditWorkspaceService.year`): self-test lines (`SelfTestService.report`), evidence gaps and unarchived bank statements (`EvidenceQueryService.index`, `BankStatementArchiveService.missingStatements`), close checklist (`CloseCheckService.checklistForYear`), asset cost movement, payroll year reconciliation, tax filings with their tax documents, inquiry cases, archive count.
+- Trace `/tax-audit/trace?year&line&month`: web view of `SelfTestService.trace` rows, each with the evidence state of its transaction; payroll rows link to the run, asset rows to the asset.
+- Ledger drill-down `/tax-audit/transactions/{id}?line=`: journal lines with the selected one marked, evidence, invoice chains (`SalesTaxChainService.getChain`), faktur/bupot tax details, contracts, matched bank statement lines, tax filings covering the date or paid by the transaction with their SP2DK/STP documents, cases linked to those filings, archive documents, earlier disclosures of the transaction's files.
+- Inquiry cases `/tax-audit/cases` (`TaxInquiryService`): letter (upload, or a SP2DK/STP/TEGURAN/SURAT `tax_documents` row, which links the case to its `tax_filings` row), deadline, items asked (optionally tied to a self-test line and month), replies, meeting notes, notes, corrections, deadline changes, status changes, decision. Disclosure: choose files from transaction numbers and archive search, one item per file, a date; recorded as a DISCLOSURE entry plus one row per file with filename, SHA-256 and size copied at that moment. The ZIP of a disclosure holds `index.csv` and only those files, and fails if a stored file no longer matches its recorded SHA-256.
+- Archive `/tax-audit/archive` (`DocumentArchiveService`): ZIP import with `manifest.csv` (format in user manual section 21), all-or-nothing with every row error listed; PDF text through OpenPDF's `PdfTextExtractor` (already on the classpath, no new dependency); PostgreSQL full-text search over number, counterparty, description and text; link to a posted transaction or one of its lines, from the manifest or the detail page.
+
+### Schema (V016)
+
+`company_config.evidence_required_from`; tables `archive_import_batches`, `archive_documents` (generated `search_vector` tsvector with GIN index, `simple` configuration), `tax_inquiry_cases`, `tax_inquiry_items`, `tax_inquiry_entries`, `tax_inquiry_disclosures`. Trigger `tax_inquiry_append_only` refuses UPDATE and DELETE on items, entries and disclosures. No test migration.
+
+### Decisions made on the owner's behalf
+
+- Evidence at posting is a date, not a switch: "new-year flow" means books from a chosen date onward; older drafts still post. NULL turns it off. It applies to every posting path (web, API, payroll, depreciation, recurring); a scheduler posting into the period fails loudly when rules ask for evidence it cannot attach.
+- Case letter fields are fixed at creation. Status, deadline and decision change only by appending the matching entry first. A case is closed only by recording the decision. After closing, items, disclosures, status and deadline changes are refused; notes and corrections are still accepted.
+- An SP2DK already in the filing register is linked, not copied: the case points at the `tax_documents` row and reuses its file.
+- A disclosure answers items per file; one file per disclosure entry once. The ZIP is generated from the recorded rows on each download, so it always equals what was recorded.
+- Archive copies use the existing document storage, so the existing allowed types apply: PDF, JPG, PNG, GIF, each at most `app.storage.documents.max-file-size`. CSV statements are not accepted as archive files. Images get no OCR (Google Vision exists but is off by default); they are searchable by metadata only.
+- Duplicate content (same SHA-256 as another manifest row or an archived document) is a row error. Files in the ZIP not listed in the manifest are an error; `__MACOSX/` and `.DS_Store` are ignored. Document year 1983 (UU KUP) to the current year. Linking requires a POSTED transaction and, with an account code, exactly one line on it.
+- Search uses the `simple` text configuration: PostgreSQL ships no Indonesian dictionary, so no stemming. `websearch_to_tsquery` syntax (all words, quoted phrases). Text beyond 500,000 characters per document is not indexed (tsvector limit 1 MB).
+- Global multipart limits raised from 10/11 MB to 100/101 MB for the archive ZIP; every file inside and every other upload stays capped at 10 MB by the storage service. `app.archive-import.max-total-bytes` (200 MB uncompressed) and `max-entries` (2000) guard against ZIP bombs; no default in code.
+- Permissions: `TAX_AUDIT_VIEW` (ADMIN, OWNER, ACCOUNTANT, AUDITOR), `TAX_AUDIT_MANAGE` (ADMIN, OWNER, ACCOUNTANT). Case documents are served only through the case (`/tax-audit/cases/{id}/documents/{doc}` checks membership). Disclosure downloads are audit-logged as DATA_EXPORT, imports as DATA_IMPORT.
+- The append-only rule is enforced in the database, so purging a voided transaction that a disclosure or archive row references fails on the foreign key rather than losing the record.
+
+### Unverified regulatory values
+
+None introduced. The 1983 lower bound for document years is UU KUP's enactment year.
+
+### Cut
+
+- No REST API for cases, archive or the workspace; web only. Read API scopes were not added.
+- New tables are not in the data export/import ZIP; a full data import truncates them with the tables they reference.
+- No OCR of scanned images.
+- No automatic matching of archive documents to ledger lines; the link comes from the manifest or is set by hand.
+
+### Noted, not fixed
+
+- The self-test and tax audit menu entries sit in the Pembelian sidebar group, where #45 placed the self-test.
+
+### Deploy
+
+V016 runs on deploy, additive only. After deploy:
+1. Raise `nginx_client_max_body_size` (deploy repo `group_vars/all.yml`, currently 20M) to at least `101M` and rerun the nginx role, or archive imports above 20 MB are refused by nginx.
+2. Check `app.archive-import.max-total-bytes` and `app.archive-import.max-entries` in the deployed properties.
+3. Set Wajib berbukti saat posting mulai tanggal under Master Data > Aturan Bukti once evidence rules are in place, e.g. the first day of the next fiscal year.

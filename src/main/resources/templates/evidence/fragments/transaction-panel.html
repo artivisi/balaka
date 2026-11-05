@@ -4,6 +4,9 @@
 <body>
 <div th:fragment="panel" id="evidence-panel" data-testid="evidence-panel"
      th:data-complete="${evidence.complete()}">
+    <p th:if="${postingRequiresEvidence != null}" data-testid="evidence-posting-policy"
+       th:class="${evidence.complete()} ? 'mb-3 text-sm text-gray-600' : 'mb-3 text-sm font-medium text-red-700'"
+       th:text="${evidence.complete()} ? |Bukti diperiksa saat posting (berlaku sejak ${postingRequiresEvidence}).| : |Posting akan ditolak sampai bukti yang belum ada dilampirkan dan diklasifikasikan (berlaku sejak ${postingRequiresEvidence}).|"></p>
     <p th:if="${#lists.isEmpty(evidence.required)}" data-testid="evidence-none-required" class="text-sm text-gray-500">
         Tidak ada aturan bukti yang berlaku untuk transaksi ini.
     </p>

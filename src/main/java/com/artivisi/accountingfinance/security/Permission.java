@@ -162,6 +162,10 @@ public final class Permission {
     public static final String EVIDENCE_MANAGE = "EVIDENCE_MANAGE";
     public static final String EVIDENCE_CONFIG = "EVIDENCE_CONFIG";
 
+    // Tax audit workspace, inquiry cases, document archive
+    public static final String TAX_AUDIT_VIEW = "TAX_AUDIT_VIEW";
+    public static final String TAX_AUDIT_MANAGE = "TAX_AUDIT_MANAGE";
+
     // Vendors
     public static final String VENDOR_VIEW = "VENDOR_VIEW";
     public static final String VENDOR_CREATE = "VENDOR_CREATE";
@@ -233,6 +237,7 @@ public final class Permission {
                 ANALYSIS_REPORT_VIEW, ANALYSIS_REPORT_CREATE, ANALYSIS_REPORT_DELETE,
                 ALERT_VIEW, ALERT_CONFIG, ALERT_ACKNOWLEDGE,
                 EVIDENCE_VIEW, EVIDENCE_MANAGE, EVIDENCE_CONFIG,
+                TAX_AUDIT_VIEW, TAX_AUDIT_MANAGE,
                 TAG_VIEW, TAG_CREATE, TAG_EDIT, TAG_DELETE,
                 DATA_IMPORT,
                 SETTINGS_VIEW, SETTINGS_EDIT,
@@ -271,6 +276,7 @@ public final class Permission {
                 ANALYSIS_REPORT_VIEW, ANALYSIS_REPORT_CREATE, ANALYSIS_REPORT_DELETE,
                 ALERT_VIEW, ALERT_CONFIG, ALERT_ACKNOWLEDGE,
                 EVIDENCE_VIEW, EVIDENCE_MANAGE, EVIDENCE_CONFIG,
+                TAX_AUDIT_VIEW, TAX_AUDIT_MANAGE,
                 TAG_VIEW, TAG_CREATE, TAG_EDIT, TAG_DELETE,
                 DATA_IMPORT,
                 SETTINGS_VIEW, SETTINGS_EDIT,
@@ -306,6 +312,7 @@ public final class Permission {
                 ANALYSIS_REPORT_VIEW, ANALYSIS_REPORT_CREATE, ANALYSIS_REPORT_DELETE,
                 ALERT_VIEW, ALERT_ACKNOWLEDGE,
                 EVIDENCE_VIEW, EVIDENCE_MANAGE,
+                TAX_AUDIT_VIEW, TAX_AUDIT_MANAGE,
                 TAG_VIEW, TAG_CREATE, TAG_EDIT,
                 CALCULATOR_USE,
                 SETTINGS_VIEW, // Read-only access to settings (can view, but only edit own Telegram)
@@ -368,6 +375,7 @@ public final class Permission {
                 ANALYSIS_REPORT_VIEW,
                 ALERT_VIEW,
                 EVIDENCE_VIEW,
+                TAX_AUDIT_VIEW,
                 TAG_VIEW,
                 CALCULATOR_USE,
                 AUDIT_LOG_VIEW,

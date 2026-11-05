@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{layouts/main :: layout('Ruang Pemeriksaan Pajak', ~{::#page-title}, ~{::section}, ~{})}"
+      lang="id">
+<head>
+    <title>Ruang Pemeriksaan Pajak</title>
+</head>
+<body>
+    <h1 id="page-title">Ruang Pemeriksaan Pajak</h1>
+
+    <section class="h-full flex flex-col overflow-y-auto space-y-6" data-testid="tax-audit-page">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <form th:action="@{/tax-audit}" method="get" class="flex flex-wrap items-end gap-4">
+                <div class="min-w-[160px]">
+                    <label for="year" class="block text-sm font-medium text-gray-700 mb-1">Tahun pajak</label>
+                    <input type="number" id="year" name="year" th:value="${year}" min="1983" max="2999" required data-testid="tax-audit-year"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                </div>
+                <button type="submit" data-testid="btn-show-tax-audit"
+                        class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">Tampilkan</button>
+                <a th:href="@{/tax-audit/cases(year=${year})}" class="px-4 py-2 text-sm text-primary-700 border border-primary-200 rounded-lg hover:bg-primary-50">Kasus pemeriksaan</a>
+                <a th:href="@{/tax-audit/archive(year=${year})}" class="px-4 py-2 text-sm text-primary-700 border border-primary-200 rounded-lg hover:bg-primary-50">Arsip dokumen</a>
+            </form>
+            <p class="mt-3 text-xs text-gray-500">Satu tampilan per tahun pajak: uji mandiri, kekurangan bukti, pemeriksaan tutup buku, register aset, rekonsiliasi gaji, pelaporan pajak dan kasus. Setiap angka uji dapat dirinci sampai baris jurnal dan dokumennya.</p>
+        </div>
+
+        <th:block th:if="${view}">
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4" data-testid="tax-audit-self-test">
+                <h2 class="text-base font-semibold text-gray-900 mb-2">Uji mandiri pajak</h2>
+                <table class="w-full text-sm">
+                    <thead>
+                    <tr class="text-left text-xs text-gray-500 border-b border-gray-200">
+                        <th class="py-2 pr-2">Uji</th>
+                        <th class="py-2 pr-2 text-right">Angka buku</th>
+                        <th class="py-2 pr-2 text-right">Angka pajak</th>
+                        <th class="py-2 pr-2 text-right">Selisih</th>
+                        <th class="py-2 pr-2">Status</th>
+                        <th class="py-2">Rincian</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="row : ${view.selfTest().lines()}" th:if="${row.month() == 0}"
+                        th:attr="data-testid=|audit-line-${row.line().name()}|" class="border-b border-gray-100 align-top">
+                        <td class="py-2 pr-2">
+                            <span class="font-medium text-gray-900" th:text="${row.title()}">Uji</span>
+                            <p th:if="${row.explanation()}" class="text-xs text-gray-500" data-testid="audit-line-explanation" th:text="|Penjelasan: ${row.explanation()}|"></p>
+                            <p th:if="${row.message()}" class="text-xs text-yellow-800" th:text="${row.message()}"></p>
+                        </td>
+                        <td class="py-2 pr-2 text-right font-mono" data-testid="audit-line-book"
+                            th:text="${row.bookFigure() != null} ? ${#numbers.formatDecimal(row.bookFigure(), 1, 'POINT', 2, 'COMMA')} : '-'">0</td>
+                        <td class="py-2 pr-2 text-right font-mono" data-testid="audit-line-tax"
+                            th:text="${row.taxFigure() != null} ? ${#numbers.formatDecimal(row.taxFigure(), 1, 'POINT', 2, 'COMMA')} : '-'">0</td>
+                        <td class="py-2 pr-2 text-right font-mono" data-testid="audit-line-difference"
+                            th:text="${row.difference() != null} ? ${#numbers.formatDecimal(row.difference(), 1, 'POINT', 2, 'COMMA')} : '-'">0</td>
+                        <td class="py-2 pr-2" data-testid="audit-line-status" th:text="${row.status().label}">Status</td>
+                        <td class="py-2">
+                            <a th:if="${row.status().name() != 'NOT_CONFIGURED'}" data-testid="audit-line-trace"
+                               th:href="@{/tax-audit/trace(year=${view.year()}, line=${row.line().name()}, month=0)}"
+                               class="text-primary-700 hover:underline">Setahun</a>
+                            <span th:if="${row.line().perMasa}" class="text-xs text-gray-500">
+                                <a th:each="m : ${#numbers.sequence(1, 12)}" th:href="@{/tax-audit/trace(year=${view.year()}, line=${row.line().name()}, month=${m})}"
+                                   th:text="${m}" class="ml-1 text-primary-700 hover:underline">1</a>
+                            </span>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4" data-testid="tax-audit-gaps">
+                    <h2 class="text-base font-semibold text-gray-900">Kekurangan bukti</h2>
+                    <p class="text-sm text-gray-600 mb-2" data-testid="tax-audit-gap-summary"
+                       th:text="|${view.evidenceGaps().size()} dari ${view.postedTransactions()} transaksi terposting belum lengkap buktinya|">0 dari 0</p>
+                    <ul class="text-sm divide-y divide-gray-100">
+                        <li th:each="g, st : ${view.evidenceGaps()}" th:if="${st.index < 20}" class="py-1 flex justify-between gap-2" data-testid="tax-audit-gap">
+                            <a th:href="@{/tax-audit/transactions/{id}(id=${g.transactionId()})}" class="text-primary-700 hover:underline"
+                               th:text="|${g.transactionNumber()} ${g.description()}|">TRX</a>
+                            <span class="text-xs text-red-700" th:text="${#strings.listJoin(g.missing().![indonesianName], ', ')}">Kontrak</span>
+                        </li>
+                    </ul>
+                    <a th:href="@{/evidence/missing(from=${view.year() + '-01-01'}, to=${view.year() + '-12-31'})}" class="mt-2 inline-block text-xs text-primary-700 hover:underline">Laporan lengkap</a>
+                    <div th:unless="${view.missingStatements().isEmpty()}" class="mt-3">
+                        <p class="text-xs font-medium text-gray-500 uppercase">Rekening koran belum diarsip</p>
+                        <ul class="text-xs text-red-700">
+                            <li th:each="m : ${view.missingStatements()}" data-testid="tax-audit-missing-statement"
+                                th:text="|${m.bankName()} ${m.accountName()} ${m.month()}|">BCA 2021-01</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4" data-testid="tax-audit-filings">
+                    <h2 class="text-base font-semibold text-gray-900 mb-2">Pelaporan pajak dan surat</h2>
+                    <p th:if="${view.filings().isEmpty()}" class="text-sm text-gray-500">Belum ada SPT tercatat untuk tahun ini.</p>
+                    <ul class="text-sm divide-y divide-gray-100">
+                        <li th:each="f : ${view.filings()}" class="py-1" data-testid="tax-audit-filing">
+                            <span th:text="|${f.filing().taxType.indonesianName} ${f.filing().period} pembetulan ${f.filing().pembetulanNo}: ${f.filing().status}|">SPT</span>
+                            <span th:each="d : ${f.documents()}" class="ml-2 text-xs px-1.5 py-0.5 rounded bg-gray-100"
+                                  th:text="|${d.docType} ${d.docNumber}|">SP2DK</span>
+                        </li>
+                    </ul>
+                    <h3 class="text-sm font-semibold text-gray-900 mt-4 mb-1">Kasus</h3>
+                    <p th:if="${view.cases().isEmpty()}" class="text-sm text-gray-500">Tidak ada kasus untuk tahun ini.</p>
+                    <ul class="text-sm">
+                        <li th:each="c : ${view.cases()}" data-testid="tax-audit-case">
+                            <a th:href="@{/tax-audit/cases/{id}(id=${c.id})}" class="text-primary-700 hover:underline" th:text="${c.title}">SP2DK</a>
+                            <span class="text-xs text-gray-500" th:text="|${c.status.indonesianName}, tenggat ${c.deadline}|"></span>
+                        </li>
+                    </ul>
+                    <p class="mt-3 text-sm text-gray-600" data-testid="tax-audit-archive-count">
+                        <a th:href="@{/tax-audit/archive(year=${view.year()})}" class="text-primary-700 hover:underline"
+                           th:text="|${view.archiveCount()} dokumen arsip untuk tahun ${view.year()}|">0 dokumen</a>
+                    </p>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4" data-testid="tax-audit-assets">
+                    <h2 class="text-base font-semibold text-gray-900 mb-2">Register aset tetap</h2>
+                    <dl class="grid grid-cols-2 gap-2 text-sm">
+                        <dt class="text-gray-500">Saldo awal</dt><dd class="font-mono text-right" th:text="${#numbers.formatDecimal(view.assets().total().openingCost(), 1, 'POINT', 2, 'COMMA')}">0</dd>
+                        <dt class="text-gray-500">Penambahan</dt><dd class="font-mono text-right" data-testid="tax-audit-asset-additions" th:text="${#numbers.formatDecimal(view.assets().total().additions(), 1, 'POINT', 2, 'COMMA')}">0</dd>
+                        <dt class="text-gray-500">Pengurangan</dt><dd class="font-mono text-right" th:text="${#numbers.formatDecimal(view.assets().total().disposals(), 1, 'POINT', 2, 'COMMA')}">0</dd>
+                        <dt class="text-gray-500">Saldo akhir</dt><dd class="font-mono text-right" th:text="${#numbers.formatDecimal(view.assets().total().closingCost(), 1, 'POINT', 2, 'COMMA')}">0</dd>
+                    </dl>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4" data-testid="tax-audit-payroll">
+                    <h2 class="text-base font-semibold text-gray-900 mb-2">Rekonsiliasi gaji</h2>
+                    <dl class="grid grid-cols-2 gap-2 text-sm">
+                        <dt class="text-gray-500">Beban gaji di buku</dt><dd class="font-mono text-right" th:text="${#numbers.formatDecimal(view.payroll().ledgerSalaryExpense(), 1, 'POINT', 2, 'COMMA')}">0</dd>
+                        <dt class="text-gray-500">Bruto payroll terposting</dt><dd class="font-mono text-right" th:text="${#numbers.formatDecimal(view.payroll().postedCashGross(), 1, 'POINT', 2, 'COMMA')}">0</dd>
+                        <dt class="text-gray-500">PPh 21 terposting</dt><dd class="font-mono text-right" th:text="${#numbers.formatDecimal(view.payroll().postedPph21(), 1, 'POINT', 2, 'COMMA')}">0</dd>
+                        <dt class="text-gray-500">Selisih</dt><dd class="font-mono text-right" th:text="${#numbers.formatDecimal(view.payroll().difference(), 1, 'POINT', 2, 'COMMA')}">0</dd>
+                    </dl>
+                </div>
+            </div>
+
+            <div th:replace="~{close-checks/checklist :: checklist(${view.closeChecks()})}"></div>
+        </th:block>
+    </section>
+</body>
+</html>

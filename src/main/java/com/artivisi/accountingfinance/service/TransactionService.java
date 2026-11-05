@@ -76,6 +76,7 @@ public class TransactionService {
     private final FormulaEvaluator formulaEvaluator;
     private final TaxTransactionDetailService taxTransactionDetailService;
     private final FiscalPeriodService fiscalPeriodService;
+    private final EvidencePostingGuard evidencePostingGuard;
     private final EntityManager entityManager;
 
     public List<Transaction> findAll() {
@@ -294,6 +295,7 @@ public class TransactionService {
         }
 
         validateJournalBalance(transaction.getJournalEntries());
+        evidencePostingGuard.check(transaction);
 
         transaction.setStatus(TransactionStatus.POSTED);
         transaction.setPostedAt(LocalDateTime.now());

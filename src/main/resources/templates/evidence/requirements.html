@@ -18,6 +18,19 @@
              th:text="${errorMessage}">Error</div>
         <p class="text-sm text-gray-600">Aturan menentukan dokumen yang wajib ada pada transaksi terposting. Aturan akun berlaku juga untuk sub-akunnya. Aturan template berlaku untuk semua versi template tersebut. Nilai minimum kosong berarti semua nilai transaksi.</p>
 
+        <form sec:authorize="hasAuthority('EVIDENCE_CONFIG')" th:action="@{/evidence/requirements/posting-policy}" method="post"
+              id="posting-policy-form" class="bg-white rounded-lg shadow p-6 flex flex-wrap items-end gap-4 text-sm">
+            <div>
+                <label for="requiredFrom" class="block text-gray-700 mb-1">Wajib berbukti saat posting mulai tanggal</label>
+                <input type="date" id="requiredFrom" name="requiredFrom" th:value="${evidenceRequiredFrom}" data-testid="evidence-required-from"
+                       class="px-3 py-2 border border-gray-300 rounded-lg">
+            </div>
+            <button type="submit" data-testid="btn-save-posting-policy" class="px-4 py-2 font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">Simpan</button>
+            <p class="w-full text-xs text-gray-500">Transaksi bertanggal sejak tanggal ini tidak dapat diposting selama aturan di bawah melaporkan bukti yang belum ada. Kosongkan untuk mematikan.</p>
+        </form>
+        <p sec:authorize="!hasAuthority('EVIDENCE_CONFIG')" class="text-sm text-gray-700" data-testid="evidence-required-from-text"
+           th:text="${evidenceRequiredFrom != null} ? |Wajib berbukti saat posting mulai ${evidenceRequiredFrom}| : 'Bukti tidak diperiksa saat posting'"></p>
+
         <form sec:authorize="hasAuthority('EVIDENCE_CONFIG')" th:action="@{/evidence/requirements}" method="post" id="requirement-form"
               class="bg-white rounded-lg shadow p-6 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
             <div>

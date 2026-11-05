@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{layouts/main :: layout('Rincian Baris Buku Besar', ~{::#page-title}, ~{::section}, ~{})}"
+      lang="id">
+<head>
+    <title>Rincian Baris Buku Besar</title>
+</head>
+<body>
+    <h1 id="page-title" th:text="|Transaksi ${view.transaction().transactionNumber != null ? view.transaction().transactionNumber : 'draf'}|">Transaksi</h1>
+
+    <section class="h-full flex flex-col overflow-y-auto space-y-6" data-testid="tax-audit-ledger-page"
+             th:with="t=${view.transaction()}, ev=${view.evidence()}">
+        <div class="flex gap-4 text-sm">
+            <a th:href="@{/tax-audit(year=${t.transactionDate.year})}" class="text-primary-700 hover:underline">Ruang pemeriksaan</a>
+            <a th:href="@{/transactions/{id}(id=${t.id})}" class="text-primary-700 hover:underline">Halaman transaksi</a>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <p class="text-sm text-gray-700" data-testid="ledger-header"
+               th:text="|${t.transactionDate} ${t.description} (${t.status}, template ${t.journalTemplate.templateName})|">Header</p>
+            <table class="mt-3 w-full text-sm">
+                <thead>
+                <tr class="text-left text-xs text-gray-500 border-b border-gray-200">
+                    <th class="py-2 pr-2">Jurnal</th><th class="py-2 pr-2">Akun</th>
+                    <th class="py-2 pr-2 text-right">Debit</th><th class="py-2 text-right">Kredit</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="j : ${view.lines()}" data-testid="ledger-line"
+                    th:attr="data-selected=${j.id == view.selectedLineId()},data-account=${j.account.accountCode}"
+                    th:class="${j.id == view.selectedLineId()} ? 'border-b border-gray-100 bg-yellow-50 font-medium' : 'border-b border-gray-100'">
+                    <td class="py-1 pr-2 font-mono text-xs" th:text="${j.journalNumber}">JRN</td>
+                    <td class="py-1 pr-2" th:text="|${j.account.accountCode} ${j.account.accountName}|">Akun</td>
+                    <td class="py-1 pr-2 text-right font-mono" th:text="${#numbers.formatDecimal(j.debitAmount, 1, 'POINT', 2, 'COMMA')}">0</td>
+                    <td class="py-1 text-right font-mono" th:text="${#numbers.formatDecimal(j.creditAmount, 1, 'POINT', 2, 'COMMA')}">0</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4" data-testid="ledger-evidence"
+             th:attr="data-complete=${ev.complete()}">
+            <h2 class="text-base font-semibold text-gray-900 mb-2">Bukti</h2>
+            <p th:if="${ev.required().isEmpty()}" class="text-sm text-gray-500">Tidak ada aturan bukti yang berlaku.</p>
+            <p th:unless="${ev.missing().isEmpty()}" data-testid="ledger-evidence-gap" class="text-sm font-medium text-red-700"
+               th:text="|Bukti belum ada: ${#strings.listJoin(ev.missing().![indonesianName], ', ')}|">Kurang</p>
+            <ul class="mt-1 text-sm">
+                <li th:each="e : ${ev.evidence()}" data-testid="ledger-evidence-item" th:text="|${e.evidenceType().indonesianName}: ${e.reference()} (${e.source()})|">Bukti</li>
+            </ul>
+            <p class="mt-2 text-xs font-medium text-gray-500 uppercase">File</p>
+            <ul class="text-sm">
+                <li th:each="f : ${ev.files()}" data-testid="ledger-file">
+                    <a th:href="@{/documents/{id}/view(id=${f.documentId()})}" target="_blank" class="text-primary-700 hover:underline" th:text="${f.filename()}">file.pdf</a>
+                    <span class="text-xs text-gray-500" th:text="${f.evidenceType() != null} ? ${f.evidenceType().indonesianName} : 'belum diklasifikasikan'"></span>
+                </li>
+            </ul>
+            <ul class="mt-1 text-xs text-amber-700"><li th:each="n : ${ev.notes()}" th:text="${n}"></li></ul>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4" data-testid="ledger-invoices">
+                <h2 class="text-base font-semibold text-gray-900 mb-2">Invoice dan faktur</h2>
+                <p th:if="${view.invoices().isEmpty()}" class="text-sm text-gray-500">Tidak terkait invoice.</p>
+                <div th:each="c : ${view.invoices()}" class="text-sm mb-2" data-testid="ledger-invoice">
+                    <a th:href="@{/invoices/{n}(n=${c.invoiceNumber()})}" class="text-primary-700 hover:underline font-medium"
+                       th:text="|${c.invoiceNumber()} ${c.clientName()}|">INV</a>
+                    <ul class="text-xs text-gray-700">
+                        <li th:each="f : ${c.fakturs()}" th:text="|Faktur ${f.fakturNumber()} ${f.fakturDate()}, DPP ${#numbers.formatDecimal(f.dpp(), 1, 'POINT', 2, 'COMMA')}|"></li>
+                        <li th:each="b : ${c.bupots()}" th:text="|Bupot ${b.bupotNumber()}, ${b.taxObjectCode()}, PPh ${#numbers.formatDecimal(b.taxAmount(), 1, 'POINT', 2, 'COMMA')}|"></li>
+                        <li th:each="x : ${c.exceptions()}" class="text-red-700" th:text="|${x.type()}: ${x.reference()}|"></li>
+                    </ul>
+                </div>
+                <h3 class="text-sm font-semibold text-gray-900 mt-3 mb-1">Rincian pajak transaksi</h3>
+                <p th:if="${view.taxDetails().isEmpty()}" class="text-sm text-gray-500">Tidak ada faktur atau bupot.</p>
+                <ul class="text-sm">
+                    <li th:each="d : ${view.taxDetails()}" data-testid="ledger-tax-detail"
+                        th:text="${d.fakturNumber != null} ? |${d.taxType} faktur ${d.fakturNumber} ${d.fakturDate}| : |${d.taxType} bupot ${d.bupotNumber != null ? d.bupotNumber : '(belum ada nomor)'} ${d.counterpartyName != null ? d.counterpartyName : ''}|">PPN</li>
+                </ul>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4" data-testid="ledger-contracts">
+                <h2 class="text-base font-semibold text-gray-900 mb-2">Kontrak dan rekening koran</h2>
+                <p th:if="${view.contracts().isEmpty()}" class="text-sm text-gray-500">Tidak terkait kontrak.</p>
+                <ul class="text-sm">
+                    <li th:each="c : ${view.contracts()}" data-testid="ledger-contract"
+                        th:text="|${c.contractNumber()} ${c.title()} (${c.counterpartyName()})${c.hasFile() ? '' : ' belum ada file'}|">K-1</li>
+                </ul>
+                <h3 class="text-sm font-semibold text-gray-900 mt-3 mb-1">Baris rekening koran</h3>
+                <p th:if="${view.bankLines().isEmpty()}" class="text-sm text-gray-500">Tidak dicocokkan dengan baris bank.</p>
+                <ul class="text-sm">
+                    <li th:each="b : ${view.bankLines()}" data-testid="ledger-bank-line">
+                        <a th:href="@{/bank-reconciliation/statements/{id}(id=${b.bankStatement.id})}" class="text-primary-700 hover:underline"
+                           th:text="|${b.bankStatement.bankAccount.bankName} ${b.transactionDate} baris ${b.lineNumber}: ${b.description}|">BCA</a>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4" data-testid="ledger-filings">
+                <h2 class="text-base font-semibold text-gray-900 mb-2">Pelaporan pajak dan kasus</h2>
+                <p th:if="${view.filings().isEmpty()}" class="text-sm text-gray-500">Belum ada SPT tercatat untuk tanggal ini.</p>
+                <ul class="text-sm">
+                    <li th:each="f : ${view.filings()}" data-testid="ledger-filing">
+                        <span th:text="|${f.filing().taxType.indonesianName} ${f.filing().period}: ${f.filing().status}${f.filing().bpeNumber != null ? ', BPE ' + f.filing().bpeNumber : ''}|">SPT</span>
+                        <span th:each="d : ${f.documents()}" class="ml-1 text-xs px-1.5 py-0.5 rounded bg-gray-100" th:text="|${d.docType} ${d.docNumber}|"></span>
+                    </li>
+                </ul>
+                <ul class="mt-2 text-sm">
+                    <li th:each="c : ${view.cases()}" data-testid="ledger-case">
+                        <a th:href="@{/tax-audit/cases/{id}(id=${c.id})}" class="text-primary-700 hover:underline" th:text="${c.title}">SP2DK</a>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4" data-testid="ledger-archive">
+                <h2 class="text-base font-semibold text-gray-900 mb-2">Arsip dan penyerahan</h2>
+                <p th:if="${view.archiveDocuments().isEmpty()}" class="text-sm text-gray-500">Tidak ada dokumen arsip yang ditautkan.</p>
+                <ul class="text-sm">
+                    <li th:each="a : ${view.archiveDocuments()}" data-testid="ledger-archive-document">
+                        <a th:href="@{/tax-audit/archive/{id}(id=${a.id})}" class="text-primary-700 hover:underline"
+                           th:text="|${a.docType.indonesianName} ${a.docNumber != null ? a.docNumber : ''} (${a.docYear})|">Faktur</a>
+                        <span th:if="${a.journalEntry != null}" class="text-xs text-gray-500" th:text="|baris ${a.journalEntry.account.accountCode}|"></span>
+                    </li>
+                </ul>
+                <p class="mt-3 text-xs font-medium text-gray-500 uppercase">Sudah diserahkan ke kantor pajak</p>
+                <p th:if="${view.disclosures().isEmpty()}" class="text-sm text-gray-500">Belum ada.</p>
+                <ul class="text-sm">
+                    <li th:each="d : ${view.disclosures()}" data-testid="ledger-disclosure">
+                        <a th:href="@{/tax-audit/cases/{id}(id=${d.inquiryCase.id})}" class="text-primary-700 hover:underline"
+                           th:text="|${d.filename} ke ${d.inquiryCase.title}, ${d.disclosedOn}, permintaan ${d.item.itemNo}|">file</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </section>
+</body>
+</html>

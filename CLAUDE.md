@@ -52,6 +52,7 @@ Indonesian accounting application for small businesses. Spring Boot 4.0 + Thymel
 - **Evidence completeness (issue #48):** ✅ Complete (evidence rules by account/template, missing-evidence report, contract register, monthly bank statement archive with 10-year retention and alert, yearly audit pack ZIP, `/api/evidence` read API, V013)
 - **Period Close Checks (issue #50):** ✅ Complete (close checklist on fiscal period and year-end pages + `/api/close-checks`, `chart_of_accounts.close_check_role`, shareholder current account statement, LIABILITY_UNMOVED alert, V014)
 - **Tax Self-Test (issue #45):** ✅ Complete (`/reports/self-test` + `/api/self-test` and `/trace`, nine cross-check lines with explanations, `chart_of_accounts.self_test_role`, `self_test_explanations`, V015)
+- **Tax Audit Workspace (issue #51):** ✅ Complete (`/tax-audit` year view with trace to ledger line and links to invoice/faktur/bupot/contract/bank line/filing; append-only inquiry cases with disclosure ZIP export; archive ZIP+manifest import with PostgreSQL full-text search; evidence required at posting from `company_config.evidence_required_from`; V016)
 - **Test Suite Audit 2026-09:** 🔄 In progress (~80 classes rewritten to verify real behavior; web + API authorization hardening; V006/V007). Status, resume checklist, deploy checklist, release-notes draft and open decisions: `docs/test-suite-audit-2026-09.md`. Test rules + reserved test years: `docs/developer-guide/extending/05-testing.md`
 - See `docs/06-implementation-plan.md` for full plan
 

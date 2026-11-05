@@ -87,6 +87,13 @@ public class CompanyConfig extends BaseEntity {
     @Column(name = "pkp_since")
     private LocalDate pkpSince;
 
+    /**
+     * Posting a transaction dated on or after this date is refused while an evidence rule reports a missing type
+     * (issue #51). Null: not enforced.
+     */
+    @Column(name = "evidence_required_from")
+    private LocalDate evidenceRequiredFrom;
+
     // Posting bridge accounts: resolve the document-level slots (AR/AP/PPN)
     // when invoices/bills compose their DRAFT journal via the template engine.
     @ManyToOne(fetch = FetchType.LAZY)

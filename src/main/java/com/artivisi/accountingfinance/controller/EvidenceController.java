@@ -5,6 +5,8 @@ import com.artivisi.accountingfinance.repository.ChartOfAccountRepository;
 import com.artivisi.accountingfinance.repository.JournalTemplateRepository;
 import com.artivisi.accountingfinance.security.Permission;
 import com.artivisi.accountingfinance.service.AuditPackService;
+import com.artivisi.accountingfinance.service.CompanyConfigService;
+import com.artivisi.accountingfinance.service.EvidencePostingGuard;
 import com.artivisi.accountingfinance.service.EvidenceQueryService;
 import com.artivisi.accountingfinance.service.EvidenceRequirementService;
 import com.artivisi.accountingfinance.service.SecurityAuditService;
@@ -50,6 +52,8 @@ public class EvidenceController {
     private final ChartOfAccountRepository accountRepository;
     private final JournalTemplateRepository templateRepository;
     private final SecurityAuditService securityAuditService;
+    private final EvidencePostingGuard evidencePostingGuard;
+    private final CompanyConfigService companyConfigService;
 
     @GetMapping("/requirements")
     public String requirements(Model model) {
@@ -57,8 +61,21 @@ public class EvidenceController {
         model.addAttribute("accounts", accountRepository.findByActiveOrderByAccountCodeAsc(true));
         model.addAttribute("templates", templateRepository.findByActiveAndIsCurrentVersionTrueOrderByTemplateNameAsc(true));
         model.addAttribute("evidenceTypes", EvidenceType.requirableValues());
+        model.addAttribute("evidenceRequiredFrom", evidencePostingGuard.requiredFrom());
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_EVIDENCE);
         return "evidence/requirements";
+    }
+
+    /** Evidence at posting: blank date turns the check off. */
+    @PostMapping("/requirements/posting-policy")
+    @PreAuthorize("hasAuthority('" + Permission.EVIDENCE_CONFIG + "')")
+    public String savePostingPolicy(@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate requiredFrom,
+                                    RedirectAttributes redirectAttributes) {
+        companyConfigService.setEvidenceRequiredFrom(requiredFrom);
+        redirectAttributes.addFlashAttribute(FLASH_SUCCESS, requiredFrom == null
+                ? "Pemeriksaan bukti saat posting dimatikan"
+                : "Posting transaksi bertanggal " + requiredFrom + " ke atas wajib berbukti lengkap");
+        return REDIRECT_REQUIREMENTS;
     }
 
     @PostMapping("/requirements")
@@ -117,7 +134,11 @@ public class EvidenceController {
     /** Evidence panel on the transaction detail page (HTMX). */
     @GetMapping("/transactions/{id}")
     public String transactionPanel(@PathVariable UUID id, Model model) {
-        model.addAttribute("evidence", evidenceQueryService.evidenceFor(id));
+        EvidenceQueryService.TransactionEvidence evidence = evidenceQueryService.evidenceFor(id);
+        model.addAttribute("evidence", evidence);
+        LocalDate requiredFrom = evidencePostingGuard.requiredFrom();
+        model.addAttribute("postingRequiresEvidence", requiredFrom != null && evidence.transactionNumber() == null
+                && !evidence.transactionDate().isBefore(requiredFrom) ? requiredFrom : null);
         return "evidence/fragments/transaction-panel :: panel";
     }
 

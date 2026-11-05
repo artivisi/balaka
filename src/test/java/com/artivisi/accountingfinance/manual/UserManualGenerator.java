@@ -354,7 +354,17 @@ public class UserManualGenerator {
                 new Section("uji-mandiri-lihat-juga", "Lihat Juga", "20-uji-mandiri-pajak.md", List.of())
             )),
 
-            // 21. LAMPIRAN (last)
+            // 21. RUANG PEMERIKSAAN PAJAK
+            new SectionGroup("ruang-pemeriksaan-pajak", "Ruang Pemeriksaan Pajak", "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z", List.of(
+                new Section("tampilan-tahun-pajak", "Tampilan Tahun Pajak", "21-ruang-pemeriksaan-pajak.md", List.of()),
+                new Section("rincian-uji-sampai-baris-jurnal", "Rincian Uji sampai Baris Jurnal", "21-ruang-pemeriksaan-pajak.md", List.of()),
+                new Section("bukti-wajib-saat-posting", "Bukti Wajib Saat Posting", "21-ruang-pemeriksaan-pajak.md", List.of()),
+                new Section("kasus-pemeriksaan", "Kasus Pemeriksaan", "21-ruang-pemeriksaan-pajak.md", List.of()),
+                new Section("arsip-dokumen", "Arsip Dokumen", "21-ruang-pemeriksaan-pajak.md", List.of()),
+                new Section("ruang-pemeriksaan-lihat-juga", "Lihat Juga", "21-ruang-pemeriksaan-pajak.md", List.of())
+            )),
+
+            // 22. LAMPIRAN (last)
             new SectionGroup("lampiran", "Lampiran", "M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4", List.of(
                 new Section("glosarium", "Glosarium", "12-lampiran-glosarium.md", List.of()),
                 new Section("referensi-template", "Referensi Template", "12-lampiran-template.md", List.of("service/templates-list", "service/templates-metadata-detail", "service/templates-metadata-form")),
