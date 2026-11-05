@@ -1564,6 +1564,10 @@ Setiap user dapat melihat dan mencabut device token miliknya di halaman **Perang
 
 Lihat [Withholding API](../developer-guide/api/10-withholding.md). Pembayaran dan setoran berstatus DRAFT sampai diposting.
 
+### Rantai Pajak Penjualan (scope: `sales-tax-chain:*`)
+
+Lihat [Sales Tax Chain API](../developer-guide/api/11-sales-tax-chain.md). Bukti potong berstatus DRAFT sampai diposting.
+
 ### Tagihan Vendor (scope: `bills:*`)
 
 | Method | Endpoint | Deskripsi |

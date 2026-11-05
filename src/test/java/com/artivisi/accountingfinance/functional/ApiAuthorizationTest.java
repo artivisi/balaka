@@ -154,7 +154,8 @@ class ApiAuthorizationTest extends PlaywrightTestBase {
                 "/api/accounts", "/api/fixed-assets", "/api/tax-filings", "/api/bills", "/api/analysis/reports",
                 "/api/withholding/payees", "/api/withholding/payments?year=2041&month=1",
                 "/api/withholding/deposits?year=2041&month=1", "/api/withholding/masa-status?year=2041&month=1",
-                "/api/withholding/undocumented-service-payments?year=2041&month=1")) {
+                "/api/withholding/undocumented-service-payments?year=2041&month=1",
+                "/api/sales-tax-chain/exceptions?to=2041-01-31", "/api/sales-tax-chain/reconciliation?year=2041&month=1")) {
             APIResponse response = api.get(path, bearer(token));
             assertThat(response.status()).as("GET %s: %s", path, response.text()).isEqualTo(200);
         }
@@ -520,6 +521,14 @@ class ApiAuthorizationTest extends PlaywrightTestBase {
                 "amount", 1000, "depositDate", "2041-02-10", "bankAccountId", id)), all(Permission.TRANSACTION_CREATE)));
         c.add(new WriteCase("POST", "/api/withholding/deposits" + r + "/post", none(), all(Permission.TRANSACTION_POST)));
         c.add(new WriteCase("DELETE", "/api/withholding/deposits" + r, none(), all(Permission.TRANSACTION_DELETE)));
+
+        // sales tax chain
+        c.add(new WriteCase("POST", "/api/sales-tax-chain/invoices" + r + "/faktur", data(Map.of("fakturNumber", "F" + m.substring(0, 8),
+                "fakturDate", "2041-01-10", "transactionCode", "01", "dpp", 1000, "ppn", 110)),
+                all(Permission.TAX_EXPORT, Permission.INVOICE_EDIT)));
+        c.add(new WriteCase("POST", "/api/sales-tax-chain/invoices" + r + "/bupot", data(Map.of("bupotNumber", "B" + m.substring(0, 8),
+                "bupotDate", "2041-01-10", "taxObjectCode", "24-104-01", "grossAmount", 1000, "taxRate", 2, "taxAmount", 20)),
+                all(Permission.TAX_EXPORT, Permission.INVOICE_EDIT, Permission.TRANSACTION_CREATE)));
 
         // analysis and import
         c.add(new WriteCase("POST", "/api/analysis/reports", data(Map.of("title", "Laporan " + m,

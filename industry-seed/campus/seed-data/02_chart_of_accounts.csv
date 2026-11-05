@@ -9,6 +9,7 @@ account_code,account_name,account_type,parent_code,normal_balance,active,is_perm
 1.1.12,Piutang Biaya Praktikum,ASSET,1.1,DEBIT,true,true,,
 1.1.13,Piutang Wisuda,ASSET,1.1,DEBIT,true,true,,
 1.1.15,Beban Dibayar Dimuka,ASSET,1.1,DEBIT,true,true,,
+1.1.26,Kredit Pajak PPh 23,ASSET,1.1,DEBIT,true,true,,
 1.2,Aset Tetap,ASSET,1,DEBIT,true,true,,
 1.2.01,Tanah,ASSET,1.2,DEBIT,true,true,,
 1.2.02,Gedung Kampus,ASSET,1.2,DEBIT,true,true,,

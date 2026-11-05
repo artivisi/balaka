@@ -62,6 +62,11 @@ public class TaxTransactionDetail extends TimestampedEntity {
     @Column(name = "bupot_number", length = 30)
     private String bupotNumber;
 
+    /** Receipt a bupot from a customer belongs to. The bupot number itself stays here, not on the payment. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_invoice_payment")
+    private InvoicePayment invoicePayment;
+
     @Size(max = 20, message = "Tax object code max 20 characters")
     @Column(name = "tax_object_code", length = 20)
     private String taxObjectCode;  // e.g., 24-104-01

@@ -9,6 +9,7 @@ account_code,account_name,account_type,parent_code,normal_balance,active,is_perm
 1.1.21,Persediaan Barang Jadi,ASSET,1.1,DEBIT,true,true,,
 1.1.22,Persediaan Dalam Proses,ASSET,1.1,DEBIT,true,true,,
 1.1.25,PPN Masukan,ASSET,1.1,DEBIT,true,true,,
+1.1.26,Kredit Pajak PPh 23,ASSET,1.1,DEBIT,true,true,,
 1.2,Aset Tetap,ASSET,1,DEBIT,true,true,,
 1.2.01,Peralatan Kopi,ASSET,1.2,DEBIT,true,true,,
 1.2.02,Akum. Penyusutan Peralatan Kopi,ASSET,1.2,CREDIT,true,true,,

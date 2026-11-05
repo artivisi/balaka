@@ -78,6 +78,23 @@ class SeedPackFiscalAccountsTest {
         assertThat(lines).filteredOn(l -> l.startsWith("Setor PPh Dipotong,")).hasSize(2);
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"it-service", "online-seller", "coffee-shop", "campus"})
+    @DisplayName("Sales tax chain: every pack has Kredit Pajak PPh 23 and the customer bupot template, not as a system template")
+    void salesTaxChainSeed(String pack) throws IOException {
+        Path seed = Path.of("industry-seed", pack, "seed-data");
+        assertThat(Files.readAllLines(seed.resolve("02_chart_of_accounts.csv")))
+                .filteredOn(l -> l.split(",")[1].equals("Kredit Pajak PPh 23")).singleElement()
+                .satisfies(l -> assertThat(l).startsWith("1.1.26,Kredit Pajak PPh 23,ASSET,1.1,DEBIT"));
+        assertThat(Files.readAllLines(seed.resolve("04_journal_templates.csv")))
+                .filteredOn(l -> l.startsWith("Pemotongan PPh 23 oleh Pelanggan,")).singleElement()
+                .satisfies(l -> assertThat(l.split(",")[5]).isEqualTo("false"));
+        assertThat(Files.readAllLines(seed.resolve("05_journal_template_lines.csv")))
+                .filteredOn(l -> l.startsWith("Pemotongan PPh 23 oleh Pelanggan,"))
+                .containsExactly("Pemotongan PPh 23 oleh Pelanggan,1,,KREDIT_PPH23,DEBIT,amount,Kredit Pajak PPh 23",
+                        "Pemotongan PPh 23 oleh Pelanggan,2,,PIUTANG,CREDIT,amount,Piutang usaha");
+    }
+
     private void assertAccount(Map<String, String[]> byCode, String code, String name, String type, String treatment) {
         assertThat(byCode).containsKey(code);
         String[] row = byCode.get(code);

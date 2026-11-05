@@ -193,6 +193,71 @@ Akun jasa diatur di **Bagan Akun**, kolom **Akun Jasa (Pemotongan PPh)**. Akun b
 
 ---
 
+## Rantai Pajak Penjualan
+
+Menu **Pembelian** > **Rantai Pajak Penjualan** dan bagian **Faktur dan Bukti Potong** pada halaman invoice menghubungkan invoice dengan faktur, penerimaan dan bukti potong PPh 23. Nomor faktur dan nomor bukti potong hanya tersimpan di detail pajak transaksi. Detail pajak ikut ke invoice melalui transaksinya.
+
+### Mencatat Faktur
+
+Pada halaman invoice yang sudah terkirim, klik **Catat Faktur**, isi nomor, tanggal, kode transaksi, DPP dan PPN, lalu klik **Simpan Faktur**. Faktur menempel pada transaksi pendapatan pertama dari invoice. Invoice dengan beberapa akun pendapatan tetap memiliki satu faktur. Faktur kedua lewat form ini ditolak.
+
+### Mencatat Penerimaan dengan PPh 23
+
+Jika pelanggan memotong PPh 23, isi **Jumlah** dengan piutang yang lunas, termasuk PPh 23, dan isi **PPh 23 Dipotong Pelanggan** dengan potongannya. Contoh: tagihan Rp 11.100.000, uang masuk Rp 10.900.000, potongan Rp 200.000. Isi Jumlah 11.100.000 dan PPh 23 Dipotong Pelanggan 200.000. Invoice menjadi lunas.
+
+Form ini belum membuat jurnal, sama seperti sebelumnya. Uang masuk tetap dicatat dengan template **Terima Pelunasan Piutang** sebesar Rp 10.900.000.
+
+### Mencatat Bukti Potong
+
+Bukti potong biasanya datang setelah uang masuk. Klik **Catat Bukti Potong**, pilih penerimaan, isi nomor, tanggal, kode objek pajak, bruto, tarif dan PPh, lalu klik **Simpan sebagai Draf**. Sistem membuat draf transaksi dengan template **Pemotongan PPh 23 oleh Pelanggan**. Setelah diposting:
+
+```
+Dr. Kredit Pajak PPh 23    200.000
+    Cr. Piutang Usaha       200.000
+```
+
+Tanggal bukti potong menjadi tanggal transaksi dan menentukan masa kredit pajak. Bukti potong dari pelanggan masuk Lampiran III dan tidak masuk Ekspor Bupot Unifikasi.
+
+Akun dicari berdasarkan nama **Kredit Pajak PPh 23**. Jika nama tersebut tidak ada atau ganda, penyimpanan ditolak.
+
+### Pengecualian
+
+Daftar pengecualian menampilkan semua pengecualian yang tanggalnya sampai akhir masa terpilih. Pengecualian masa lama tetap tampil sampai diperbaiki.
+
+| Jenis | Muncul jika | Tidak muncul jika | Cara Menyelesaikan |
+|-------|-------------|-------------------|--------------------|
+| Dibayar tanpa faktur | Invoice ber-PPN sudah dibayar sebagian atau lunas dan belum punya faktur bernomor | Invoice tanpa PPN, belum dibayar, atau dibatalkan | Catat faktur |
+| Faktur tanpa pendapatan terposting | Pendapatan invoice atau transaksi masih draf, sudah di-void, atau transaksinya tidak punya akun pendapatan | Sebagian pendapatan invoice sudah terposting | Posting pendapatan. Jika faktur sudah dibatalkan di Coretax, hapus detail pajaknya |
+| Lebih dari satu faktur pada satu invoice | Satu invoice punya dua faktur atau lebih pada transaksi yang tidak di-void | Faktur lama berada pada transaksi yang sudah di-void | Hapus detail pajak yang salah |
+| Bukti potong belum ada | PPh 23 pada penerimaan belum tertutup bukti potong, detail PPh 23 pada transaksi pendapatan belum bernomor, atau akun Kredit Pajak PPh 23 didebit tanpa detail PPh 23 | Bukti potong masih draf, atau detail PPh 23 berasal dari pembayaran ke vendor | Catat bukti potong atau isi nomornya |
+
+Bukti potong yang transaksinya di-void tidak dihitung. Tidak ada tombol untuk mengabaikan pengecualian.
+
+### Rekonsiliasi Bulanan
+
+Tabel pertama menjelaskan selisih pendapatan terposting dan DPP SPT Masa PPN pada masa terpilih. DPP SPT Masa PPN adalah jumlah DPP faktur bernomor pada transaksi terposting dengan tanggal faktur pada masa tersebut.
+
+| Baris | Isi |
+|-------|-----|
+| PPN ikut terbukukan sebagai pendapatan | Pendapatan lebih besar dari DPP tepat sebesar PPN faktur |
+| PPh 23 mengurangi pendapatan | Pendapatan lebih kecil dari DPP tepat sebesar PPh 23 |
+| Pendapatan tanpa faktur | Pendapatan tanpa faktur di masa mana pun. Pendapatan bunga juga masuk baris ini |
+| Pendapatan masa ini, faktur di masa lain | Faktur bertanggal di masa lain |
+| Faktur masa ini, pendapatan di masa lain | Pendapatan terposting di masa lain |
+| Faktur tanpa pendapatan terposting | Transaksi terposting tanpa akun pendapatan |
+| Selisih DPP Nilai Lain | Faktur kode 04 |
+| Selisih lain | Selisih yang tidak cocok dengan semua baris di atas |
+
+Faktur pada transaksi draf belum masuk DPP dan muncul sebagai pengecualian.
+
+Tabel kedua menampilkan efek PPN dan PPh 23: DPP ditambah PPN faktur, dikurangi PPh 23 bukti potong, serta selisih PPN dan PPh 23 terhadap buku besar.
+
+Jika Ekspor e-Faktur memuat DPP yang berbeda, halaman menampilkan peringatan. Ekspor memilih baris berdasarkan tanggal transaksi dan memuat baris tanpa nomor faktur.
+
+Status SPT Masa PPN diambil dari Register Pelaporan Pajak. Nilai DPP pada SPT yang dilaporkan ke DJP tidak tersimpan di aplikasi, sehingga angka ini berasal dari data aplikasi.
+
+---
+
 ## Periode Fiskal
 
 Periode fiskal mengontrol kapan transaksi dapat diposting. Setiap bulan memiliki status yang menentukan apakah jurnal dapat dibuat di bulan tersebut.

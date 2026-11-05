@@ -335,6 +335,10 @@ public class InvoiceService {
             throw new IllegalStateException("Pembayaran hanya bisa dicatat untuk invoice berstatus Terkirim, Jatuh Tempo, atau Sebagian");
         }
 
+        if (payment.getPph23Withheld().signum() < 0 || payment.getPph23Withheld().compareTo(payment.getAmount()) > 0) {
+            throw new IllegalArgumentException("PPh 23 dipotong harus antara 0 dan jumlah pembayaran (Rp " + payment.getAmount() + ")");
+        }
+
         BigDecimal existingPayments = invoicePaymentRepository.sumPaymentsByInvoiceId(invoiceId);
         BigDecimal totalAfterPayment = existingPayments.add(payment.getAmount());
         BigDecimal totalAmount = invoice.getTotalAmount();

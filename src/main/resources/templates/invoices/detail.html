@@ -146,6 +146,7 @@
                         <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Metode</th>
                         <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Referensi</th>
                         <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Jumlah</th>
+                        <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">PPh 23 Dipotong</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200">
@@ -154,6 +155,7 @@
                         <td class="px-4 py-2 text-sm" th:text="${pmt.paymentMethod.indonesianName}">Transfer</td>
                         <td class="px-4 py-2 text-sm" th:text="${pmt.referenceNumber ?: '-'}">-</td>
                         <td class="px-4 py-2 text-sm text-right font-medium" th:text="'Rp ' + ${#numbers.formatDecimal(pmt.amount, 0, 'COMMA', 0, 'POINT')}">Rp 0</td>
+                        <td class="px-4 py-2 text-sm text-right" th:text="'Rp ' + ${#numbers.formatDecimal(pmt.pph23Withheld, 0, 'COMMA', 0, 'POINT')}">Rp 0</td>
                     </tr>
                 </tbody>
             </table>
@@ -184,6 +186,12 @@
                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 text-sm">
                     </div>
                     <div>
+                        <label for="pph23Withheld" class="block text-sm font-medium text-gray-700 mb-1">PPh 23 Dipotong Pelanggan (Rp)</label>
+                        <input type="number" id="pph23Withheld" name="pph23Withheld" min="0" step="1"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 text-sm">
+                        <p class="mt-1 text-xs text-gray-500">Termasuk dalam Jumlah. Contoh: tagihan 11.100.000, uang masuk 10.900.000, PPh 23 200.000: isi Jumlah 11.100.000.</p>
+                    </div>
+                    <div>
                         <label for="paymentMethod" class="block text-sm font-medium text-gray-700 mb-1">Metode *</label>
                         <select id="paymentMethod" name="paymentMethod" required
                                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 text-sm">
@@ -207,6 +215,116 @@
                     </button>
                 </div>
             </form>
+        </div>
+
+        <!-- Sales tax chain -->
+        <div class="bg-white rounded-lg shadow p-6 space-y-4" data-testid="tax-chain" th:if="${invoice.status.name() != 'DRAFT'}">
+            <h3 class="text-lg font-medium text-gray-900">Faktur dan Bukti Potong</h3>
+
+            <ul th:unless="${#lists.isEmpty(chain.exceptions())}" class="p-3 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-800 space-y-1" data-testid="chain-exceptions">
+                <li th:each="e : ${chain.exceptions()}" th:attr="data-type=${e.type().name()}"
+                    th:text="|${e.type().indonesianName}: Rp ${#numbers.formatDecimal(e.amount(), 1, 'POINT', 0, 'COMMA')}|">Pengecualian</li>
+            </ul>
+
+            <p class="text-sm" data-testid="chain-booked-revenue"
+               th:text="|Pendapatan terposting: Rp ${#numbers.formatDecimal(chain.bookedRevenue(), 1, 'POINT', 0, 'COMMA')}|">Pendapatan</p>
+
+            <div class="overflow-x-auto">
+                <h4 class="text-sm font-semibold text-gray-900 mb-2">Faktur Pajak</h4>
+                <p th:if="${#lists.isEmpty(chain.fakturs())}" class="text-sm text-gray-500" data-testid="chain-no-faktur">Belum ada faktur.</p>
+                <table th:unless="${#lists.isEmpty(chain.fakturs())}" class="min-w-full text-sm" data-testid="chain-fakturs">
+                    <thead><tr class="text-left text-gray-500">
+                        <th class="py-1 pr-4">Nomor</th><th class="py-1 pr-4">Tanggal</th><th class="py-1 pr-4">Transaksi</th>
+                        <th class="py-1 pr-4">Status</th><th class="py-1 pr-4 text-right">DPP</th><th class="py-1 text-right">PPN</th>
+                    </tr></thead>
+                    <tbody>
+                    <tr th:each="f : ${chain.fakturs()}" class="border-t">
+                        <td class="py-1 pr-4" th:text="${f.fakturNumber()}">-</td>
+                        <td class="py-1 pr-4" th:text="${f.fakturDate() != null ? #temporals.format(f.fakturDate(), 'dd/MM/yyyy') : '-'}">-</td>
+                        <td class="py-1 pr-4"><a class="text-primary-600 hover:underline" th:href="@{/transactions/{id}(id=${f.transactionId()})}" th:text="${f.transactionNumber()}">TRX</a></td>
+                        <td class="py-1 pr-4" th:text="${f.transactionStatus().name()}">-</td>
+                        <td class="py-1 pr-4 text-right" th:text="${#numbers.formatDecimal(f.dpp(), 1, 'POINT', 0, 'COMMA')}">0</td>
+                        <td class="py-1 text-right" th:text="${#numbers.formatDecimal(f.ppn(), 1, 'POINT', 0, 'COMMA')}">0</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="overflow-x-auto">
+                <h4 class="text-sm font-semibold text-gray-900 mb-2">Bukti Potong PPh 23</h4>
+                <p th:if="${#lists.isEmpty(chain.bupots())}" class="text-sm text-gray-500" data-testid="chain-no-bupot">Belum ada bukti potong.</p>
+                <table th:unless="${#lists.isEmpty(chain.bupots())}" class="min-w-full text-sm" data-testid="chain-bupots">
+                    <thead><tr class="text-left text-gray-500">
+                        <th class="py-1 pr-4">Nomor</th><th class="py-1 pr-4">Kode Objek</th><th class="py-1 pr-4">Transaksi</th>
+                        <th class="py-1 pr-4">Status</th><th class="py-1 pr-4 text-right">Bruto</th><th class="py-1 text-right">PPh</th>
+                    </tr></thead>
+                    <tbody>
+                    <tr th:each="b : ${chain.bupots()}" class="border-t">
+                        <td class="py-1 pr-4" th:text="${b.bupotNumber()}">-</td>
+                        <td class="py-1 pr-4" th:text="${b.taxObjectCode()}">-</td>
+                        <td class="py-1 pr-4"><a class="text-primary-600 hover:underline" th:href="@{/transactions/{id}(id=${b.transactionId()})}" th:text="${b.transactionNumber()}">TRX</a></td>
+                        <td class="py-1 pr-4" th:text="${b.transactionStatus().name()}">-</td>
+                        <td class="py-1 pr-4 text-right" th:text="${#numbers.formatDecimal(b.grossAmount(), 1, 'POINT', 0, 'COMMA')}">0</td>
+                        <td class="py-1 text-right" th:text="${#numbers.formatDecimal(b.taxAmount(), 1, 'POINT', 0, 'COMMA')}">0</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <th:block th:if="${invoice.status.name() != 'CANCELLED'}">
+                <details sec:authorize="hasAuthority('INVOICE_EDIT') and hasAuthority('TAX_EXPORT')" data-testid="faktur-form-section">
+                    <summary class="cursor-pointer text-sm font-medium text-primary-600" id="toggle-faktur-form">Catat Faktur</summary>
+                    <form th:action="@{/invoices/{num}/faktur(num=${invoice.invoiceNumber})}" method="post" class="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div><label for="fakturNumber" class="block text-xs font-medium text-gray-700 mb-1">Nomor Faktur *</label>
+                            <input type="text" id="fakturNumber" name="fakturNumber" required maxlength="20" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"></div>
+                        <div><label for="fakturDate" class="block text-xs font-medium text-gray-700 mb-1">Tanggal Faktur *</label>
+                            <input type="date" id="fakturDate" name="fakturDate" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"></div>
+                        <div><label for="transactionCode" class="block text-xs font-medium text-gray-700 mb-1">Kode Transaksi *</label>
+                            <select id="transactionCode" name="transactionCode" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                                <option value="">-- Pilih --</option>
+                                <option value="01">01 - Kepada Pihak Bukan Pemungut PPN</option>
+                                <option value="02">02 - Kepada Pemungut Bendaharawan</option>
+                                <option value="03">03 - Kepada Pemungut BUMN/Tertentu</option>
+                                <option value="04">04 - DPP Nilai Lain</option>
+                                <option value="07">07 - Penyerahan Tidak Dipungut PPN</option>
+                                <option value="08">08 - Dibebaskan dari PPN</option>
+                            </select></div>
+                        <div><label for="dpp" class="block text-xs font-medium text-gray-700 mb-1">DPP *</label>
+                            <input type="number" id="dpp" name="dpp" required min="0" step="1" th:value="${invoice.amount}" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"></div>
+                        <div><label for="ppn" class="block text-xs font-medium text-gray-700 mb-1">PPN *</label>
+                            <input type="number" id="ppn" name="ppn" required min="0" step="1" th:value="${invoice.taxAmount}" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"></div>
+                        <div class="flex items-end"><button type="submit" id="btn-save-faktur" class="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm hover:bg-primary-700">Simpan Faktur</button></div>
+                    </form>
+                </details>
+
+                <details sec:authorize="hasAuthority('INVOICE_EDIT') and hasAuthority('TAX_EXPORT') and hasAuthority('TRANSACTION_CREATE')" data-testid="bupot-form-section">
+                    <summary class="cursor-pointer text-sm font-medium text-primary-600" id="toggle-bupot-form">Catat Bukti Potong</summary>
+                    <form th:action="@{/invoices/{num}/bupot(num=${invoice.invoiceNumber})}" method="post" class="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div><label for="paymentId" class="block text-xs font-medium text-gray-700 mb-1">Penerimaan</label>
+                            <select id="paymentId" name="paymentId" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                                <option value="">-- Tanpa penerimaan --</option>
+                                <option th:each="r : ${chain.receipts()}" th:value="${r.paymentId()}"
+                                        th:text="|${#temporals.format(r.paymentDate(), 'dd/MM/yyyy')} - PPh 23 belum berbukti ${#numbers.formatDecimal(r.bupotOutstanding(), 1, 'POINT', 0, 'COMMA')}|">Penerimaan</option>
+                            </select></div>
+                        <div><label for="bupotNumber" class="block text-xs font-medium text-gray-700 mb-1">Nomor Bukti Potong *</label>
+                            <input type="text" id="bupotNumber" name="bupotNumber" required maxlength="30" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"></div>
+                        <div><label for="bupotDate" class="block text-xs font-medium text-gray-700 mb-1">Tanggal Bukti Potong *</label>
+                            <input type="date" id="bupotDate" name="bupotDate" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"></div>
+                        <div><label for="taxObjectCode" class="block text-xs font-medium text-gray-700 mb-1">Kode Objek Pajak *</label>
+                            <select id="taxObjectCode" name="taxObjectCode" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                                <option value="">-- Pilih --</option>
+                                <option th:each="c : ${pph23ObjectCodes}" th:value="${c.code}" th:text="${c.displayName}">Kode</option>
+                            </select></div>
+                        <div><label for="grossAmount" class="block text-xs font-medium text-gray-700 mb-1">Bruto *</label>
+                            <input type="number" id="grossAmount" name="grossAmount" required min="1" step="1" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"></div>
+                        <div><label for="taxRate" class="block text-xs font-medium text-gray-700 mb-1">Tarif (%) *</label>
+                            <input type="number" id="taxRate" name="taxRate" required min="0" step="0.01" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"></div>
+                        <div><label for="taxAmount" class="block text-xs font-medium text-gray-700 mb-1">PPh *</label>
+                            <input type="number" id="taxAmount" name="taxAmount" required min="1" step="1" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"></div>
+                        <div class="flex items-end"><button type="submit" id="btn-save-bupot" class="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm hover:bg-primary-700">Simpan sebagai Draf</button></div>
+                    </form>
+                </details>
+            </th:block>
         </div>
 
         <!-- Actions -->

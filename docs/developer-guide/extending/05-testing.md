@@ -5,7 +5,7 @@
 | Level | Tool | Data Source | Location | Count |
 |-------|------|-------------|----------|-------|
 | Unit | JUnit 5 + Mockito | Mocks | `src/test/java/.../unit/` | Fast |
-| Integration | Testcontainers (PostgreSQL) | V800-V914 migrations | `src/test/java/.../integration/` | ~30s startup |
+| Integration | Testcontainers (PostgreSQL) | V800-V915 migrations | `src/test/java/.../integration/` | ~30s startup |
 | Functional (E2E) | Playwright | Industry seed initializers | `src/test/java/.../functional/` | ~60-90 min total |
 | Security (SAST) | SpotBugs | Source code | N/A | ~1 min |
 | Security (DAST) | OWASP ZAP | Running app | `src/test/java/.../functional/ZapDastTest.java` | ~5-15 min |
@@ -64,7 +64,7 @@ Use Flyway test migrations in `src/test/resources/db/test/integration/`:
 | Migration | Content |
 |-----------|---------|
 | `V800__base_test_data.sql` | Base test data (users, roles) |
-| `V900-V914` | Domain-specific data (templates, transactions, payroll, drafts, etc.) |
+| `V900-V915` | Domain-specific data (templates, transactions, payroll, drafts, etc.) |
 
 These migrations run automatically when Testcontainers spins up the PostgreSQL instance.
 
@@ -145,6 +145,9 @@ Period-scoped data (transactions, payroll runs, fiscal periods, schedules) goes 
 | 2132-2141 (integration DB) | WithholdingPaymentServiceTest |
 | 2142, 2008-01 | WithholdingApiTest (2008: journal-entry API rejects future dates) |
 | 2143 | WithholdingFunctionalTest |
+| 2144-2152 (integration DB), 2098 (tax_filings stops at 2100) | SalesTaxChainServiceTest |
+| 2153 | SalesTaxChainApiTest |
+| 2154 | SalesTaxChainFunctionalTest |
 | 2031–2034 | PayrollControllerFunctionalTest, ServicePayrollComprehensiveTest |
 | 2040, 2042 | TaxFilingApiTest |
 | 2043 | ServiceReportsTest |

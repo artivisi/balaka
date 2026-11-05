@@ -123,3 +123,61 @@ After deploy:
 3. Fill Jenis Penerima on vendors that receive withheld payments.
 4. Re-save vendors holding NPWP or NIK to encrypt them.
 5. Have a tax reviewer check PPh 23/26 rates and the export columns.
+
+## Issue #44: Sales tax chain
+
+### Built
+
+- Link: `InvoicePayment.pph23Withheld`, `TaxTransactionDetail.invoicePayment`. Invoice page section Faktur dan Bukti Potong with forms; payment form field PPh 23 Dipotong Pelanggan.
+- Bupot: `InvoiceTaxLinkService.recordBupot` composes a DRAFT with template `Pemotongan PPh 23 oleh Pelanggan` (Dr Kredit Pajak PPh 23, Cr Piutang) and its PPh 23 detail.
+- Report: `/sales-tax-chain` and `/api/sales-tax-chain` with exceptions and monthly reconciliation.
+- Read API for #45 and #51: `SalesTaxChainService.getChain`, `findExceptions`, `getReconciliation`. API scopes `sales-tax-chain:read`, `sales-tax-chain:write`.
+
+### Schema (V010)
+
+`invoice_payments.pph23_withheld` (NOT NULL, existing rows 0, check 0..amount); `tax_transaction_details.id_invoice_payment` (ON DELETE SET NULL). Account `Kredit Pajak PPh 23` if the name is absent; template; device-token scopes. Test data V915. Packs: template in all four, account `1.1.26` added to coffee-shop and campus.
+
+### Decisions made on the owner's behalf
+
+- Source of truth: numbers, dates and amounts of faktur and bupot live only on `tax_transaction_details`. The invoice link is derived from the transaction (`source_document_type/id`, or `invoices.id_transaction`), so existing details join the chain with no backfill and the generic tax-detail screens stay valid. A row with no number is not a faktur or bupot.
+- `invoice_payments.amount` keeps meaning receivable settled, and includes the withheld part. Balance, aging and statement queries are unchanged. The withheld amount is the expected-bupot signal, because the bupot usually arrives later. It is entered, not computed: no rate check against the client.
+- `recordPayment` still journals nothing; the cash part goes through `Terima Pelunasan Piutang`. Bupot posting credits Piutang for the withheld part.
+- SPT Masa PPN DPP means numbered fakturs on POSTED transactions by faktur date. The register stores no filed DPP, so this is computed, not what DJP received. The e-Faktur export selects by transaction date and includes unnumbered rows; the export was not changed, and the report shows `exportDifference`.
+- A faktur on a DRAFT transaction is outside the DPP and appears as `FAKTUR_NO_REVENUE`. A faktur on a VOID transaction also appears, unless the invoice still has posted revenue, because voiding does not cancel it at DJP. It clears when the detail is deleted.
+- "Paid" includes part-paid: PPN is due on a down payment. `taxAmount = 0` invoices expect no faktur.
+- More than one faktur on an invoice is always listed, even when their DPP adds up to the invoice. There is no dismiss action, so a deliberate split stays listed.
+- `MISSING_BUPOT` also covers an unnumbered PPh 23 row on an invoice or revenue transaction, and a Kredit Pajak debit with no PPh 23 row. A DRAFT bupot counts as received. A bupot with no receipt link covers the oldest receipts.
+- PPN and PPh 23 reconciling lines appear only on an exact match of the unit's DPP minus revenue (`-PPN`, `+PPh 23`, or both). Otherwise `OTHER_DIFFERENCE`. Code `04` differences have their own line. Revenue is compared per invoice, or per transaction outside an invoice.
+- `Pendapatan tanpa faktur` includes non-taxable revenue such as interest: no account flag says which revenue carries PPN.
+- Exceptions on the web page run from the beginning up to the end of the selected masa, because they do not expire.
+- The invoice page refuses a second faktur; other paths can still create one and the report lists it.
+- Bupot from customers leaves `findEBupotUnifikasiByDateRange` when the transaction's source is `INVOICE`; the customer issues it. Legacy revenue-template rows without that source stay in the export (noted below).
+- Reads run in memory over rows per call; acceptable for a single-tenant volume.
+- Permissions: reads `TAX_REPORT_VIEW`; faktur `INVOICE_EDIT` + `TAX_EXPORT`; bupot adds `TRANSACTION_CREATE`. V010 grants scopes to device tokens holding `tax-export:read` / `transactions:post`; API clients get none.
+
+### Unverified regulatory values
+
+No rate is introduced. Faktur date as the masa basis and PPN due on a down payment follow UU PPN Pasal 13 from memory.
+
+### Cut
+
+- New columns are not in the export/import ZIP: `invoice_payments` and `id_invoice_payment` are not exported.
+- No web export of the report, no dashboard alert, no dismiss action, no filed-DPP entry.
+- No API for recording an invoice payment (no invoice API exists); `pph23Withheld` is web only.
+
+### Noted, not fixed
+
+- PPh 23 rows from legacy revenue templates (`Pendapatan Jasa + PPh 23`) are still in Bupot Unifikasi.
+- `TaxReportDetailService` and `TaxTransactionDetailService` hardcode account codes `2.1.03`, `1.1.25`, `1.1.26`.
+- `tax_filings.period_year` stops at 2100; tests with filings cannot use the reserved far-future years.
+- Duplicate faktur or bupot numbers are refused globally, including between two customers' bupots.
+- `invoiceService.cancel` leaves revenue drafts and posted revenue in place.
+
+### Deploy
+
+V010 runs on deploy. It fails if a template named `Pemotongan PPh 23 oleh Pelanggan` exists, if `1.1.26` holds another account while no account is named `Kredit Pajak PPh 23`, or if parent `1.1` is missing in that case.
+
+After deploy:
+1. Make sure the chart has exactly one account named `Kredit Pajak PPh 23`.
+2. Enter faktur on paid invoices listed under Dibayar tanpa faktur. Older invoices will list here, since no faktur link existed unless a tax detail was on their revenue transaction.
+3. Earlier payments have no withheld amount; correct by recording bupot where it exists.

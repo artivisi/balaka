@@ -46,6 +46,7 @@ Indonesian accounting application for small businesses. Spring Boot 4.0 + Thymel
 - **Tax Filing Register (issue #35):** ✅ Complete (`/api/tax-filings` CRUD + document attachments, `tax_filings`/`tax_documents` tables, scopes `tax-filings:read`/`tax-filings:write`, per-masa SPT/BPE/STP/SP2DK records with STP→teguran chains, filing status surfaced on `GET /api/analysis/tax-summary`)
 - **Deductibility + Benefit-in-Kind (issue #46):** ✅ Complete (`chart_of_accounts.fiscal_treatment`, reviewable `DRAFT` fiscal adjustments generated from flags, `benefit_in_kind` recipients feeding PPh 21 and 1721-A1, seed accounts 2.1.25, 2.1.40, 3.2.03, 5.8.01-04; see `docs/feature-requests-2026-11.md`)
 - **Withholding (issue #43):** ✅ Complete (payee data on `Vendor`, `/withholding` + `/api/withholding`, PPh 21 bukan pegawai per masa / PPh 23 / PPh 26 drafts, deposit tracking, BP21 export, service payments without PPh detail; read API `WithholdingQueryService`; PPh 23/26 rates unverified)
+- **Sales Tax Chain (issue #44):** ✅ Complete (invoice to faktur, receipt, bupot; exceptions; monthly revenue to SPT Masa PPN DPP reconciliation; `SalesTaxChainService`, `/sales-tax-chain`, `/api/sales-tax-chain`, V010)
 - **Test Suite Audit 2026-09:** 🔄 In progress (~80 classes rewritten to verify real behavior; web + API authorization hardening; V006/V007). Status, resume checklist, deploy checklist, release-notes draft and open decisions: `docs/test-suite-audit-2026-09.md`. Test rules + reserved test years: `docs/developer-guide/extending/05-testing.md`
 - See `docs/06-implementation-plan.md` for full plan
 
@@ -67,7 +68,7 @@ Indonesian accounting application for small businesses. Spring Boot 4.0 + Thymel
 | Controllers | `src/main/java/.../controller/` |
 | Templates | `src/main/resources/templates/` |
 | Migrations (Production) | `src/main/resources/db/migration/` (V001-V009) |
-| Test Migrations (Integration) | `src/test/resources/db/test/integration/` (V900-V914) |
+| Test Migrations (Integration) | `src/test/resources/db/test/integration/` (V900-V915) |
 | Industry Seed Packs | `industry-seed/{it-service,online-seller,coffee-shop,campus}/` (loaded via DataImportService) |
 | API Reference (developer) | `docs/developer-guide/api/*.md` |
 | Functional Tests | `src/test/java/.../functional/` |
@@ -167,7 +168,7 @@ failures indistinguishable from real ones; `run-tests.sh` flags it, and
 - **Migration caveat:** Modifying already-applied migrations requires manual schema fix on production + checksum update in `flyway_schema_history`. See `docs/03-operations-guide.md` Troubleshooting section.
 - Test data:
   - Functional tests: NO migrations - all data loaded via `@TestConfiguration` initializers from industry-seed/ packs
-  - Integration tests: V900-V914 (preloaded data for unit/service/security tests)
+  - Integration tests: V900-V915 (preloaded data for unit/service/security tests)
 - Industry seed packs: `industry-seed/{it-service,online-seller,coffee-shop}/seed-data/` (COA, templates, products, BOMs, etc.)
 
 ## Architecture

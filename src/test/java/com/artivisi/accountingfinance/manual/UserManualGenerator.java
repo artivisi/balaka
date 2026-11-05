@@ -128,6 +128,7 @@ public class UserManualGenerator {
                 new Section("transaksi-ppn", "Transaksi PPN", "04-perpajakan.md", List.of("reports-ppn-summary")),
                 new Section("transaksi-pph", "Transaksi PPh", "04-perpajakan.md", List.of("reports-pph23-withholding", "reports-tax-summary")),
                 new Section("pemotongan-pph", "Pemotongan PPh atas Pembayaran", "04-perpajakan.md", List.of()),
+                new Section("rantai-pajak-penjualan", "Rantai Pajak Penjualan", "04-perpajakan.md", List.of()),
                 new Section("periode-fiskal", "Periode Fiskal", "04-perpajakan.md", List.of("fiscal-periods-list")),
                 new Section("kalender-pajak", "Kalender Pajak", "04-perpajakan.md", List.of("tax-calendar", "tax-calendar-yearly")),
                 new Section("perpajakan-referensi-regulasi", "Referensi Regulasi", "04-perpajakan.md", List.of()),

@@ -84,4 +84,20 @@ public interface InvoiceRepository extends JpaRepository<Invoice, UUID> {
     BigDecimal sumInvoicesBeforeDate(
             @Param("clientId") UUID clientId,
             @Param("date") LocalDate date);
+
+    /** Issued, not cancelled invoices with their payments: what the sales tax chain checks for faktur and bupot. */
+    @Query("""
+            SELECT DISTINCT i FROM Invoice i JOIN FETCH i.client LEFT JOIN FETCH i.payments
+            WHERE i.status NOT IN (com.artivisi.accountingfinance.enums.InvoiceStatus.DRAFT,
+                                   com.artivisi.accountingfinance.enums.InvoiceStatus.CANCELLED)
+            ORDER BY i.invoiceDate ASC, i.invoiceNumber ASC""")
+    List<Invoice> findIssuedWithPayments();
+
+    @Query("""
+            SELECT new com.artivisi.accountingfinance.repository.InvoiceRepository$PaymentTransactionLink(i.transaction.id, i.id)
+            FROM Invoice i WHERE i.transaction IS NOT NULL""")
+    List<PaymentTransactionLink> findPaymentTransactionLinks();
+
+    /** invoices.id_transaction: the receipt transaction booked through the mark-paid screen. */
+    record PaymentTransactionLink(UUID transactionId, UUID invoiceId) {}
 }

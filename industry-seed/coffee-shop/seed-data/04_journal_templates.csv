@@ -27,3 +27,4 @@ Jurnal Penutup Tahun,TRANSFER,OPERATING,SIMPLE,"Template sistem untuk jurnal pen
 Penyelesaian Produksi,EXPENSE,OPERATING,DETAILED,Konversi bahan baku menjadi barang jadi per komponen,false,true,1,0,,Pengakuan konversi bahan baku menjadi barang jadi saat production order selesai. Debit persediaan barang jadi kredit persediaan bahan baku. Variabel componentCost,produksi|production|bom|bahan baku|barang jadi|finished goods,,0,1000000000,
 Pembayaran dengan Pemotongan PPh,PAYMENT,OPERATING,DETAILED,Pembayaran ke penerima dengan pemotongan PPh 21/23/26,false,true,1,0,,,,,,,
 Setor PPh Dipotong,PAYMENT,OPERATING,SIMPLE,Penyetoran PPh 21/23/26 hasil pemotongan ke kas negara,false,true,1,0,,,,,,,
+Pemotongan PPh 23 oleh Pelanggan,RECEIPT,OPERATING,SIMPLE,Kredit pajak atas PPh 23 yang dipotong pelanggan dari piutang invoice,false,true,1,0,,,,,,,

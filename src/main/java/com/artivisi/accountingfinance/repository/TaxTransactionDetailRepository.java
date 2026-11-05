@@ -74,6 +74,8 @@ public interface TaxTransactionDetailRepository extends JpaRepository<TaxTransac
             "WHERE t.taxType IN ('PPH_23', 'PPH_26', 'PPH_42') " +
             "AND trx.transactionDate BETWEEN :startDate AND :endDate " +
             "AND trx.status = 'POSTED' " +
+            // A bupot received from a customer on an invoice is issued by the customer, not by this company.
+            "AND (trx.sourceDocumentType IS NULL OR trx.sourceDocumentType <> 'INVOICE') " +
             "ORDER BY trx.transactionDate ASC, t.bupotNumber ASC")
     List<TaxTransactionDetail> findEBupotUnifikasiByDateRange(
             @Param("startDate") LocalDate startDate,
@@ -89,6 +91,12 @@ public interface TaxTransactionDetailRepository extends JpaRepository<TaxTransac
     List<TaxTransactionDetail> findPPh23ByDateRange(
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate);
+
+    /** Every status, including VOID; the sales tax chain reads a voided faktur as one without revenue. */
+    @Query("""
+            SELECT t FROM TaxTransactionDetail t JOIN FETCH t.transaction LEFT JOIN FETCH t.invoicePayment
+            WHERE t.taxType = :taxType""")
+    List<TaxTransactionDetail> findAllByTaxTypeWithTransaction(@Param("taxType") TaxType taxType);
 
     boolean existsByFakturNumber(String fakturNumber);
 

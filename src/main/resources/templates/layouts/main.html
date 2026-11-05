@@ -224,6 +224,9 @@
                             <a sec:authorize="hasAuthority('TAX_REPORT_VIEW')" id="nav-withholding" th:href="@{/withholding}"
                                th:classappend="${#strings.equals(currentPage, 'withholding')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
                                class="flex items-center px-3 py-2 rounded-lg transition-colors">Pemotongan PPh</a>
+                            <a sec:authorize="hasAuthority('TAX_REPORT_VIEW')" id="nav-sales-tax-chain" th:href="@{/sales-tax-chain}"
+                               th:classappend="${#strings.equals(currentPage, 'sales-tax-chain')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
+                               class="flex items-center px-3 py-2 rounded-lg transition-colors">Rantai Pajak Penjualan</a>
                         </div>
                     </details>
 
@@ -526,6 +529,8 @@
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Tagihan</a>
                             <a sec:authorize="hasAuthority('TAX_REPORT_VIEW')" th:href="@{/withholding}"
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Pemotongan PPh</a>
+                            <a sec:authorize="hasAuthority('TAX_REPORT_VIEW')" th:href="@{/sales-tax-chain}"
+                               class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Rantai Pajak Penjualan</a>
                         </div>
                     </details>
 

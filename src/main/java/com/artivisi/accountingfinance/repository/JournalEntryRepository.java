@@ -170,4 +170,33 @@ public interface JournalEntryRepository extends JpaRepository<JournalEntry, UUID
 
     @Query("SELECT j FROM JournalEntry j JOIN j.transaction t WHERE t.referenceNumber LIKE :pattern ORDER BY t.referenceNumber, t.id, j.lineOrder")
     List<JournalEntry> findByReferenceNumberLike(@Param("pattern") String pattern);
+
+    /** Net posted revenue per transaction, closing entries excluded. */
+    @Query("""
+            SELECT new com.artivisi.accountingfinance.repository.JournalEntryRepository$TransactionAmount(
+                t.id, t.transactionNumber, t.transactionDate, t.sourceDocumentType, t.sourceDocumentId,
+                SUM(COALESCE(j.creditAmount, 0) - COALESCE(j.debitAmount, 0)))
+            FROM JournalEntry j JOIN j.transaction t JOIN j.account a
+            WHERE a.accountType = com.artivisi.accountingfinance.enums.AccountType.REVENUE
+              AND t.status = com.artivisi.accountingfinance.enums.TransactionStatus.POSTED
+              AND t.closingEntry = false
+            GROUP BY t.id, t.transactionNumber, t.transactionDate, t.sourceDocumentType, t.sourceDocumentId""")
+    List<TransactionAmount> findPostedRevenueByTransaction();
+
+    /** Posted debits on an account, per transaction, where the transaction has no tax detail of the given type. */
+    @Query("""
+            SELECT new com.artivisi.accountingfinance.repository.JournalEntryRepository$TransactionAmount(
+                t.id, t.transactionNumber, t.transactionDate, t.sourceDocumentType, t.sourceDocumentId,
+                SUM(COALESCE(j.debitAmount, 0) - COALESCE(j.creditAmount, 0)))
+            FROM JournalEntry j JOIN j.transaction t
+            WHERE j.account.id = :accountId
+              AND t.status = com.artivisi.accountingfinance.enums.TransactionStatus.POSTED
+              AND NOT EXISTS (SELECT 1 FROM TaxTransactionDetail d WHERE d.transaction = t AND d.taxType = :taxType)
+            GROUP BY t.id, t.transactionNumber, t.transactionDate, t.sourceDocumentType, t.sourceDocumentId
+            HAVING SUM(COALESCE(j.debitAmount, 0) - COALESCE(j.creditAmount, 0)) > 0""")
+    List<TransactionAmount> findPostedDebitsWithoutTaxDetail(@Param("accountId") UUID accountId,
+                                                             @Param("taxType") com.artivisi.accountingfinance.enums.TaxType taxType);
+
+    record TransactionAmount(UUID transactionId, String transactionNumber, LocalDate transactionDate,
+                             String sourceDocumentType, UUID sourceDocumentId, BigDecimal amount) {}
 }
