@@ -1524,6 +1524,15 @@ public class DataImportService {
             if (benefitInKind != null && !benefitInKind.isBlank()) {
                 pd.setBenefitInKind(parseBigDecimal(benefitInKind));
             }
+            // Exports made before V011 have no bonus/THR, so their gross is the base salary
+            String baseSalary = getField(row, 15);
+            if (baseSalary != null && !baseSalary.isBlank()) {
+                pd.setBaseSalary(parseBigDecimal(baseSalary));
+                pd.setBonus(parseBigDecimal(getField(row, 16)));
+                pd.setThr(parseBigDecimal(getField(row, 17)));
+            } else {
+                pd.setBaseSalary(pd.getGrossSalary());
+            }
 
             payrollDetailRepository.save(pd);
         }

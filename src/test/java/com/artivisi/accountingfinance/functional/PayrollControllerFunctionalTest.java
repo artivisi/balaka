@@ -240,11 +240,11 @@ class PayrollControllerFunctionalTest extends PlaywrightTestBase {
 
             Locator cells = page.locator("[data-testid='detail-row-" + e.nik() + "'] td");
             assertThat(cells.nth(1)).hasText(e.name());
-            assertThat(cells.nth(2)).hasText("Rp 10,000,000");
-            assertThat(cells.nth(3)).hasText("Rp 400,000");
-            assertThat(cells.nth(4)).hasText(rupiah(e.pph21()));
-            assertThat(cells.nth(5)).hasText("(" + rupiah(e.deductions()) + ")");
-            assertThat(cells.nth(6)).hasText(rupiah(e.netPay()));
+            assertThat(cells.nth(5)).hasText("Rp 10,000,000");
+            assertThat(cells.nth(6)).hasText("Rp 400,000");
+            assertThat(cells.nth(7)).hasText(rupiah(e.pph21()));
+            assertThat(cells.nth(8)).hasText("(" + rupiah(e.deductions()) + ")");
+            assertThat(cells.nth(9)).hasText(rupiah(e.netPay()));
         }
 
         int n = details.size();
@@ -454,7 +454,7 @@ class PayrollControllerFunctionalTest extends PlaywrightTestBase {
         assertThat(run.getStatus()).isEqualTo(PayrollStatus.CALCULATED);
         assertThat(run.getTotalGross()).isEqualByComparingTo(new BigDecimal("12000000").multiply(BigDecimal.valueOf(employeeCount)));
         openDetail(id);
-        assertThat(page.locator("[data-testid='detail-row-EMP-002'] td").nth(6)).hasText("Rp 11,059,577");
+        assertThat(page.locator("[data-testid='detail-row-EMP-002'] td").nth(9)).hasText("Rp 11,059,577");
 
         payrollService.approvePayroll(id);
         APIResponse rejected = postAction(id, "recalculate",

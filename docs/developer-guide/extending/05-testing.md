@@ -148,6 +148,10 @@ Period-scoped data (transactions, payroll runs, fiscal periods, schedules) goes 
 | 2144-2152 (integration DB), 2098 (tax_filings stops at 2100) | SalesTaxChainServiceTest |
 | 2153 | SalesTaxChainApiTest |
 | 2154 | SalesTaxChainFunctionalTest |
+| 2155-2162 (integration DB) | PayrollBonusThrTest |
+| 2163-2171, 2009-01..03 (integration DB; 2009: the alert needs an ended period) | PayrollReconciliationServiceTest |
+| 2011, 2013 (past: the journal-entry API rejects future dates; payroll list sorts newest first, so later years push PayrollControllerFunctionalTest off page 1) | PayrollReconciliationApiTest |
+| 2014 (past, same reason) | PayrollBonusFunctionalTest |
 | 2031–2034 | PayrollControllerFunctionalTest, ServicePayrollComprehensiveTest |
 | 2040, 2042 | TaxFilingApiTest |
 | 2043 | ServiceReportsTest |

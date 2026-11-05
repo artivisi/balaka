@@ -83,6 +83,9 @@ Post Gaji Bulanan,3,5.1.03,,DEBIT,companyBpjsTk,Beban BPJS Ketenagakerjaan perus
 Post Gaji Bulanan,4,2.1.10,,CREDIT,netPay,Hutang gaji karyawan
 Post Gaji Bulanan,5,2.1.13,,CREDIT,totalBpjs,Hutang BPJS
 Post Gaji Bulanan,6,2.1.20,,CREDIT,pph21,Hutang PPh 21
+Post Gaji Bulanan,7,5.8.01,,DEBIT,bonus,Beban bonus karyawan
+Post Gaji Bulanan,8,5.8.02,,DEBIT,thr,Beban THR karyawan
+Post Gaji Bulanan,9,2.1.20,,DEBIT,pph21Overpaid,Kelebihan potong PPh 21 dikembalikan ke karyawan
 Bayar Hutang Gaji,1,2.1.10,,DEBIT,amount,Hutang gaji
 Bayar Hutang Gaji,2,,BANK,CREDIT,amount,Pembayaran dari bank
 Bayar Hutang BPJS,1,2.1.13,,DEBIT,amount,Hutang BPJS

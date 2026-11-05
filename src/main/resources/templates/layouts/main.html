@@ -285,6 +285,8 @@
                             <a sec:authorize="hasAuthority('PAYROLL_VIEW')" id="nav-payroll" th:href="@{/payroll}"
                                th:classappend="${#strings.equals(currentPage, 'payroll')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
                                class="flex items-center px-3 py-2 rounded-lg transition-colors">Penggajian</a>
+                            <a sec:authorize="hasAuthority('PAYROLL_VIEW')" id="nav-payroll-reconciliation" th:href="@{/payroll/reconciliation}"
+                               class="flex items-center px-3 py-2 rounded-lg transition-colors hover:bg-primary-600">Rekonsiliasi Gaji</a>
                             <a sec:authorize="hasAuthority('EMPLOYEE_SELF_SERVICE')" id="nav-employee-portal" th:href="@{/employee-portal}"
                                th:classappend="${#strings.equals(currentPage, 'employee-portal')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
                                class="flex items-center px-3 py-2 rounded-lg transition-colors">Portal Karyawan</a>
@@ -581,6 +583,8 @@
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Karyawan</a>
                             <a sec:authorize="hasAuthority('PAYROLL_VIEW')" th:href="@{/payroll}"
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Penggajian</a>
+                            <a sec:authorize="hasAuthority('PAYROLL_VIEW')" th:href="@{/payroll/reconciliation}"
+                               class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Rekonsiliasi Gaji</a>
                             <a sec:authorize="hasAuthority('EMPLOYEE_SELF_SERVICE')" th:href="@{/employee-portal}"
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Portal Karyawan</a>
                         </div>

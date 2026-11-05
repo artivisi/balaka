@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -21,6 +22,7 @@ public record DraftResponse(
         BigDecimal confidence,
         boolean needsClarification,
         String clarificationQuestion,
-        UUID transactionId
+        UUID transactionId,
+        List<String> warnings
 ) {
 }

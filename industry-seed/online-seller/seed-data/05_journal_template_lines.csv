@@ -84,6 +84,9 @@ Post Gaji Bulanan,2,5.4.02,,DEBIT,companyBpjs,Beban BPJS perusahaan
 Post Gaji Bulanan,3,2.1.10,,CREDIT,netPay,Hutang gaji karyawan
 Post Gaji Bulanan,4,2.1.13,,CREDIT,totalBpjs,Hutang BPJS
 Post Gaji Bulanan,5,2.1.20,,CREDIT,pph21,Hutang PPh 21
+Post Gaji Bulanan,6,5.8.01,,DEBIT,bonus,Beban bonus karyawan
+Post Gaji Bulanan,7,5.8.02,,DEBIT,thr,Beban THR karyawan
+Post Gaji Bulanan,8,2.1.20,,DEBIT,pph21Overpaid,Kelebihan potong PPh 21 dikembalikan ke karyawan
 Pembelian Aset Tetap,1,,ASET_TETAP,DEBIT,assetCost,Aset tetap yang dibeli
 Pembelian Aset Tetap,2,,BANK,CREDIT,assetCost,Pembayaran dari bank
 Jurnal Manual,1,,Akun Debit,DEBIT,amount,Akun yang didebit

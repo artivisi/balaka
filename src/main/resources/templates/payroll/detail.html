@@ -20,6 +20,11 @@
             <span th:text="${errorMessage}">Error message</span>
         </div>
 
+        <div th:if="${!salaryWarnings.isEmpty()}" data-testid="salary-warning"
+             class="bg-yellow-50 border border-yellow-300 text-yellow-900 px-4 py-3 rounded-lg text-sm space-y-1">
+            <p th:each="warning : ${salaryWarnings}" th:text="${warning}">Peringatan</p>
+        </div>
+
         <!-- Header with Actions -->
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
@@ -153,6 +158,9 @@
                         <tr>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">NIK</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama</th>
+                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Bonus</th>
+                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">THR</th>
+                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Natura</th>
                             <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Gaji Bruto</th>
                             <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">BPJS Karyawan</th>
                             <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">PPh 21</th>
@@ -165,6 +173,12 @@
                         <tr th:each="detail : ${details}" th:attr="data-testid=${'detail-row-' + detail.getEmployeeId()}">
                             <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900" th:text="${detail.getEmployeeId()}">EMP001</td>
                             <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900" th:text="${detail.getEmployeeName()}">John Doe</td>
+                            <td class="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-700" data-testid="detail-bonus"
+                                th:text="${'Rp ' + #numbers.formatDecimal(detail.bonus, 1, 'COMMA', 0, 'POINT')}">Rp 0</td>
+                            <td class="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-700" data-testid="detail-thr"
+                                th:text="${'Rp ' + #numbers.formatDecimal(detail.thr, 1, 'COMMA', 0, 'POINT')}">Rp 0</td>
+                            <td class="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-700" data-testid="detail-natura"
+                                th:text="${'Rp ' + #numbers.formatDecimal(detail.benefitInKind, 1, 'COMMA', 0, 'POINT')}">Rp 0</td>
                             <td class="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-900"
                                 th:text="${'Rp ' + #numbers.formatDecimal(detail.grossSalary, 0, 'COMMA', 0, 'POINT')}">Rp 10,000,000</td>
                             <td class="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-900"
@@ -189,6 +203,12 @@
                         <tr class="font-semibold">
                             <td colspan="2" class="px-4 py-4 text-sm text-gray-900">Total</td>
                             <td class="px-4 py-4 text-right text-sm text-gray-900"
+                                th:text="${'Rp ' + #numbers.formatDecimal(#aggregates.sum(details.![bonus]), 1, 'COMMA', 0, 'POINT')}">Rp 0</td>
+                            <td class="px-4 py-4 text-right text-sm text-gray-900"
+                                th:text="${'Rp ' + #numbers.formatDecimal(#aggregates.sum(details.![thr]), 1, 'COMMA', 0, 'POINT')}">Rp 0</td>
+                            <td class="px-4 py-4 text-right text-sm text-gray-900"
+                                th:text="${'Rp ' + #numbers.formatDecimal(#aggregates.sum(details.![benefitInKind]), 1, 'COMMA', 0, 'POINT')}">Rp 0</td>
+                            <td class="px-4 py-4 text-right text-sm text-gray-900"
                                 th:text="${'Rp ' + #numbers.formatDecimal(payrollRun.totalGross, 0, 'COMMA', 0, 'POINT')}">Rp 50,000,000</td>
                             <td class="px-4 py-4 text-right text-sm text-gray-900">-</td>
                             <td class="px-4 py-4 text-right text-sm text-gray-900"
@@ -202,6 +222,65 @@
                     </tfoot>
                 </table>
             </div>
+        </div>
+
+        <!-- Bonus and THR -->
+        <div class="bg-white rounded-lg shadow p-4 space-y-4" data-testid="additions-section">
+            <div>
+                <h3 class="text-sm font-semibold text-gray-900">Bonus dan THR</h3>
+                <p class="text-xs text-gray-500">Jumlah ini masuk ke dasar PPh 21 bulan ini dan tidak mengubah BPJS. Payroll berstatus Calculated dihitung ulang setiap kali baris berubah.</p>
+            </div>
+            <table th:if="${!additions.isEmpty()}" class="min-w-full divide-y divide-gray-200 text-sm" data-testid="additions-table">
+                <thead>
+                    <tr>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Karyawan</th>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Jenis</th>
+                        <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Jumlah</th>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Keterangan</th>
+                        <th class="px-3 py-2"></th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    <tr th:each="addition : ${additions}" data-testid="addition-row">
+                        <td class="px-3 py-2" th:text="${addition.employee.name}">Nama</td>
+                        <td class="px-3 py-2" th:text="${addition.additionType.displayName}">Bonus</td>
+                        <td class="px-3 py-2 text-right" th:text="${'Rp ' + #numbers.formatDecimal(addition.amount, 1, 'COMMA', 0, 'POINT')}">Rp 0</td>
+                        <td class="px-3 py-2" th:text="${addition.description}">Keterangan</td>
+                        <td class="px-3 py-2 text-right">
+                            <form sec:authorize="hasAuthority('PAYROLL_CREATE')" th:if="${payrollRun.canEdit()}"
+                                  th:action="@{/payroll/{id}/additions/{additionId}/delete(id=${payrollRun.id}, additionId=${addition.id})}" method="post">
+                                <button type="submit" class="text-red-600 hover:text-red-800 text-xs">Hapus</button>
+                            </form>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <form sec:authorize="hasAuthority('PAYROLL_CREATE')" th:if="${payrollRun.canEdit()}"
+                  th:action="@{/payroll/{id}/additions(id=${payrollRun.id})}" method="post"
+                  class="grid grid-cols-1 md:grid-cols-5 gap-3 items-end" data-testid="addition-form">
+                <div>
+                    <label for="addition-employee" class="block text-xs font-medium text-gray-700 mb-1">Karyawan</label>
+                    <select id="addition-employee" name="employeeId" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                        <option th:each="employee : ${additionEmployees}" th:value="${employee.id}"
+                                th:text="${employee.employeeId + ' - ' + employee.name}">EMP001 - Nama</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="addition-type" class="block text-xs font-medium text-gray-700 mb-1">Jenis</label>
+                    <select id="addition-type" name="additionType" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                        <option th:each="type : ${additionTypes}" th:value="${type.name()}" th:text="${type.displayName}">Bonus</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="addition-amount" class="block text-xs font-medium text-gray-700 mb-1">Jumlah</label>
+                    <input id="addition-amount" type="number" name="amount" min="1" step="1" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                </div>
+                <div>
+                    <label for="addition-description" class="block text-xs font-medium text-gray-700 mb-1">Keterangan</label>
+                    <input id="addition-description" type="text" name="description" maxlength="255" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                </div>
+                <button type="submit" id="btn-add-addition" class="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm hover:bg-primary-700">Tambah</button>
+            </form>
         </div>
 
         <!-- Transaction Reference (if posted) -->
@@ -228,7 +307,8 @@
             <ul class="text-xs text-gray-600 space-y-1">
                 <li><strong>BPJS Karyawan:</strong> JHT (2%) + JP (1%) + Kesehatan (1%)</li>
                 <li><strong>BPJS Perusahaan:</strong> JHT (3.7%) + JP (2%) + JKK + JKM (0.3%) + Kesehatan (4%)</li>
-                <li><strong>PPh 21:</strong> Dihitung berdasarkan tarif progresif dan status PTKP masing-masing karyawan</li>
+                <li><strong>PPh 21:</strong> Januari sampai November menggunakan TER (PMK 168/2023) atas gaji, bonus, THR dan natura bulan itu. Desember menggunakan tarif progresif tahunan dikurangi potongan Januari sampai November; nilai negatif berarti kelebihan potong dikembalikan ke karyawan.</li>
+                <li><strong>Natura:</strong> Hanya masuk dasar PPh 21. Nilainya tidak dibayar tunai dan bebannya sudah dicatat oleh transaksinya sendiri.</li>
             </ul>
         </div>
     </section>

@@ -35,9 +35,16 @@ public class PayrollDetail extends TimestampedEntity {
     @Column(name = "base_salary", nullable = false, precision = 19, scale = 2)
     private BigDecimal baseSalary = BigDecimal.ZERO;
 
-    // Gross salary (base + allowances)
+    // Cash gross: base salary + bonus + THR
     @Column(name = "gross_salary", nullable = false, precision = 19, scale = 2)
     private BigDecimal grossSalary = BigDecimal.ZERO;
+
+    // Bonus and THR of this run: cash income on top of the base salary. BPJS stays on the base salary.
+    @Column(name = "bonus", nullable = false, precision = 19, scale = 2)
+    private BigDecimal bonus = BigDecimal.ZERO;
+
+    @Column(name = "thr", nullable = false, precision = 19, scale = 2)
+    private BigDecimal thr = BigDecimal.ZERO;
 
     // Benefit-in-kind counted in this run: PPh 21 base only, never paid out in cash
     @Column(name = "benefit_in_kind", nullable = false, precision = 19, scale = 2)
@@ -96,6 +103,13 @@ public class PayrollDetail extends TimestampedEntity {
      */
     public BigDecimal getTaxableGross() {
         return grossSalary.add(benefitInKind);
+    }
+
+    /**
+     * Regular salary inside the cash gross, excluding bonus and THR.
+     */
+    public BigDecimal getSalaryPortion() {
+        return grossSalary.subtract(bonus).subtract(thr);
     }
 
     /**

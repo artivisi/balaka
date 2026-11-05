@@ -404,6 +404,12 @@ class WriteEndpointAuthorizationTest extends PlaywrightTestBase {
         c.add(post(payroll + "/recalculate", form("baseSalary", "20000000"), any(Permission.PAYROLL_CREATE),
                 payrollState));
         c.add(post(payroll + "/delete", form(), any(Permission.PAYROLL_CREATE), payrollState));
+        Supplier<String> additionState = () -> payrollState.get()
+                + "|additions=" + payrollService.getAdditions(f.payrollRun.getId()).size();
+        c.add(post(payroll + "/additions", form("employeeId", UUID.randomUUID().toString(), "additionType", "BONUS",
+                "amount", "1000000"), any(Permission.PAYROLL_CREATE), additionState));
+        c.add(post(payroll + "/additions/" + UUID.randomUUID() + "/delete", form(), any(Permission.PAYROLL_CREATE),
+                additionState));
 
         String schedule = "/amortization/" + f.schedule.getId();
         Supplier<String> scheduleState = () -> amortizationScheduleRepository.findById(f.schedule.getId())

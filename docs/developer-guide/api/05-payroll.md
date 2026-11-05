@@ -87,6 +87,24 @@ GET /api/payroll/{id}
 
 Returns the payroll run with all employee payroll details (gross salary, deductions, PPh 21, net salary per employee).
 
+## Bonus and THR
+
+```
+GET    /api/payroll/{id}/additions
+POST   /api/payroll/{id}/additions
+DELETE /api/payroll/{id}/additions/{additionId}
+```
+
+Writes need scope `payroll:write` and `PAYROLL_CREATE`; reads need `tax-export:read` and `PAYROLL_VIEW`.
+
+```json
+{ "employeeId": "uuid", "type": "BONUS", "amount": 5000000, "description": "Kinerja" }
+```
+
+`type` is `BONUS` or `THR`. The run must be DRAFT or CALCULATED (otherwise `409`); a CALCULATED run is recalculated at once with its base salary and JKK class. The employee must be active (otherwise `400`). A calculation fails with `409` if a row belongs to an employee who has since become inactive.
+
+On the detail: `grossSalary = baseSalary + bonus + thr`. The TER rate and base use `grossSalary + benefitInKind`; BPJS uses `baseSalary`. December `pph21` is negative when the year was over-withheld, and adds to `netPay`.
+
 ## Calculate Payroll
 
 ```http
@@ -135,6 +153,33 @@ DELETE /api/payroll/{id}
 ```
 
 Only `DRAFT` payroll runs can be deleted. Response: `204 No Content`.
+
+## Reconciliation
+
+```
+GET /api/payroll/reconciliation?year=2026
+GET /api/payroll/reconciliation/2026-03
+```
+
+Scope `tax-export:read` and `PAYROLL_VIEW`. Salary accounts are the debit lines of the payroll template with formula `grossSalary`, `bonus` or `thr`. Ledger figures are net debits from POSTED journals, closing entries excluded.
+
+| Field | Meaning |
+|-------|---------|
+| `runId`, `runStatus` | Run of the period, `null` when none or cancelled |
+| `runSalary`, `runBonus`, `runThr` | Parts of `runCashGross` |
+| `runBenefitInKind` | Natura counted in the run; not on salary accounts |
+| `runTaxableIncome`, `runPph21` | PPh 21 base and tax of the masa, posted or not; see `runStatus` |
+| `ledgerSalaryExpense` | `ledgerFromRun` + `ledgerOutsideRun` |
+| `ledgerPph21FromRun` | Net credit on the PPh 21 account from the run's journal |
+| `difference` | `ledgerSalaryExpense - runCashGross` when POSTED, else `ledgerSalaryExpense` |
+| `status` | `MATCHED`, `DIFFERENCE`, `RUN_NOT_POSTED`, `LEDGER_WITHOUT_RUN`, `NO_ACTIVITY` |
+| `journalsOutsideRun` | Journals outside the run debiting a salary account, including DRAFT |
+
+The year response has `periods` (12 rows) and `ledgerSalaryExpense`, `postedCashGross`, `postedTaxableIncome`, `postedPph21`, `difference`.
+
+Java callers use `PayrollReconciliationService.reconcile(YearMonth)` and `reconcileYear(int)`.
+
+`warnings` on `POST /api/payroll`, `/calculate`, `/approve`, `/post` and `GET /api/payroll/{id}` lists salary journals outside the run. The field is absent on list rows.
 
 ## 1721-A1 (Employee Tax Proof)
 

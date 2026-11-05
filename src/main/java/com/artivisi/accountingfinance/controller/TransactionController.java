@@ -88,6 +88,7 @@ public class TransactionController {
     private final TaxTransactionDetailService taxTransactionDetailService;
     private final TemplateExecutionEngine templateExecutionEngine;
     private final TransactionApiService transactionApiService;
+    private final com.artivisi.accountingfinance.service.PayrollReconciliationService payrollReconciliationService;
     private final com.artivisi.accountingfinance.service.DashboardService dashboardService;
 
     @GetMapping
@@ -222,6 +223,7 @@ public class TransactionController {
                 .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
         model.addAttribute("totalDebit", totalDebit);
         model.addAttribute("totalCredit", totalCredit);
+        model.addAttribute("salaryWarnings", payrollReconciliationService.warningsForTransaction(id));
 
         // Rendered only for PAYROLL_VIEW holders: recipient and value are personal income data
         var authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -283,9 +285,14 @@ public class TransactionController {
 
     @PostMapping("/{id}/post")
     @PreAuthorize("hasAuthority('" + Permission.TRANSACTION_POST + "')")
-    public String htmxPost(@PathVariable UUID id, Authentication authentication, Model model) {
+    public String htmxPost(@PathVariable UUID id, Authentication authentication, Model model,
+                           jakarta.servlet.http.HttpServletResponse response) {
         String username = authentication != null ? authentication.getName() : USER_SYSTEM;
         Transaction posted = transactionService.post(id, username);
+        // A swapped table row has no room for the warning; the detail page shows it
+        if (!payrollReconciliationService.warningsForTransaction(id).isEmpty()) {
+            response.setHeader("HX-Redirect", "/transactions/" + id);
+        }
         model.addAttribute("trx", posted);
         return "fragments/transaction-table :: row";
     }

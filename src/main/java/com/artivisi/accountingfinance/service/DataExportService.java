@@ -773,7 +773,7 @@ public class DataExportService {
         StringBuilder csv = new StringBuilder();
         csv.append("payroll_period,employee_id,gross_salary,total_deductions,net_pay,");
         csv.append("bpjs_kes_employee,bpjs_kes_company,bpjs_jht_employee,bpjs_jht_company,");
-        csv.append("bpjs_jp_employee,bpjs_jp_company,bpjs_jkk,bpjs_jkm,pph21,benefit_in_kind\n");
+        csv.append("bpjs_jp_employee,bpjs_jp_company,bpjs_jkk,bpjs_jkm,pph21,benefit_in_kind,base_salary,bonus,thr\n");
 
         List<PayrollRun> payrollRuns = payrollRunRepository.findAll(Sort.by("payrollPeriod"));
         for (PayrollRun pr : payrollRuns) {
@@ -793,7 +793,10 @@ public class DataExportService {
                 csv.append(pd.getBpjsJkk()).append(",");
                 csv.append(pd.getBpjsJkm()).append(",");
                 csv.append(pd.getPph21()).append(",");
-                csv.append(pd.getBenefitInKind()).append("\n");
+                csv.append(pd.getBenefitInKind()).append(",");
+                csv.append(pd.getBaseSalary()).append(",");
+                csv.append(pd.getBonus()).append(",");
+                csv.append(pd.getThr()).append("\n");
             }
         }
         return csv.toString();

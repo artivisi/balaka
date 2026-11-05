@@ -3,6 +3,8 @@ package com.artivisi.accountingfinance.service;
 import com.artivisi.accountingfinance.entity.AlertEvent;
 import com.artivisi.accountingfinance.entity.AlertRule;
 import com.artivisi.accountingfinance.entity.Invoice;
+import com.artivisi.accountingfinance.entity.PayrollRun;
+import com.artivisi.accountingfinance.entity.PayrollStatus;
 import com.artivisi.accountingfinance.entity.Project;
 import com.artivisi.accountingfinance.enums.AlertSeverity;
 import com.artivisi.accountingfinance.enums.AlertType;
@@ -11,6 +13,7 @@ import com.artivisi.accountingfinance.enums.ProjectStatus;
 import com.artivisi.accountingfinance.repository.AlertEventRepository;
 import com.artivisi.accountingfinance.repository.AlertRuleRepository;
 import com.artivisi.accountingfinance.repository.InvoiceRepository;
+import com.artivisi.accountingfinance.repository.PayrollRunRepository;
 import com.artivisi.accountingfinance.repository.ProjectRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -42,6 +45,7 @@ public class AlertService {
     private final InvoiceRepository invoiceRepository;
     private final ProjectProfitabilityService projectProfitabilityService;
     private final ProjectRepository projectRepository;
+    private final PayrollRunRepository payrollRunRepository;
 
     // --- CRUD ---
 
@@ -123,6 +127,7 @@ public class AlertService {
             case PROJECT_MARGIN_DROP -> evaluateProjectMarginDrop(rule);
             case COLLECTION_SLOWDOWN -> evaluateCollectionSlowdown(rule);
             case CLIENT_CONCENTRATION -> evaluateClientConcentration(rule);
+            case PAYROLL_UNPOSTED -> evaluatePayrollUnposted(rule);
         };
     }
 
@@ -303,6 +308,24 @@ public class AlertService {
             return event;
         }
         return null;
+    }
+
+    /** Threshold: days after the period end. Until posted, PPh 21 and 1721-A1 do not see the run. */
+    private AlertEvent evaluatePayrollUnposted(AlertRule rule) {
+        LocalDate cutoff = LocalDate.now().minusDays(rule.getThreshold().longValue());
+        List<String> periods = payrollRunRepository
+                .findByStatusAndPeriodEndBeforeOrderByPayrollPeriod(PayrollStatus.APPROVED, cutoff).stream()
+                .map(PayrollRun::getPayrollPeriod)
+                .toList();
+        if (periods.isEmpty()) {
+            return null;
+        }
+        AlertEvent event = new AlertEvent();
+        event.setAlertRule(rule);
+        event.setSeverity(AlertSeverity.WARNING);
+        event.setMessage(String.format("Payroll sudah disetujui tetapi belum diposting untuk periode: %s",
+                String.join(", ", periods)));
+        return event;
     }
 
     private AlertEvent evaluateClientConcentration(AlertRule rule) {

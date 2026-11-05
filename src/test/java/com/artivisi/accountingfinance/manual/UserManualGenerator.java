@@ -147,6 +147,7 @@ public class UserManualGenerator {
                 new Section("pph21-karyawan", "PPh 21 Karyawan", "05-penggajian.md", List.of("pph21-calculator")),
                 new Section("kapan-menggunakan-payroll", "Kapan Menggunakan Fitur Payroll?", "05-penggajian.md", List.of()),
                 new Section("proses-penggajian", "Proses Penggajian", "05-penggajian.md", List.of("payroll-list", "payroll-form", "payroll-detail")),
+                new Section("bonus-thr-rekonsiliasi", "Bonus, THR, dan Rekonsiliasi Gaji", "05-penggajian.md", List.of()),
                 new Section("pembayaran-kewajiban", "Pembayaran Kewajiban Payroll", "05-penggajian.md", List.of("payroll-lifecycle-bayar-gaji-form", "payroll-lifecycle-bayar-bpjs-form", "payroll-lifecycle-setor-pph21-form")),
                 new Section("layanan-mandiri", "Layanan Mandiri Karyawan", "05-penggajian.md", List.of("self-service-payslips", "self-service-bukti-potong", "self-service-profile")),
                 new Section("bukti-potong-pph21", "Bukti Potong PPh 21", "05-penggajian.md", List.of()),

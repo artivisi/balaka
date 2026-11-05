@@ -99,8 +99,8 @@ Sejak 2024, PPh 21 menggunakan metode TER (PMK 168/2023):
 
 | Karyawan | PTKP | Kategori | TER Rate | PPh 21/bulan |
 |----------|------|----------|----------|-------------|
-| Ahmad (K/2) | 67.500.000 | B | ~4,5% | ~675.000 |
-| Sari (TK/0) | 54.000.000 | A | ~5% | ~750.000 |
+| Ahmad (K/2) | 67.500.000 | B | 6% | 900.000 |
+| Sari (TK/0) | 54.000.000 | A | 6% | 900.000 |
 
 ### Desember: Rekonsiliasi
 

@@ -181,3 +181,62 @@ After deploy:
 1. Make sure the chart has exactly one account named `Kredit Pajak PPh 23`.
 2. Enter faktur on paid invoices listed under Dibayar tanpa faktur. Older invoices will list here, since no faktur link existed unless a tax detail was on their revenue transaction.
 3. Earlier payments have no withheld amount; correct by recording bupot where it exists.
+
+## Issue #47: Single source of salary cost and complete 1721-A1
+
+### Built
+
+- `payroll_additions` rows (run, employee, `BONUS`/`THR`, amount) with a section on the run page and `/api/payroll/{id}/additions`. `PayrollDetail.bonus`, `.thr`; `grossSalary` is now cash gross: base + bonus + THR. They enter the TER base and December reconciliation through the existing `getTaxableGross`, next to #46 natura.
+- Run journal: `Post Gaji Bulanan` gets lines `bonus` on 5.8.01, `thr` on 5.8.02, `pph21Overpaid` as a debit on the PPh 21 account. The `grossSalary` formula variable now excludes bonus and THR. 1721-A1 PDF has row 8c; the API has `gajiDanTunjangan`, `bonusDanThr`, `natura` and monthly bonus/THR/natura. The payslip shows them.
+- `PayrollReconciliationService`: `warningsForTransaction`, `warningsForRun`, `reconcile(YearMonth)`, `reconcileYear(int)`. Page `/payroll/reconciliation`, `GET /api/payroll/reconciliation?year=` and `/{period}`. #45 and #51 read `runTaxableIncome`, `runPph21` and `ledgerSalaryExpense` per masa.
+- Warnings: banner on transaction detail and run detail; `warnings` on transaction, draft, bulk-post and payroll API responses. Posting from the transaction list redirects to the detail page when there is a warning. `DocumentPostingService` drafts show it on their detail page and post response.
+- Alert `PAYROLL_UNPOSTED`.
+
+### Schema (V011)
+
+`payroll_details.bonus`, `.thr`; table `payroll_additions`; three lines and a description suffix on the current `Post Gaji Bulanan`; alert rule `PAYROLL_UNPOSTED` (threshold 0). Test data: integration V916 adds the lines to the V800 template.
+
+### Fixed along the way
+
+- `TerCategory` rate columns were wrong in all three categories (separate commit). Checked page by page against the lampiran of PP 58/2023 on pajak.go.id. Bracket bounds were right; the rates had steps the regulation does not have (A: 4.5%, 5.5%; B: 3.5%, 4.5%, 5.5%; C: 2.25%, 2.5%, 3.5%, 4.5%, 5.5%) and lacked 33%, so rates above the first wrong row were too low. Rp 15,000,000 in category A was 5%, is 6%. Annual tax was already right through December reconciliation; Jan-Nov withholding was understated. Posted runs do not change. This overrides the "do not fix unrelated" rule because bonus and THR land in exactly these brackets and the exact-arithmetic tests would otherwise assert wrong rates. Revert the one commit if the owner disagrees; `PayrollBonusThrTest` and the API and UI tests then need the old rates.
+- BPJS report columns print the base salary, the wage BPJS is computed from, instead of gross.
+- Data export gains `base_salary`, `bonus`, `thr` on payroll details. Import previously left `base_salary` at zero; a pre-V011 export now restores it from gross.
+
+### Decisions made on the owner's behalf
+
+- Warn on period, not employee: journal lines have no employee. An employee named in the description or notes is named in the warning. Warnings never block.
+- Salary accounts are derived from the payroll template (debit lines with `grossSalary`, `bonus`, `thr`), so no new configuration and no per-pack code list. Company BPJS lines are excluded. An account outside the template, such as a separate contractor wage account, is not detected. Only debits warn; a credit is a correction.
+- A run in any status except CANCELLED counts as existing, including DRAFT.
+- The match is on transaction date: a January salary booked by manual journal dated February warns on the February run, not January.
+- If a run exists and the template is missing or has no salary line, the warning check throws, which blocks that journal. Without a run the template is not read.
+- Rows are per run, not salary components: the run still calculates from one base salary for all employees. Adding to a CALCULATED run recalculates at once, so approval never sees stale figures. APPROVED rejects changes.
+- A row for an employee who later became inactive stops the calculation rather than dropping income from 1721-A1.
+- BPJS stays on the base salary.
+- `pph21Overpaid`: an over-withheld December is a negative PPh 21 and adds to net pay. Journal lines cannot be negative, so a net refund in a run posts as a debit on the liability. A refund nets against other employees in the same run. Before this, such a posting failed on validation. Large bonuses make it reachable.
+- Alert threshold is days after the period end, seed 0: there is no `approved_at`, and an approved run before month end is normal. All overdue periods go in one event, per the existing per-rule dedup.
+- `difference` on an unposted run is the whole ledger amount, since the run has put nothing in the ledger. Comparing with the unposted total would show zero in the exact case the issue describes.
+- No new scopes, same as #46: reads `tax-export:read`/`PAYROLL_VIEW`, writes `payroll:write`/`PAYROLL_CREATE`.
+
+### Unverified regulatory values
+
+No new rate. TER rates are verified against the lampiran. From memory: bonus and THR as income of the month paid under PMK 168/2023; BPJS wage excluding bonus and THR (PP 44/2015, Perpres 82/2018).
+
+### Cut
+
+- `payroll_additions`, like `benefit_in_kind`, is not in the data export ZIP. After a restore the counted totals stay, but recalculating a restored unposted run drops the bonus.
+- No warning while typing on the transaction form (it appears after saving, on the detail page). No warning surfaces for recurring auto-posting or reconciliation-created journals, where no person is posting; those show on the run and reconciliation pages.
+- Scheduled runs with auto-approve cannot take a bonus; the manual says to turn auto-approve off for those months.
+
+### Noted, not fixed
+
+- A cancelled run blocks a new run for the same period: `createPayrollRun` checks `existsByPayrollPeriod` regardless of status. A wrong approved run cannot be redone, which raises the cost of the APPROVED restriction.
+- PPh 21 neto differs across three places. December reconciliation and the 1721-A1 API do not deduct employee JHT/JP. The 1721-A1 PDF deducts all employee BPJS, including Kesehatan, so its row 14 PKP does not produce its row 15 tax. None adds company-paid premiums to bruto. In `PayrollBonusThrTest.buktiPotongTotals`: API-method PKP 77,000,000, PDF row 14 72,200,000, tax 5,550,000 on both.
+- `calculateTer` and the reconciliation default a null PTKP status to TK/0.
+- 1721-A1 PDF prints a placeholder NPWP and company address.
+
+### Deploy
+
+V011 runs on deploy. It fails if a current `Post Gaji Bulanan` exists and 5.8.01/5.8.02 are missing (V008 creates them), or if its `pph21` credit line has no fixed account; fix the template first.
+
+The TER fix changes monthly PPh 21 from the next calculation for income above the first wrong row (category A above Rp 12,500,000). Calculated, unposted runs keep the old figures until recalculated: recalculate them after deploy.
+

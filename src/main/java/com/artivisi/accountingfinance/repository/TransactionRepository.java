@@ -130,4 +130,12 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
     List<String> findPostedNumbersWithTagWithoutBenefit(@Param("tagCode") String tagCode,
                                                         @Param("start") LocalDate start,
                                                         @Param("end") LocalDate end);
+
+    @Query("SELECT DISTINCT t FROM Transaction t JOIN t.journalEntries j WHERE t.status = 'POSTED' "
+            + "AND t.transactionDate BETWEEN :start AND :end AND j.account.id IN :accountIds AND j.debitAmount > 0")
+    List<Transaction> findPostedDebitingAccounts(@Param("accountIds") java.util.Collection<UUID> accountIds,
+                                                 @Param("start") LocalDate start,
+                                                 @Param("end") LocalDate end);
+
+    List<Transaction> findByStatusAndTransactionDateBetween(TransactionStatus status, LocalDate start, LocalDate end);
 }

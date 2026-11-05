@@ -149,6 +149,7 @@ class ApiAuthorizationTest extends PlaywrightTestBase {
         String token = deviceFlowToken(createUser(Role.AUDITOR));
         for (String path : List.of(
                 "/api/employees", "/api/salary-components", "/api/payroll",
+                "/api/payroll/reconciliation?year=2041", "/api/payroll/reconciliation/2041-01",
                 "/api/fiscal-adjustments?year=" + ADJUSTMENT_YEAR, "/api/templates",
                 "/api/bank-reconciliation/parser-configs", "/api/drafts/templates", "/api/drafts/accounts",
                 "/api/accounts", "/api/fixed-assets", "/api/tax-filings", "/api/bills", "/api/analysis/reports",
@@ -445,6 +446,9 @@ class ApiAuthorizationTest extends PlaywrightTestBase {
         c.add(new WriteCase("POST", "/api/payroll" + r + "/approve", none(), all(Permission.PAYROLL_APPROVE)));
         c.add(new WriteCase("POST", "/api/payroll" + r + "/post", none(), all(Permission.PAYROLL_POST)));
         c.add(new WriteCase("DELETE", "/api/payroll" + r, none(), all(Permission.PAYROLL_CREATE)));
+        c.add(new WriteCase("POST", "/api/payroll" + r + "/additions",
+                data(Map.of("employeeId", id, "type", "BONUS", "amount", 1000000)), all(Permission.PAYROLL_CREATE)));
+        c.add(new WriteCase("DELETE", "/api/payroll" + r + "/additions" + r2, none(), all(Permission.PAYROLL_CREATE)));
         c.add(new WriteCase("POST", "/api/payroll/schedule", data(Map.of("dayOfMonth", 25, "baseSalary", 5000000,
                 "jkkRiskClass", 1, "autoCalculate", true)), all(Permission.PAYROLL_CREATE, Permission.PAYROLL_APPROVE)));
         c.add(new WriteCase("DELETE", "/api/payroll/schedule", none(),
