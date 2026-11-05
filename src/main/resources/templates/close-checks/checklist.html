@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="id">
+<body>
+<!-- Close checklist (issue #50). Parameter: CloseCheckService.CloseChecklist -->
+<div th:fragment="checklist(checklist)" class="bg-white rounded-lg shadow p-6" data-testid="close-checklist">
+    <div class="flex items-start justify-between mb-4">
+        <div>
+            <h3 class="text-lg font-medium text-gray-900">Daftar Periksa Tutup Buku</h3>
+            <p class="text-sm text-gray-500"
+               th:text="|Periode ${#temporals.format(checklist.from, 'dd/MM/yyyy')} s.d. ${#temporals.format(checklist.to, 'dd/MM/yyyy')}|">Periode</p>
+        </div>
+        <span data-testid="close-checklist-summary"
+              th:class="'px-3 py-1 text-sm font-medium rounded-full ' + (${checklist.warningCount() == 0} ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800')"
+              th:text="${checklist.warningCount() == 0} ? 'Tidak ada temuan' : |${checklist.warningCount()} pemeriksaan perlu ditindaklanjuti|">Ringkasan</span>
+    </div>
+    <ul class="divide-y divide-gray-100">
+        <li th:each="check : ${checklist.checks}" class="py-3" th:attr="data-testid=|close-check-${check.code.name()}|">
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <p class="text-sm font-medium text-gray-900" th:text="${check.title}">Judul</p>
+                    <p th:if="${check.message}" class="text-xs text-gray-500" data-testid="close-check-message" th:text="${check.message}">Pesan</p>
+                </div>
+                <span data-testid="close-check-status"
+                      th:class="'shrink-0 px-2 py-0.5 text-xs font-medium rounded ' +
+                        (${check.status.name() == 'PASS'} ? 'bg-green-100 text-green-800' :
+                        (${check.status.name() == 'WARNING'} ? 'bg-yellow-100 text-yellow-800' :
+                        (${check.status.name() == 'ERROR'} ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-700')))"
+                      th:text="${check.status.name() == 'PASS'} ? 'Lolos' : (${check.status.name() == 'WARNING'} ? 'Ada temuan' : (${check.status.name() == 'ERROR'} ? 'Belum dikonfigurasi' : 'Tidak berlaku'))">Status</span>
+            </div>
+            <table th:if="${!check.findings.isEmpty()}" class="mt-2 w-full text-xs">
+                <thead>
+                <tr class="text-left text-gray-500">
+                    <th class="py-1 pr-2 font-medium">Referensi</th>
+                    <th class="py-1 pr-2 font-medium">Tanggal</th>
+                    <th class="py-1 pr-2 font-medium">Keterangan</th>
+                    <th class="py-1 text-right font-medium">Jumlah</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="f : ${check.findings}" data-testid="close-check-finding" class="border-t border-gray-100">
+                    <td class="py-1 pr-2 font-mono" data-testid="finding-reference">
+                        <a th:if="${f.transactionId}" th:href="@{/transactions/{id}(id=${f.transactionId})}"
+                           class="text-primary-600 hover:underline" th:text="${f.reference}">REF</a>
+                        <span th:unless="${f.transactionId}" th:text="${f.reference}">REF</span>
+                    </td>
+                    <td class="py-1 pr-2" th:text="${f.date != null} ? ${#temporals.format(f.date, 'dd/MM/yyyy')} : '-'">01/01/2025</td>
+                    <td class="py-1 pr-2" data-testid="finding-description" th:text="${f.description}">Keterangan</td>
+                    <td class="py-1 text-right font-mono" data-testid="finding-amount"
+                        th:text="${f.amount != null} ? ${#numbers.formatDecimal(f.amount, 0, 'COMMA', 0, 'POINT')} : '-'">0</td>
+                </tr>
+                </tbody>
+            </table>
+        </li>
+    </ul>
+</div>
+</body>
+</html>

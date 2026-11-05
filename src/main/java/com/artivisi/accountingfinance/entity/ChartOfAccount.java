@@ -1,6 +1,7 @@
 package com.artivisi.accountingfinance.entity;
 
 import com.artivisi.accountingfinance.enums.AccountType;
+import com.artivisi.accountingfinance.enums.CloseCheckRole;
 import com.artivisi.accountingfinance.enums.FiscalTreatment;
 import com.artivisi.accountingfinance.enums.NormalBalance;
 import jakarta.persistence.Column;
@@ -86,4 +87,9 @@ public class ChartOfAccount extends BaseEntity {
     /** TRUE: a payment on this account normally needs withholding. Null = not classified. */
     @Column(name = "service_expense")
     private Boolean serviceExpense;
+
+    /** Role in the period close checks. Only on non-header accounts of the types the role allows. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "close_check_role", length = 30)
+    private CloseCheckRole closeCheckRole;
 }

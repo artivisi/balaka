@@ -2,6 +2,7 @@ package com.artivisi.accountingfinance.controller.api;
 
 import com.artivisi.accountingfinance.entity.ChartOfAccount;
 import com.artivisi.accountingfinance.enums.AccountType;
+import com.artivisi.accountingfinance.enums.CloseCheckRole;
 import com.artivisi.accountingfinance.enums.FiscalTreatment;
 import com.artivisi.accountingfinance.enums.NormalBalance;
 import com.artivisi.accountingfinance.security.LogSanitizer;
@@ -133,6 +134,7 @@ public class ChartOfAccountApiController {
         entity.setDescription(request.description());
         entity.setFiscalTreatment(request.fiscalTreatment());
         entity.setServiceExpense(request.serviceExpense());
+        entity.setCloseCheckRole(request.closeCheckRole());
 
         if (request.parentId() != null) {
             ChartOfAccount parent = chartOfAccountService.findById(request.parentId());
@@ -166,7 +168,9 @@ public class ChartOfAccountApiController {
 
             FiscalTreatment fiscalTreatment,
 
-            Boolean serviceExpense
+            Boolean serviceExpense,
+
+            CloseCheckRole closeCheckRole
     ) {}
 
     public record AccountResponse(
@@ -183,7 +187,8 @@ public class ChartOfAccountApiController {
             boolean active,
             String description,
             FiscalTreatment fiscalTreatment,
-            Boolean serviceExpense
+            Boolean serviceExpense,
+            CloseCheckRole closeCheckRole
     ) {
         public static AccountResponse from(ChartOfAccount entity) {
             return new AccountResponse(
@@ -200,7 +205,8 @@ public class ChartOfAccountApiController {
                     Boolean.TRUE.equals(entity.getActive()),
                     entity.getDescription(),
                     entity.getFiscalTreatment(),
-                    entity.getServiceExpense()
+                    entity.getServiceExpense(),
+                    entity.getCloseCheckRole()
             );
         }
     }

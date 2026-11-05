@@ -354,3 +354,52 @@ V013 runs on deploy, additive only. After deploy:
 1. Set rules under Master Data > Aturan Bukti.
 2. Classify existing attachments that should count as evidence.
 3. Archive past bank statements, or turn the `BANK_STATEMENT_MISSING` rule off until they are archived: the first evaluation lists every month since each account's first posted journal.
+
+## Issue #50: Period close checks
+
+### Built
+
+- `ChartOfAccount.closeCheckRole`: `TAX_CREDIT` (asset), `CLEARING`, `SHAREHOLDER_CURRENT` (asset or liability), non-header only; on the account form, account API, seed CSV (column 10) and export.
+- `CloseCheckService`: `checklist(from, to)`, `checklistForMonth`, `checklistForYear`, and one query per check: `taxCredits(returnYear, asOf)`, `staleClearingBalances`, `unmovedLiabilities(asOf, months)` with `configuredUnmovedMonths()`, `invoicesOutsideReceivables`, `cutOffExceptions` (returns `CutOffFinding`), `assetProceedsWarnings` and `proceedsWarning(disposal)`.
+- Checklist on the fiscal period detail page (that month) and on Penutupan Tahun Buku (that year). Read API `/api/close-checks` with scope `close-checks:read`.
+- Shareholder/director current account: seed account `2.1.50 Rekening Koran Pemegang Saham/Direksi`, statement page `/statements/shareholder` (sidebar Laporan), `StatementService.generateShareholderStatement`, API `/api/close-checks/shareholder-statement`.
+- Proceeds warning on the disposal record page. A `SHAREHOLDER_CURRENT` account is accepted as the proceeds account of a sale (it was asset-only).
+- Alert `LIABILITY_UNMOVED`.
+
+### Schema (V014)
+
+`chart_of_accounts.close_check_role` with a type/header CHECK; `1.1.26 Kredit Pajak PPh 23` set to `TAX_CREDIT`; `2.1.50` inserted under `2.1` on a non-empty chart (migration fails if `2.1.50` belongs to another account or `2.1` is missing); alert rule `LIABILITY_UNMOVED` threshold 6; `close-checks:read` for device tokens holding `analysis:read`. No test migration.
+
+### Decisions made on the owner's behalf
+
+- Classification is an account attribute, not a configuration list: one account has at most one role, it travels with seed packs and exports, and the account form validates it.
+- N months for unmoved liabilities is the threshold of the `LIABILITY_UNMOVED` alert rule, seeded 6 by V014; checklist and alert read the same value. A missing rule or a non-integer or non-positive threshold is an `ERROR` on the checklist and an exception elsewhere. 6 is a business choice, not a regulation.
+- Unmoved: every LIABILITY account with a non-zero balance at the period end whose last posted line is on or before the period end minus N months.
+- Tax credits: a checklist for a period in year Y checks the PPh Badan return of Y-1. It applies once that return is FILED, LATE or CORRECTED with a filed date on or before the period end (earliest such date). Remaining = debit balance at 31 December Y-1 minus credits posted from 1 January Y to the period end. PPN Masukan is not a tax credit for this check (it is settled monthly).
+- Clearing: balance at the period end and no movement on the reducing side within the period. Partial clearing passes. No account gets the role by default.
+- Invoices outside receivables: SENT, PARTIAL, PAID, OVERDUE invoices dated in the period; posted debits to the CompanyConfig receivable account from journals with the invoice as source document, dated up to the period end, must reach `amount + taxAmount`. AR booked by a manual journal without the source link is reported.
+- Cut-off: a posted journal dated after the period end whose invoice date, bill date or faktur date lies in the period. Payments are not checked.
+- "Personal account": a disposal (not cancelled) with proceeds whose proceeds account has role `SHAREHOLDER_CURRENT`, or is not the GL account of an active `CompanyBankAccount`. Cash (Kas) therefore warns.
+- Statement balance is credit minus debit; one account per shareholder or director.
+- Checklist is informational; it does not block month close or year-end closing.
+- Permissions: checklist under the page's existing permission (`FISCAL_PERIOD_VIEW`, `REPORT_VIEW` for year-end closing); statement `REPORT_VIEW`; scope `close-checks:read` granted by `FISCAL_PERIOD_VIEW`.
+
+### Unverified regulatory values
+
+None.
+
+### Cut
+
+- No functional test of the disposal record warning; the service test covers the rule the page calls.
+- No print/PDF for the shareholder statement.
+
+### Noted, not fixed
+
+- `DataExportService` writes `created_at` in column 7 of the chart of accounts CSV, which `DataImportService` reads as `is_permanent`.
+
+### Deploy
+
+V014 runs on deploy. Before deploy, check that `2.1.50` is unused or already named `Rekening Koran Pemegang Saham/Direksi`; otherwise the migration fails. After deploy:
+1. Mark clearing accounts with the role Akun antara, and other tax credit accounts (PPh 22, PPh 25 prepayments) with Kredit pajak.
+2. Create one shareholder current account per shareholder or director if more than one is needed.
+3. Review the `LIABILITY_UNMOVED` threshold under Peringatan > Konfigurasi; the first evaluation lists every old liability balance.

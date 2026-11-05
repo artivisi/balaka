@@ -117,4 +117,11 @@ public interface TaxTransactionDetailRepository extends JpaRepository<TaxTransac
     @Query("SELECT t.transaction.id, t.bupotNumber FROM TaxTransactionDetail t "
             + "WHERE t.transaction.id IN :ids AND t.bupotNumber IS NOT NULL AND TRIM(t.bupotNumber) <> ''")
     List<Object[]> findBupotNumbersByTransactionIds(@Param("ids") Collection<UUID> ids);
+
+    /** Tax details whose faktur is dated in the period while their posted transaction is dated after it. */
+    @Query("SELECT d FROM TaxTransactionDetail d JOIN FETCH d.transaction t WHERE d.fakturDate BETWEEN :from AND :to "
+            + "AND t.transactionDate > :to AND t.status = com.artivisi.accountingfinance.enums.TransactionStatus.POSTED "
+            + "ORDER BY t.transactionDate, t.transactionNumber")
+    List<TaxTransactionDetail> findFakturInPeriodPostedAfter(@Param("from") java.time.LocalDate from,
+                                                            @Param("to") java.time.LocalDate to);
 }

@@ -193,6 +193,7 @@ authenticated by the token only, and an invalid token returns 401 even if a sess
 | `sales-tax-chain:read` | Read the invoice to faktur, receipt and bupot chain, its exceptions and the monthly reconciliation | `TAX_REPORT_VIEW` |
 | `sales-tax-chain:write` | Record a faktur on an invoice; record a customer's bupot as a draft transaction | `TAX_EXPORT`, `INVOICE_EDIT`, `TRANSACTION_CREATE` |
 | `evidence:read` | Read evidence requirements, per-transaction evidence and gaps, the contract register and missing bank statements | `EVIDENCE_VIEW` |
+| `close-checks:read` | Read the period close checklist, each close check and the shareholder current account statement | `FISCAL_PERIOD_VIEW` |
 | `bank-recon:read` | Read parser configs, statements, reconciliations | `BANK_RECONCILIATION_VIEW` |
 | `bank-recon:write` | Parser configs (`BANK_RECONCILIATION_CONFIG`), statement import (`BANK_RECONCILIATION_IMPORT`), matching / create transaction (`BANK_RECONCILIATION_MATCH`), complete (`BANK_RECONCILIATION_COMPLETE`) | any `BANK_RECONCILIATION_*` write permission |
 

@@ -111,4 +111,11 @@ public interface InvoiceRepository extends JpaRepository<Invoice, UUID> {
 
     @Query("SELECT i FROM Invoice i WHERE i.contract.id = :contractId ORDER BY i.invoiceDate, i.invoiceNumber")
     List<Invoice> findByContractId(@Param("contractId") UUID contractId);
+
+    /** Invoices issued (sent, partly or fully paid, overdue) with an invoice date in the period. */
+    @Query("SELECT i FROM Invoice i JOIN FETCH i.client WHERE i.invoiceDate BETWEEN :from AND :to "
+            + "AND i.status IN (com.artivisi.accountingfinance.enums.InvoiceStatus.SENT, "
+            + "com.artivisi.accountingfinance.enums.InvoiceStatus.PARTIAL, com.artivisi.accountingfinance.enums.InvoiceStatus.PAID, "
+            + "com.artivisi.accountingfinance.enums.InvoiceStatus.OVERDUE) ORDER BY i.invoiceDate, i.invoiceNumber")
+    List<Invoice> findIssuedInPeriod(@Param("from") LocalDate from, @Param("to") LocalDate to);
 }

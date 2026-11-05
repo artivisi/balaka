@@ -824,7 +824,7 @@ public class DataImportService {
         Map<String, String> parentCodes = new HashMap<>();
 
         // First pass: create all accounts without parents
-        // CSV columns: account_code,account_name,account_type,parent_code,normal_balance,active,is_permanent,fiscal_treatment,service_expense
+        // CSV columns: account_code,account_name,account_type,parent_code,normal_balance,active,is_permanent,fiscal_treatment,service_expense,close_check_role
         for (String[] row : rows) {
             ChartOfAccount account = new ChartOfAccount();
             account.setAccountCode(getField(row, 0));
@@ -845,6 +845,10 @@ public class DataImportService {
             String serviceExpense = getField(row, 8);
             if (serviceExpense != null && !serviceExpense.isBlank()) {
                 account.setServiceExpense(Boolean.valueOf(serviceExpense));
+            }
+            String closeCheckRole = getField(row, 9);
+            if (!closeCheckRole.isBlank()) {
+                account.setCloseCheckRole(CloseCheckRole.valueOf(closeCheckRole));
             }
             accounts.add(account);
         }

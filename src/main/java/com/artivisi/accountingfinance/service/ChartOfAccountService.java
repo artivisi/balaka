@@ -2,6 +2,7 @@ package com.artivisi.accountingfinance.service;
 
 import com.artivisi.accountingfinance.entity.ChartOfAccount;
 import com.artivisi.accountingfinance.enums.AccountType;
+import com.artivisi.accountingfinance.enums.CloseCheckRole;
 import com.artivisi.accountingfinance.enums.FiscalTreatment;
 import com.artivisi.accountingfinance.enums.NormalBalance;
 import com.artivisi.accountingfinance.repository.ChartOfAccountRepository;
@@ -103,6 +104,7 @@ public class ChartOfAccountService {
         }
         validateFiscalTreatment(account.getFiscalTreatment(), account.getAccountType(), account.getIsHeader());
         validateServiceExpense(account.getServiceExpense(), account.getAccountType(), account.getIsHeader());
+        validateCloseCheckRole(account.getCloseCheckRole(), account.getAccountType(), account.getIsHeader());
 
         return chartOfAccountRepository.save(account);
     }
@@ -116,6 +118,13 @@ public class ChartOfAccountService {
     private void validateServiceExpense(Boolean serviceExpense, AccountType type, Boolean isHeader) {
         if (serviceExpense != null && (type != AccountType.EXPENSE || Boolean.TRUE.equals(isHeader))) {
             throw new IllegalArgumentException("Klasifikasi akun jasa hanya berlaku untuk akun beban yang bukan header");
+        }
+    }
+
+    private void validateCloseCheckRole(CloseCheckRole role, AccountType type, Boolean isHeader) {
+        if (role != null && (Boolean.TRUE.equals(isHeader) || !role.allows(type))) {
+            throw new IllegalArgumentException("Peran pemeriksaan tutup buku " + role.getIndonesianName()
+                    + " tidak berlaku untuk akun header atau akun bertipe " + type);
         }
     }
 
@@ -154,6 +163,8 @@ public class ChartOfAccountService {
         existing.setFiscalTreatment(accountData.getFiscalTreatment());
         validateServiceExpense(accountData.getServiceExpense(), existing.getAccountType(), existing.getIsHeader());
         existing.setServiceExpense(accountData.getServiceExpense());
+        validateCloseCheckRole(accountData.getCloseCheckRole(), existing.getAccountType(), existing.getIsHeader());
+        existing.setCloseCheckRole(accountData.getCloseCheckRole());
 
         return chartOfAccountRepository.save(existing);
     }

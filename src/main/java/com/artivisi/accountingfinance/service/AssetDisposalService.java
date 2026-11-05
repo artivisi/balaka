@@ -239,10 +239,14 @@ public class AssetDisposalService {
         }
         ChartOfAccount account = accountRepository.findById(command.proceedsAccountId())
                 .orElseThrow(() -> new EntityNotFoundException("Akun penerimaan tidak ditemukan"));
-        if (account.getAccountType() != AccountType.ASSET || Boolean.TRUE.equals(account.getIsHeader())
+        // A shareholder current account (issue #50) may receive proceeds paid to the shareholder or director;
+        // the close checklist and the disposal record warn about it.
+        boolean allowedType = account.getAccountType() == AccountType.ASSET
+                || account.getCloseCheckRole() == com.artivisi.accountingfinance.enums.CloseCheckRole.SHAREHOLDER_CURRENT;
+        if (!allowedType || Boolean.TRUE.equals(account.getIsHeader())
                 || !Boolean.TRUE.equals(account.getActive())) {
-            throw new IllegalArgumentException("Akun penerimaan harus akun aset aktif dan bukan akun induk: "
-                    + account.getAccountCode());
+            throw new IllegalArgumentException("Akun penerimaan harus akun aset atau rekening koran pemegang saham/direksi, "
+                    + "aktif dan bukan akun induk: " + account.getAccountCode());
         }
         return account;
     }

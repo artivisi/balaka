@@ -74,6 +74,7 @@ public class ReportController {
     private final FiscalAdjustmentDraftService fiscalAdjustmentDraftService;
     private final DepreciationReportService depreciationReportService;
     private final FiscalYearClosingService fiscalYearClosingService;
+    private final com.artivisi.accountingfinance.service.CloseCheckService closeCheckService;
     private final FiscalPeriodService fiscalPeriodService;
 
     private static final DateTimeFormatter FILE_DATE_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd");
@@ -975,6 +976,7 @@ public class ReportController {
         availableYears.add(closingYear);
         model.addAttribute("availableYears", List.copyOf(availableYears));
         model.addAttribute("preview", fiscalYearClosingService.previewClosing(closingYear));
+        model.addAttribute("closeChecklist", closeCheckService.checklistForYear(closingYear));
 
         return "reports/fiscal-closing";
     }

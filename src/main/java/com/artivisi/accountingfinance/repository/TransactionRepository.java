@@ -153,4 +153,16 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
 
     @Query("SELECT t FROM Transaction t WHERE t.contract.id = :contractId ORDER BY t.transactionDate, t.transactionNumber")
     List<Transaction> findByContractId(@Param("contractId") UUID contractId);
+
+    /** Rows of [transaction, invoice] for posted invoice journals dated after the period of their invoice. */
+    @Query("SELECT t, i FROM Transaction t, Invoice i WHERE i.id = t.sourceDocumentId AND t.sourceDocumentType = 'INVOICE' "
+            + "AND t.status = com.artivisi.accountingfinance.enums.TransactionStatus.POSTED "
+            + "AND i.invoiceDate BETWEEN :from AND :to AND t.transactionDate > :to ORDER BY t.transactionDate, t.transactionNumber")
+    List<Object[]> findInvoiceJournalsAfterPeriod(@Param("from") LocalDate from, @Param("to") LocalDate to);
+
+    /** Rows of [transaction, bill] for posted bill journals dated after the period of their bill. */
+    @Query("SELECT t, b FROM Transaction t, Bill b WHERE b.id = t.sourceDocumentId AND t.sourceDocumentType = 'BILL' "
+            + "AND t.status = com.artivisi.accountingfinance.enums.TransactionStatus.POSTED "
+            + "AND b.billDate BETWEEN :from AND :to AND t.transactionDate > :to ORDER BY t.transactionDate, t.transactionNumber")
+    List<Object[]> findBillJournalsAfterPeriod(@Param("from") LocalDate from, @Param("to") LocalDate to);
 }

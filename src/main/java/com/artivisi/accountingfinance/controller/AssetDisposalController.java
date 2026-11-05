@@ -42,6 +42,7 @@ public class AssetDisposalController {
     private final AssetRegisterQueryService queryService;
     private final FixedAssetService fixedAssetService;
     private final ChartOfAccountService chartOfAccountService;
+    private final com.artivisi.accountingfinance.service.CloseCheckService closeCheckService;
 
     @GetMapping("/{id}/dispose")
     @PreAuthorize("hasAuthority('" + Permission.ASSET_DISPOSE + "')")
@@ -125,6 +126,7 @@ public class AssetDisposalController {
         AssetDisposal disposal = disposalService.findById(disposalId);
         model.addAttribute("disposal", disposal);
         model.addAttribute("effect", disposalService.taxEffect(disposal));
+        model.addAttribute("proceedsWarning", closeCheckService.proceedsWarning(disposal));
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_ASSETS);
         return "assets/disposal-record";
     }

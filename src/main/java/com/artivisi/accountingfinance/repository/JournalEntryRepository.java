@@ -213,4 +213,32 @@ public interface JournalEntryRepository extends JpaRepository<JournalEntry, UUID
     @Query("SELECT MIN(t.transactionDate) FROM JournalEntry j JOIN j.transaction t "
             + "WHERE j.account.id = :accountId AND t.status = com.artivisi.accountingfinance.enums.TransactionStatus.POSTED")
     Optional<LocalDate> findFirstPostedDateOnAccount(@Param("accountId") UUID accountId);
+
+    /** Rows of [account id, debit total, credit total, last posted date] for posted lines on accounts of a type up to a date. */
+    @Query("SELECT a.id, SUM(j.debitAmount), SUM(j.creditAmount), MAX(t.transactionDate) FROM JournalEntry j "
+            + "JOIN j.transaction t JOIN j.account a "
+            + "WHERE t.status = com.artivisi.accountingfinance.enums.TransactionStatus.POSTED "
+            + "AND t.transactionDate <= :asOf AND a.accountType = :type GROUP BY a.id")
+    List<Object[]> findPostedTotalsByAccountTypeUpTo(@Param("type") com.artivisi.accountingfinance.enums.AccountType type,
+                                                     @Param("asOf") LocalDate asOf);
+
+    /** Rows of [invoice id, debit total] on one account from posted journals whose source document is one of the invoices. */
+    @Query("SELECT t.sourceDocumentId, SUM(j.debitAmount) FROM JournalEntry j JOIN j.transaction t "
+            + "WHERE t.status = com.artivisi.accountingfinance.enums.TransactionStatus.POSTED "
+            + "AND t.sourceDocumentType = 'INVOICE' AND t.sourceDocumentId IN :invoiceIds "
+            + "AND j.account.id = :accountId AND t.transactionDate <= :asOf GROUP BY t.sourceDocumentId")
+    List<Object[]> sumPostedInvoiceDebits(@Param("invoiceIds") Collection<UUID> invoiceIds,
+                                          @Param("accountId") UUID accountId, @Param("asOf") LocalDate asOf);
+
+    /** Posted lines on one account in a period, in ledger order, with their transactions. */
+    @Query("SELECT j FROM JournalEntry j JOIN FETCH j.transaction t "
+            + "WHERE j.account.id = :accountId AND t.status = com.artivisi.accountingfinance.enums.TransactionStatus.POSTED "
+            + "AND t.transactionDate BETWEEN :from AND :to ORDER BY t.transactionDate, t.transactionNumber, j.lineOrder")
+    List<JournalEntry> findPostedLinesOnAccount(@Param("accountId") UUID accountId,
+                                                @Param("from") LocalDate from, @Param("to") LocalDate to);
+
+    @Query("SELECT MAX(t.transactionDate) FROM JournalEntry j JOIN j.transaction t "
+            + "WHERE j.account.id = :accountId AND t.status = com.artivisi.accountingfinance.enums.TransactionStatus.POSTED "
+            + "AND t.transactionDate <= :asOf")
+    Optional<LocalDate> findLastPostedDateOnAccount(@Param("accountId") UUID accountId, @Param("asOf") LocalDate asOf);
 }

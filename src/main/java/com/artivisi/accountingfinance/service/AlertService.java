@@ -47,6 +47,7 @@ public class AlertService {
     private final ProjectRepository projectRepository;
     private final PayrollRunRepository payrollRunRepository;
     private final BankStatementArchiveService bankStatementArchiveService;
+    private final CloseCheckService closeCheckService;
 
     // --- CRUD ---
 
@@ -130,6 +131,7 @@ public class AlertService {
             case CLIENT_CONCENTRATION -> evaluateClientConcentration(rule);
             case PAYROLL_UNPOSTED -> evaluatePayrollUnposted(rule);
             case BANK_STATEMENT_MISSING -> evaluateBankStatementMissing(rule);
+            case LIABILITY_UNMOVED -> evaluateLiabilityUnmoved(rule);
         };
     }
 
@@ -352,6 +354,25 @@ public class AlertService {
         event.setAlertRule(rule);
         event.setSeverity(AlertSeverity.WARNING);
         event.setMessage("Rekening koran belum diarsipkan. " + String.join("; ", parts));
+        return event;
+    }
+
+    /** Threshold: months without a posted line on a liability account that still has a balance, as of today. */
+    private AlertEvent evaluateLiabilityUnmoved(AlertRule rule) {
+        List<CloseCheckService.UnmovedLiability> unmoved =
+                closeCheckService.unmovedLiabilities(LocalDate.now(), closeCheckService.configuredUnmovedMonths());
+        if (unmoved.isEmpty()) {
+            return null;
+        }
+        List<String> parts = unmoved.stream()
+                .map(l -> l.accountCode() + " " + l.accountName() + " saldo " + l.balance().toPlainString()
+                        + ", mutasi terakhir " + l.lastMovement())
+                .toList();
+        AlertEvent event = new AlertEvent();
+        event.setAlertRule(rule);
+        event.setSeverity(AlertSeverity.WARNING);
+        event.setMessage("Liabilitas tidak bergerak " + closeCheckService.configuredUnmovedMonths() + " bulan. "
+                + String.join("; ", parts));
         return event;
     }
 

@@ -33,7 +33,7 @@ class SeedPackFiscalAccountsTest {
     void packCarriesSeedAccounts(String pack) throws IOException {
         List<String[]> rows = Files.readAllLines(Path.of("industry-seed", pack, "seed-data", "02_chart_of_accounts.csv"))
                 .stream().skip(1).map(l -> l.split(",", -1)).toList();
-        rows.forEach(r -> assertThat(r).as(String.join(",", r)).hasSize(9));
+        rows.forEach(r -> assertThat(r).as(String.join(",", r)).hasSize(10));
         Map<String, String[]> byCode = rows.stream().collect(Collectors.toMap(r -> r[CODE], Function.identity()));
 
         assertAccount(byCode, "2.1.25", "Hutang PPh 26", "LIABILITY", "");
@@ -53,6 +53,11 @@ class SeedPackFiscalAccountsTest {
         assertThat(rows).as("Beban Jasa Profesional is a service account")
                 .filteredOn(r -> "Beban Jasa Profesional".equals(r[NAME])).singleElement()
                 .satisfies(r -> assertThat(r[8]).isEqualTo("true"));
+
+        assertThat(rows).as("close check roles in %s", pack).filteredOn(r -> !r[9].isEmpty())
+                .extracting(r -> r[CODE] + "=" + r[9])
+                .containsExactlyInAnyOrder("1.1.26=TAX_CREDIT", "2.1.50=SHAREHOLDER_CURRENT");
+        assertAccount(byCode, "2.1.50", "Rekening Koran Pemegang Saham/Direksi", "LIABILITY", "");
 
         Set<String> parents = rows.stream().map(r -> r[PARENT]).collect(Collectors.toSet());
         for (String[] r : rows) {

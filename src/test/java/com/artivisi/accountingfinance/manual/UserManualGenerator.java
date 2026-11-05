@@ -331,7 +331,21 @@ public class UserManualGenerator {
                 new Section("kelengkapan-bukti-lihat-juga", "Lihat Juga", "18-kelengkapan-bukti.md", List.of())
             )),
 
-            // 19. LAMPIRAN (last)
+            // 19. PEMERIKSAAN TUTUP BUKU
+            new SectionGroup("pemeriksaan-tutup-buku", "Pemeriksaan Tutup Buku", "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4", List.of(
+                new Section("daftar-periksa-tutup-buku", "Daftar Periksa", "19-pemeriksaan-tutup-buku.md", List.of()),
+                new Section("peran-akun", "Peran Akun", "19-pemeriksaan-tutup-buku.md", List.of()),
+                new Section("kredit-pajak-setelah-spt-tahunan", "Kredit Pajak Setelah SPT Tahunan", "19-pemeriksaan-tutup-buku.md", List.of()),
+                new Section("akun-antara", "Akun Antara", "19-pemeriksaan-tutup-buku.md", List.of()),
+                new Section("liabilitas-tidak-bergerak", "Liabilitas Tidak Bergerak", "19-pemeriksaan-tutup-buku.md", List.of()),
+                new Section("invoice-belum-di-piutang", "Invoice Belum di Piutang", "19-pemeriksaan-tutup-buku.md", List.of()),
+                new Section("jurnal-periode-berikutnya", "Jurnal Periode Berikutnya", "19-pemeriksaan-tutup-buku.md", List.of()),
+                new Section("hasil-pelepasan-aset", "Hasil Pelepasan Aset", "19-pemeriksaan-tutup-buku.md", List.of()),
+                new Section("rekening-koran-pemegang-saham", "Rekening Koran Pemegang Saham", "19-pemeriksaan-tutup-buku.md", List.of()),
+                new Section("pemeriksaan-tutup-buku-lihat-juga", "Lihat Juga", "19-pemeriksaan-tutup-buku.md", List.of())
+            )),
+
+            // 20. LAMPIRAN (last)
             new SectionGroup("lampiran", "Lampiran", "M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4", List.of(
                 new Section("glosarium", "Glosarium", "12-lampiran-glosarium.md", List.of()),
                 new Section("referensi-template", "Referensi Template", "12-lampiran-template.md", List.of("service/templates-list", "service/templates-metadata-detail", "service/templates-metadata-form")),
@@ -461,7 +475,8 @@ public class UserManualGenerator {
                 new Section("dev-fixed-assets", "Fixed Assets API", "08-fixed-assets.md", List.of()),
                 new Section("dev-tax-filings", "Tax Filings API", "09-tax-filings.md", List.of()),
                 new Section("dev-withholding", "Withholding API", "10-withholding.md", List.of()),
-                new Section("dev-evidence", "Evidence API", "12-evidence.md", List.of())
+                new Section("dev-evidence", "Evidence API", "12-evidence.md", List.of()),
+                new Section("dev-close-checks", "Close Checks API", "13-close-checks.md", List.of())
             )),
 
             new SectionGroup("dev-extending", "Developer: Extending Balaka", "M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z", List.of(

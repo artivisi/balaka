@@ -177,6 +177,9 @@
                             <a sec:authorize="hasAuthority('REPORT_VIEW')" id="nav-aging-payables" th:href="@{/reports/aging/payables}"
                                th:classappend="${#strings.equals(currentPage, 'aging-payables')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
                                class="flex items-center px-3 py-2 rounded-lg transition-colors">Umur Hutang</a>
+                            <a sec:authorize="hasAuthority('REPORT_VIEW')" id="nav-shareholder-statement" th:href="@{/statements/shareholder}"
+                               th:classappend="${#strings.equals(currentPage, 'shareholder-statement')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
+                               class="flex items-center px-3 py-2 rounded-lg transition-colors">Rekening Koran Pemegang Saham</a>
                             <a sec:authorize="hasAuthority('ANALYSIS_REPORT_VIEW')" id="nav-analysis-reports" th:href="@{/analysis-reports}"
                                th:classappend="${#strings.equals(currentPage, 'analysis-reports')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
                                class="flex items-center px-3 py-2 rounded-lg transition-colors">Analisis AI</a>
@@ -506,6 +509,8 @@
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Umur Piutang</a>
                             <a sec:authorize="hasAuthority('REPORT_VIEW')" th:href="@{/reports/aging/payables}"
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Umur Hutang</a>
+                            <a sec:authorize="hasAuthority('REPORT_VIEW')" th:href="@{/statements/shareholder}"
+                               class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Rekening Koran Pemegang Saham</a>
                             <a sec:authorize="hasAuthority('ANALYSIS_REPORT_VIEW')" th:href="@{/analysis-reports}"
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Analisis AI</a>
                             <a sec:authorize="hasAuthority('ALERT_VIEW')" th:href="@{/alerts}"
