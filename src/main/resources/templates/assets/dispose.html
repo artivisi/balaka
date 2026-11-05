@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
-      th:replace="~{layouts/main :: layout('Lepas Aset', ~{::#page-title}, ~{::section}, ~{::script})}"
+      th:replace="~{layouts/main :: layout('Lepas Aset', ~{::#page-title}, ~{::section}, ~{})}"
       lang="id">
 <head>
     <title>Lepas Aset</title>
@@ -43,95 +43,105 @@
         <!-- Disposal Form -->
         <div class="bg-white rounded-lg shadow p-6">
             <h3 class="text-lg font-medium text-gray-900 mb-4">Form Pelepasan</h3>
-            <form th:action="@{/assets/{id}/dispose(id=${asset.id})}" method="post" class="space-y-4">
-                <!-- Disposal Type -->
+            <form id="disposal-form" th:action="@{/assets/{id}/dispose(id=${asset.id})}" method="post" class="space-y-4">
                 <div>
                     <label for="disposalType" class="block text-sm font-medium text-gray-700 mb-1">Tipe Pelepasan *</label>
-                    <select id="disposalType" name="disposalType"
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
-                            required>
+                    <select id="disposalType" name="disposalType" required
+                            th:hx-get="@{/assets/{id}/dispose/preview(id=${asset.id})}"
+                            hx-include="#disposalType, #proceeds" hx-target="#disposal-effect-container" hx-trigger="change"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
                         <option value="">-- Pilih Tipe --</option>
-                        <option value="SOLD">Dijual</option>
-                        <option value="WRITTEN_OFF">Dihapuskan (Write-off)</option>
-                        <option value="TRANSFERRED">Dipindahkan</option>
+                        <option value="SOLD" th:selected="${disposalType?.name() == 'SOLD'}">Dijual</option>
+                        <option value="GIFTED" th:selected="${disposalType?.name() == 'GIFTED'}">Dihibahkan</option>
+                        <option value="WRITTEN_OFF" th:selected="${disposalType?.name() == 'WRITTEN_OFF'}">Dihapuskan (Write-off)</option>
+                        <option value="TRANSFERRED" th:selected="${disposalType?.name() == 'TRANSFERRED'}">Dipindahkan</option>
                     </select>
                 </div>
 
-                <!-- Disposal Date -->
                 <div>
                     <label for="disposalDate" class="block text-sm font-medium text-gray-700 mb-1">Tanggal Pelepasan *</label>
-                    <input type="date" id="disposalDate" name="disposalDate"
-                           th:value="${disposalDate}"
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
-                           required>
+                    <input type="date" id="disposalDate" name="disposalDate" th:value="${disposalDate}" required
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
                 </div>
 
-                <!-- Proceeds -->
                 <div>
                     <label for="proceeds" class="block text-sm font-medium text-gray-700 mb-1">Hasil Penjualan</label>
-                    <input type="number" id="proceeds" name="proceeds"
+                    <input type="number" id="proceeds" name="proceeds" min="0" step="0.01" th:value="${proceeds}"
+                           th:hx-get="@{/assets/{id}/dispose/preview(id=${asset.id})}"
+                           hx-include="#disposalType, #proceeds" hx-target="#disposal-effect-container" hx-trigger="input changed delay:300ms"
                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
-                           placeholder="0" min="0" step="1">
-                    <p class="mt-1 text-xs text-gray-500">Isi jika aset dijual. Kosongkan untuk write-off atau transfer.</p>
+                           placeholder="0">
+                    <p class="mt-1 text-xs text-gray-500">Wajib untuk penjualan, tanpa PPN. Kosongkan untuk tipe lain.</p>
                 </div>
 
-                <!-- Gain/Loss Preview -->
-                <div class="bg-gray-50 p-4 rounded-lg">
-                    <p class="text-sm text-gray-500 mb-2">Perkiraan Laba/Rugi:</p>
-                    <p id="gainLossPreview" class="text-lg font-bold">-</p>
-                    <p class="text-xs text-gray-400 mt-1">Laba/Rugi = Hasil Penjualan - Nilai Buku</p>
+                <div x-data="accountPicker"
+                     th:data-field-name="'proceedsAccount'"
+                     th:data-initial-id="${proceedsAccount}"
+                     th:data-initial-label="${proceedsAccountLabel}">
+                    <label for="proceedsAccount" class="block text-sm font-medium text-gray-700 mb-1">Akun Penerimaan</label>
+                    <div class="relative">
+                        <input type="text" id="proceedsAccount" x-model="label"
+                               @input.debounce.300ms="search()" @focus="focusPicker()" @click.away="open = false"
+                               autocomplete="off"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                               placeholder="Ketik kode atau nama akun...">
+                        <input type="hidden" name="proceedsAccount" :value="selectedId">
+                        <div x-show="open &amp;&amp; results.length > 0"
+                             class="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
+                            <template x-for="a in results" :key="a.id">
+                                <button type="button" @click="select(a)"
+                                        data-testid="account-picker-result"
+                                        class="block w-full text-left px-3 py-2 text-sm hover:bg-primary-50">
+                                    <span class="font-medium" x-text="a.code"></span>
+                                    <span class="text-gray-500"> — </span>
+                                    <span x-text="a.name"></span>
+                                </button>
+                            </template>
+                        </div>
+                    </div>
+                    <p class="mt-1 text-xs text-gray-500">Kas, bank, atau piutang yang didebit. Wajib untuk penjualan.</p>
                 </div>
 
-                <!-- Notes -->
                 <div>
-                    <label for="notes" class="block text-sm font-medium text-gray-700 mb-1">Catatan</label>
-                    <textarea id="notes" name="notes" rows="3"
-                              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
-                              placeholder="Catatan pelepasan aset"></textarea>
+                    <label for="counterparty" class="block text-sm font-medium text-gray-700 mb-1">Pembeli/Penerima</label>
+                    <input type="text" id="counterparty" name="counterparty" maxlength="255" th:value="${counterparty}"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
+                    <p class="mt-1 text-xs text-gray-500">Wajib, kecuali untuk penghapusan.</p>
                 </div>
 
-                <!-- Warning -->
-                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                    <div class="flex">
-                        <svg class="w-5 h-5 text-yellow-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                        </svg>
-                        <p class="text-sm text-yellow-700">
-                            <strong>Perhatian:</strong> Pelepasan aset akan membuat jurnal otomatis dan tidak dapat dibatalkan.
-                        </p>
+                <div>
+                    <label for="reason" class="block text-sm font-medium text-gray-700 mb-1">Alasan *</label>
+                    <textarea id="reason" name="reason" rows="3" maxlength="500" required
+                              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                              th:text="${reason}"></textarea>
+                </div>
+
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <p class="text-sm font-medium text-gray-700 mb-2">Laba/Rugi dan Pengaruh Pajak</p>
+                    <div id="disposal-effect-container"
+                         th:hx-get="@{/assets/{id}/dispose/preview(id=${asset.id})}"
+                         hx-include="#disposalType, #proceeds" hx-trigger="load">
+                        <p class="text-sm text-gray-500">Pilih tipe pelepasan.</p>
                     </div>
                 </div>
 
-                <!-- Actions -->
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <p class="text-sm text-yellow-700">
+                        <strong>Perhatian:</strong> Simpan akan membuat catatan pelepasan dan draf jurnal. Aset berstatus Dilepas
+                        setelah draf jurnal diposting. Selama draf ada, aset tidak dapat diubah dan tidak disusutkan.
+                    </p>
+                </div>
+
                 <div class="flex items-center justify-end gap-3 pt-4 border-t">
                     <a th:href="@{/assets/{id}(id=${asset.id})}"
                        class="px-4 py-2 text-gray-600 hover:text-gray-900">Batal</a>
                     <button id="btn-dispose" type="submit"
                             class="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
-                        Lepas Aset
+                        Buat Catatan Pelepasan
                     </button>
                 </div>
             </form>
         </div>
     </section>
-
-        <script th:inline="javascript" th:attr="nonce=${cspNonce}">
-            document.addEventListener('DOMContentLoaded', function() {
-                const bookValue = /*[[${asset.bookValue}]]*/ 0;
-                const proceedsInput = document.getElementById('proceeds');
-                const gainLossPreview = document.getElementById('gainLossPreview');
-
-                function updateGainLoss() {
-                    const proceeds = Number.parseFloat(proceedsInput.value) || 0;
-                    const gainLoss = proceeds - bookValue;
-
-                    gainLossPreview.textContent = 'Rp ' + gainLoss.toLocaleString('id-ID');
-                    gainLossPreview.className = 'text-lg font-bold ' + (gainLoss >= 0 ? 'text-green-600' : 'text-red-600');
-                }
-
-                proceedsInput.addEventListener('input', updateGainLoss);
-                updateGainLoss();
-            });
-        </script>
 </body>
 </html>

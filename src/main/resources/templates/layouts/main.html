@@ -125,6 +125,10 @@
                             <a sec:authorize="hasAuthority('ASSET_VIEW')" id="nav-assets" th:href="@{/assets}"
                                th:classappend="${#strings.equals(currentPage, 'assets')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
                                class="flex items-center px-3 py-2 rounded-lg transition-colors">Aset Tetap</a>
+                            <a sec:authorize="hasAuthority('ASSET_VIEW')" id="nav-asset-verification" th:href="@{/assets/verification}"
+                               class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Verifikasi Aset</a>
+                            <a sec:authorize="hasAuthority('ASSET_VIEW')" id="nav-asset-disposals" th:href="@{/assets/disposals}"
+                               class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Pelepasan Aset</a>
                             <a sec:authorize="hasAuthority('BANK_RECONCILIATION_VIEW')" id="nav-bank-recon" th:href="@{/bank-reconciliation}"
                                th:classappend="${currentPage != null && currentPage.startsWith('bank-recon')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
                                class="flex items-center px-3 py-2 rounded-lg transition-colors">Rekonsiliasi Bank</a>
@@ -448,6 +452,10 @@
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Amortisasi</a>
                             <a sec:authorize="hasAuthority('ASSET_VIEW')" th:href="@{/assets}"
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Aset Tetap</a>
+                            <a sec:authorize="hasAuthority('ASSET_VIEW')" th:href="@{/assets/verification}"
+                               class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Verifikasi Aset</a>
+                            <a sec:authorize="hasAuthority('ASSET_VIEW')" th:href="@{/assets/disposals}"
+                               class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Pelepasan Aset</a>
                             <a sec:authorize="hasAuthority('BANK_RECONCILIATION_VIEW')" th:href="@{/bank-reconciliation}"
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Rekonsiliasi Bank</a>
                             <a sec:authorize="hasAuthority('RECURRING_VIEW')" th:href="@{/recurring}"

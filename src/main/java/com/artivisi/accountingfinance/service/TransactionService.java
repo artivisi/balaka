@@ -70,6 +70,7 @@ public class TransactionService {
     private final BenefitInKindRepository benefitInKindRepository;
     private final WithholdingPaymentRepository withholdingPaymentRepository;
     private final WithholdingDepositRepository withholdingDepositRepository;
+    private final com.artivisi.accountingfinance.repository.AssetDisposalRepository assetDisposalRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final JournalTemplateService journalTemplateService;
     private final FormulaEvaluator formulaEvaluator;
@@ -437,6 +438,10 @@ public class TransactionService {
         if (withholdingPaymentRepository.findByTransactionId(transactionId).isPresent()
                 || withholdingDepositRepository.findByTransactionId(transactionId).isPresent()) {
             throw new IllegalStateException("Draf ini dikelola lewat menu Pemotongan PPh. Batalkan dari menu tersebut.");
+        }
+        // Its amounts are a snapshot of the register; a changed draft would no longer match the disposal record.
+        if (assetDisposalRepository.findByTransactionId(transactionId).isPresent()) {
+            throw new IllegalStateException("Draf ini dikelola lewat menu Pelepasan Aset. Batalkan dari menu tersebut.");
         }
     }
 

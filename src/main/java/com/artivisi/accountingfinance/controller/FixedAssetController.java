@@ -1,13 +1,15 @@
 package com.artivisi.accountingfinance.controller;
 
 import com.artivisi.accountingfinance.entity.AssetCategory;
+import com.artivisi.accountingfinance.entity.AssetCondition;
 import com.artivisi.accountingfinance.entity.AssetStatus;
 import com.artivisi.accountingfinance.entity.DepreciationEntry;
 import com.artivisi.accountingfinance.entity.DepreciationMethod;
-import com.artivisi.accountingfinance.entity.DisposalType;
 import com.artivisi.accountingfinance.entity.FixedAsset;
 import com.artivisi.accountingfinance.security.Permission;
 import com.artivisi.accountingfinance.service.AssetCategoryService;
+import com.artivisi.accountingfinance.service.AssetRegisterQueryService;
+import com.artivisi.accountingfinance.service.AssetVerificationService;
 import com.artivisi.accountingfinance.service.FixedAssetService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
@@ -22,7 +24,10 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.core.io.Resource;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
@@ -35,8 +40,11 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -61,6 +69,8 @@ public class FixedAssetController {
 
     private final FixedAssetService fixedAssetService;
     private final AssetCategoryService assetCategoryService;
+    private final AssetRegisterQueryService assetRegisterQueryService;
+    private final AssetVerificationService assetVerificationService;
     private final com.artivisi.accountingfinance.service.ChartOfAccountService chartOfAccountService;
 
     @Getter
@@ -117,6 +127,17 @@ public class FixedAssetController {
 
         @Size(max = 100, message = "Nomor seri maksimal 100 karakter")
         private String serialNumber;
+
+        @Size(max = 100, message = "Merek maksimal 100 karakter")
+        private String brand;
+
+        @Size(max = 100, message = "Model maksimal 100 karakter")
+        private String model;
+
+        @Size(max = 150, message = "Pemegang maksimal 150 karakter")
+        private String custodian;
+
+        private AssetCondition condition;
 
         private String notes;
 
@@ -243,6 +264,11 @@ public class FixedAssetController {
         model.addAttribute(ATTR_ASSET, asset);
         model.addAttribute("depreciationHistory", depreciationHistory);
         model.addAttribute("monthlyDepreciation", fixedAssetService.calculateMonthlyDepreciation(asset));
+        model.addAttribute("deletable", !asset.isDisposed() && fixedAssetService.isDeletable(asset));
+        model.addAttribute("disposals", assetRegisterQueryService.findDisposalsOfAsset(id));
+        model.addAttribute("draftDisposal", fixedAssetService.hasDraftDisposal(id));
+        model.addAttribute("movements", assetRegisterQueryService.findMovementsOfAsset(id));
+        model.addAttribute("verifications", assetVerificationService.historyOf(id));
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_ASSETS);
         return "assets/detail";
     }
@@ -381,45 +407,43 @@ public class FixedAssetController {
         return REDIRECT_ASSETS_DEPRECIATION;
     }
 
-    // Asset Disposal
+    // Photo
 
-    @GetMapping("/{id}/dispose")
-    @PreAuthorize("hasAuthority('" + Permission.ASSET_DISPOSE + "')")
-    public String disposeForm(@PathVariable UUID id, Model model) {
-        FixedAsset asset = fixedAssetService.findByIdWithDetails(id);
-
-        if (asset.isDisposed()) {
-            return REDIRECT_ASSETS + "/" + id;
-        }
-
-        model.addAttribute(ATTR_ASSET, asset);
-        model.addAttribute("disposalTypes", DisposalType.values());
-        model.addAttribute("disposalDate", LocalDate.now());
-        model.addAttribute(ATTR_CURRENT_PAGE, PAGE_ASSETS);
-        return "assets/dispose";
+    @GetMapping("/{id}/photo")
+    @ResponseBody
+    public ResponseEntity<Resource> photo(@PathVariable UUID id) {
+        FixedAssetService.AssetPhoto photo = fixedAssetService.loadPhoto(id);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(photo.contentType()))
+                .body(photo.resource());
     }
 
-    @PostMapping("/{id}/dispose")
-    @PreAuthorize("hasAuthority('" + Permission.ASSET_DISPOSE + "')")
-    public String dispose(
+    @PostMapping("/{id}/photo")
+    @PreAuthorize("hasAuthority('" + Permission.ASSET_EDIT + "')")
+    public String uploadPhoto(
             @PathVariable UUID id,
-            @RequestParam DisposalType disposalType,
-            @RequestParam(required = false) BigDecimal proceeds,
-            @RequestParam(required = false) String notes,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate disposalDate,
+            @RequestParam("file") MultipartFile file,
             Authentication authentication,
-            RedirectAttributes redirectAttributes) {
-
+            RedirectAttributes redirectAttributes) throws IOException {
         try {
-            FixedAsset disposed = fixedAssetService.disposeAsset(
-                    id, disposalType, proceeds, notes, disposalDate, authentication.getName());
-            redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE,
-                    "Aset " + disposed.getName() + " berhasil dilepas");
-            return REDIRECT_ASSETS + "/" + id;
+            fixedAssetService.attachPhoto(id, file, authentication.getName());
+            redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Foto aset tersimpan");
+        } catch (IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, e.getMessage());
+        }
+        return REDIRECT_ASSETS + "/" + id;
+    }
+
+    @PostMapping("/{id}/photo/delete")
+    @PreAuthorize("hasAuthority('" + Permission.ASSET_EDIT + "')")
+    public String deletePhoto(@PathVariable UUID id, RedirectAttributes redirectAttributes) throws IOException {
+        try {
+            fixedAssetService.removePhoto(id);
+            redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Foto aset dihapus");
         } catch (IllegalStateException e) {
             redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, e.getMessage());
-            return REDIRECT_ASSETS + "/" + id + "/dispose";
         }
+        return REDIRECT_ASSETS + "/" + id;
     }
 
     // The picker's visible label is not submitted; rebuild it so a re-rendered form keeps the selection.
@@ -434,6 +458,7 @@ public class FixedAssetController {
     private void addFormAttributes(Model model) {
         model.addAttribute("categories", assetCategoryService.findAllActive());
         model.addAttribute("depreciationMethods", DepreciationMethod.values());
+        model.addAttribute("conditions", AssetCondition.values());
         // Funding-account picker fetches via GET /accounts/search (combobox; ≤10 results).
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_ASSETS);
     }

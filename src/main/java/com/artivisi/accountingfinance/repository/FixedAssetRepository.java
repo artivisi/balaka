@@ -32,7 +32,8 @@ public interface FixedAssetRepository extends JpaRepository<FixedAsset, UUID> {
     @Query("SELECT a FROM FixedAsset a WHERE " +
            "a.status = 'ACTIVE' AND " +
            "(a.lastDepreciationDate IS NULL OR a.lastDepreciationDate < :periodEnd) AND " +
-           "a.depreciationStartDate <= :periodEnd " +
+           "a.depreciationStartDate <= :periodEnd AND " +
+           "NOT EXISTS (SELECT 1 FROM AssetDisposal d WHERE d.fixedAsset = a AND d.status = 'DRAFT') " +
            "ORDER BY a.assetCode")
     List<FixedAsset> findAssetsNeedingDepreciation(@Param("periodEnd") LocalDate periodEnd);
 
@@ -88,6 +89,9 @@ public interface FixedAssetRepository extends JpaRepository<FixedAsset, UUID> {
             @Param("purchasedFrom") LocalDate purchasedFrom,
             @Param("purchasedUntil") LocalDate purchasedUntil,
             Pageable pageable);
+
+    @Query("SELECT a FROM FixedAsset a LEFT JOIN FETCH a.category ORDER BY a.assetCode")
+    List<FixedAsset> findAllWithCategory();
 
     @Query("SELECT COUNT(a) FROM FixedAsset a WHERE a.status = 'ACTIVE'")
     long countActiveAssets();

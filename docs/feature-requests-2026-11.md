@@ -240,3 +240,61 @@ V011 runs on deploy. It fails if a current `Post Gaji Bulanan` exists and 5.8.01
 
 The TER fix changes monthly PPh 21 from the next calculation for income above the first wrong row (category A above Rp 12,500,000). Calculated, unposted runs keep the old figures until recalculated: recalculate them after deploy.
 
+
+## Issue #49: Fixed-asset register
+
+### Built
+
+- Register: `brand`, `model`, `custodian`, `condition`, `lastVerifiedDate`, `photoDocument` on `FixedAsset`; `location` and `serial_number` already existed. Web form and detail page, `/assets/{id}/photo`, asset API. Changes of custodian, location or condition write `asset_movements`.
+- Verification: `/assets/verification?year=`, checklist with one card per asset and an exceptions table. `AssetVerificationService`, `/api/fixed-assets/verification`, `/verification/exceptions`, `POST /{id}/verification`.
+- Disposal: `AssetDisposalService` writes an `asset_disposals` record (`DSP-year-seq`) with reason, counterparty, proceeds and amount snapshot, plus a DRAFT journal. Pages `/assets/{id}/dispose`, `/assets/disposals`, `/assets/disposals/{id}`. Tax effect from `DisposalTaxCalculator` on the form (HTMX preview), the record and the API.
+- Read API for #45 and #51: `AssetRegisterQueryService.findDisposals`, `findDisposalsOfAsset`, `findMovements`, `findMovementsOfAsset`, `costMovement(year)`; also `/api/fixed-assets/movement` and `/register-movements`.
+
+### Schema (V012)
+
+`fixed_assets` new nullable columns; `disposal_type` gains `GIFTED`. New tables `asset_disposals` (at most one `DRAFT` or `POSTED` per asset; checks gain = proceeds - book value and sale fields), `asset_verifications` (one per asset per year), `asset_movements`. Accounts `Laba Penjualan Aset`, `Rugi Penjualan Aset` if absent; templates `Pelepasan Aset Tetap`, `Penghapusan Aset Tetap`. Test data V917 replaces the V800 template of that name. Packs: both templates in all four; accounts added to online-seller (4.2.04, 5.5.03), coffee-shop (7.1.02, 8.1.04), campus (4.2.04, 5.4.04).
+
+### Decisions made on the owner's behalf
+
+- The audit defect is closed: no template UUID, templates and gain and loss accounts resolve by exact name and fail when absent or duplicated. The proceeds account is chosen on the form.
+- Two templates, because `DocumentPostingService` requires an account for every hint and a non-sale has no proceeds account.
+- Asset status: DISPOSED when the journal is posted, by `TransactionPostedEvent`. Until then the status stays and the asset is locked: edit, depreciation generation and posting, second disposal, and generic edit or delete of the draft are refused. Cancel removes the draft and keeps the record `CANCELLED`. Voiding a posted journal sets the record `VOIDED` and returns the asset to ACTIVE or FULLY_DEPRECIATED, by `TransactionVoidedEvent`. Numbers of cancelled and voided records are not reused.
+- Removal: `delete` stays for a registration mistake only: no depreciation history, no linked purchase, no POSTED acquisition, no disposal record of any status. The acquisition DRAFT goes with it, which also fixes the dangling draft in the audit list. A VOID acquisition does not block. An old asset with no acquisition transaction and no depreciation stays deletable, since nothing shows it reached the ledger.
+- Disposal refuses an unposted acquisition, any PENDING depreciation entry, and a month before the disposal month with no entry of any status. A SKIPPED entry counts as settled. Depreciation for the disposal month is the user's choice: the date only has to be on or after the last posted period end, so disposing mid-month after that month's entry is refused.
+- Sale needs positive proceeds; every other type refuses proceeds and proceeds account. A sale at zero is a write-off. Counterparty is required except on write-off.
+- A gift debits `Beban Tidak Dapat Dikurangkan` (5.8.04), so #46 fiscal drafts propose the correction without new logic. Write-off and transfer debit `Rugi Penjualan Aset`, including the account name's "Penjualan".
+- `proceeds` excludes PPN and the journal records none: PPN needs a faktur decision the app cannot make here. The record shows an indicative figure only.
+- Custodian is free text, not an employee link: it can be a unit or a non-employee, and ASSET roles do not hold employee permissions.
+- Verification FOUND requires condition, location and custodian and writes them to the register. NOT_FOUND changes nothing; only the disposal flow removes an asset. Same year overwrites the row, with no history of the earlier result. `lastVerifiedDate` never moves back.
+- Checklist scope: bought by year end, and not disposed by year end. A draft disposal stays listed.
+- Every asset category is checked for every identity field, with no dismiss action, so a building stays listed for a missing serial.
+- Edits log with today's date: the form has no effective date. Register creation writes no movement row.
+- Permissions: reads `ASSET_VIEW`, verification and photo `ASSET_EDIT`, disposal `ASSET_DISPOSE`. API `assets:read`/`assets:write`, no new scopes and no scope migration. Posting needs the usual `TRANSACTION_POST`.
+- `DisposalType.TRANSFERRED` is kept, with fiscal effect shown as needing review.
+
+### Unverified regulatory values
+
+All fiscal text is from memory and marked in the app. Gain or loss in taxable income: Pasal 4 ayat (1) huruf d UU PPh. Gift non-deductible: Pasal 9 ayat (1) huruf g UU PPh; exceptions for qualifying donations are not modelled. Write-off as loss: Pasal 11 ayat (7) UU PPh. PPN on asset delivery: Pasal 16D UU PPN. Indicative PPN `app.asset-disposal.ppn-rate-percent=11` (12% on DPP 11/12, PMK 131/2024). Used-vehicle DPP (PMK 65/2022) is not modelled. Figures use the one book value on the register; a fiscal book value that differs is not tracked.
+
+### Cut
+
+- New tables, like `fixed_assets` itself, are not in the export/import ZIP.
+- Disposal record is a web page; no PDF. Browser print works on it.
+- Photo upload is web only; no API.
+- No backfill of `asset_disposals` for assets already DISPOSED by hand. They show in `costMovement` through their `disposal_date`, not in `findDisposals`.
+
+### Noted, not fixed
+
+- `FixedAssetService` still looks up depreciation by UUID -016 first, then by name.
+- `DataSubject` erasure does not touch `custodian`, including history rows.
+- `reason` on posted records has no edit path; a wrong one needs void and redo.
+- A soft-deleted photo keeps no history; replacing a photo deletes the file.
+
+### Deploy
+
+V012 runs on deploy. It fails if a template named `Pelepasan Aset Tetap` or `Penghapusan Aset Tetap` exists; rename it first. It fails if `Beban Tidak Dapat Dikurangkan` is missing. With no account named `Laba Penjualan Aset` or `Rugi Penjualan Aset`, it creates `4.2.02` and `5.2.02`, and fails if that code holds another account or parent `4.2` or `5.2` is missing.
+
+After deploy:
+1. Make sure the chart has exactly one account with each of the three names.
+2. Run the checklist for the current year and fill the listed fields.
+3. Have a tax reviewer check the fiscal notes and the PPN rate.

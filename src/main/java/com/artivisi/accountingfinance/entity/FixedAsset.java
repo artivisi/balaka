@@ -194,6 +194,30 @@ public class FixedAsset extends TimestampedEntity {
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;
 
+    // Identity fields (issue #49). Nullable: assets registered earlier have none; the yearly report lists them.
+    @Size(max = 100, message = "Merek maksimal 100 karakter")
+    @Column(name = "brand", length = 100)
+    private String brand;
+
+    @Size(max = 100, message = "Model maksimal 100 karakter")
+    @Column(name = "model", length = 100)
+    private String model;
+
+    @Size(max = 150, message = "Pemegang maksimal 150 karakter")
+    @Column(name = "custodian", length = 150)
+    private String custodian;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "asset_condition", length = 20)
+    private AssetCondition condition;
+
+    @Column(name = "last_verified_date")
+    private LocalDate lastVerifiedDate;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_photo_document")
+    private Document photoDocument;
+
     @PrePersist
     protected void onCreateInitBookValue() {
         if (this.bookValue == null) {
@@ -293,18 +317,26 @@ public class FixedAsset extends TimestampedEntity {
         }
     }
 
-    /**
-     * Dispose the asset.
-     */
-    public void dispose(DisposalType type, BigDecimal proceeds, String notes, LocalDate date) {
-        this.disposalType = type;
-        this.disposalProceeds = proceeds != null ? proceeds : BigDecimal.ZERO;
-        this.disposalNotes = notes;
-        this.disposalDate = date;
+    /** Marks the asset DISPOSED from its posted disposal record. */
+    public void applyDisposal(AssetDisposal disposal) {
+        this.disposalType = disposal.getDisposalType();
+        this.disposalProceeds = disposal.getProceeds();
+        this.disposalNotes = disposal.getReason();
+        this.disposalDate = disposal.getDisposalDate();
+        this.gainLossOnDisposal = disposal.getGainLoss();
+        this.disposalTransaction = disposal.getTransaction();
         this.status = AssetStatus.DISPOSED;
+    }
 
-        // Calculate gain/loss: proceeds - book value
-        this.gainLossOnDisposal = this.disposalProceeds.subtract(this.bookValue);
+    /** Back to the register after the disposal journal is voided. */
+    public void reverseDisposal() {
+        this.disposalType = null;
+        this.disposalProceeds = null;
+        this.disposalNotes = null;
+        this.disposalDate = null;
+        this.gainLossOnDisposal = null;
+        this.disposalTransaction = null;
+        this.status = isFullyDepreciated() ? AssetStatus.FULLY_DEPRECIATED : AssetStatus.ACTIVE;
     }
 
     public boolean isActive() {

@@ -54,6 +54,7 @@ account_code,account_name,account_type,parent_code,normal_balance,active,is_perm
 4.2.01,Pendapatan Hibah,REVENUE,4.2,CREDIT,true,false,,
 4.2.02,Pendapatan Donasi,REVENUE,4.2,CREDIT,true,false,,
 4.2.03,Pendapatan Jasa Giro,REVENUE,4.2,CREDIT,true,false,,
+4.2.04,Laba Penjualan Aset,REVENUE,4.2,CREDIT,true,false,,
 5,BEBAN,EXPENSE,,DEBIT,true,false,,
 5.1,Beban Akademik,EXPENSE,5,DEBIT,true,false,,
 5.1.01,Beban Gaji Dosen Tetap,EXPENSE,5.1,DEBIT,true,false,DEDUCTIBLE,false
@@ -90,6 +91,7 @@ account_code,account_name,account_type,parent_code,normal_balance,active,is_perm
 5.4.01,Beban Admin Bank,EXPENSE,5.4,DEBIT,true,false,DEDUCTIBLE,false
 5.4.02,Beban Bunga Pinjaman,EXPENSE,5.4,DEBIT,true,false,DEDUCTIBLE,false
 5.4.03,Beban Pajak,EXPENSE,5.4,DEBIT,true,false,CONDITIONAL,false
+5.4.04,Rugi Penjualan Aset,EXPENSE,5.4,DEBIT,true,false,DEDUCTIBLE,false
 5.2.99,Beban Operasional Lainnya,EXPENSE,5.2,DEBIT,true,false,DEDUCTIBLE,false
 5.8,Beban Karyawan & Koreksi Fiskal,EXPENSE,5,DEBIT,true,false,,
 5.8.01,Beban Bonus,EXPENSE,5.8,DEBIT,true,false,DEDUCTIBLE,false

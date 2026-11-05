@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{layouts/main :: layout('Verifikasi Aset', ~{::#page-title}, ~{::section}, ~{})}"
+      lang="id">
+<head>
+    <title>Verifikasi Aset</title>
+</head>
+<body>
+    <h1 id="page-title">Verifikasi Aset</h1>
+
+    <section class="space-y-6">
+        <div th:if="${successMessage}" data-testid="flash-success"
+             class="p-4 rounded-lg bg-green-50 border border-green-200 text-sm font-medium text-green-800"
+             th:text="${successMessage}">Success</div>
+        <div th:if="${errorMessage}" data-testid="flash-error"
+             class="p-4 rounded-lg bg-red-50 border border-red-200 text-sm font-medium text-red-800"
+             th:text="${errorMessage}">Error</div>
+
+        <form th:action="@{/assets/verification}" method="get" class="flex items-end gap-3">
+            <div>
+                <label for="year" class="block text-sm font-medium text-gray-700 mb-1">Tahun</label>
+                <input type="number" id="year" name="year" th:value="${year}"
+                       class="w-32 px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
+            </div>
+            <button id="btn-filter" type="submit" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">Tampilkan</button>
+            <p id="verification-summary" class="text-sm text-gray-600 pb-2"
+               th:text="${verifiedCount} + ' dari ' + ${#lists.size(rows)} + ' aset sudah diverifikasi, ' + ${#lists.size(exceptions)} + ' aset punya pengecualian'">0 dari 0</p>
+        </form>
+
+        <div class="bg-white rounded-lg shadow overflow-x-auto">
+            <div class="p-6 border-b"><h3 class="text-lg font-medium text-gray-900">Pengecualian</h3></div>
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aset</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Pengecualian</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    <tr th:if="${#lists.isEmpty(exceptions)}">
+                        <td colspan="2" class="px-4 py-8 text-center text-gray-500">Tidak ada pengecualian</td>
+                    </tr>
+                    <tr th:each="row : ${exceptions}" data-testid="exception-row" th:data-code="${row.asset.assetCode}" class="text-sm">
+                        <td class="px-4 py-3">
+                            <a class="text-primary-600 hover:underline" th:href="@{/assets/{id}(id=${row.asset.id})}" th:text="${row.asset.displayName}">AST</a>
+                        </td>
+                        <td class="px-4 py-3" th:text="${#strings.listJoin(row.exceptions.![indonesianName], ', ')}">Foto kosong</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <h3 class="text-lg font-medium text-gray-900">Daftar Periksa</h3>
+        <p th:if="${#lists.isEmpty(rows)}" class="text-sm text-gray-500">Tidak ada aset pada tahun ini.</p>
+        <div th:each="row : ${rows}" data-testid="checklist-card" th:data-code="${row.asset.assetCode}" class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <p class="font-medium text-gray-900" th:text="${row.asset.displayName}">AST</p>
+                    <p class="text-xs text-gray-500"
+                       th:text="${row.asset.category.name + ', SN ' + (row.asset.serialNumber ?: '-')}">Kategori</p>
+                </div>
+                <span data-testid="checklist-result" class="px-2 py-1 text-xs font-medium rounded-full"
+                      th:classappend="${row.verification == null} ? 'bg-yellow-100 text-yellow-800' : (${row.verification.result.name() == 'FOUND'} ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800')"
+                      th:text="${row.verification == null} ? 'Belum diperiksa' : (${row.verification.result.name() == 'FOUND'} ? 'Ditemukan' : 'Tidak ditemukan')">Belum diperiksa</span>
+            </div>
+            <form sec:authorize="hasAuthority('ASSET_EDIT')" th:action="@{/assets/verification/{id}(id=${row.asset.id})}" method="post"
+                  class="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                <input type="hidden" name="year" th:value="${year}">
+                <div>
+                    <label class="block text-gray-700 mb-1" th:for="${'date-' + row.asset.id}">Tanggal</label>
+                    <input type="date" name="verifiedDate" required th:id="${'date-' + row.asset.id}"
+                           th:value="${row.verification != null ? row.verification.verifiedDate : (today.year == year ? today : null)}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                </div>
+                <div>
+                    <label class="block text-gray-700 mb-1" th:for="${'result-' + row.asset.id}">Hasil</label>
+                    <select name="result" required th:id="${'result-' + row.asset.id}" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                        <option value="FOUND" th:selected="${row.verification != null and row.verification.result.name() == 'FOUND'}">Ditemukan</option>
+                        <option value="NOT_FOUND" th:selected="${row.verification != null and row.verification.result.name() == 'NOT_FOUND'}">Tidak ditemukan</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-gray-700 mb-1" th:for="${'condition-' + row.asset.id}">Kondisi</label>
+                    <select name="condition" th:id="${'condition-' + row.asset.id}" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                        <option value="">-- Pilih --</option>
+                        <option th:each="c : ${conditions}" th:value="${c.name()}" th:text="${c.indonesianName}"
+                                th:selected="${row.asset.condition == c}">Baik</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-gray-700 mb-1" th:for="${'location-' + row.asset.id}">Lokasi</label>
+                    <input type="text" name="location" maxlength="100" th:id="${'location-' + row.asset.id}" th:value="${row.asset.location}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                </div>
+                <div>
+                    <label class="block text-gray-700 mb-1" th:for="${'custodian-' + row.asset.id}">Pemegang</label>
+                    <input type="text" name="custodian" maxlength="150" th:id="${'custodian-' + row.asset.id}" th:value="${row.asset.custodian}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                </div>
+                <div>
+                    <label class="block text-gray-700 mb-1" th:for="${'notes-' + row.asset.id}">Catatan</label>
+                    <input type="text" name="notes" maxlength="500" th:id="${'notes-' + row.asset.id}"
+                           th:value="${row.verification?.notes}" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                </div>
+                <div class="md:col-span-3 flex justify-end">
+                    <button type="submit" data-testid="btn-verify" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">Simpan Hasil</button>
+                </div>
+            </form>
+        </div>
+    </section>
+</body>
+</html>

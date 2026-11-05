@@ -1,11 +1,13 @@
 package com.artivisi.accountingfinance.controller.api;
 
 import com.artivisi.accountingfinance.entity.AssetCategory;
+import com.artivisi.accountingfinance.entity.AssetCondition;
 import com.artivisi.accountingfinance.entity.AssetStatus;
 import com.artivisi.accountingfinance.entity.ChartOfAccount;
 import com.artivisi.accountingfinance.entity.DepreciationEntry;
 import com.artivisi.accountingfinance.entity.DepreciationEntryStatus;
 import com.artivisi.accountingfinance.entity.DepreciationMethod;
+import com.artivisi.accountingfinance.entity.DisposalType;
 import com.artivisi.accountingfinance.entity.FixedAsset;
 import com.artivisi.accountingfinance.security.LogSanitizer;
 import com.artivisi.accountingfinance.service.AssetCategoryService;
@@ -141,8 +143,9 @@ public class FixedAssetApiController {
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('SCOPE_assets:write') and hasAuthority('ASSET_EDIT')")
     @Operation(summary = "Update a fixed asset",
-            description = "Assets with recorded depreciation only accept name, description, "
-                    + "location, serialNumber, and notes changes. Funding/purchase linkage is immutable.")
+            description = "Assets with recorded depreciation only accept name, description, notes and identity "
+                    + "changes (brand, model, serialNumber, custodian, location, condition). An absent identity "
+                    + "field clears it. Funding/purchase linkage is immutable. Refused while a disposal draft exists.")
     @ApiResponse(responseCode = "200", description = "Asset updated")
     @ApiResponse(responseCode = "404", description = "Asset not found")
     @ApiResponse(responseCode = "409", description = "Asset state does not allow the update")
@@ -162,7 +165,9 @@ public class FixedAssetApiController {
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('SCOPE_assets:write') and hasAuthority('ASSET_DELETE')")
     @Operation(summary = "Delete a fixed asset",
-            description = "Only allowed for assets without depreciation history and without a purchase transaction.")
+            description = "Only for a registration that never reached the ledger: no depreciation history, no linked "
+                    + "purchase, no posted acquisition, no disposal record. Its acquisition DRAFT is removed too. "
+                    + "Anything else leaves through POST /{id}/disposal.")
     @ApiResponse(responseCode = "204", description = "Asset deleted")
     @ApiResponse(responseCode = "404", description = "Asset not found")
     @ApiResponse(responseCode = "409", description = "Asset state does not allow deletion")
@@ -284,6 +289,10 @@ public class FixedAssetApiController {
         asset.setInvoiceNumber(request.invoiceNumber());
         asset.setSerialNumber(request.serialNumber());
         asset.setLocation(request.location());
+        asset.setBrand(request.brand());
+        asset.setModel(request.model());
+        asset.setCustodian(request.custodian());
+        asset.setCondition(request.condition());
         asset.setNotes(request.notes());
         // null means "take the category default" (resolved in FixedAsset.initializeFromCategory);
         // for updates the category default is applied here since update() does not re-initialize
@@ -337,6 +346,17 @@ public class FixedAssetApiController {
 
             @Size(max = 100, message = "Lokasi maksimal 100 karakter")
             String location,
+
+            @Size(max = 100, message = "Merek maksimal 100 karakter")
+            String brand,
+
+            @Size(max = 100, message = "Model maksimal 100 karakter")
+            String model,
+
+            @Size(max = 150, message = "Pemegang maksimal 150 karakter")
+            String custodian,
+
+            AssetCondition condition,
 
             String notes,
 
@@ -411,6 +431,16 @@ public class FixedAssetApiController {
             String invoiceNumber,
             String serialNumber,
             String location,
+            String brand,
+            String model,
+            String custodian,
+            AssetCondition condition,
+            LocalDate lastVerifiedDate,
+            boolean hasPhoto,
+            LocalDate disposalDate,
+            DisposalType disposalType,
+            BigDecimal disposalProceeds,
+            BigDecimal gainLossOnDisposal,
             String notes,
             DepreciationMethod depreciationMethod,
             Integer usefulLifeMonths,
@@ -444,6 +474,16 @@ public class FixedAssetApiController {
                     asset.getInvoiceNumber(),
                     asset.getSerialNumber(),
                     asset.getLocation(),
+                    asset.getBrand(),
+                    asset.getModel(),
+                    asset.getCustodian(),
+                    asset.getCondition(),
+                    asset.getLastVerifiedDate(),
+                    asset.getPhotoDocument() != null,
+                    asset.getDisposalDate(),
+                    asset.getDisposalType(),
+                    asset.getDisposalProceeds(),
+                    asset.getGainLossOnDisposal(),
                     asset.getNotes(),
                     asset.getDepreciationMethod(),
                     asset.getUsefulLifeMonths(),

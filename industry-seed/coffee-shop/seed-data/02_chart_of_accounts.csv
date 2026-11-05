@@ -80,8 +80,10 @@ account_code,account_name,account_type,parent_code,normal_balance,active,is_perm
 7,PENDAPATAN LAIN-LAIN,REVENUE,,CREDIT,true,false,,
 7.1,Pendapatan Lain-lain,REVENUE,7,CREDIT,true,false,,
 7.1.01,Pendapatan Bunga,REVENUE,7.1,CREDIT,true,false,,
+7.1.02,Laba Penjualan Aset,REVENUE,7.1,CREDIT,true,false,,
 8,BEBAN LAIN-LAIN,EXPENSE,,DEBIT,true,false,,
 8.1,Beban Lain-lain,EXPENSE,8,DEBIT,true,false,,
 8.1.01,Beban Bunga,EXPENSE,8.1,DEBIT,true,false,DEDUCTIBLE,false
 8.1.02,Beban Denda,EXPENSE,8.1,DEBIT,true,false,NON_DEDUCTIBLE,false
 8.1.03,Beban PPh Final UMKM,EXPENSE,8.1,DEBIT,true,false,NON_DEDUCTIBLE,false
+8.1.04,Rugi Penjualan Aset,EXPENSE,8.1,DEBIT,true,false,DEDUCTIBLE,false

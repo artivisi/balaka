@@ -117,7 +117,9 @@ public class UserManualGenerator {
                 new Section("pencatatan-aset", "Pencatatan Aset", "03-aset-tetap.md", List.of("assets-list", "assets-form")),
                 new Section("jadwal-depresiasi", "Jadwal Depresiasi", "03-aset-tetap.md", List.of("assets-depreciation", "reports-depreciation")),
                 new Section("aset-tetap-laporan-penyusutan", "Laporan Penyusutan", "03-aset-tetap.md", List.of()),
-                new Section("aset-tetap-pelepasan-aset-disposal", "Pelepasan Aset (Disposal)", "03-aset-tetap.md", List.of()),
+                new Section("aset-tetap-identitas-aset", "Identitas Aset", "03-aset-tetap.md", List.of()),
+                new Section("aset-tetap-verifikasi-tahunan", "Verifikasi Tahunan", "03-aset-tetap.md", List.of("assets-verification")),
+                new Section("aset-tetap-pelepasan-aset-disposal", "Pelepasan Aset (Disposal)", "03-aset-tetap.md", List.of("assets-disposal-form", "assets-disposal-record")),
                 new Section("aset-tetap-regulasi-indonesia", "Regulasi Indonesia", "03-aset-tetap.md", List.of()),
                 new Section("aset-tetap-lihat-juga", "Lihat Juga", "03-aset-tetap.md", List.of())
             )),

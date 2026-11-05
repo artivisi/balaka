@@ -90,4 +90,10 @@ public interface DepreciationEntryRepository extends JpaRepository<DepreciationE
             @Param("endDate") LocalDate endDate);
 
     void deleteByFixedAsset(FixedAsset fixedAsset);
+
+    @Query("SELECT e FROM DepreciationEntry e WHERE e.fixedAsset.id = :assetId")
+    List<DepreciationEntry> findByAssetId(@Param("assetId") UUID assetId);
+
+    @Query("SELECT e FROM DepreciationEntry e JOIN FETCH e.fixedAsset WHERE e.status = 'POSTED'")
+    List<DepreciationEntry> findAllPostedWithAsset();
 }

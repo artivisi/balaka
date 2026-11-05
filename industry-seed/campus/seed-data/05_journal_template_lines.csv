@@ -91,3 +91,11 @@ Setor PPh Dipotong,1,,HUTANG_PPH,DEBIT,amount,Hutang PPh
 Setor PPh Dipotong,2,,BANK,CREDIT,amount,Pembayaran dari bank
 Pemotongan PPh 23 oleh Pelanggan,1,,KREDIT_PPH23,DEBIT,amount,Kredit Pajak PPh 23
 Pemotongan PPh 23 oleh Pelanggan,2,,PIUTANG,CREDIT,amount,Piutang usaha
+Pelepasan Aset Tetap,1,,KAS_PENERIMAAN,DEBIT,disposalProceeds,Hasil penjualan aset
+Pelepasan Aset Tetap,2,,AKUM_PENYUSUTAN,DEBIT,accumulatedDepreciation,Hapus akumulasi penyusutan
+Pelepasan Aset Tetap,3,,RUGI_PELEPASAN,DEBIT,lossOnDisposal,Rugi pelepasan aset
+Pelepasan Aset Tetap,4,,ASET_TETAP,CREDIT,assetCost,Hapus nilai perolehan aset
+Pelepasan Aset Tetap,5,,LABA_PELEPASAN,CREDIT,gainOnDisposal,Laba pelepasan aset
+Penghapusan Aset Tetap,1,,AKUM_PENYUSUTAN,DEBIT,accumulatedDepreciation,Hapus akumulasi penyusutan
+Penghapusan Aset Tetap,2,,RUGI_PELEPASAN,DEBIT,lossOnDisposal,Rugi pelepasan aset
+Penghapusan Aset Tetap,3,,ASET_TETAP,CREDIT,assetCost,Hapus nilai perolehan aset

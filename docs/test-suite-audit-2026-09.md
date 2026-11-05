@@ -61,7 +61,7 @@ UI fixes (selection): date inputs rendered empty on edit forms (milestone, payme
 ## Open Decisions (not changed)
 
 Systemic:
-- **Hard-coded template UUIDs** do not exist after seed import (IDs regenerated): invoice "Tandai Lunas" (`e0000000-…-010`) → 404; payroll posting (`-014`) falls back to lookup by name (violates no-fallback); **asset disposal (`-017`) broken everywhere** — asset stays ACTIVE. Needs a template-resolution design (per pack), plus disposal proceeds account UI and gain/loss accounts.
+- **Hard-coded template UUIDs** do not exist after seed import (IDs regenerated): invoice "Tandai Lunas" (`e0000000-…-010`) → 404; payroll posting (`-014`) falls back to lookup by name (violates no-fallback); asset disposal (`-017`) fixed by #49 (templates resolved by name, in all four packs). Needs a template-resolution design (per pack), plus disposal proceeds account UI and gain/loss accounts.
 - **Encrypted-column equality lookups**: duplicate-NPWP check never matches with encryption on (AES-GCM random IV). Needs blind index (keyed hash column + migration); check other encrypted columns.
 - **API token validation** bcrypt-compares against every active token per request (ApiAuthorizationTest 692 s) → indexed token id/prefix.
 - **Company identity**: importing a pack wipes company name/NPWP (COA truncate cascades; `getConfig()` recreates "My Company" — a fallback); setup wizard never asks for a company name.
@@ -70,7 +70,7 @@ Accounting integrity:
 - `voidTransaction` ignores fiscal period — voiding in a closed period changes its reports.
 - Journal/transaction numbers use the posting year, not the transaction date's year.
 - Depreciation entries computed from posted state at generation time → stale values when several months are pending (scheduler catch-up); straight-line can drop below residual.
-- Acquisition DRAFT not linked to the asset (posted-acquisition asset deletable; dangling draft on delete). Edits after depreciation silently ignore cost/useful-life changes.
+- Acquisition DRAFT not linked to the asset: fixed by #49 for delete and disposal, through `source_document_type = ASSET`. Edits after depreciation silently ignore cost/useful-life changes.
 - Posting a template with no lines may create a POSTED transaction without journal entries (unverified).
 - Invoice/bill payments post no journal (missing bridge, see DRAFT-by-default memory); bill "Tandai Lunas" sets PAID without a payment record; aging "as of" is not historical.
 - Amortization: schedule with a skipped entry never reaches COMPLETED; batch runs in one transaction (one failure likely rolls back all); batch ignores post day.

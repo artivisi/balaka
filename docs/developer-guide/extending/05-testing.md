@@ -152,6 +152,10 @@ Period-scoped data (transactions, payroll runs, fiscal periods, schedules) goes 
 | 2163-2171, 2009-01..03 (integration DB; 2009: the alert needs an ended period) | PayrollReconciliationServiceTest |
 | 2011, 2013 (past: the journal-entry API rejects future dates; payroll list sorts newest first, so later years push PayrollControllerFunctionalTest off page 1) | PayrollReconciliationApiTest |
 | 2014 (past, same reason) | PayrollBonusFunctionalTest |
+| 2172-2179 (integration DB) | AssetDisposalServiceTest |
+| 2180-2185 (integration DB) | AssetVerificationServiceTest |
+| 2185 | AssetRegisterApiTest |
+| 2186 | FixedAssetRegisterFunctionalTest |
 | 2031–2034 | PayrollControllerFunctionalTest, ServicePayrollComprehensiveTest |
 | 2040, 2042 | TaxFilingApiTest |
 | 2043 | ServiceReportsTest |

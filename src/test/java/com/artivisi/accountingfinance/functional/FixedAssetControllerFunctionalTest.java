@@ -605,7 +605,7 @@ class FixedAssetControllerFunctionalTest extends PlaywrightTestBase {
         assertThat(response.headers().get("location")).isEqualTo(baseUrl() + "/assets/" + asset.getId());
         navigateTo("/assets/" + asset.getId());
         waitForPageLoad();
-        assertThat(page.getByTestId("flash-error")).hasText("Aset dengan riwayat penyusutan tidak dapat dihapus");
+        assertThat(page.getByTestId("flash-error")).hasText("Aset dengan riwayat penyusutan tidak dapat dihapus. Gunakan menu Lepas Aset.");
         assertThat(assetRepository.findById(asset.getId())).isPresent();
     }
 
@@ -631,15 +631,20 @@ class FixedAssetControllerFunctionalTest extends PlaywrightTestBase {
         assertThat(section).containsText("Rp 500,000");
         assertThat(section).containsText("Rp 11,500,000");
         assertThat(page.locator("#disposalType option")).hasText(new String[]{
-                "-- Pilih Tipe --", "Dijual", "Dihapuskan (Write-off)", "Dipindahkan"});
+                "-- Pilih Tipe --", "Dijual", "Dihibahkan", "Dihapuskan (Write-off)", "Dipindahkan"});
         assertThat(page.locator("#disposalDate")).hasValue(LocalDate.now().toString());
+        assertThat(page.locator("#disposal-prompt")).containsText("Pilih tipe pelepasan");
 
+        page.locator("#disposalType").selectOption("SOLD");
+        assertThat(page.locator("#disposal-prompt")).containsText("Isi hasil penjualan");
         page.locator("#proceeds").fill("13000000");
-        assertThat(page.locator("#gainLossPreview")).hasText("Rp 1.500.000");
-        assertThat(page.locator("#gainLossPreview")).hasClass(Pattern.compile(".*text-green-600.*"));
+        assertThat(page.locator("#effect-gain-loss")).hasText("Rp 1,500,000");
+        assertThat(page.locator("#effect-gain-loss")).hasClass(Pattern.compile(".*text-green-600.*"));
         page.locator("#proceeds").fill("10000000");
-        assertThat(page.locator("#gainLossPreview")).hasText("Rp -1.500.000");
-        assertThat(page.locator("#gainLossPreview")).hasClass(Pattern.compile(".*text-red-600.*"));
+        assertThat(page.locator("#effect-gain-loss")).hasText("Rp -1,500,000");
+        assertThat(page.locator("#effect-gain-loss")).hasClass(Pattern.compile(".*text-red-600.*"));
+        page.locator("#disposalType").selectOption("GIFTED");
+        assertThat(page.locator("#effect-gain-loss")).hasText("Rp -11,500,000");
     }
 
     // ==================== authorization ====================
@@ -664,7 +669,7 @@ class FixedAssetControllerFunctionalTest extends PlaywrightTestBase {
         assertThat(page.locator("#btn-new-asset")).hasCount(0);
 
         String base = "/assets/" + asset.getId();
-        for (String path : List.of("/assets/new", base + "/edit", base + "/dispose", "/assets/depreciation")) {
+        for (String path : List.of("/assets/new", base + "/edit", base + "/dispose", base + "/dispose/preview", "/assets/depreciation")) {
             assertThat(page.request().get(baseUrl() + path).status()).as("GET " + path).isEqualTo(403);
         }
         FormData form = FormData.create().set("_csrf", csrf())
@@ -672,8 +677,10 @@ class FixedAssetControllerFunctionalTest extends PlaywrightTestBase {
                 .set("purchaseDate", "2051-01-10").set("purchaseCost", "1").set("depreciationMethod", "STRAIGHT_LINE")
                 .set("usefulLifeMonths", "12").set("residualValue", "0").set("depreciationStartDate", "2051-01-01")
                 .set("fundingAccount", account(BANK).getId().toString())
-                .set("disposalType", "SOLD").set("disposalDate", "2051-02-01").set("period", "2051-01");
-        for (String path : List.of("/assets/new", base, base + "/delete", base + "/dispose",
+                .set("disposalType", "SOLD").set("disposalDate", "2051-02-01").set("period", "2051-01")
+                .set("year", "2051").set("verifiedDate", "2051-02-01").set("result", "NOT_FOUND");
+        for (String path : List.of("/assets/new", base, base + "/delete", base + "/dispose", base + "/photo/delete",
+                "/assets/verification/" + asset.getId(), "/assets/disposals/" + asset.getId() + "/cancel",
                 "/assets/depreciation/generate", "/assets/depreciation/" + pending.getId() + "/post",
                 "/assets/depreciation/" + pending.getId() + "/skip", "/assets/depreciation/post-all")) {
             APIResponse response = page.request().post(baseUrl() + path,

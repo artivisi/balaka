@@ -56,6 +56,7 @@ account_code,account_name,account_type,parent_code,normal_balance,active,is_perm
 4.2.01,Pendapatan Bunga,REVENUE,4.2,CREDIT,true,false,,
 4.2.02,Pendapatan Lain-lain,REVENUE,4.2,CREDIT,true,false,,
 4.2.03,Cashback Marketplace,REVENUE,4.2,CREDIT,true,false,,
+4.2.04,Laba Penjualan Aset,REVENUE,4.2,CREDIT,true,false,,
 5,BEBAN,EXPENSE,,DEBIT,true,false,,
 5.1,Beban Pokok Penjualan,EXPENSE,5,DEBIT,true,false,,
 5.1.01,HPP - Harga Pokok Penjualan,EXPENSE,5.1,DEBIT,true,false,DEDUCTIBLE,false
@@ -83,6 +84,7 @@ account_code,account_name,account_type,parent_code,normal_balance,active,is_perm
 5.5,Beban Lain-lain,EXPENSE,5,DEBIT,true,false,,
 5.5.01,Beban Admin Bank,EXPENSE,5.5,DEBIT,true,false,DEDUCTIBLE,false
 5.5.02,Beban Bunga,EXPENSE,5.5,DEBIT,true,false,DEDUCTIBLE,false
+5.5.03,Rugi Penjualan Aset,EXPENSE,5.5,DEBIT,true,false,DEDUCTIBLE,false
 5.8,Beban Karyawan & Koreksi Fiskal,EXPENSE,5,DEBIT,true,false,,
 5.8.01,Beban Bonus,EXPENSE,5.8,DEBIT,true,false,DEDUCTIBLE,false
 5.8.02,Beban THR,EXPENSE,5.8,DEBIT,true,false,DEDUCTIBLE,false

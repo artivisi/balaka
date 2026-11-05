@@ -41,3 +41,5 @@ Jurnal Penutup Tahun,TRANSFER,OPERATING,SIMPLE,"Template sistem untuk jurnal pen
 Pembayaran dengan Pemotongan PPh,PAYMENT,OPERATING,DETAILED,Pembayaran ke penerima dengan pemotongan PPh 21/23/26,false,true,1,0,,,,,,,
 Setor PPh Dipotong,PAYMENT,OPERATING,SIMPLE,Penyetoran PPh 21/23/26 hasil pemotongan ke kas negara,false,true,1,0,,,,,,,
 Pemotongan PPh 23 oleh Pelanggan,RECEIPT,OPERATING,SIMPLE,Kredit pajak atas PPh 23 yang dipotong pelanggan dari piutang invoice,false,true,1,0,,,,,,,
+Pelepasan Aset Tetap,INCOME,INVESTING,DETAILED,Penjualan aset tetap. Dibuat dari menu Pelepasan Aset.,false,true,1,0,,,,,,,
+Penghapusan Aset Tetap,EXPENSE,INVESTING,DETAILED,"Hibah, penghapusan, atau pemindahan aset tetap tanpa hasil penjualan. Dibuat dari menu Pelepasan Aset.",false,true,1,0,,,,,,,

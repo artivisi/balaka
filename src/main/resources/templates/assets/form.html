@@ -165,6 +165,36 @@
                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
                                    placeholder="SN123456789">
                         </div>
+
+                        <div>
+                            <label for="brand" class="block text-sm font-medium text-gray-700 mb-1">Merek</label>
+                            <input type="text" id="brand" th:field="*{brand}"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                                   placeholder="Lenovo">
+                        </div>
+
+                        <div>
+                            <label for="model" class="block text-sm font-medium text-gray-700 mb-1">Model</label>
+                            <input type="text" id="model" th:field="*{model}"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                                   placeholder="ThinkPad T14">
+                        </div>
+
+                        <div>
+                            <label for="custodian" class="block text-sm font-medium text-gray-700 mb-1">Pemegang</label>
+                            <input type="text" id="custodian" th:field="*{custodian}"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                                   placeholder="Nama orang atau unit">
+                        </div>
+
+                        <div>
+                            <label for="condition" class="block text-sm font-medium text-gray-700 mb-1">Kondisi</label>
+                            <select id="condition" th:field="*{condition}"
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
+                                <option value="">-- Belum diisi --</option>
+                                <option th:each="c : ${conditions}" th:value="${c.name()}" th:text="${c.indonesianName}">Baik</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 

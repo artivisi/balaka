@@ -95,6 +95,38 @@ class SeedPackFiscalAccountsTest {
                         "Pemotongan PPh 23 oleh Pelanggan,2,,PIUTANG,CREDIT,amount,Piutang usaha");
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"it-service", "online-seller", "coffee-shop", "campus"})
+    @DisplayName("Asset disposal: every pack has one gain and one loss account and both templates, not as system templates")
+    void assetDisposalSeed(String pack) throws IOException {
+        Path seed = Path.of("industry-seed", pack, "seed-data");
+        List<String[]> accounts = Files.readAllLines(seed.resolve("02_chart_of_accounts.csv")).stream().skip(1)
+                .map(l -> l.split(",", -1)).toList();
+        assertThat(accounts).filteredOn(r -> "Laba Penjualan Aset".equals(r[NAME])).singleElement()
+                .satisfies(r -> assertThat(r[TYPE]).isEqualTo("REVENUE"));
+        assertThat(accounts).filteredOn(r -> "Rugi Penjualan Aset".equals(r[NAME])).singleElement()
+                .satisfies(r -> {
+                    assertThat(r[TYPE]).isEqualTo("EXPENSE");
+                    assertThat(r[TREATMENT]).isEqualTo("DEDUCTIBLE");
+                });
+        List<String> templates = Files.readAllLines(seed.resolve("04_journal_templates.csv"));
+        for (String name : List.of("Pelepasan Aset Tetap", "Penghapusan Aset Tetap")) {
+            assertThat(templates).filteredOn(l -> l.startsWith(name + ",")).singleElement()
+                    .satisfies(l -> assertThat(l).contains(",false,true,1,0,"));
+        }
+        List<String> lines = Files.readAllLines(seed.resolve("05_journal_template_lines.csv"));
+        assertThat(lines).filteredOn(l -> l.startsWith("Pelepasan Aset Tetap,")).containsExactly(
+                "Pelepasan Aset Tetap,1,,KAS_PENERIMAAN,DEBIT,disposalProceeds,Hasil penjualan aset",
+                "Pelepasan Aset Tetap,2,,AKUM_PENYUSUTAN,DEBIT,accumulatedDepreciation,Hapus akumulasi penyusutan",
+                "Pelepasan Aset Tetap,3,,RUGI_PELEPASAN,DEBIT,lossOnDisposal,Rugi pelepasan aset",
+                "Pelepasan Aset Tetap,4,,ASET_TETAP,CREDIT,assetCost,Hapus nilai perolehan aset",
+                "Pelepasan Aset Tetap,5,,LABA_PELEPASAN,CREDIT,gainOnDisposal,Laba pelepasan aset");
+        assertThat(lines).filteredOn(l -> l.startsWith("Penghapusan Aset Tetap,")).containsExactly(
+                "Penghapusan Aset Tetap,1,,AKUM_PENYUSUTAN,DEBIT,accumulatedDepreciation,Hapus akumulasi penyusutan",
+                "Penghapusan Aset Tetap,2,,RUGI_PELEPASAN,DEBIT,lossOnDisposal,Rugi pelepasan aset",
+                "Penghapusan Aset Tetap,3,,ASET_TETAP,CREDIT,assetCost,Hapus nilai perolehan aset");
+    }
+
     private void assertAccount(Map<String, String[]> byCode, String code, String name, String type, String treatment) {
         assertThat(byCode).containsKey(code);
         String[] row = byCode.get(code);

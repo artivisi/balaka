@@ -152,7 +152,9 @@ class ApiAuthorizationTest extends PlaywrightTestBase {
                 "/api/payroll/reconciliation?year=2041", "/api/payroll/reconciliation/2041-01",
                 "/api/fiscal-adjustments?year=" + ADJUSTMENT_YEAR, "/api/templates",
                 "/api/bank-reconciliation/parser-configs", "/api/drafts/templates", "/api/drafts/accounts",
-                "/api/accounts", "/api/fixed-assets", "/api/tax-filings", "/api/bills", "/api/analysis/reports",
+                "/api/accounts", "/api/fixed-assets", "/api/fixed-assets/disposals?year=2041",
+                "/api/fixed-assets/verification?year=2041", "/api/fixed-assets/verification/exceptions?year=2041",
+                "/api/fixed-assets/movement?year=2041", "/api/fixed-assets/register-movements?year=2041", "/api/tax-filings", "/api/bills", "/api/analysis/reports",
                 "/api/withholding/payees", "/api/withholding/payments?year=2041&month=1",
                 "/api/withholding/deposits?year=2041&month=1", "/api/withholding/masa-status?year=2041&month=1",
                 "/api/withholding/undocumented-service-payments?year=2041&month=1",
@@ -493,6 +495,11 @@ class ApiAuthorizationTest extends PlaywrightTestBase {
                 all(Permission.ASSET_DEPRECIATE)));
         c.add(new WriteCase("POST", "/api/fixed-assets/depreciation/post-all?period=2041-01", none(),
                 all(Permission.ASSET_DEPRECIATE)));
+        c.add(new WriteCase("POST", "/api/fixed-assets" + r + "/disposal", data(Map.of("type", "WRITTEN_OFF",
+                "date", "2041-01-31", "reason", "Rusak")), all(Permission.ASSET_DISPOSE)));
+        c.add(new WriteCase("POST", "/api/fixed-assets/disposals" + r + "/cancel", none(), all(Permission.ASSET_DISPOSE)));
+        c.add(new WriteCase("POST", "/api/fixed-assets" + r + "/verification", data(Map.of("year", 2041,
+                "date", "2041-01-31", "result", "NOT_FOUND")), all(Permission.ASSET_EDIT)));
 
         // bills
         c.add(new WriteCase("POST", "/api/bills", data(Map.of("vendorName", "Vendor " + m, "billDate", "2026-03-01",
