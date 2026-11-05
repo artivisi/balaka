@@ -49,6 +49,7 @@ Indonesian accounting application for small businesses. Spring Boot 4.0 + Thymel
 - **Sales Tax Chain (issue #44):** ✅ Complete (invoice to faktur, receipt, bupot; exceptions; monthly revenue to SPT Masa PPN DPP reconciliation; `SalesTaxChainService`, `/sales-tax-chain`, `/api/sales-tax-chain`, V010)
 - **Payroll single source (issue #47):** ✅ Complete (bonus/THR rows in the run, journal lines 5.8.01/5.8.02, PPh 21 refund as debit, 1721-A1 row 8c, salary-journal warnings both ways, `PayrollReconciliationService` + `/payroll/reconciliation`, alert `PAYROLL_UNPOSTED`, TER rate table corrected to the PP 58/2023 lampiran)
 - **Fixed-asset register (issue #49):** ✅ Complete (brand, model, custodian, condition, photo; yearly checklist and exceptions at `/assets/verification`; disposal record with DRAFT journal and tax effect, asset DISPOSED on post; delete only for unposted registrations; `AssetRegisterQueryService` for #45 and #51). V012, test V917. Details in `docs/feature-requests-2026-11.md`
+- **Evidence completeness (issue #48):** ✅ Complete (evidence rules by account/template, missing-evidence report, contract register, monthly bank statement archive with 10-year retention and alert, yearly audit pack ZIP, `/api/evidence` read API, V013)
 - **Test Suite Audit 2026-09:** 🔄 In progress (~80 classes rewritten to verify real behavior; web + API authorization hardening; V006/V007). Status, resume checklist, deploy checklist, release-notes draft and open decisions: `docs/test-suite-audit-2026-09.md`. Test rules + reserved test years: `docs/developer-guide/extending/05-testing.md`
 - See `docs/06-implementation-plan.md` for full plan
 
@@ -69,7 +70,7 @@ Indonesian accounting application for small businesses. Spring Boot 4.0 + Thymel
 | Services | `src/main/java/.../service/` |
 | Controllers | `src/main/java/.../controller/` |
 | Templates | `src/main/resources/templates/` |
-| Migrations (Production) | `src/main/resources/db/migration/` (V001-V011) |
+| Migrations (Production) | `src/main/resources/db/migration/` (V001-V013) |
 | Test Migrations (Integration) | `src/test/resources/db/test/integration/` (V900-V916) |
 | Industry Seed Packs | `industry-seed/{it-service,online-seller,coffee-shop,campus}/` (loaded via DataImportService) |
 | API Reference (developer) | `docs/developer-guide/api/*.md` |
@@ -166,7 +167,7 @@ failures indistinguishable from real ones; `run-tests.sh` flags it, and
 ## Database
 
 - PostgreSQL via Testcontainers (tests)
-- Production migrations: V001-V011 (V001 security, V002 core schema, V003 feature schema, V004 seed data, V005 tax filing register, V006 API scope columns widened + new scopes for existing device tokens, V007 journal_entries.line_order, V008 fiscal treatment + benefit-in-kind — V006-V008 not yet deployed, V009 withholding, V010 sales tax chain, V011 payroll bonus/THR)
+- Production migrations: V001-V013 (V001 security, V002 core schema, V003 feature schema, V004 seed data, V005 tax filing register, V006 API scope columns widened + new scopes for existing device tokens, V007 journal_entries.line_order, V008 fiscal treatment + benefit-in-kind — V006-V008 not yet deployed, V009 withholding, V010 sales tax chain, V011 payroll bonus/THR, V012 fixed-asset register, V013 evidence completeness)
 - **Migration caveat:** Modifying already-applied migrations requires manual schema fix on production + checksum update in `flyway_schema_history`. See `docs/03-operations-guide.md` Troubleshooting section.
 - Test data:
   - Functional tests: NO migrations - all data loaded via `@TestConfiguration` initializers from industry-seed/ packs

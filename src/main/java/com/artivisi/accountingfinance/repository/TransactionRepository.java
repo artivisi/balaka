@@ -138,4 +138,19 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
                                                  @Param("end") LocalDate end);
 
     List<Transaction> findByStatusAndTransactionDateBetween(TransactionStatus status, LocalDate start, LocalDate end);
+
+    /** Posted transactions in a period for the evidence check; year-end closing entries carry no outside evidence. */
+    @Query("SELECT t FROM Transaction t JOIN FETCH t.journalTemplate jt LEFT JOIN FETCH jt.originalTemplate "
+            + "LEFT JOIN FETCH t.contract c LEFT JOIN FETCH c.document "
+            + "WHERE t.status = com.artivisi.accountingfinance.enums.TransactionStatus.POSTED "
+            + "AND t.transactionDate BETWEEN :from AND :to AND (t.closingEntry IS NULL OR t.closingEntry = false) "
+            + "ORDER BY t.transactionDate, t.transactionNumber")
+    List<Transaction> findPostedForEvidence(@Param("from") LocalDate from, @Param("to") LocalDate to);
+
+    @Query("SELECT t FROM Transaction t JOIN FETCH t.journalTemplate jt LEFT JOIN FETCH jt.originalTemplate "
+            + "LEFT JOIN FETCH t.contract c LEFT JOIN FETCH c.document WHERE t.id = :id")
+    Optional<Transaction> findForEvidence(@Param("id") UUID id);
+
+    @Query("SELECT t FROM Transaction t WHERE t.contract.id = :contractId ORDER BY t.transactionDate, t.transactionNumber")
+    List<Transaction> findByContractId(@Param("contractId") UUID contractId);
 }

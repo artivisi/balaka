@@ -46,6 +46,7 @@ public class AlertService {
     private final ProjectProfitabilityService projectProfitabilityService;
     private final ProjectRepository projectRepository;
     private final PayrollRunRepository payrollRunRepository;
+    private final BankStatementArchiveService bankStatementArchiveService;
 
     // --- CRUD ---
 
@@ -128,6 +129,7 @@ public class AlertService {
             case COLLECTION_SLOWDOWN -> evaluateCollectionSlowdown(rule);
             case CLIENT_CONCENTRATION -> evaluateClientConcentration(rule);
             case PAYROLL_UNPOSTED -> evaluatePayrollUnposted(rule);
+            case BANK_STATEMENT_MISSING -> evaluateBankStatementMissing(rule);
         };
     }
 
@@ -325,6 +327,31 @@ public class AlertService {
         event.setSeverity(AlertSeverity.WARNING);
         event.setMessage(String.format("Payroll sudah disetujui tetapi belum diposting untuk periode: %s",
                 String.join(", ", periods)));
+        return event;
+    }
+
+    /** Threshold: days after the month end. One event lists every account with missing months. */
+    private AlertEvent evaluateBankStatementMissing(AlertRule rule) {
+        List<BankStatementArchiveService.MissingStatement> missing =
+                bankStatementArchiveService.missingStatements(LocalDate.now(), rule.getThreshold().intValue());
+        if (missing.isEmpty()) {
+            return null;
+        }
+        java.util.Map<UUID, List<BankStatementArchiveService.MissingStatement>> byAccount = new java.util.LinkedHashMap<>();
+        for (BankStatementArchiveService.MissingStatement m : missing) {
+            byAccount.computeIfAbsent(m.bankAccountId(), k -> new java.util.ArrayList<>()).add(m);
+        }
+        List<String> parts = byAccount.values().stream().map(list -> {
+            BankStatementArchiveService.MissingStatement first = list.getFirst();
+            String months = list.size() <= 6
+                    ? String.join(", ", list.stream().map(m -> m.month().toString()).toList())
+                    : list.size() + " bulan, paling awal " + first.month() + ", paling akhir " + list.getLast().month();
+            return first.bankName() + " " + first.accountName() + ": " + months;
+        }).toList();
+        AlertEvent event = new AlertEvent();
+        event.setAlertRule(rule);
+        event.setSeverity(AlertSeverity.WARNING);
+        event.setMessage("Rekening koran belum diarsipkan. " + String.join("; ", parts));
         return event;
     }
 

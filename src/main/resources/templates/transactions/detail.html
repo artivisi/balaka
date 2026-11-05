@@ -422,6 +422,19 @@
                 </div>
             </div>
 
+            <!-- Evidence Section: refreshed when documents change (HX-Trigger evidence-changed) -->
+            <div id="evidence-section" sec:authorize="hasAuthority('EVIDENCE_VIEW')" class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+                <div class="p-6 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">Kelengkapan Bukti</h2>
+                </div>
+                <div class="p-6"
+                     hx-get th:hx-get="@{/evidence/transactions/{id}(id=${transaction.id})}"
+                     hx-trigger="load, evidence-changed from:body"
+                     hx-swap="innerHTML">
+                    <p class="text-sm text-gray-500">Memuat kelengkapan bukti...</p>
+                </div>
+            </div>
+
             <!-- Document Attachment Section -->
             <div id="document-section" class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
                 <div class="p-6 border-b border-gray-200">

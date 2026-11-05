@@ -199,4 +199,18 @@ public interface JournalEntryRepository extends JpaRepository<JournalEntry, UUID
 
     record TransactionAmount(UUID transactionId, String transactionNumber, LocalDate transactionDate,
                              String sourceDocumentType, UUID sourceDocumentId, BigDecimal amount) {}
+
+    /** Rows of [transaction id, account id] for the lines of those transactions. */
+    @Query("SELECT j.transaction.id, j.account.id FROM JournalEntry j WHERE j.transaction.id IN :ids")
+    List<Object[]> findTransactionAccountPairs(@Param("ids") Collection<UUID> ids);
+
+    /** Posted lines in a period, in ledger order, for the audit pack. */
+    @Query("SELECT j FROM JournalEntry j JOIN FETCH j.transaction t JOIN FETCH j.account a "
+            + "WHERE t.status = com.artivisi.accountingfinance.enums.TransactionStatus.POSTED "
+            + "AND t.transactionDate BETWEEN :from AND :to ORDER BY a.accountCode, t.transactionDate, t.transactionNumber, j.lineOrder")
+    List<JournalEntry> findPostedLinesForLedger(@Param("from") LocalDate from, @Param("to") LocalDate to);
+
+    @Query("SELECT MIN(t.transactionDate) FROM JournalEntry j JOIN j.transaction t "
+            + "WHERE j.account.id = :accountId AND t.status = com.artivisi.accountingfinance.enums.TransactionStatus.POSTED")
+    Optional<LocalDate> findFirstPostedDateOnAccount(@Param("accountId") UUID accountId);
 }

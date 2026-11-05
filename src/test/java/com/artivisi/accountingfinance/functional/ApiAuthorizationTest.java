@@ -158,7 +158,10 @@ class ApiAuthorizationTest extends PlaywrightTestBase {
                 "/api/withholding/payees", "/api/withholding/payments?year=2041&month=1",
                 "/api/withholding/deposits?year=2041&month=1", "/api/withholding/masa-status?year=2041&month=1",
                 "/api/withholding/undocumented-service-payments?year=2041&month=1",
-                "/api/sales-tax-chain/exceptions?to=2041-01-31", "/api/sales-tax-chain/reconciliation?year=2041&month=1")) {
+                "/api/sales-tax-chain/exceptions?to=2041-01-31", "/api/sales-tax-chain/reconciliation?year=2041&month=1",
+                "/api/evidence/requirements", "/api/evidence/gaps?from=2041-01-01&to=2041-01-31",
+                "/api/evidence/index?from=2041-01-01&to=2041-01-31", "/api/evidence/contracts",
+                "/api/evidence/bank-statements/missing?asOf=2041-01-31&graceDays=10")) {
             APIResponse response = api.get(path, bearer(token));
             assertThat(response.status()).as("GET %s: %s", path, response.text()).isEqualTo(200);
         }

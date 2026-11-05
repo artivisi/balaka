@@ -43,6 +43,8 @@ public final class ViewConstants {
     public static final String PAGE_AMORTIZATION = "amortization";
     public static final String PAGE_ABOUT = "about";
     public static final String PAGE_ASSETS = "assets";
+    public static final String PAGE_EVIDENCE = "evidence";
+    public static final String PAGE_CONTRACTS = "contracts";
     public static final String PAGE_BPJS_CALCULATOR = "bpjs-calculator";
     public static final String PAGE_DRAFTS = "drafts";
     public static final String PAGE_JOURNALS = "journals";

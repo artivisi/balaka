@@ -100,4 +100,15 @@ public interface InvoiceRepository extends JpaRepository<Invoice, UUID> {
 
     /** invoices.id_transaction: the receipt transaction booked through the mark-paid screen. */
     record PaymentTransactionLink(UUID transactionId, UUID invoiceId) {}
+
+    /** Invoices whose journal is one of these transactions through id_transaction. */
+    @Query("SELECT i FROM Invoice i JOIN FETCH i.transaction t LEFT JOIN FETCH i.contract c LEFT JOIN FETCH c.document "
+            + "WHERE t.id IN :transactionIds")
+    List<Invoice> findByTransactionIdsWithContract(@Param("transactionIds") java.util.Collection<UUID> transactionIds);
+
+    @Query("SELECT i FROM Invoice i LEFT JOIN FETCH i.contract c LEFT JOIN FETCH c.document WHERE i.id IN :ids")
+    List<Invoice> findByIdsWithContract(@Param("ids") java.util.Collection<UUID> ids);
+
+    @Query("SELECT i FROM Invoice i WHERE i.contract.id = :contractId ORDER BY i.invoiceDate, i.invoiceNumber")
+    List<Invoice> findByContractId(@Param("contractId") UUID contractId);
 }

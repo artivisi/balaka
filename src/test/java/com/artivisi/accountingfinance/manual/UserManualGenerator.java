@@ -319,7 +319,19 @@ public class UserManualGenerator {
                 new Section("hak-akses-recurring", "Hak Akses", "17-transaksi-berulang.md", List.of())
             )),
 
-            // 18. LAMPIRAN (last)
+            // 18. KELENGKAPAN BUKTI
+            new SectionGroup("kelengkapan-bukti", "Kelengkapan Bukti", "M9 12l2 2 4-4M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z", List.of(
+                new Section("aturan-bukti", "Aturan Bukti", "18-kelengkapan-bukti.md", List.of()),
+                new Section("sumber-bukti", "Sumber Bukti", "18-kelengkapan-bukti.md", List.of()),
+                new Section("laporan-kurang-bukti", "Laporan Kurang Bukti", "18-kelengkapan-bukti.md", List.of()),
+                new Section("register-kontrak", "Register Kontrak", "18-kelengkapan-bukti.md", List.of()),
+                new Section("arsip-rekening-koran", "Arsip Rekening Koran", "18-kelengkapan-bukti.md", List.of()),
+                new Section("paket-audit", "Paket Audit", "18-kelengkapan-bukti.md", List.of()),
+                new Section("peringatan-rekening-koran", "Peringatan Rekening Koran", "18-kelengkapan-bukti.md", List.of()),
+                new Section("kelengkapan-bukti-lihat-juga", "Lihat Juga", "18-kelengkapan-bukti.md", List.of())
+            )),
+
+            // 19. LAMPIRAN (last)
             new SectionGroup("lampiran", "Lampiran", "M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4", List.of(
                 new Section("glosarium", "Glosarium", "12-lampiran-glosarium.md", List.of()),
                 new Section("referensi-template", "Referensi Template", "12-lampiran-template.md", List.of("service/templates-list", "service/templates-metadata-detail", "service/templates-metadata-form")),
@@ -448,7 +460,8 @@ public class UserManualGenerator {
                 new Section("dev-pagination", "Pagination", "07-pagination.md", List.of()),
                 new Section("dev-fixed-assets", "Fixed Assets API", "08-fixed-assets.md", List.of()),
                 new Section("dev-tax-filings", "Tax Filings API", "09-tax-filings.md", List.of()),
-                new Section("dev-withholding", "Withholding API", "10-withholding.md", List.of())
+                new Section("dev-withholding", "Withholding API", "10-withholding.md", List.of()),
+                new Section("dev-evidence", "Evidence API", "12-evidence.md", List.of())
             )),
 
             new SectionGroup("dev-extending", "Developer: Extending Balaka", "M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z", List.of(

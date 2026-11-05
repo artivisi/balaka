@@ -157,6 +157,11 @@ public final class Permission {
     public static final String ALERT_CONFIG = "ALERT_CONFIG";
     public static final String ALERT_ACKNOWLEDGE = "ALERT_ACKNOWLEDGE";
 
+    // Evidence completeness, contract register, bank statement archive
+    public static final String EVIDENCE_VIEW = "EVIDENCE_VIEW";
+    public static final String EVIDENCE_MANAGE = "EVIDENCE_MANAGE";
+    public static final String EVIDENCE_CONFIG = "EVIDENCE_CONFIG";
+
     // Vendors
     public static final String VENDOR_VIEW = "VENDOR_VIEW";
     public static final String VENDOR_CREATE = "VENDOR_CREATE";
@@ -227,6 +232,7 @@ public final class Permission {
                 BANK_RECONCILIATION_VIEW, BANK_RECONCILIATION_IMPORT, BANK_RECONCILIATION_MATCH, BANK_RECONCILIATION_COMPLETE, BANK_RECONCILIATION_CONFIG,
                 ANALYSIS_REPORT_VIEW, ANALYSIS_REPORT_CREATE, ANALYSIS_REPORT_DELETE,
                 ALERT_VIEW, ALERT_CONFIG, ALERT_ACKNOWLEDGE,
+                EVIDENCE_VIEW, EVIDENCE_MANAGE, EVIDENCE_CONFIG,
                 TAG_VIEW, TAG_CREATE, TAG_EDIT, TAG_DELETE,
                 DATA_IMPORT,
                 SETTINGS_VIEW, SETTINGS_EDIT,
@@ -264,6 +270,7 @@ public final class Permission {
                 BANK_RECONCILIATION_VIEW, BANK_RECONCILIATION_IMPORT, BANK_RECONCILIATION_MATCH, BANK_RECONCILIATION_COMPLETE, BANK_RECONCILIATION_CONFIG,
                 ANALYSIS_REPORT_VIEW, ANALYSIS_REPORT_CREATE, ANALYSIS_REPORT_DELETE,
                 ALERT_VIEW, ALERT_CONFIG, ALERT_ACKNOWLEDGE,
+                EVIDENCE_VIEW, EVIDENCE_MANAGE, EVIDENCE_CONFIG,
                 TAG_VIEW, TAG_CREATE, TAG_EDIT, TAG_DELETE,
                 DATA_IMPORT,
                 SETTINGS_VIEW, SETTINGS_EDIT,
@@ -298,6 +305,7 @@ public final class Permission {
                 BANK_RECONCILIATION_VIEW, BANK_RECONCILIATION_IMPORT, BANK_RECONCILIATION_MATCH, BANK_RECONCILIATION_COMPLETE,
                 ANALYSIS_REPORT_VIEW, ANALYSIS_REPORT_CREATE, ANALYSIS_REPORT_DELETE,
                 ALERT_VIEW, ALERT_ACKNOWLEDGE,
+                EVIDENCE_VIEW, EVIDENCE_MANAGE,
                 TAG_VIEW, TAG_CREATE, TAG_EDIT,
                 CALCULATOR_USE,
                 SETTINGS_VIEW, // Read-only access to settings (can view, but only edit own Telegram)
@@ -325,6 +333,7 @@ public final class Permission {
                 BANK_RECONCILIATION_VIEW,
                 ANALYSIS_REPORT_VIEW,
                 ALERT_VIEW,
+                EVIDENCE_VIEW,
                 TAG_VIEW,
                 CALCULATOR_USE,
                 SETTINGS_VIEW, // Read-only access to settings (can view, but only edit own Telegram)
@@ -358,6 +367,7 @@ public final class Permission {
                 BANK_RECONCILIATION_VIEW,
                 ANALYSIS_REPORT_VIEW,
                 ALERT_VIEW,
+                EVIDENCE_VIEW,
                 TAG_VIEW,
                 CALCULATOR_USE,
                 AUDIT_LOG_VIEW,

@@ -298,3 +298,59 @@ After deploy:
 1. Make sure the chart has exactly one account with each of the three names.
 2. Run the checklist for the current year and fill the listed fields.
 3. Have a tax reviewer check the fiscal notes and the PPN rate.
+
+
+## Issue #48: Evidence completeness and audit pack
+
+### Built
+
+- Evidence rules (`evidence_requirements`): by account, covering its sub-accounts, or by template family; evidence type `CONTRACT`, `INVOICE`, `PROOF_OF_PAYMENT` or `BUPOT`; optional minimum transaction amount. Page `/evidence/requirements`.
+- `documents.evidence_type`, chosen on upload and changeable per file on the transaction page. Evidence panel on the transaction detail page, refreshed by `HX-Trigger: evidence-changed` after upload, reclassification or delete.
+- Missing-evidence report `/evidence/missing?from=&to=`.
+- Contract register `/contracts`: client or vendor, period, value, file; links to invoices (`invoices.id_contract`) and transactions (`transactions.id_contract`).
+- Bank statement archive `/evidence/bank-statements?year=`: one ACTIVE file per account per month, replacement keeps the old row as SUPERSEDED, retention date per row, delete refused before it. Alert `BANK_STATEMENT_MISSING`.
+- Audit pack `/evidence/audit-pack`: ZIP with `README.txt`, ledger CSV, trial balance XLSX, financial statements PDF, evidence index CSV, statement archive index CSV, contract register CSV, and optionally the files under `dokumen/`.
+- Query API for #51: `EvidenceQueryService.requirements`, `evidenceFor`, `index`, `gaps`, `contracts`, `contractsActiveOn`; `BankStatementArchiveService.missingStatements`, `yearGrid`. REST: `GET /api/evidence/requirements|transactions/{id}|gaps|index|contracts|bank-statements/missing`, scope `evidence:read`.
+
+### Schema (V013)
+
+`documents.evidence_type`; tables `evidence_requirements`, `contracts`, `bank_statement_archives`; `invoices.id_contract`, `transactions.id_contract`; alert rule `BANK_STATEMENT_MISSING` (threshold 10 days); `evidence:read` for device tokens holding `analysis:read`. No test migration.
+
+### Decisions made on the owner's behalf
+
+- Evidence sources besides a classified file: an invoice issued in the app is its journal's INVOICE evidence; a bupot number on the tax detail is BUPOT; a bank statement line MATCHED in reconciliation is PROOF_OF_PAYMENT; a contract linked to the transaction or its invoice is CONTRACT once its file is attached. A bill is data entry of a vendor invoice, not evidence: the vendor's invoice must be attached.
+- Files on the transaction, on its journal lines and on its linked invoice count. Unclassified files (all existing rows) satisfy nothing; the report says when one is present.
+- Only posted, non-closing transactions are checked. Draft, void and year-end closing journals are not.
+- The minimum compares the transaction amount, not the amount on the matching line.
+- Template rules attach to the first version and match every version, so editing a template does not drop its rules.
+- No rules are seeded in the packs: required evidence is a business decision. Without rules nothing is reported missing.
+- Imported bank statements (CSV in reconciliation) do not count as the archive: only the original filename is kept, not the file.
+- Expected statement months start at the earlier of the first posted journal line on the bank's GL account and the first archived month. Inactive bank accounts are not checked; there is no closing date to stop at.
+- The page's due date and the alert share one setting, the alert rule threshold, so they agree.
+- Retention: deletion is refused, not only warned, until the end of the statement month plus 10 years. A wrong file is fixed by uploading again; the earlier file stays as SUPERSEDED under the same retention. Retention applies to statement archives only; transaction attachments keep their existing delete behaviour.
+- Contract and archive files cannot be deleted or reclassified through the generic document endpoints.
+- Audit pack files: included only on request and only when their total is within `app.audit-pack.max-document-bytes` (500 MB). Above it the download is refused with the size; the index always carries each file's SHA-256. A file missing from storage fails the export.
+- CSV cells starting with `=`, `+`, `-` or `@` are prefixed with `'` against formula injection.
+- Permissions: `EVIDENCE_VIEW` (all roles except EMPLOYEE), `EVIDENCE_MANAGE` for contracts and archive (ADMIN, OWNER, ACCOUNTANT), `EVIDENCE_CONFIG` for rules (ADMIN, OWNER). The audit pack uses `REPORT_EXPORT`. The API is read-only.
+
+### Unverified regulatory values
+
+- 10-year retention of books, records and documents: UU KUP Pasal 28 ayat (11), from memory. `app.evidence.retention-years=10`.
+
+### Cut
+
+- New tables are not in the data export/import ZIP.
+- No API for writing rules, contracts or archives; no audit pack through the API.
+- No link from a contract to a bill; vendor-side coverage goes through linked transactions.
+- Contract edit has no history; a replaced contract file stays in `documents` without a link.
+
+### Noted, not fixed
+
+- `docs/developer-guide/api/11-sales-tax-chain.md` is not registered in `UserManualGenerator`.
+
+### Deploy
+
+V013 runs on deploy, additive only. After deploy:
+1. Set rules under Master Data > Aturan Bukti.
+2. Classify existing attachments that should count as evidence.
+3. Archive past bank statements, or turn the `BANK_STATEMENT_MISSING` rule off until they are archived: the first evaluation lists every month since each account's first posted journal.

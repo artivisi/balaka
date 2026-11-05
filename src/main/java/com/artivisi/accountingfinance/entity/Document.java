@@ -1,6 +1,9 @@
 package com.artivisi.accountingfinance.entity;
 
+import com.artivisi.accountingfinance.enums.EvidenceType;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -78,6 +81,11 @@ public class Document extends TimestampedEntity {
 
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
+
+    /** What this file proves; null until classified. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "evidence_type", length = 20)
+    private EvidenceType evidenceType;
 
     @Override
     protected void initTimestamps() {

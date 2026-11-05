@@ -112,4 +112,9 @@ public interface TaxTransactionDetailRepository extends JpaRepository<TaxTransac
             "AND trx.status = 'POSTED' " +
             "ORDER BY trx.transactionDate DESC")
     List<TaxTransactionDetail> findByCounterpartyNpwp(@Param("npwp") String npwp);
+
+    /** Rows of [transaction id, bupot number] for details that carry a bupot number. */
+    @Query("SELECT t.transaction.id, t.bupotNumber FROM TaxTransactionDetail t "
+            + "WHERE t.transaction.id IN :ids AND t.bupotNumber IS NOT NULL AND TRIM(t.bupotNumber) <> ''")
+    List<Object[]> findBupotNumbersByTransactionIds(@Param("ids") Collection<UUID> ids);
 }

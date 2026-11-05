@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{layouts/main :: layout('Detail Kontrak', ~{::#page-title}, ~{::section}, ~{})}"
+      lang="id">
+<head>
+    <title>Detail Kontrak</title>
+</head>
+<body>
+    <h1 id="page-title">Detail Kontrak</h1>
+
+    <section class="space-y-6">
+        <div th:if="${successMessage}" data-testid="flash-success"
+             class="p-4 rounded-lg bg-green-50 border border-green-200 text-sm font-medium text-green-800"
+             th:text="${successMessage}">Success</div>
+        <div th:if="${errorMessage}" data-testid="flash-error"
+             class="p-4 rounded-lg bg-red-50 border border-red-200 text-sm font-medium text-red-800"
+             th:text="${errorMessage}">Error</div>
+        <div class="bg-white rounded-lg shadow p-6 text-sm grid grid-cols-1 md:grid-cols-2 gap-3" id="contract-detail">
+            <p><span class="text-gray-500">Nomor:</span> <span id="contract-number" th:text="${contract.contractNumber}">K-1</span></p>
+            <p><span class="text-gray-500">Judul:</span> <span th:text="${contract.title}">Judul</span></p>
+            <p><span class="text-gray-500">Pihak:</span> <span id="contract-party" th:text="|${contract.counterpartyKind}: ${contract.counterpartyName}|">Klien</span></p>
+            <p><span class="text-gray-500">Periode:</span>
+                <span th:text="|${#temporals.format(contract.startDate, 'dd/MM/yyyy')} - ${contract.endDate != null ? #temporals.format(contract.endDate, 'dd/MM/yyyy') : 'tanpa batas'}|">periode</span></p>
+            <p th:if="${contract.contractValue != null}"><span class="text-gray-500">Nilai:</span>
+                <span th:text="${#numbers.formatDecimal(contract.contractValue, 1, 'POINT', 0, 'COMMA')}">0</span></p>
+            <p><span class="text-gray-500">Dokumen kontrak:</span>
+                <a th:if="${contract.hasFile()}" id="contract-file-link" class="text-primary-600 hover:underline" target="_blank"
+                   th:href="@{/documents/{id}/view(id=${contract.document.id})}" th:text="${contract.document.originalFilename}">file.pdf</a>
+                <span th:unless="${contract.hasFile()}" id="contract-file-missing" class="text-amber-700">Belum ada; kontrak belum terhitung sebagai bukti</span>
+            </p>
+            <div class="md:col-span-2 flex justify-end" sec:authorize="hasAuthority('EVIDENCE_MANAGE')">
+                <a id="btn-edit-contract" th:href="@{/contracts/{id}/edit(id=${contract.id})}" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">Ubah</a>
+            </div>
+        </div>
+
+        <form sec:authorize="hasAuthority('EVIDENCE_MANAGE')" th:action="@{/contracts/{id}/file(id=${contract.id})}" method="post"
+              enctype="multipart/form-data" id="contract-file-form" class="bg-white rounded-lg shadow p-6 flex flex-wrap items-end gap-3 text-sm">
+            <div class="flex-1">
+                <label for="contract-file" class="block text-gray-700 mb-1">Unggah Dokumen Kontrak</label>
+                <input type="file" id="contract-file" name="file" required accept="image/jpeg,image/png,image/gif,application/pdf" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+            </div>
+            <button type="submit" id="btn-upload-contract-file" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">Unggah</button>
+        </form>
+
+        <div class="bg-white rounded-lg shadow overflow-x-auto" th:if="${contract.client != null}">
+            <div class="p-6 border-b flex flex-wrap items-end justify-between gap-3">
+                <h3 class="text-lg font-medium text-gray-900">Invoice</h3>
+                <form sec:authorize="hasAuthority('EVIDENCE_MANAGE')" th:action="@{/contracts/{id}/invoices(id=${contract.id})}" method="post" class="flex gap-2 text-sm">
+                    <input type="text" id="invoiceNumber" name="invoiceNumber" required placeholder="Nomor invoice" aria-label="Nomor invoice" class="px-3 py-2 border border-gray-300 rounded-lg">
+                    <button type="submit" id="btn-link-invoice" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">Tautkan</button>
+                </form>
+            </div>
+            <table class="min-w-full divide-y divide-gray-200 text-sm">
+                <tbody class="divide-y divide-gray-200">
+                    <tr th:if="${#lists.isEmpty(invoices)}"><td class="px-4 py-6 text-center text-gray-500">Belum ada invoice yang tertaut</td></tr>
+                    <tr th:each="i : ${invoices}" data-testid="linked-invoice" th:data-number="${i.invoiceNumber}">
+                        <td class="px-4 py-3"><a class="text-primary-600 hover:underline" th:href="@{/invoices/{id}(id=${i.id})}" th:text="${i.invoiceNumber}">INV</a></td>
+                        <td class="px-4 py-3" th:text="${#temporals.format(i.invoiceDate, 'dd/MM/yyyy')}">01/01/2026</td>
+                        <td class="px-4 py-3 text-right">
+                            <form sec:authorize="hasAuthority('EVIDENCE_MANAGE')" th:action="@{/contracts/{id}/invoices/{inv}/unlink(id=${contract.id}, inv=${i.id})}" method="post">
+                                <button type="submit" class="text-red-600 hover:underline">Lepas</button>
+                            </form>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="bg-white rounded-lg shadow overflow-x-auto">
+            <div class="p-6 border-b flex flex-wrap items-end justify-between gap-3">
+                <h3 class="text-lg font-medium text-gray-900">Transaksi</h3>
+                <form sec:authorize="hasAuthority('EVIDENCE_MANAGE')" th:action="@{/contracts/{id}/transactions(id=${contract.id})}" method="post" class="flex gap-2 text-sm">
+                    <input type="text" id="transactionNumber" name="transactionNumber" required placeholder="Nomor transaksi" aria-label="Nomor transaksi" class="px-3 py-2 border border-gray-300 rounded-lg">
+                    <button type="submit" id="btn-link-transaction" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">Tautkan</button>
+                </form>
+            </div>
+            <table class="min-w-full divide-y divide-gray-200 text-sm">
+                <tbody class="divide-y divide-gray-200">
+                    <tr th:if="${#lists.isEmpty(transactions)}"><td class="px-4 py-6 text-center text-gray-500">Belum ada transaksi yang tertaut</td></tr>
+                    <tr th:each="t : ${transactions}" data-testid="linked-transaction" th:data-number="${t.transactionNumber}">
+                        <td class="px-4 py-3"><a class="text-primary-600 hover:underline" th:href="@{/transactions/{id}(id=${t.id})}" th:text="${t.transactionNumber}">TRX</a></td>
+                        <td class="px-4 py-3" th:text="${t.description}">Keterangan</td>
+                        <td class="px-4 py-3 text-right">
+                            <form sec:authorize="hasAuthority('EVIDENCE_MANAGE')" th:action="@{/contracts/{id}/transactions/{trx}/unlink(id=${contract.id}, trx=${t.id})}" method="post">
+                                <button type="submit" class="text-red-600 hover:underline">Lepas</button>
+                            </form>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</body>
+</html>

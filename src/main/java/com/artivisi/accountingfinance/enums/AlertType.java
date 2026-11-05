@@ -8,7 +8,8 @@ public enum AlertType {
     PROJECT_MARGIN_DROP("Project Margin Drop", "Margin Proyek Turun"),
     COLLECTION_SLOWDOWN("Collection Slowdown", "Penagihan Melambat"),
     CLIENT_CONCENTRATION("Client Concentration", "Konsentrasi Klien"),
-    PAYROLL_UNPOSTED("Payroll Unposted", "Payroll Belum Diposting");
+    PAYROLL_UNPOSTED("Payroll Unposted", "Payroll Belum Diposting"),
+    BANK_STATEMENT_MISSING("Bank Statement Missing", "Rekening Koran Belum Diarsipkan");
 
     private final String englishName;
     private final String indonesianName;

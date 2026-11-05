@@ -156,6 +156,9 @@ Period-scoped data (transactions, payroll runs, fiscal periods, schedules) goes 
 | 2180-2185 (integration DB) | AssetVerificationServiceTest |
 | 2185 | AssetRegisterApiTest |
 | 2186 | FixedAssetRegisterFunctionalTest |
+| 2187-2190, 2010-03 (integration DB; 2010: the alert evaluates against today) | EvidenceServiceTest |
+| 2191, 2192, 2015 (past: the archive refuses a month that has not ended) | EvidenceFunctionalTest |
+| 2193 | EvidenceApiTest |
 | 2031–2034 | PayrollControllerFunctionalTest, ServicePayrollComprehensiveTest |
 | 2040, 2042 | TaxFilingApiTest |
 | 2043 | ServiceReportsTest |

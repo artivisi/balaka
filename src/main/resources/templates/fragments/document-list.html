@@ -39,6 +39,12 @@
                     <input type="file" id="document-file-input" data-testid="document-file-input" name="file" accept="image/jpeg,image/png,image/gif,application/pdf" class="hidden">
                 </div>
             </label>
+            <select name="evidenceType" id="document-evidence-type" data-testid="document-evidence-type"
+                    aria-label="Jenis bukti"
+                    class="px-3 py-3 border border-gray-300 rounded-lg text-sm">
+                <option value="">Belum diklasifikasikan</option>
+                <option th:each="type : ${evidenceTypes}" th:value="${type}" th:text="${type.indonesianName}">Kontrak</option>
+            </select>
             <button type="submit" id="btn-upload-document" data-testid="btn-upload-document" class="px-4 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium">
                 Unggah
             </button>
@@ -77,6 +83,24 @@
                         <span th:if="${doc.uploadedBy != null}" class="mx-1">&middot;</span>
                         <span th:if="${doc.uploadedBy != null}" th:text="${doc.uploadedBy}">admin</span>
                     </p>
+                    <p class="text-xs mt-1">
+                        <span th:data-testid="${'document-evidence-label-' + doc.id}"
+                              th:classappend="${doc.evidenceType == null} ? 'text-amber-700' : 'text-gray-700'"
+                              th:text="${doc.evidenceType == null} ? 'Belum diklasifikasikan' : ${doc.evidenceType.indonesianName}">Kontrak</span>
+                    </p>
+                    <form sec:authorize="hasAnyAuthority('TRANSACTION_CREATE', 'TRANSACTION_EDIT')" th:if="${transactionId != null}"
+                          th:hx-post="@{/documents/{id}/evidence-type(id=${doc.id}, transactionId=${transactionId})}"
+                          hx-trigger="change"
+                          hx-target="#document-list-container"
+                          hx-swap="outerHTML"
+                          class="mt-1">
+                        <select name="evidenceType" th:data-testid="${'document-classify-' + doc.id}" aria-label="Ubah jenis bukti"
+                                class="px-2 py-1 border border-gray-300 rounded text-xs">
+                            <option value="" th:selected="${doc.evidenceType == null}">Belum diklasifikasikan</option>
+                            <option th:each="type : ${evidenceTypes}" th:value="${type}" th:text="${type.indonesianName}"
+                                    th:selected="${doc.evidenceType == type}">Kontrak</option>
+                        </select>
+                    </form>
                 </div>
             </div>
 

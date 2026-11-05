@@ -59,6 +59,12 @@ public class Transaction extends BaseEntity {
     @JoinColumn(name = "id_project")
     private Project project;
 
+    /** Contract this transaction falls under; its file is the transaction's CONTRACT evidence. */
+    @JsonIgnore
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_contract")
+    private Contract contract;
+
     @NotNull(message = "Amount is required")
     @DecimalMin(value = "0", message = "Amount must be non-negative")
     @Column(name = "amount", nullable = false, precision = 19, scale = 2)

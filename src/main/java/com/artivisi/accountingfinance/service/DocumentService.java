@@ -4,6 +4,9 @@ import com.artivisi.accountingfinance.entity.Document;
 import com.artivisi.accountingfinance.entity.Invoice;
 import com.artivisi.accountingfinance.entity.JournalEntry;
 import com.artivisi.accountingfinance.entity.Transaction;
+import com.artivisi.accountingfinance.enums.EvidenceType;
+import com.artivisi.accountingfinance.repository.BankStatementArchiveRepository;
+import com.artivisi.accountingfinance.repository.ContractRepository;
 import com.artivisi.accountingfinance.repository.DocumentRepository;
 import com.artivisi.accountingfinance.repository.InvoiceRepository;
 import com.artivisi.accountingfinance.repository.JournalEntryRepository;
@@ -34,6 +37,8 @@ public class DocumentService {
     private final JournalEntryRepository journalEntryRepository;
     private final InvoiceRepository invoiceRepository;
     private final TaxDocumentRepository taxDocumentRepository;
+    private final BankStatementArchiveRepository statementArchiveRepository;
+    private final ContractRepository contractRepository;
 
     public Document findById(UUID id) {
         return documentRepository.findById(id)
@@ -58,11 +63,19 @@ public class DocumentService {
 
     @Transactional
     public Document uploadForTransaction(UUID transactionId, MultipartFile file, String uploadedBy) throws IOException {
+        return uploadForTransaction(transactionId, file, uploadedBy, null);
+    }
+
+    /** evidenceType null leaves the file unclassified: it then satisfies no evidence requirement. */
+    @Transactional
+    public Document uploadForTransaction(UUID transactionId, MultipartFile file, String uploadedBy,
+                                         EvidenceType evidenceType) throws IOException {
         Transaction transaction = transactionRepository.findById(transactionId)
                 .orElseThrow(() -> new EntityNotFoundException("Transaction not found with id: " + transactionId));
 
         Document document = createDocument(file, uploadedBy);
         document.setTransaction(transaction);
+        document.setEvidenceType(evidenceType);
 
         Document saved = documentRepository.save(document);
         log.info("Uploaded document {} for transaction {}",
@@ -125,6 +138,14 @@ public class DocumentService {
                     + "hapus melalui DELETE /api/tax-filings/{id}/documents/{docId}");
         }
 
+        if (statementArchiveRepository.countByDocumentId(id) > 0) {
+            throw new IllegalStateException("Dokumen adalah arsip rekening koran; hapus melalui arsip rekening koran "
+                    + "setelah masa simpan berakhir");
+        }
+        if (contractRepository.countByDocumentId(id) > 0) {
+            throw new IllegalStateException("Dokumen ini milik register kontrak; ganti melalui halaman kontrak");
+        }
+
         // Delete file from storage
         storageService.delete(document.getStoragePath());
 
@@ -133,6 +154,17 @@ public class DocumentService {
         documentRepository.save(document);
 
         log.info("Deleted document {}", LogSanitizer.sanitize(id.toString()));
+    }
+
+    /** Sets or clears what a file proves. */
+    @Transactional
+    public Document classify(UUID id, EvidenceType evidenceType) {
+        Document document = findById(id);
+        if (statementArchiveRepository.countByDocumentId(id) > 0 || contractRepository.countByDocumentId(id) > 0) {
+            throw new IllegalStateException("Jenis dokumen arsip rekening koran atau kontrak tidak dapat diubah");
+        }
+        document.setEvidenceType(evidenceType);
+        return documentRepository.save(document);
     }
 
     public Resource loadAsResource(UUID id) {
