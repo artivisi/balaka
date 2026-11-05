@@ -28,17 +28,17 @@ public enum TerCategory {
             new BigDecimal("1"), new BigDecimal("1.25"), new BigDecimal("1.5"),
             new BigDecimal("1.75"), new BigDecimal("2"), new BigDecimal("2.25"),
             new BigDecimal("2.5"), new BigDecimal("3"), new BigDecimal("3.5"),
-            new BigDecimal("4"), new BigDecimal("4.5"), new BigDecimal("5"),
-            new BigDecimal("5.5"), new BigDecimal("6"), new BigDecimal("7"),
-            new BigDecimal("8"), new BigDecimal("9"), new BigDecimal("10"),
-            new BigDecimal("11"), new BigDecimal("12"), new BigDecimal("13"),
-            new BigDecimal("14"), new BigDecimal("15"), new BigDecimal("16"),
-            new BigDecimal("17"), new BigDecimal("18"), new BigDecimal("19"),
-            new BigDecimal("20"), new BigDecimal("21"), new BigDecimal("22"),
-            new BigDecimal("23"), new BigDecimal("24"), new BigDecimal("25"),
-            new BigDecimal("26"), new BigDecimal("27"), new BigDecimal("28"),
-            new BigDecimal("29"), new BigDecimal("30"), new BigDecimal("31"),
-            new BigDecimal("32"), new BigDecimal("34")
+            new BigDecimal("4"), new BigDecimal("5"), new BigDecimal("6"),
+            new BigDecimal("7"), new BigDecimal("8"), new BigDecimal("9"),
+            new BigDecimal("10"), new BigDecimal("11"), new BigDecimal("12"),
+            new BigDecimal("13"), new BigDecimal("14"), new BigDecimal("15"),
+            new BigDecimal("16"), new BigDecimal("17"), new BigDecimal("18"),
+            new BigDecimal("19"), new BigDecimal("20"), new BigDecimal("21"),
+            new BigDecimal("22"), new BigDecimal("23"), new BigDecimal("24"),
+            new BigDecimal("25"), new BigDecimal("26"), new BigDecimal("27"),
+            new BigDecimal("28"), new BigDecimal("29"), new BigDecimal("30"),
+            new BigDecimal("31"), new BigDecimal("32"), new BigDecimal("33"),
+            new BigDecimal("34")
     }),
 
     B(new long[]{
@@ -54,9 +54,8 @@ public enum TerCategory {
             BigDecimal.ZERO,
             new BigDecimal("0.25"), new BigDecimal("0.5"), new BigDecimal("0.75"),
             new BigDecimal("1"), new BigDecimal("1.5"), new BigDecimal("2"),
-            new BigDecimal("2.5"), new BigDecimal("3"), new BigDecimal("3.5"),
-            new BigDecimal("4"), new BigDecimal("4.5"), new BigDecimal("5"),
-            new BigDecimal("5.5"), new BigDecimal("6"), new BigDecimal("7"),
+            new BigDecimal("2.5"), new BigDecimal("3"), new BigDecimal("4"),
+            new BigDecimal("5"), new BigDecimal("6"), new BigDecimal("7"),
             new BigDecimal("8"), new BigDecimal("9"), new BigDecimal("10"),
             new BigDecimal("11"), new BigDecimal("12"), new BigDecimal("13"),
             new BigDecimal("14"), new BigDecimal("15"), new BigDecimal("16"),
@@ -65,7 +64,7 @@ public enum TerCategory {
             new BigDecimal("23"), new BigDecimal("24"), new BigDecimal("25"),
             new BigDecimal("26"), new BigDecimal("27"), new BigDecimal("28"),
             new BigDecimal("29"), new BigDecimal("30"), new BigDecimal("31"),
-            new BigDecimal("32"), new BigDecimal("34")
+            new BigDecimal("32"), new BigDecimal("33"), new BigDecimal("34")
     }),
 
     C(new long[]{
@@ -81,19 +80,18 @@ public enum TerCategory {
             BigDecimal.ZERO,
             new BigDecimal("0.25"), new BigDecimal("0.5"), new BigDecimal("0.75"),
             new BigDecimal("1"), new BigDecimal("1.25"), new BigDecimal("1.5"),
-            new BigDecimal("1.75"), new BigDecimal("2"), new BigDecimal("2.25"),
-            new BigDecimal("2.5"), new BigDecimal("3"), new BigDecimal("3.5"),
-            new BigDecimal("4"), new BigDecimal("4.5"), new BigDecimal("5"),
-            new BigDecimal("5.5"), new BigDecimal("6"), new BigDecimal("7"),
-            new BigDecimal("8"), new BigDecimal("9"), new BigDecimal("10"),
-            new BigDecimal("11"), new BigDecimal("12"), new BigDecimal("13"),
-            new BigDecimal("14"), new BigDecimal("15"), new BigDecimal("16"),
-            new BigDecimal("17"), new BigDecimal("18"), new BigDecimal("19"),
-            new BigDecimal("20"), new BigDecimal("21"), new BigDecimal("22"),
-            new BigDecimal("23"), new BigDecimal("24"), new BigDecimal("25"),
-            new BigDecimal("26"), new BigDecimal("27"), new BigDecimal("28"),
-            new BigDecimal("29"), new BigDecimal("30"), new BigDecimal("31"),
-            new BigDecimal("32"), new BigDecimal("34")
+            new BigDecimal("1.75"), new BigDecimal("2"), new BigDecimal("3"),
+            new BigDecimal("4"), new BigDecimal("5"), new BigDecimal("6"),
+            new BigDecimal("7"), new BigDecimal("8"), new BigDecimal("9"),
+            new BigDecimal("10"), new BigDecimal("11"), new BigDecimal("12"),
+            new BigDecimal("13"), new BigDecimal("14"), new BigDecimal("15"),
+            new BigDecimal("16"), new BigDecimal("17"), new BigDecimal("18"),
+            new BigDecimal("19"), new BigDecimal("20"), new BigDecimal("21"),
+            new BigDecimal("22"), new BigDecimal("23"), new BigDecimal("24"),
+            new BigDecimal("25"), new BigDecimal("26"), new BigDecimal("27"),
+            new BigDecimal("28"), new BigDecimal("29"), new BigDecimal("30"),
+            new BigDecimal("31"), new BigDecimal("32"), new BigDecimal("33"),
+            new BigDecimal("34")
     });
 
     private final long[] upperBounds;
@@ -102,6 +100,10 @@ public enum TerCategory {
     private static final BigDecimal HUNDRED = new BigDecimal("100");
 
     TerCategory(long[] upperBounds, BigDecimal[] rates) {
+        if (rates.length != upperBounds.length + 1) {
+            throw new IllegalArgumentException("TER table needs one rate per bracket plus the top rate: "
+                    + upperBounds.length + " bounds, " + rates.length + " rates");
+        }
         this.upperBounds = upperBounds;
         this.rates = rates;
     }
