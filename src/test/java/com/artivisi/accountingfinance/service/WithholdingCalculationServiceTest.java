@@ -17,7 +17,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DisplayName("Withholding calculation")
 class WithholdingCalculationServiceTest {
 
-    private static final BigDecimal NONE = BigDecimal.ZERO;
     private WithholdingCalculationService service;
 
     @BeforeEach
@@ -48,12 +47,12 @@ class WithholdingCalculationServiceTest {
             "12000000000, 6000000000,  1794000000, 2152800000",
     })
     void pph21NonEmployeeAcrossBrackets(BigDecimal gross, BigDecimal dpp, BigDecimal tax, BigDecimal taxNoId) {
-        WithholdingCalculationService.Withholding withId = service.pph21NonEmployee(gross, NONE, true);
+        WithholdingCalculationService.Withholding withId = service.pph21NonEmployee(gross, true);
         assertThat(withId.dpp()).isEqualByComparingTo(dpp);
         assertThat(withId.tax()).isEqualByComparingTo(tax);
         assertThat(withId.basis()).isEqualTo(WithholdingRateBasis.PPH21_PASAL_17);
 
-        WithholdingCalculationService.Withholding withoutId = service.pph21NonEmployee(gross, NONE, false);
+        WithholdingCalculationService.Withholding withoutId = service.pph21NonEmployee(gross, false);
         assertThat(withoutId.dpp()).isEqualByComparingTo(dpp);
         assertThat(withoutId.tax()).isEqualByComparingTo(taxNoId);
         assertThat(withoutId.basis()).isEqualTo(WithholdingRateBasis.PPH21_PASAL_17_NO_ID);
@@ -62,20 +61,19 @@ class WithholdingCalculationServiceTest {
     @Test
     @DisplayName("Effective rate on DPP is the bracket rate, or the mix across brackets")
     void effectiveRate() {
-        assertThat(service.pph21NonEmployee(new BigDecimal("10000000"), NONE, true).rate()).isEqualByComparingTo("5.00");
-        assertThat(service.pph21NonEmployee(new BigDecimal("10000000"), NONE, false).rate()).isEqualByComparingTo("6.00");
-        assertThat(service.pph21NonEmployee(new BigDecimal("200000000"), NONE, true).rate()).isEqualByComparingTo("9.00");
+        assertThat(service.pph21NonEmployee(new BigDecimal("10000000"), true).rate()).isEqualByComparingTo("5.00");
+        assertThat(service.pph21NonEmployee(new BigDecimal("10000000"), false).rate()).isEqualByComparingTo("6.00");
+        assertThat(service.pph21NonEmployee(new BigDecimal("200000000"), true).rate()).isEqualByComparingTo("9.00");
     }
 
     @Test
-    @DisplayName("A later payment in the masa starts where earlier ones ended; split payments total the tax of their sum")
-    void priorGrossMovesUpTheBrackets() {
-        assertThat(service.pph21NonEmployee(new BigDecimal("100000000"), new BigDecimal("100000000"), true).tax())
-                .isEqualByComparingTo("6500000");
-        assertThat(service.pph21NonEmployee(new BigDecimal("100000000"), new BigDecimal("100000000"), false).tax())
-                .isEqualByComparingTo("7800000");
-        assertThat(service.pph21NonEmployee(new BigDecimal("200000000"), new BigDecimal("400000000"), true).tax())
-                .isEqualByComparingTo("20000000");
+    @DisplayName("Each payment is taxed on its own gross: two 100 jt payments to one payee in a masa are 4.5 jt each")
+    void eachPaymentStandsAlone() {
+        // DPP 50 jt each, 5% bracket: 2.5 jt. Their sum (200 jt) would be 9 jt; PMK 168/2023 does not accumulate.
+        WithholdingCalculationService.Withholding first = service.pph21NonEmployee(new BigDecimal("100000000"), true);
+        WithholdingCalculationService.Withholding second = service.pph21NonEmployee(new BigDecimal("100000000"), true);
+        assertThat(first.tax()).isEqualByComparingTo("2500000");
+        assertThat(second.tax()).isEqualByComparingTo(first.tax());
     }
 
     @Test

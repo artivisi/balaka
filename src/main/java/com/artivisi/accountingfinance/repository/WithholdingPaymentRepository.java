@@ -11,7 +11,6 @@ import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -31,36 +30,6 @@ public interface WithholdingPaymentRepository extends JpaRepository<WithholdingP
     List<WithholdingPayment> findForPeriod(@Param("start") LocalDate start, @Param("end") LocalDate end,
                                            @Param("treatment") WithholdingTreatment treatment,
                                            @Param("vendorId") UUID vendorId);
-
-    /** Non-void payments in processing order: POSTED first because their tax is fixed, then by creation. */
-    @Query("""
-            SELECT p FROM WithholdingPayment p JOIN FETCH p.transaction t
-            WHERE p.vendor.id = :vendorId AND p.treatment = :treatment
-              AND p.paymentDate BETWEEN :start AND :end AND t.status <> com.artivisi.accountingfinance.enums.TransactionStatus.VOID
-            ORDER BY CASE WHEN t.status = com.artivisi.accountingfinance.enums.TransactionStatus.POSTED THEN 0 ELSE 1 END,
-                     p.createdAt ASC""")
-    List<WithholdingPayment> findActiveInMasa(@Param("vendorId") UUID vendorId,
-                                              @Param("treatment") WithholdingTreatment treatment,
-                                              @Param("start") LocalDate start, @Param("end") LocalDate end);
-
-    @Query("""
-            SELECT COUNT(p) > 0 FROM WithholdingPayment p
-            WHERE p.vendor.id = :vendorId AND p.treatment = :treatment
-              AND p.paymentDate BETWEEN :start AND :end AND p.createdAt > :createdAt
-              AND p.transaction.status <> com.artivisi.accountingfinance.enums.TransactionStatus.VOID""")
-    boolean existsLaterInMasa(@Param("vendorId") UUID vendorId, @Param("treatment") WithholdingTreatment treatment,
-                              @Param("start") LocalDate start, @Param("end") LocalDate end,
-                              @Param("createdAt") LocalDateTime createdAt);
-
-    /** A POSTED payment created after {@code createdAt}: its tax was fixed with the earlier one counted as prior gross. */
-    @Query("""
-            SELECT COUNT(p) > 0 FROM WithholdingPayment p
-            WHERE p.vendor.id = :vendorId AND p.treatment = :treatment
-              AND p.paymentDate BETWEEN :start AND :end AND p.createdAt > :createdAt
-              AND p.transaction.status = com.artivisi.accountingfinance.enums.TransactionStatus.POSTED""")
-    boolean existsLaterPostedInMasa(@Param("vendorId") UUID vendorId, @Param("treatment") WithholdingTreatment treatment,
-                                    @Param("start") LocalDate start, @Param("end") LocalDate end,
-                                    @Param("createdAt") LocalDateTime createdAt);
 
     @Query("""
             SELECT COALESCE(SUM(p.taxAmount), 0) FROM WithholdingPayment p

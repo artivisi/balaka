@@ -10,11 +10,11 @@ Base URL: `/api/withholding`
 
 | Treatment | Payee type | Base | Rate | Without NPWP/NIK | Credits |
 |-----------|-----------|------|------|------------------|---------|
-| `PPH_21_BUKAN_PEGAWAI` | `ORANG_PRIBADI` | 50% of gross per masa | Pasal 17 | 20% higher | `Hutang PPh 21` |
+| `PPH_21_BUKAN_PEGAWAI` | `ORANG_PRIBADI` | 50% of gross per payment | Pasal 17 | 20% higher | `Hutang PPh 21` |
 | `PPH_23` | `BADAN`, `ORANG_PRIBADI` | gross | 2% (unverified) | 100% higher (unverified) | `Hutang PPh 23` |
 | `PPH_26` | `LUAR_NEGERI` | gross | 20%, or the payee's treaty rate with a valid DGT form (unverified) | no effect | `Hutang PPh 26` |
 
-- PPh 21 brackets accumulate per payee within one masa and restart in the next. `taxAmount` on a payment is the increment it adds. PTKP does not apply.
+- PPh 21 brackets apply to each payment alone (PMK 168/2023); payments to one payee are not accumulated within the masa or the year. PTKP does not apply.
 - Hutang accounts are resolved by exact name because codes differ between seed packs. Zero or more than one match returns `409`.
 - Rates are set in `application.properties` (`app.withholding.*`). A missing key fails startup.
 

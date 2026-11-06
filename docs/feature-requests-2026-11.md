@@ -69,9 +69,9 @@ After deploy, classify existing expense accounts under Bagan Akun.
 
 ### Decisions made on the owner's behalf
 
-- "Per masa" means the Pasal 17 brackets run over the payee's cumulated gross within one calendar month of the payment date and restart the next month. Each payment carries the increment. Annual accumulation and PTKP are not applied. Masa order: posted first, then drafts by creation.
+- ~~"Per masa" cumulation~~ replaced 2026-11-06: each payment is taxed on its own gross (PMK 168/2023 removed cumulation). PTKP is not applied. See "Regulation check 2026-11-06".
 - 20% higher only when both NPWP and NIK are absent or blank.
-- Cancelling a draft recomputes later PPh 21 drafts of that payee and masa. Drafts are not editable: cancel and recreate. Generic transaction edit and delete refuse these drafts. Voiding a PPh 21 payment with a later non-void payment in the same masa is refused, because the later tax depends on it.
+- Drafts are not editable: cancel and recreate. Generic transaction edit and delete refuse these drafts. Cancel and void affect only the payment itself.
 - Payee identity on a draft is a snapshot. Adding an NPWP later does not change existing payments.
 - Hutang accounts resolve by exact name, since codes differ per pack (`Hutang PPh 21` is 2.1.20, 2.1.14, 2.1.03). Zero or several matches fail. Packs without Hutang PPh 23 (coffee-shop, campus) get `2.1.21`.
 - New pack account `Beban Jasa Profesional`: it-service 5.1.22, online-seller 5.4.07, coffee-shop 6.2.13, campus 5.2.23.
@@ -91,9 +91,9 @@ The vendor form had no NIK input, so saving it erased a stored NIK. Added.
 
 Set in `application.properties` (`app.withholding.*`).
 
-- PPh 21 bukan pegawai: 50% and 20% come from the issue. Implemented as stated; the "per masa" reading above and the PMK 168/2023 citation are from memory. Pasal 17 brackets are the existing `Pph21CalculationService` values.
+- PPh 21 bukan pegawai: 50% and 20% come from the issue; per-payment computation checked 2026-11-06 (DDTC on PMK 168/2023). Pasal 17 brackets are the existing `Pph21CalculationService` values.
 - PPh 23: 2% on all `TaxObjectCode` PPh 23 entries, 100% higher without NPWP or NIK. NIK treated as NPWP. UU PPh Pasal 23, PMK 141/2015, PMK 112/2022, from memory. Objects at 15% (dividend, interest, royalty, prize) have no object code and cannot be selected.
-- PPh 26: 20% of gross (UU PPh Pasal 26 ayat (1)). Tax treaty: the rate is entered per payee, no treaty table exists. It applies only when a DGT form number is on file and valid on the payment date (PER-25/PJ/2018, from memory); otherwise 20% with the reason in `rateBasis`. No check on DGT form content or beneficial ownership. A 0% treaty rate posts no tax line. Branch-profit and 26(4) cases are not handled.
+- PPh 26: 20% of gross (UU PPh Pasal 26 ayat (1)). Tax treaty: the rate is entered per payee, no treaty table exists. It applies only when a DGT form number is on file and valid on the payment date (PER-25/PJ/2018, replaced by PMK 112/2025 from 31 Dec 2025: new DGT form, valid up to 12 months; forms issued earlier stay valid for their printed period); otherwise 20% with the reason in `rateBasis`. No check on DGT form content or beneficial ownership. A 0% treaty rate posts no tax line. Branch-profit and 26(4) cases are not handled.
 - Object codes corrected on 2026-11-06 (see "Regulation check 2026-11-06"). The BP21 and `PPH26` sheet layouts are unchecked against Coretax.
 - Due day 15 for PPh 26 mirrors PPh 23.
 
@@ -532,3 +532,31 @@ SELECT tax_object_code, count(*) FROM tax_transaction_details
 ```
 
 (`vendors.default_tax_object_code` and `withholding_payments` come from V009, not yet in production.) Recode any rows found to a specific code first. Bukti potong already filed with an old code are not affected; only the app's stored code changes.
+
+### PPh 21 bukan pegawai per payment
+
+PMK 168/2023 applies Pasal 17 ayat (1) huruf a rates to 50% of the gross of each payment; the cumulative rule for recurring payees was removed (DDTC, "Penghitungan PPh 21 Bukan Pegawai Tidak Lagi Kumulatif"). The masa cumulation, the recalculation of later drafts on cancel, and the cancel/void order guards are removed. Two Rp 100,000,000 payments to one payee in a month are now cut Rp 2,500,000 each instead of 2,500,000 and 6,500,000. Posted payments keep the tax they were posted with.
+
+### Annual PPh 21 of permanent employees
+
+Neto is gross minus biaya jabatan (5%, max 6,000,000) minus the employee-paid JHT and JP (1721-A1). Before this change the December run and `GET /api/payroll/employees/{id}/1721-a1` deducted no contribution, and the 1721-A1 PDF and the e-Bupot annual export deducted BPJS Kesehatan as well. All four now call `Pph21CalculationService.calculateAnnualTax`. The API response gains `iuranPensiun`. A missing PTKP status raises an error instead of using TK/0.
+
+Effect: December PPh 21 is lower by the bracket rate times the year's JHT + JP (540,000 in the 15% bracket for a 10,000,000 base salary). Unposted December runs must be recalculated after deploy; posted runs are unchanged.
+
+### BPJS JP wage ceiling
+
+The ceiling was one constant, 10,042,300 (the 2024 value), labelled 2025. It is now a table by payroll period in `BpjsCalculationService`: 2024-03 10,042,300 (B/1387/022024), 2025-03 10,547,400 (B/91/022025), 2026-03 11,086,300 (B/1226/022026). The latest announcement stays in force until the next is added; a warning is logged when it is more than twelve periods old. Periods before 2015-07 carry no JP (PP 45/2015). Periods 2015-07..2024-02 raise an error: the historical ceilings were not verified from a primary source.
+
+Effect: JP was under-collected from March 2025. Unposted runs need recalculating; posted runs from 2025-03 onward under-collected JP by 2% + 1% of the difference above the old ceiling, which has to be settled with BPJS outside the app.
+
+### Checked, unchanged
+
+TER rates (PP 58/2023, PMK 168/2023 in force), Pasal 17 brackets, PTKP, biaya jabatan, natura (PMK 66/2023), PPN 12% with DPP 11/12 (PMK 131/2024), PPh 23 2%/15%, PPh 4(2) rent 10% and PP 9/2022 construction rates, PPh badan 22% and Pasal 31E, PMK 81/2024 deadlines (15th / 20th / end of month), 10-year retention, BPJS Kesehatan 4%/1% with 12,000,000 cap, JKK/JKM/JHT rates.
+
+### Not implemented
+
+- PP 20/2026 (in force 22 April 2026): PPh final 0.5% only for individuals, PT perorangan and koperasi (4 years); CV, firma and ordinary PT keep it only until their current period ends. The app does not check entity type.
+- PPh 21 DTP 2026 (PMK 105/2025: footwear, textile, furniture, leather, tourism; regular gross up to 10,000,000) and graduate apprentices (PMK 6/2026, code 21-100-16).
+- 20% higher TER withholding for employees without NPWP or NIK.
+- Due dates moved to the next working day (PMK 81/2024 Pasal 100(1), 173(1)).
+

@@ -201,7 +201,7 @@ year,month,status,month_closed_at,month_closed_by,tax_filed_at,tax_filed_by
 |-----------|----------|---------|-----|
 | Kesehatan | 1% | 4% | Base max 12,000,000 |
 | JHT | 2% | 3.7% | No cap |
-| JP | 1% | 2% | Base max 10,042,300 |
+| JP | 1% | 2% | Base max 10,042,300 (Jan-Feb 2025), 10,547,400 (from Mar 2025) |
 | JKK | — | 0.24-1.74% | No cap |
 | JKM | — | 0.3% | No cap |
 

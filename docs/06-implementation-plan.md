@@ -325,7 +325,7 @@
 - [x] BPJS Kesehatan rates (4% company + 1% employee, ceiling Rp 12,000,000)
 - [x] BPJS Ketenagakerjaan rates (JKK 0.24%-1.74%, JKM 0.3%, JHT 3.7%+2%, JP 2%+1%)
 - [x] JKK risk class support (5 classes for different industries)
-- [x] JP ceiling (Rp 10,042,300 for 2025)
+- [x] JP ceiling by payroll period (10,042,300 from 2024-03, 10,547,400 from 2025-03, 11,086,300 from 2026-03)
 - [x] Company vs employee portion separation
 - [x] BpjsCalculationService with BigDecimal precision
 - [x] BpjsCalculationResult record with totals

@@ -410,7 +410,6 @@ public class TransactionService {
             throw new IllegalStateException("Transaksi memuat natura yang sudah masuk payroll. "
                     + "Hitung ulang atau batalkan payroll tersebut sebelum membatalkan transaksi.");
         }
-        assertNoLaterWithholdingInMasa(id);
 
         String reversalJournalNumber = generateJournalNumber();
         int lineIndex = 0;
@@ -438,24 +437,6 @@ public class TransactionService {
         Transaction voided = transactionRepository.save(transaction);
         eventPublisher.publishEvent(new TransactionVoidedEvent(voided));
         return voided;
-    }
-
-    /**
-     * PPh 21 bukan pegawai on a later payment in the masa starts where this one ended on the Pasal 17 brackets,
-     * so removing this one would leave the later tax wrong.
-     */
-    private void assertNoLaterWithholdingInMasa(UUID transactionId) {
-        withholdingPaymentRepository.findByTransactionId(transactionId).ifPresent(payment -> {
-            if (payment.getTreatment() != com.artivisi.accountingfinance.enums.WithholdingTreatment.PPH_21_BUKAN_PEGAWAI) {
-                return;
-            }
-            java.time.YearMonth masa = java.time.YearMonth.from(payment.getPaymentDate());
-            if (withholdingPaymentRepository.existsLaterInMasa(payment.getVendor().getId(), payment.getTreatment(),
-                    masa.atDay(1), masa.atEndOfMonth(), payment.getCreatedAt())) {
-                throw new IllegalStateException("Masih ada pembayaran lebih baru ke penerima ini pada masa yang sama. "
-                        + "Batalkan pembayaran tersebut lebih dulu.");
-            }
-        });
     }
 
     public void assertEditable(UUID transactionId) {

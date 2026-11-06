@@ -206,11 +206,12 @@ Response:
   "calculation": {
     "penghasilanBruto": 72000000,
     "biayaJabatan": 3600000,
-    "penghasilanNeto": 68400000,
+    "iuranPensiun": 2160000,
+    "penghasilanNeto": 66240000,
     "ptkp": 54000000,
-    "pkp": 14400000,
-    "pph21Terutang": 720000,
-    "pph21Dipotong": 720000,
+    "pkp": 12240000,
+    "pph21Terutang": 612000,
+    "pph21Dipotong": 612000,
     "pph21KurangBayar": 0
   },
   "monthlyBreakdown": [
@@ -219,6 +220,8 @@ Response:
   ]
 }
 ```
+
+`penghasilanNeto` = `penghasilanBruto` - `biayaJabatan` (5%, max 6,000,000) - `iuranPensiun` (employee-paid JHT and JP). The employee's BPJS Kesehatan contribution is not deducted. `pkp` is rounded down to the thousand. The December payroll run, this endpoint, the 1721-A1 PDF and the annual e-Bupot export use the same computation.
 
 Returns `404` if the employee has no `POSTED` payroll data for the given year.
 

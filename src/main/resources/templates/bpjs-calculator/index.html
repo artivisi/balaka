@@ -188,7 +188,7 @@
                     <li><strong>Potongan Karyawan:</strong> Dipotong dari gaji karyawan</li>
                     <li><strong>JKK &amp; JKM:</strong> Sepenuhnya ditanggung perusahaan</li>
                     <li><strong>Batas Upah BPJS Kesehatan:</strong> Rp 12.000.000/bulan</li>
-                    <li><strong>Batas Upah BPJS JP:</strong> Rp 10.042.300/bulan (2025)</li>
+                    <li id="jp-ceiling-info"><strong>Batas Upah BPJS JP:</strong> Rp <span th:text="${#numbers.formatDecimal(jpCeilingInForce, 0, 'POINT', 0, 'COMMA')}">0</span>/bulan, berlaku sejak <span th:text="${jpCeilingPeriod}">-</span></li>
                 </ul>
             </div>
         </div>

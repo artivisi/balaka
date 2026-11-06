@@ -270,7 +270,7 @@ public class PayrollService {
 
         // BPJS is on the fixed wage: bonus and THR are not part of it (PP 44/2015 Pasal 1 and
         // Perpres 82/2018 define upah as gaji pokok plus tunjangan tetap)
-        var bpjsResult = bpjsCalculationService.calculate(baseSalary, jkkRiskClass);
+        var bpjsResult = bpjsCalculationService.calculate(baseSalary, jkkRiskClass, period);
         detail.setBpjsKesCompany(bpjsResult.kesehatanCompany());
         detail.setBpjsKesEmployee(bpjsResult.kesehatanEmployee());
         detail.setBpjsJkk(bpjsResult.jkk());
@@ -294,8 +294,12 @@ public class PayrollService {
                     .map(PayrollDetail::getPph21)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 
+            BigDecimal pensionContributions = priorMonths.stream()
+                    .map(PayrollService::pensionContribution)
+                    .reduce(pensionContribution(detail), BigDecimal::add);
+
             var decResult = pph21CalculationService.calculateDecemberReconciliation(
-                    allGrossAmounts, employee.getPtkpStatus(), janNovPph21);
+                    allGrossAmounts, pensionContributions, employee.getPtkpStatus(), janNovPph21);
             detail.setPph21(decResult.decemberPph21());
         } else {
             // Jan-Nov: TER rate lookup
@@ -550,6 +554,9 @@ public class PayrollService {
         BigDecimal totalBpjsEmployee = details.stream()
             .map(PayrollDetail::getTotalEmployeeBpjs)
             .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalPensionContributions = details.stream()
+            .map(PayrollService::pensionContribution)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal totalBenefitInKind = details.stream()
             .map(PayrollDetail::getBenefitInKind)
             .reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -565,11 +572,19 @@ public class PayrollService {
             details.size(),
             totalGross,
             totalBpjsEmployee,
+            totalPensionContributions,
             totalPph21,
             totalBonusAndThr,
             totalBenefitInKind,
             unprocessedBenefitInKind
         );
+    }
+
+    /**
+     * Employee-paid contributions deductible from PPh 21 neto: JHT and JP. BPJS Kesehatan is not one.
+     */
+    static BigDecimal pensionContribution(PayrollDetail detail) {
+        return detail.getBpjsJhtEmployee().add(detail.getBpjsJpEmployee());
     }
 
     // ==================== Schedule CRUD ====================
@@ -627,6 +642,7 @@ public class PayrollService {
         int monthCount,
         BigDecimal totalGross,
         BigDecimal totalBpjsEmployee,
+        BigDecimal totalPensionContributions,
         BigDecimal totalPph21,
         BigDecimal totalBonusAndThr,
         BigDecimal totalBenefitInKind,

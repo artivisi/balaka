@@ -77,7 +77,7 @@ class BenefitInKindPayrollTest {
     }
 
     @Test
-    @DisplayName("Annual reconciliation counts natura: Jan-Nov 2,480,000 withheld, annual tax 3,750,000")
+    @DisplayName("Annual reconciliation counts natura: Jan-Nov 2,480,000 withheld, annual tax 3,210,000")
     void decemberReconciliationIncludesBenefit() {
         Employee employee = emp001();
         benefit(LocalDate.of(2115, 1, 15), employee, "2000000");
@@ -86,9 +86,9 @@ class BenefitInKindPayrollTest {
         for (int month = 1; month <= 11; month++) {
             calculate(YearMonth.of(2115, month), employee);
         }
-        // Annual base 125,000,000 - 6,000,000 biaya jabatan - 54,000,000 PTKP = 65,000,000 PKP:
-        // 60,000,000 x 5% + 5,000,000 x 15% = 3,750,000
-        assertThat(calculate(YearMonth.of(2115, 12), employee).getPph21()).isEqualByComparingTo("1270000");
+        // Annual base 125,000,000 - 6,000,000 biaya jabatan - 3,600,000 employee JHT + JP (12 x 300,000)
+        // - 54,000,000 PTKP = 61,400,000 PKP: 60,000,000 x 5% + 1,400,000 x 15% = 3,210,000
+        assertThat(calculate(YearMonth.of(2115, 12), employee).getPph21()).isEqualByComparingTo("730000");
     }
 
     @Test

@@ -27,15 +27,13 @@ public class WithholdingCalculationService {
     public record Withholding(BigDecimal dpp, BigDecimal rate, BigDecimal tax, WithholdingRateBasis basis) {}
 
     /**
-     * PPh 21 bukan pegawai: Pasal 17 on 50% of the payee's gross in one masa, 20% higher without NPWP or NIK.
-     * Brackets restart each masa and do not use PTKP. priorGrossInMasa places this payment on the brackets, so
-     * payments split within a masa total the tax of their sum.
+     * PPh 21 bukan pegawai (PMK 168/2023): Pasal 17 ayat (1) huruf a rates on 50% of the gross of each payment,
+     * 20% higher without NPWP or NIK. Each payment stands alone: no accumulation within the masa or the year
+     * (the cumulative rule for recurring payees was removed by PMK 168/2023) and no PTKP.
      */
-    public Withholding pph21NonEmployee(BigDecimal gross, BigDecimal priorGrossInMasa, boolean hasTaxId) {
+    public Withholding pph21NonEmployee(BigDecimal gross, boolean hasTaxId) {
         BigDecimal dpp = percent(gross, properties.getPph21DppPercent(), 2);
-        BigDecimal priorDpp = percent(priorGrossInMasa, properties.getPph21DppPercent(), 2);
-        BigDecimal base = pph21CalculationService.calculateProgressiveTax(priorDpp.add(dpp))
-                .subtract(pph21CalculationService.calculateProgressiveTax(priorDpp));
+        BigDecimal base = pph21CalculationService.calculateProgressiveTax(dpp);
         BigDecimal tax = hasTaxId ? base.setScale(2, RoundingMode.HALF_UP)
                 : surcharge(base, properties.getPph21NoIdSurchargePercent());
         return new Withholding(dpp, effectiveRate(tax, dpp), tax,
@@ -69,11 +67,11 @@ public class WithholdingCalculationService {
         return new Withholding(gross, rate.setScale(2, RoundingMode.HALF_UP), percent(gross, rate, 0).setScale(2), basis);
     }
 
-    /** Dispatch for a flat-rate or per-masa treatment. */
-    public Withholding calculate(WithholdingTreatment treatment, BigDecimal gross, BigDecimal priorGrossInMasa,
+    /** Dispatch by withholding treatment. */
+    public Withholding calculate(WithholdingTreatment treatment, BigDecimal gross,
                                  boolean hasTaxId, Vendor payee, LocalDate paymentDate) {
         return switch (treatment) {
-            case PPH_21_BUKAN_PEGAWAI -> pph21NonEmployee(gross, priorGrossInMasa, hasTaxId);
+            case PPH_21_BUKAN_PEGAWAI -> pph21NonEmployee(gross, hasTaxId);
             case PPH_23 -> pph23(gross, hasTaxId);
             case PPH_26 -> pph26(gross, payee, paymentDate);
         };

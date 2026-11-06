@@ -5,7 +5,6 @@ import com.artivisi.accountingfinance.entity.BillPayment;
 import com.artivisi.accountingfinance.entity.ChartOfAccount;
 import com.artivisi.accountingfinance.entity.TaxTransactionDetail;
 import com.artivisi.accountingfinance.entity.Transaction;
-import com.artivisi.accountingfinance.entity.TransactionVariable;
 import com.artivisi.accountingfinance.entity.Vendor;
 import com.artivisi.accountingfinance.entity.WithholdingPayment;
 import com.artivisi.accountingfinance.enums.AccountType;
@@ -32,7 +31,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.YearMonth;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -104,9 +102,8 @@ public class WithholdingPaymentService {
         ChartOfAccount payable = accountResolver.payableAccount(treatment);
 
         boolean hasTaxId = payee.hasTaxId();
-        BigDecimal prior = priorGrossInMasa(payee.getId(), treatment, command.paymentDate());
         WithholdingCalculationService.Withholding result = calculationService.calculate(
-                treatment, command.grossAmount(), prior, hasTaxId, payee, command.paymentDate());
+                treatment, command.grossAmount(), hasTaxId, payee, command.paymentDate());
         BigDecimal net = settled.subtract(result.tax());
         if (net.signum() < 0) {
             throw new IllegalArgumentException("PPh dipotong melebihi jumlah yang dibayar");
@@ -159,7 +156,7 @@ public class WithholdingPaymentService {
         return payment;
     }
 
-    /** Removes a DRAFT payment with its transaction and moves remaining drafts down the brackets. */
+    /** Removes a DRAFT payment with its transaction. Each payment is taxed on its own gross, so no other payment changes. */
     public void cancel(UUID paymentId) {
         WithholdingPayment payment = find(paymentId);
         Transaction transaction = payment.getTransaction();
@@ -167,20 +164,6 @@ public class WithholdingPaymentService {
             throw new IllegalStateException("Hanya pembayaran berstatus draf yang dapat dibatalkan. "
                     + "Pembayaran yang sudah diposting dibatalkan lewat void transaksi.");
         }
-        UUID vendorId = payment.getVendor().getId();
-        WithholdingTreatment treatment = payment.getTreatment();
-        LocalDate date = payment.getPaymentDate();
-        vendorRepository.findByIdForUpdate(vendorId);
-        // Later drafts are recalculated below; a later POSTED payment keeps the tax it was posted with.
-        YearMonth masa = YearMonth.from(date);
-        if (treatment == WithholdingTreatment.PPH_21_BUKAN_PEGAWAI
-                && paymentRepository.existsLaterPostedInMasa(vendorId, treatment, masa.atDay(1), masa.atEndOfMonth(),
-                        payment.getCreatedAt())) {
-            throw new IllegalStateException("Draf ini tidak dapat dibatalkan: pembayaran lebih baru ke penerima ini pada masa "
-                    + masa + " sudah diposting dengan bruto draf ini dihitung sebagai penghasilan sebelumnya. "
-                    + "Void pembayaran tersebut lebih dulu, lalu batalkan draf ini.");
-        }
-
         TaxTransactionDetail detail = payment.getTaxDetail();
         paymentRepository.delete(payment);
         paymentRepository.flush();
@@ -189,7 +172,6 @@ public class WithholdingPaymentService {
         }
         transactionService.delete(transaction.getId());
         entityManager.flush();
-        recalculateDrafts(vendorId, treatment, date);
     }
 
     @EventListener
@@ -219,52 +201,12 @@ public class WithholdingPaymentService {
                 });
     }
 
-    private void recalculateDrafts(UUID vendorId, WithholdingTreatment treatment, LocalDate date) {
-        if (treatment != WithholdingTreatment.PPH_21_BUKAN_PEGAWAI) {
-            return;
-        }
-        YearMonth masa = YearMonth.from(date);
-        BigDecimal prior = BigDecimal.ZERO;
-        for (WithholdingPayment payment : paymentRepository.findActiveInMasa(vendorId, treatment, masa.atDay(1), masa.atEndOfMonth())) {
-            if (payment.getTransaction().getStatus() == TransactionStatus.DRAFT) {
-                WithholdingCalculationService.Withholding result = calculationService.pph21NonEmployee(
-                        payment.getGrossAmount(), prior, payment.isHasTaxId());
-                BigDecimal net = payment.getSettledAmount().subtract(result.tax());
-                applyResult(payment, result, net);
-                updateDraftVariables(payment.getTransaction(), net, result.tax());
-                TaxTransactionDetail detail = payment.getTaxDetail();
-                if (detail != null) {
-                    detail.setTaxRate(result.rate());
-                    detail.setTaxAmount(result.tax());
-                }
-            }
-            prior = prior.add(payment.getGrossAmount());
-        }
-    }
-
-    private void updateDraftVariables(Transaction transaction, BigDecimal net, BigDecimal tax) {
-        for (TransactionVariable variable : transaction.getVariables()) {
-            if (VAR_NET.equals(variable.getVariableName())) {
-                variable.setVariableValue(net);
-            } else if (VAR_TAX.equals(variable.getVariableName())) {
-                variable.setVariableValue(tax);
-            }
-        }
-    }
-
     private void applyResult(WithholdingPayment payment, WithholdingCalculationService.Withholding result, BigDecimal net) {
         payment.setDppAmount(result.dpp());
         payment.setTaxRate(result.rate());
         payment.setTaxAmount(result.tax());
         payment.setNetAmount(net);
         payment.setRateBasis(result.basis());
-    }
-
-    private BigDecimal priorGrossInMasa(UUID vendorId, WithholdingTreatment treatment, LocalDate date) {
-        YearMonth masa = YearMonth.from(date);
-        return paymentRepository.findActiveInMasa(vendorId, treatment, masa.atDay(1), masa.atEndOfMonth()).stream()
-                .map(WithholdingPayment::getGrossAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     private WithholdingTreatment resolveTreatment(WithholdingTreatment requested, Vendor payee) {

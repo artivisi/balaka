@@ -127,13 +127,13 @@ Menu **Pembelian** > **Pemotongan PPh** mencatat pembayaran ke freelancer, vendo
 
 | Perlakuan | Penerima | Dasar | Tarif | Tanpa NPWP/NIK |
 |-----------|----------|-------|-------|----------------|
-| PPh 21 Bukan Pegawai | Orang pribadi | 50% bruto per masa | Pasal 17 | Lebih tinggi 20% |
+| PPh 21 Bukan Pegawai | Orang pribadi | 50% bruto per pembayaran | Pasal 17 | Lebih tinggi 20% |
 | PPh 23 | Badan atau orang pribadi | Bruto | 2% | Lebih tinggi 100% |
 | PPh 26 | Luar negeri | Bruto | 20% atau tarif P3B | Tidak berpengaruh |
 
-Tarif PPh 23, PPh 26 dan kode objek pajak belum diperiksa konsultan pajak. Periksa dengan konsultan sebelum menyetor.
+Tarif dan kode objek pajak dicocokkan dengan PMK 168/2023, PMK 81/2024 dan daftar kode objek pajak e-Bupot per 6 November 2026, belum diperiksa konsultan pajak.
 
-Tarif berjenjang Pasal 17 dihitung dari total bruto penerima dalam satu masa dan dimulai dari awal lagi pada masa berikutnya. PTKP tidak dikurangkan. Contoh dengan NIK: pembayaran pertama Rp 100.000.000 dipotong Rp 2.500.000, pembayaran kedua Rp 100.000.000 pada bulan yang sama dipotong Rp 6.500.000.
+Tarif berjenjang Pasal 17 dihitung dari bruto setiap pembayaran, tidak diakumulasikan dengan pembayaran lain ke penerima yang sama (PMK 168/2023). PTKP tidak dikurangkan. Contoh dengan NIK: dua pembayaran Rp 100.000.000 pada bulan yang sama masing-masing dipotong Rp 2.500.000.
 
 Tarif P3B berlaku hanya jika nomor DGT terisi dan DGT masih berlaku pada tanggal bayar. Jika tidak, sistem menghitung tarif umum 20% dan kolom Dasar Tarif menampilkan alasannya.
 
@@ -154,7 +154,7 @@ NPWP dan NIK vendor tersimpan terenkripsi.
 3. Klik **Hitung dan Simpan Draf**
 4. Periksa PPh Dipotong dan Dibayar ke Penerima, lalu klik **Posting**
 
-Draf belum masuk jurnal. **Batalkan Draf** menghapus draf dan menghitung ulang draf PPh 21 lain ke penerima yang sama pada masa itu. Pembayaran terposting dibatalkan lewat void transaksi. Void ditolak jika masih ada pembayaran PPh 21 yang lebih baru ke penerima yang sama pada masa itu.
+Draf belum masuk jurnal. **Batalkan Draf** menghapus draf tanpa mengubah pembayaran lain. Pembayaran terposting dibatalkan lewat void transaksi.
 
 Jurnal setelah posting:
 

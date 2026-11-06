@@ -163,33 +163,30 @@ class WithholdingPaymentServiceTest {
     }
 
     @Test
-    @DisplayName("Brackets accumulate per payee per masa and restart in the next masa; other payees do not share them")
-    void bracketsPerPayeePerMasa() {
+    @DisplayName("Each payment is taxed on its own gross: a second payment to the payee in the masa is not pushed up the brackets")
+    void eachPaymentTaxedAlone() {
         Vendor payee = individual(NIK, null);
         assertThat(pay(payee, null, "100000000", LocalDate.of(2133, 1, 5)).getTaxAmount()).isEqualByComparingTo("2500000");
-        assertThat(pay(payee, null, "100000000", LocalDate.of(2133, 1, 25)).getTaxAmount()).isEqualByComparingTo("6500000");
-        assertThat(pay(payee, null, "100000000", LocalDate.of(2133, 2, 5)).getTaxAmount()).isEqualByComparingTo("2500000");
-        assertThat(pay(individual(NIK, null), null, "100000000", LocalDate.of(2133, 1, 26)).getTaxAmount()).isEqualByComparingTo("2500000");
+        assertThat(pay(payee, null, "100000000", LocalDate.of(2133, 1, 25)).getTaxAmount()).isEqualByComparingTo("2500000");
+        assertThat(pay(payee, null, "300000000", LocalDate.of(2133, 1, 26)).getTaxAmount()).isEqualByComparingTo("16500000");
     }
 
     @Test
-    @DisplayName("Cancelling a draft removes its rows and moves later drafts down the brackets; posted tax stays")
-    void cancelRecalculatesDrafts() {
+    @DisplayName("Cancelling a draft removes its rows and leaves the payee's other payments unchanged; posted cannot be cancelled")
+    void cancelLeavesOtherPayments() {
         Vendor payee = individual(NIK, null);
         WithholdingPayment first = pay(payee, null, "100000000", LocalDate.of(2133, 3, 5));
         WithholdingPayment second = pay(payee, null, "100000000", LocalDate.of(2133, 3, 6));
         UUID firstTransaction = first.getTransaction().getId();
-        assertThat(second.getTaxAmount()).isEqualByComparingTo("6500000");
 
         paymentService.cancel(first.getId());
         entityManager.flush();
         entityManager.clear();
 
         assertThat(entityManager.find(Transaction.class, firstTransaction)).isNull();
-        WithholdingPayment recalculated = queryService.findPayment(second.getId());
-        assertThat(recalculated.getTaxAmount()).isEqualByComparingTo("2500000");
-        assertThat(recalculated.getNetAmount()).isEqualByComparingTo("97500000");
-        assertThat(recalculated.getTaxDetail().getTaxAmount()).isEqualByComparingTo("2500000");
+        WithholdingPayment remaining = queryService.findPayment(second.getId());
+        assertThat(remaining.getTaxAmount()).isEqualByComparingTo("2500000");
+        assertThat(remaining.getNetAmount()).isEqualByComparingTo("97500000");
 
         paymentService.post(second.getId(), "tester");
         entityManager.flush();
@@ -199,31 +196,6 @@ class WithholdingPaymentServiceTest {
 
         assertThatThrownBy(() -> paymentService.cancel(second.getId()))
                 .isInstanceOf(IllegalStateException.class).hasMessageContaining("void transaksi");
-    }
-
-    @Test
-    @DisplayName("A draft cannot be cancelled once a later payment in the masa, computed with it as prior gross, is posted")
-    void cancelRefusedAfterLaterPosted() {
-        Vendor payee = individual(NIK, null);
-        WithholdingPayment first = pay(payee, null, "100000000", LocalDate.of(2140, 3, 5));
-        WithholdingPayment second = pay(payee, null, "100000000", LocalDate.of(2140, 3, 6));
-        assertThat(second.getTaxAmount()).isEqualByComparingTo("6500000");
-        paymentService.post(second.getId(), "tester");
-        entityManager.flush();
-        entityManager.clear();
-
-        assertThatThrownBy(() -> paymentService.cancel(first.getId()))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessage("Draf ini tidak dapat dibatalkan: pembayaran lebih baru ke penerima ini pada masa 2140-03 sudah "
-                        + "diposting dengan bruto draf ini dihitung sebagai penghasilan sebelumnya. "
-                        + "Void pembayaran tersebut lebih dulu, lalu batalkan draf ini.");
-        entityManager.clear();
-        assertThat(queryService.findPayment(first.getId()).getTransaction().getStatus()).isEqualTo(TransactionStatus.DRAFT);
-
-        // An earlier posted payment does not block: it was computed without this draft
-        WithholdingPayment third = pay(payee, null, "10000000", LocalDate.of(2140, 3, 7));
-        paymentService.cancel(third.getId());
-        entityManager.flush();
     }
 
     @Test
@@ -243,20 +215,18 @@ class WithholdingPaymentServiceTest {
     }
 
     @Test
-    @DisplayName("Voiding a PPh 21 payment with a later payment in the masa is refused; the latest can be voided and frees its bracket")
-    void voidOrder() {
+    @DisplayName("Voiding an earlier PPh 21 payment while a later one in the masa is posted is allowed; the later tax stays")
+    void voidEarlierPayment() {
         Vendor payee = individual(NIK, null);
         WithholdingPayment first = pay(payee, null, "100000000", LocalDate.of(2133, 5, 5));
         paymentService.post(first.getId(), "tester");
         WithholdingPayment second = pay(payee, null, "100000000", LocalDate.of(2133, 5, 6));
         paymentService.post(second.getId(), "tester");
 
-        assertThatThrownBy(() -> transactionService.voidTransaction(first.getTransaction().getId(), VoidReason.INPUT_ERROR, "x", "tester"))
-                .isInstanceOf(IllegalStateException.class).hasMessageContaining("lebih baru");
+        transactionService.voidTransaction(first.getTransaction().getId(), VoidReason.INPUT_ERROR, "x", "tester");
 
-        transactionService.voidTransaction(second.getTransaction().getId(), VoidReason.INPUT_ERROR, "x", "tester");
+        assertThat(queryService.findPayment(second.getId()).getTaxAmount()).isEqualByComparingTo("2500000");
         assertThat(queryService.getMasaStatus(2133, 5, LocalDate.of(2133, 6, 1)).get(0).withheld()).isEqualByComparingTo("2500000");
-        assertThat(pay(payee, null, "100000000", LocalDate.of(2133, 5, 7)).getTaxAmount()).isEqualByComparingTo("6500000");
     }
 
     @Test

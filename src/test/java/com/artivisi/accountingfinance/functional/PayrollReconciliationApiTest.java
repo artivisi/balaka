@@ -86,11 +86,12 @@ class PayrollReconciliationApiTest extends PlaywrightTestBase {
                 assertThat(detail.get("additions")).hasSize(1);
                 assertThat(detail.get("additions").get(0).get("type").asText()).isEqualTo("THR");
             } else if (month == 12) {
-                // Annual 135,000,000 - 6,000,000 - 54,000,000 = 75,000,000 PKP: tax 5,250,000.
-                // Jan-Nov: ten months at 200,000 + 1,800,000 = 3,800,000. December 1,450,000.
+                // Annual 135,000,000 - 6,000,000 - 2,400,000 employee JHT (12 x 200,000; no JP before 2015-07)
+                // - 54,000,000 = 72,600,000 PKP: tax 4,890,000.
+                // Jan-Nov: ten months at 200,000 + 1,800,000 = 3,800,000. December 1,090,000.
                 assertAmount(row, "bonus", "5000000");
                 assertAmount(row, "grossSalary", "15000000");
-                assertAmount(row, "pph21", "1450000");
+                assertAmount(row, "pph21", "1090000");
             } else {
                 assertAmount(row, "grossSalary", "10000000");
                 assertAmount(row, "pph21", "200000");
@@ -107,10 +108,12 @@ class PayrollReconciliationApiTest extends PlaywrightTestBase {
         assertAmount(calc, "natura", "0");
         assertAmount(calc, "penghasilanBruto", "135000000");
         assertAmount(calc, "biayaJabatan", "6000000");
+        assertAmount(calc, "iuranPensiun", "2400000");
+        assertAmount(calc, "penghasilanNeto", "126600000");
         assertAmount(calc, "ptkp", "54000000");
-        assertAmount(calc, "pkp", "75000000");
-        assertAmount(calc, "pph21Terutang", "5250000");
-        assertAmount(calc, "pph21Dipotong", "5250000");
+        assertAmount(calc, "pkp", "72600000");
+        assertAmount(calc, "pph21Terutang", "4890000");
+        assertAmount(calc, "pph21Dipotong", "4890000");
         assertAmount(calc, "pph21KurangBayar", "0");
         assertThat(a1.get("monthlyBreakdown")).hasSize(12);
         assertAmount(a1.get("monthlyBreakdown").get(2), "thr", "10000000");

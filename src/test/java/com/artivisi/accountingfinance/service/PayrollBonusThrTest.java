@@ -71,7 +71,7 @@ class PayrollBonusThrTest {
         flush();
 
         PayrollDetail detail = detailOf(run, employee);
-        var bpjs = bpjsCalculationService.calculate(BASE, 1);
+        var bpjs = bpjsCalculationService.calculate(BASE, 1, YearMonth.of(2155, 3));
         assertThat(detail.getBaseSalary()).isEqualByComparingTo(BASE);
         assertThat(detail.getBonus()).isEqualByComparingTo("3000000");
         assertThat(detail.getThr()).isEqualByComparingTo("2000000");
@@ -103,7 +103,7 @@ class PayrollBonusThrTest {
     }
 
     @Test
-    @DisplayName("December reconciliation: annual 135,000,000 gives tax 5,250,000; Jan-Nov withheld 3,800,000; December 1,450,000")
+    @DisplayName("December reconciliation: annual 135,000,000 gives tax 4,710,000; Jan-Nov withheld 3,800,000; December 910,000")
     void decemberReconciliationCountsBonusAndThr() {
         Employee employee = emp001();
         // Jan-Nov: ten months at 2% = 2,000,000; March 20,000,000 at 9% = 1,800,000
@@ -111,28 +111,29 @@ class PayrollBonusThrTest {
             run(2157, month, employee, month == 3 ? PayrollAdditionType.THR : null, "10000000");
         }
         // Annual 120,000,000 + 10,000,000 THR + 5,000,000 bonus = 135,000,000; biaya jabatan 6,000,000;
-        // PTKP 54,000,000; PKP 75,000,000: 60,000,000 x 5% + 15,000,000 x 15% = 5,250,000
+        // employee JHT + JP 3,600,000 (12 x 300,000, on base salary only); PTKP 54,000,000;
+        // PKP 71,400,000: 60,000,000 x 5% + 11,400,000 x 15% = 4,710,000
         PayrollRun december = run(2157, 12, employee, PayrollAdditionType.BONUS, "5000000");
 
         assertThat(detailOf(december, employee).getGrossSalary()).isEqualByComparingTo("15000000");
-        assertThat(detailOf(december, employee).getPph21()).isEqualByComparingTo("1450000");
+        assertThat(detailOf(december, employee).getPph21()).isEqualByComparingTo("910000");
     }
 
     @Test
-    @DisplayName("A large bonus over-withholds under TER: December returns 43,000,000 and the run journal still balances")
+    @DisplayName("A large bonus over-withholds under TER: December returns 44,080,000 and the run journal still balances")
     void overWithheldDecemberPostsAsDebit() {
         Employee employee = emp001();
         // March 510,000,000 at 30% = 153,000,000; ten months at 200,000 = 2,000,000. Withheld 155,000,000.
         for (int month = 1; month <= 11; month++) {
             run(2158, month, employee, month == 3 ? PayrollAdditionType.BONUS : null, "500000000");
         }
-        // Annual 620,000,000 - 6,000,000 - 54,000,000 = PKP 560,000,000:
-        // 3,000,000 + 28,500,000 + 62,500,000 + 18,000,000 = 112,000,000
+        // Annual 620,000,000 - 6,000,000 - 3,600,000 JHT + JP - 54,000,000 = PKP 556,400,000:
+        // 3,000,000 + 28,500,000 + 62,500,000 + 16,920,000 = 110,920,000
         PayrollRun december = run(2158, 12, employee, null, null);
         PayrollDetail detail = detailOf(december, employee);
-        assertThat(detail.getPph21()).isEqualByComparingTo("-43000000");
+        assertThat(detail.getPph21()).isEqualByComparingTo("-44080000");
         assertThat(detail.getNetPay()).isEqualByComparingTo(BASE
-                .subtract(detail.getTotalEmployeeBpjs()).add(new BigDecimal("43000000")));
+                .subtract(detail.getTotalEmployeeBpjs()).add(new BigDecimal("44080000")));
 
         PayrollRun reloaded = payrollService.findById(december.getId()).orElseThrow();
         BigDecimal totalPph21 = reloaded.getTotalPph21();
@@ -148,13 +149,13 @@ class PayrollBonusThrTest {
     }
 
     @Test
-    @DisplayName("1721-A1: salary 120,000,000, bonus and THR 15,000,000, natura 2,000,000, bruto 137,000,000, PPh 21 5,550,000")
+    @DisplayName("1721-A1: salary 120,000,000, bonus and THR 15,000,000, natura 2,000,000, bruto 137,000,000, PPh 21 5,010,000")
     void buktiPotongTotals() throws IOException {
         Employee employee = emp001();
         benefit(LocalDate.of(2159, 1, 15), employee, "2000000");
         // Jan 12,000,000 at 4% = 480,000; March 20,000,000 at 9% = 1,800,000; nine months at 200,000 = 1,800,000
-        // Withheld Jan-Nov 4,080,000. Annual 137,000,000 - 6,000,000 - 54,000,000 = PKP 77,000,000:
-        // 3,000,000 + 17,000,000 x 15% = 5,550,000. December 1,470,000.
+        // Withheld Jan-Nov 4,080,000. Annual 137,000,000 - 6,000,000 - 3,600,000 JHT + JP - 54,000,000
+        // = PKP 73,400,000: 3,000,000 + 13,400,000 x 15% = 5,010,000. December 930,000.
         for (int month = 1; month <= 12; month++) {
             PayrollAdditionType type = month == 3 ? PayrollAdditionType.THR : month == 12 ? PayrollAdditionType.BONUS : null;
             PayrollRun run = run(2159, month, employee, type, month == 3 ? "10000000" : "5000000");
@@ -169,7 +170,8 @@ class PayrollBonusThrTest {
         assertThat(summary.totalGross()).isEqualByComparingTo("135000000");
         assertThat(summary.totalBenefitInKind()).isEqualByComparingTo("2000000");
         assertThat(summary.getTotalBruto()).isEqualByComparingTo("137000000");
-        assertThat(summary.totalPph21()).isEqualByComparingTo("5550000");
+        assertThat(summary.totalPph21()).isEqualByComparingTo("5010000");
+        assertThat(summary.totalPensionContributions()).isEqualByComparingTo("3600000");
 
         try (PdfReader reader = new PdfReader(payrollReportService.generateBuktiPotong1721A1(summary))) {
             String text = new PdfTextExtractor(reader).getTextFromPage(1);
@@ -177,7 +179,11 @@ class PayrollBonusThrTest {
             assertThat(text).contains("8b. Natura dan KenikmatanRp 2.000.000");
             assertThat(text).contains("8c. Tantiem, Bonus, Gratifikasi, Jasa Produksi dan THRRp 15.000.000");
             assertThat(text).contains("9. Penghasilan Bruto (8a + 8b + 8c)Rp 137.000.000");
-            assertThat(text).contains("16. PPh PASAL 21 YANG TELAH DIPOTONGRp 5.550.000");
+            assertThat(text).contains("11. Iuran Pensiun/JHT/JP yang dibayar karyawanRp 3.600.000");
+            assertThat(text).contains("12. Penghasilan Neto (9 - 10 - 11)Rp 127.400.000");
+            assertThat(text).contains("14. Penghasilan Kena Pajak (12 - 13)Rp 73.400.000");
+            assertThat(text).contains("15. PPh Pasal 21 TerutangRp 5.010.000");
+            assertThat(text).contains("16. PPh PASAL 21 YANG TELAH DIPOTONGRp 5.010.000");
         }
     }
 

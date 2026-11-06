@@ -80,7 +80,7 @@ Tax:
 - Lampiran III kredit pajak / pph23-detail include PPh 23 we withheld from vendors; PPh Badan credit uses ledger 1.1.26 — they disagree.
 - Auto-populated PPh 23 on vendor payment uses the project's client as counterparty.
 - Tax due dates not shifted to next working day (PMK 81/2024).
-- **Verify**: `BPJS_JP_CEILING = 10,042,300` labelled 2025; may be the 2024 figure (2025 reportedly ≈ Rp 10,547,400 from March 2025). Changing it changes payroll JP amounts and tests.
+- ~~JP ceiling 10,042,300 labelled 2025~~ resolved 2026-11-06: dated table in `BpjsCalculationService` (2024-03 10,042,300; 2025-03 10,547,400; 2026-03 11,086,300).
 - BPJS calculation treats null/out-of-range risk class as class 1 (fallback).
 
 Seed / demo data:

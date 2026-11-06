@@ -7,11 +7,16 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.time.YearMonth;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DisplayName("BPJS Calculation Service")
 class BpjsCalculationServiceTest {
+
+    /** Period under the 2024 JP ceiling (Rp 10,042,300), used by the cases that are not about the ceiling table. */
+    private static final YearMonth PERIOD_2024 = YearMonth.of(2024, 6);
 
     private BpjsCalculationService service;
 
@@ -29,7 +34,7 @@ class BpjsCalculationServiceTest {
         void shouldCalculateForSalaryBelowCeiling() {
             BigDecimal salary = new BigDecimal("10000000"); // 10 million
 
-            BpjsCalculationResult result = service.calculate(salary);
+            BpjsCalculationResult result = service.calculate(salary, 1, PERIOD_2024);
 
             // 4% of 10,000,000 = 400,000
             assertThat(result.kesehatanCompany()).isEqualByComparingTo("400000");
@@ -42,7 +47,7 @@ class BpjsCalculationServiceTest {
         void shouldApplyCeilingForHighSalaries() {
             BigDecimal salary = new BigDecimal("20000000"); // 20 million
 
-            BpjsCalculationResult result = service.calculate(salary);
+            BpjsCalculationResult result = service.calculate(salary, 1, PERIOD_2024);
 
             // Ceiling is 12,000,000
             // 4% of 12,000,000 = 480,000
@@ -56,7 +61,7 @@ class BpjsCalculationServiceTest {
         void shouldCalculateForSalaryAtCeiling() {
             BigDecimal salary = new BigDecimal("12000000"); // exactly at ceiling
 
-            BpjsCalculationResult result = service.calculate(salary);
+            BpjsCalculationResult result = service.calculate(salary, 1, PERIOD_2024);
 
             assertThat(result.kesehatanCompany()).isEqualByComparingTo("480000");
             assertThat(result.kesehatanEmployee()).isEqualByComparingTo("120000");
@@ -72,7 +77,7 @@ class BpjsCalculationServiceTest {
         void shouldUseRiskClass1ByDefault() {
             BigDecimal salary = new BigDecimal("10000000");
 
-            BpjsCalculationResult result = service.calculate(salary);
+            BpjsCalculationResult result = service.calculate(salary, 1, PERIOD_2024);
 
             // 0.24% of 10,000,000 = 24,000
             assertThat(result.jkk()).isEqualByComparingTo("24000");
@@ -83,7 +88,7 @@ class BpjsCalculationServiceTest {
         void shouldCalculateForRiskClass2() {
             BigDecimal salary = new BigDecimal("10000000");
 
-            BpjsCalculationResult result = service.calculate(salary, 2);
+            BpjsCalculationResult result = service.calculate(salary, 2, PERIOD_2024);
 
             // 0.54% of 10,000,000 = 54,000
             assertThat(result.jkk()).isEqualByComparingTo("54000");
@@ -94,7 +99,7 @@ class BpjsCalculationServiceTest {
         void shouldCalculateForRiskClass3() {
             BigDecimal salary = new BigDecimal("10000000");
 
-            BpjsCalculationResult result = service.calculate(salary, 3);
+            BpjsCalculationResult result = service.calculate(salary, 3, PERIOD_2024);
 
             // 0.89% of 10,000,000 = 89,000
             assertThat(result.jkk()).isEqualByComparingTo("89000");
@@ -105,7 +110,7 @@ class BpjsCalculationServiceTest {
         void shouldCalculateForRiskClass4() {
             BigDecimal salary = new BigDecimal("10000000");
 
-            BpjsCalculationResult result = service.calculate(salary, 4);
+            BpjsCalculationResult result = service.calculate(salary, 4, PERIOD_2024);
 
             // 1.27% of 10,000,000 = 127,000
             assertThat(result.jkk()).isEqualByComparingTo("127000");
@@ -116,7 +121,7 @@ class BpjsCalculationServiceTest {
         void shouldCalculateForRiskClass5() {
             BigDecimal salary = new BigDecimal("10000000");
 
-            BpjsCalculationResult result = service.calculate(salary, 5);
+            BpjsCalculationResult result = service.calculate(salary, 5, PERIOD_2024);
 
             // 1.74% of 10,000,000 = 174,000
             assertThat(result.jkk()).isEqualByComparingTo("174000");
@@ -127,7 +132,7 @@ class BpjsCalculationServiceTest {
         void shouldDefaultToClass1ForInvalidRiskClass() {
             BigDecimal salary = new BigDecimal("10000000");
 
-            BpjsCalculationResult result = service.calculate(salary, 99);
+            BpjsCalculationResult result = service.calculate(salary, 99, PERIOD_2024);
 
             assertThat(result.jkk()).isEqualByComparingTo("24000");
         }
@@ -142,7 +147,7 @@ class BpjsCalculationServiceTest {
         void shouldCalculateJkm() {
             BigDecimal salary = new BigDecimal("10000000");
 
-            BpjsCalculationResult result = service.calculate(salary);
+            BpjsCalculationResult result = service.calculate(salary, 1, PERIOD_2024);
 
             // 0.3% of 10,000,000 = 30,000
             assertThat(result.jkm()).isEqualByComparingTo("30000");
@@ -158,7 +163,7 @@ class BpjsCalculationServiceTest {
         void shouldCalculateJht() {
             BigDecimal salary = new BigDecimal("10000000");
 
-            BpjsCalculationResult result = service.calculate(salary);
+            BpjsCalculationResult result = service.calculate(salary, 1, PERIOD_2024);
 
             // 3.7% of 10,000,000 = 370,000
             assertThat(result.jhtCompany()).isEqualByComparingTo("370000");
@@ -171,7 +176,7 @@ class BpjsCalculationServiceTest {
         void shouldNotApplyCeilingForJht() {
             BigDecimal salary = new BigDecimal("50000000"); // 50 million
 
-            BpjsCalculationResult result = service.calculate(salary);
+            BpjsCalculationResult result = service.calculate(salary, 1, PERIOD_2024);
 
             // 3.7% of 50,000,000 = 1,850,000
             assertThat(result.jhtCompany()).isEqualByComparingTo("1850000");
@@ -189,7 +194,7 @@ class BpjsCalculationServiceTest {
         void shouldCalculateForSalaryBelowCeiling() {
             BigDecimal salary = new BigDecimal("8000000");
 
-            BpjsCalculationResult result = service.calculate(salary);
+            BpjsCalculationResult result = service.calculate(salary, 1, PERIOD_2024);
 
             // 2% of 8,000,000 = 160,000
             assertThat(result.jpCompany()).isEqualByComparingTo("160000");
@@ -202,7 +207,7 @@ class BpjsCalculationServiceTest {
         void shouldApplyCeilingForHighSalaries() {
             BigDecimal salary = new BigDecimal("20000000"); // 20 million
 
-            BpjsCalculationResult result = service.calculate(salary);
+            BpjsCalculationResult result = service.calculate(salary, 1, PERIOD_2024);
 
             // Ceiling is 10,042,300
             // 2% of 10,042,300 = 200,846
@@ -221,7 +226,7 @@ class BpjsCalculationServiceTest {
         void shouldCalculateTotalCompany() {
             BigDecimal salary = new BigDecimal("10000000");
 
-            BpjsCalculationResult result = service.calculate(salary);
+            BpjsCalculationResult result = service.calculate(salary, 1, PERIOD_2024);
 
             // Kesehatan: 400,000 + JKK: 24,000 + JKM: 30,000 + JHT: 370,000 + JP: 200,846 = 1,024,846
             BigDecimal expectedTotal = result.kesehatanCompany()
@@ -238,7 +243,7 @@ class BpjsCalculationServiceTest {
         void shouldCalculateTotalEmployee() {
             BigDecimal salary = new BigDecimal("10000000");
 
-            BpjsCalculationResult result = service.calculate(salary);
+            BpjsCalculationResult result = service.calculate(salary, 1, PERIOD_2024);
 
             // Kesehatan: 100,000 + JHT: 200,000 + JP: 100,423 = 400,423
             BigDecimal expectedTotal = result.kesehatanEmployee()
@@ -253,7 +258,7 @@ class BpjsCalculationServiceTest {
         void shouldCalculateGrandTotal() {
             BigDecimal salary = new BigDecimal("10000000");
 
-            BpjsCalculationResult result = service.calculate(salary);
+            BpjsCalculationResult result = service.calculate(salary, 1, PERIOD_2024);
 
             assertThat(result.grandTotal())
                 .isEqualByComparingTo(result.totalCompany().add(result.totalEmployee()));
@@ -267,7 +272,7 @@ class BpjsCalculationServiceTest {
         @Test
         @DisplayName("Should return zero for null salary")
         void shouldReturnZeroForNullSalary() {
-            BpjsCalculationResult result = service.calculate(null);
+            BpjsCalculationResult result = service.calculate(null, 1, PERIOD_2024);
 
             assertThat(result.kesehatanCompany()).isEqualByComparingTo(BigDecimal.ZERO);
             assertThat(result.kesehatanEmployee()).isEqualByComparingTo(BigDecimal.ZERO);
@@ -278,7 +283,7 @@ class BpjsCalculationServiceTest {
         @Test
         @DisplayName("Should return zero for zero salary")
         void shouldReturnZeroForZeroSalary() {
-            BpjsCalculationResult result = service.calculate(BigDecimal.ZERO);
+            BpjsCalculationResult result = service.calculate(BigDecimal.ZERO, 1, PERIOD_2024);
 
             assertThat(result.grandTotal()).isEqualByComparingTo(BigDecimal.ZERO);
         }
@@ -286,7 +291,7 @@ class BpjsCalculationServiceTest {
         @Test
         @DisplayName("Should return zero for negative salary")
         void shouldReturnZeroForNegativeSalary() {
-            BpjsCalculationResult result = service.calculate(new BigDecimal("-5000000"));
+            BpjsCalculationResult result = service.calculate(new BigDecimal("-5000000"), 1, PERIOD_2024);
 
             assertThat(result.grandTotal()).isEqualByComparingTo(BigDecimal.ZERO);
         }
@@ -296,7 +301,7 @@ class BpjsCalculationServiceTest {
         void shouldHandleSmallSalary() {
             BigDecimal salary = new BigDecimal("1000000"); // 1 million (minimum wage range)
 
-            BpjsCalculationResult result = service.calculate(salary);
+            BpjsCalculationResult result = service.calculate(salary, 1, PERIOD_2024);
 
             // 4% of 1,000,000 = 40,000
             assertThat(result.kesehatanCompany()).isEqualByComparingTo("40000");
@@ -309,7 +314,7 @@ class BpjsCalculationServiceTest {
         void shouldDefaultToRiskClass1ForNullRiskClass() {
             BigDecimal salary = new BigDecimal("10000000");
 
-            BpjsCalculationResult result = service.calculate(salary, null);
+            BpjsCalculationResult result = service.calculate(salary, null, PERIOD_2024);
 
             // Should use class 1 rate (0.24%)
             assertThat(result.jkk()).isEqualByComparingTo("24000");
@@ -325,7 +330,7 @@ class BpjsCalculationServiceTest {
         void shouldCalculateForTypicalItProfessional() {
             BigDecimal salary = new BigDecimal("15000000");
 
-            BpjsCalculationResult result = service.calculate(salary, 1);
+            BpjsCalculationResult result = service.calculate(salary, 1, PERIOD_2024);
 
             // Kesehatan capped at 12M: 4% = 480,000, 1% = 120,000
             assertThat(result.kesehatanCompany()).isEqualByComparingTo("480000");
@@ -351,7 +356,7 @@ class BpjsCalculationServiceTest {
         void shouldCalculateForMinimumWage() {
             BigDecimal salary = new BigDecimal("4900000");
 
-            BpjsCalculationResult result = service.calculate(salary);
+            BpjsCalculationResult result = service.calculate(salary, 1, PERIOD_2024);
 
             // All below ceilings
             assertThat(result.kesehatanCompany()).isEqualByComparingTo("196000"); // 4%
@@ -369,7 +374,7 @@ class BpjsCalculationServiceTest {
         void shouldCalculateForExecutive() {
             BigDecimal salary = new BigDecimal("50000000");
 
-            BpjsCalculationResult result = service.calculate(salary, 1);
+            BpjsCalculationResult result = service.calculate(salary, 1, PERIOD_2024);
 
             // Kesehatan capped at 12M
             assertThat(result.kesehatanCompany()).isEqualByComparingTo("480000");
@@ -386,6 +391,63 @@ class BpjsCalculationServiceTest {
             // JP capped at 10,042,300
             assertThat(result.jpCompany()).isEqualByComparingTo("200846");
             assertThat(result.jpEmployee()).isEqualByComparingTo("100423");
+        }
+    }
+
+    @Nested
+    @DisplayName("JP wage ceiling by period")
+    class JpWageCeilingByPeriod {
+
+        @Test
+        @DisplayName("Should switch the JP ceiling every March per BPJS announcement")
+        void shouldSwitchCeilingInMarch() {
+            assertThat(BpjsCalculationService.jpWageCeiling(YearMonth.of(2024, 3))).isEqualByComparingTo("10042300");
+            assertThat(BpjsCalculationService.jpWageCeiling(YearMonth.of(2025, 2))).isEqualByComparingTo("10042300");
+            assertThat(BpjsCalculationService.jpWageCeiling(YearMonth.of(2025, 3))).isEqualByComparingTo("10547400");
+            assertThat(BpjsCalculationService.jpWageCeiling(YearMonth.of(2026, 2))).isEqualByComparingTo("10547400");
+            assertThat(BpjsCalculationService.jpWageCeiling(YearMonth.of(2026, 3))).isEqualByComparingTo("11086300");
+        }
+
+        @Test
+        @DisplayName("Should cap JP contributions at the ceiling of the payroll period")
+        void shouldCapJpAtPeriodCeiling() {
+            BigDecimal salary = new BigDecimal("15000000");
+
+            BpjsCalculationResult feb2025 = service.calculate(salary, 1, YearMonth.of(2025, 2));
+            BpjsCalculationResult mar2025 = service.calculate(salary, 1, YearMonth.of(2025, 3));
+            BpjsCalculationResult mar2026 = service.calculate(salary, 1, YearMonth.of(2026, 3));
+
+            assertThat(feb2025.jpCompany()).isEqualByComparingTo("200846");  // 2% of 10,042,300
+            assertThat(feb2025.jpEmployee()).isEqualByComparingTo("100423");
+            assertThat(mar2025.jpCompany()).isEqualByComparingTo("210948");  // 2% of 10,547,400
+            assertThat(mar2025.jpEmployee()).isEqualByComparingTo("105474");
+            assertThat(mar2026.jpCompany()).isEqualByComparingTo("221726");  // 2% of 11,086,300
+            assertThat(mar2026.jpEmployee()).isEqualByComparingTo("110863");
+        }
+
+        @Test
+        @DisplayName("Should keep the latest announcement in force until the next one is added")
+        void shouldKeepLatestAnnouncementInForce() {
+            assertThat(BpjsCalculationService.jpWageCeiling(YearMonth.of(2027, 3))).isEqualByComparingTo("11086300");
+        }
+
+        @Test
+        @DisplayName("Should charge no JP before the program started in July 2015")
+        void shouldChargeNoJpBeforeProgramStart() {
+            BpjsCalculationResult june2015 = service.calculate(new BigDecimal("15000000"), 1, YearMonth.of(2015, 6));
+            assertThat(june2015.jpCompany()).isEqualByComparingTo("0");
+            assertThat(june2015.jpEmployee()).isEqualByComparingTo("0");
+            assertThat(june2015.jhtEmployee()).isEqualByComparingTo("300000");
+        }
+
+        @Test
+        @DisplayName("Should reject a period after the program start that the table does not cover")
+        void shouldRejectPeriodBeforeTable() {
+            assertThatThrownBy(() -> BpjsCalculationService.jpWageCeiling(YearMonth.of(2024, 2)))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("2024-02");
+            assertThatThrownBy(() -> service.calculate(new BigDecimal("5000000"), 1, null))
+                    .isInstanceOf(IllegalArgumentException.class);
         }
     }
 }

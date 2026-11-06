@@ -63,6 +63,7 @@ public class PayrollReportService {
     }
 
     private final PayrollService payrollService;
+    private final Pph21CalculationService pph21CalculationService;
 
     // ==================== PAYROLL SUMMARY REPORT ====================
 
@@ -668,35 +669,23 @@ public class PayrollReportService {
             incomeTable.setSpacingBefore(5);
             incomeTable.setSpacingAfter(15);
 
-            // Calculate biaya jabatan (5% of gross, max 6,000,000/year)
-            var biayaJabatan = summary.getTotalBruto().multiply(new java.math.BigDecimal("0.05"));
-            var maxBiayaJabatan = new java.math.BigDecimal("6000000");
-            if (biayaJabatan.compareTo(maxBiayaJabatan) > 0) {
-                biayaJabatan = maxBiayaJabatan;
-            }
-
-            // Penghasilan Neto = Gross - Biaya Jabatan - BPJS JHT (employee) - BPJS JP (employee)
-            var penghasilanNeto = summary.getTotalBruto().subtract(biayaJabatan).subtract(summary.totalBpjsEmployee());
-
-            // Get PTKP
-            var ptkp = getPtkpAmount(employee.getPtkpStatus());
-
-            // PKP = Penghasilan Neto - PTKP
-            var pkp = penghasilanNeto.subtract(ptkp);
-            if (pkp.compareTo(java.math.BigDecimal.ZERO) < 0) {
-                pkp = java.math.BigDecimal.ZERO;
-            }
+            var annual = pph21CalculationService.calculateAnnualTax(
+                    summary.getTotalBruto(), summary.totalPensionContributions(), employee.getPtkpStatus());
+            var biayaJabatan = annual.biayaJabatan();
+            var penghasilanNeto = annual.annualNeto();
+            var ptkp = annual.ptkpAmount();
+            var pkp = annual.pkp();
 
             addIncomeRow(incomeTable, "8a. Gaji dan Tunjangan", "Rp " + formatNumber(summary.getTotalSalary()));
             addIncomeRow(incomeTable, "8b. Natura dan Kenikmatan", "Rp " + formatNumber(summary.totalBenefitInKind()));
             addIncomeRow(incomeTable, "8c. Tantiem, Bonus, Gratifikasi, Jasa Produksi dan THR", "Rp " + formatNumber(summary.totalBonusAndThr()));
             addIncomeRow(incomeTable, "9. Penghasilan Bruto (8a + 8b + 8c)", "Rp " + formatNumber(summary.getTotalBruto()));
             addIncomeRow(incomeTable, "10. Biaya Jabatan (5% maks Rp 6.000.000)", "Rp " + formatNumber(biayaJabatan));
-            addIncomeRow(incomeTable, "11. Iuran Pensiun/JHT/JP yang dibayar karyawan", "Rp " + formatNumber(summary.totalBpjsEmployee()));
+            addIncomeRow(incomeTable, "11. Iuran Pensiun/JHT/JP yang dibayar karyawan", "Rp " + formatNumber(summary.totalPensionContributions()));
             addIncomeRow(incomeTable, "12. Penghasilan Neto (9 - 10 - 11)", "Rp " + formatNumber(penghasilanNeto));
             addIncomeRow(incomeTable, "13. PTKP", "Rp " + formatNumber(ptkp));
             addIncomeRow(incomeTable, "14. Penghasilan Kena Pajak (12 - 13)", "Rp " + formatNumber(pkp));
-            addIncomeRow(incomeTable, "15. PPh Pasal 21 Terutang", "Rp " + formatNumber(summary.totalPph21()));
+            addIncomeRow(incomeTable, "15. PPh Pasal 21 Terutang", "Rp " + formatNumber(annual.annualTax()));
             document.add(incomeTable);
 
             // Section D - Summary
@@ -743,10 +732,6 @@ public class PayrollReportService {
             log.error("Error generating 1721-A1 for employee: {}", summary.employee().getEmployeeId(), e);
             throw new ReportGenerationException("Failed to generate PDF: " + e.getMessage(), e);
         }
-    }
-
-    private java.math.BigDecimal getPtkpAmount(com.artivisi.accountingfinance.entity.PtkpStatus status) {
-        return status.getAnnualAmount();
     }
 
     private void addIncomeRow(PdfPTable table, String label, String value) {

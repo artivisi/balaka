@@ -11,6 +11,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DisplayName("PPh 21 TER Calculation (PMK 168/2023)")
 class TerCalculationTest {
@@ -141,10 +142,11 @@ class TerCalculationTest {
         }
 
         @Test
-        @DisplayName("Null PTKP should default to TK_0")
+        @DisplayName("Null PTKP should be rejected")
         void nullPtkp() {
-            var result = service.calculateTer(new BigDecimal("10000000"), null);
-            assertThat(result.terCategory()).isEqualTo(TerCategory.A);
+            assertThatThrownBy(() -> service.calculateTer(new BigDecimal("10000000"), null))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("PTKP");
         }
     }
 
@@ -176,7 +178,7 @@ class TerCalculationTest {
             // May-Nov TER: 0 × 7 = 0
             BigDecimal janNovPph21 = new BigDecimal("1125300");
 
-            var result = service.calculateDecemberReconciliation(monthlyGross, PtkpStatus.K_2, janNovPph21);
+            var result = service.calculateDecemberReconciliation(monthlyGross, BigDecimal.ZERO, PtkpStatus.K_2, janNovPph21);
 
             // Expected from reference data:
             // annualGross: 85,012,000
@@ -203,7 +205,7 @@ class TerCalculationTest {
             // TER rate for Cat A, 10M = 2% → 200,000/month × 11 = 2,200,000
             BigDecimal janNovPph21 = new BigDecimal("2200000");
 
-            var result = service.calculateDecemberReconciliation(monthlyGross, PtkpStatus.TK_0, janNovPph21);
+            var result = service.calculateDecemberReconciliation(monthlyGross, BigDecimal.ZERO, PtkpStatus.TK_0, janNovPph21);
 
             // annualGross: 120,000,000
             // biayaJabatan: 6,000,000 (5% = 6M, at cap)
@@ -226,7 +228,7 @@ class TerCalculationTest {
             // Assume some small TER was withheld
             BigDecimal janNovPph21 = new BigDecimal("50000");
 
-            var result = service.calculateDecemberReconciliation(monthlyGross, PtkpStatus.K_I_3, janNovPph21);
+            var result = service.calculateDecemberReconciliation(monthlyGross, BigDecimal.ZERO, PtkpStatus.K_I_3, janNovPph21);
 
             assertThat(result.annualTax()).isEqualByComparingTo("0");
             assertThat(result.decemberPph21()).isEqualByComparingTo("-50000");

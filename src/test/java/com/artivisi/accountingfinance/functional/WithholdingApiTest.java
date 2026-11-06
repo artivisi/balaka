@@ -81,7 +81,7 @@ class WithholdingApiTest extends PlaywrightTestBase {
         String paymentId = payment.get("id").asText();
 
         JsonNode second = json(api.post("/api/withholding/payments", withBody(paymentBody(payeeId, 3, 100000000))), 201);
-        assertAmount(second, "taxAmount", "6500000");
+        assertAmount(second, "taxAmount", "2500000");  // taxed on its own gross, not on top of the first
         assertThat(api.delete("/api/withholding/payments/" + second.get("id").asText(), auth()).status()).isEqualTo(204);
 
         JsonNode beforePost = status(3);

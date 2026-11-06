@@ -332,17 +332,15 @@ public class SptTahunanExportService {
             YearlyPayrollSummary summary = payrollService.getYearlyPayrollSummary(employeeId, year);
             Employee employee = summary.employee();
 
-            BigDecimal penghasilanBruto = summary.getTotalBruto();
-            BigDecimal biayaJabatan = penghasilanBruto.multiply(new BigDecimal("5"))
-                    .divide(new BigDecimal("100"), 0, RoundingMode.HALF_UP)
-                    .min(Pph21CalculationService.BIAYA_JABATAN_ANNUAL_MAX);
-            BigDecimal bpjsDeduction = summary.totalBpjsEmployee();
-            BigDecimal penghasilanNeto = penghasilanBruto.subtract(biayaJabatan).subtract(bpjsDeduction);
-            BigDecimal ptkp = employee.getPtkpStatus().getAnnualAmount();
-            BigDecimal pkpRaw = penghasilanNeto.subtract(ptkp).max(BigDecimal.ZERO);
-            BigDecimal pkp = pkpRaw.divide(new BigDecimal("1000"), 0, RoundingMode.FLOOR)
-                    .multiply(new BigDecimal("1000"));
-            BigDecimal pph21Terutang = pph21CalculationService.calculateProgressiveTax(pkp);
+            var annual = pph21CalculationService.calculateAnnualTax(
+                    summary.getTotalBruto(), summary.totalPensionContributions(), employee.getPtkpStatus());
+            BigDecimal penghasilanBruto = annual.annualGross();
+            BigDecimal biayaJabatan = annual.biayaJabatan();
+            BigDecimal bpjsDeduction = annual.pensionContributions();
+            BigDecimal penghasilanNeto = annual.annualNeto();
+            BigDecimal ptkp = annual.ptkpAmount();
+            BigDecimal pkp = annual.pkp();
+            BigDecimal pph21Terutang = annual.annualTax();
             BigDecimal pph21Dipotong = summary.totalPph21();
 
             items.add(new Bpa1LineItem(
