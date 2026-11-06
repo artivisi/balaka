@@ -64,7 +64,7 @@ class WithholdingApiTest extends PlaywrightTestBase {
     void lifecycle() throws Exception {
         String code = "API-" + UUID.randomUUID().toString().substring(0, 8);
         Map<String, Object> payee = new HashMap<>(Map.of("code", code, "name", "Freelancer " + code, "payeeType", "ORANG_PRIBADI",
-                "defaultWithholding", "PPH_21_BUKAN_PEGAWAI", "defaultTaxObjectCode", "21-100-09", "nik", "3174012345678901"));
+                "defaultWithholding", "PPH_21_BUKAN_PEGAWAI", "defaultTaxObjectCode", "21-100-20", "nik", "3174012345678901"));
         JsonNode created = json(api.post("/api/withholding/payees", withBody(payee)), 201);
         String payeeId = created.get("id").asText();
         assertThat(created.get("nikMasked").asText()).isEqualTo("****8901");

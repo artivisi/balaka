@@ -2,6 +2,7 @@ package com.artivisi.accountingfinance.service;
 
 import com.artivisi.accountingfinance.entity.CompanyConfig;
 import com.artivisi.accountingfinance.entity.TaxTransactionDetail;
+import com.artivisi.accountingfinance.enums.TaxObjectCode;
 import com.artivisi.accountingfinance.enums.TaxType;
 import com.artivisi.accountingfinance.repository.CompanyConfigRepository;
 import com.artivisi.accountingfinance.repository.TaxTransactionDetailRepository;
@@ -396,28 +397,16 @@ public class CoretaxExportService {
         headerRow.getCell(1).setCellStyle(headerStyle);
         headerRow.getCell(2).setCellStyle(headerStyle);
 
-        // Common tax object codes
-        String[][] refs = {
-                {"24-104-01", "Jasa Teknik", "2"},
-                {"24-104-02", "Jasa Manajemen", "2"},
-                {"24-104-03", "Jasa Konsultan", "2"},
-                {"24-104-14", "Jasa Pemeliharaan/Perawatan/Perbaikan", "2"},
-                {"24-104-21", "Jasa Katering", "2"},
-                {"24-104-22", "Jasa Kebersihan/Cleaning Service", "2"},
-                {"24-104-99", "Jasa Lainnya", "2"},
-                {"24-100-02", "Sewa Kendaraan Angkutan Darat", "2"},
-                {"28-409-01", "Sewa Tanah dan/atau Bangunan", "10"},
-                {"28-409-07", "Jasa Konstruksi - Pelaksana Kecil", "1.75"},
-                {"28-409-08", "Jasa Konstruksi - Pelaksana Menengah/Besar", "2.65"},
-                {"28-423-01", "PPh Final UMKM", "0.5"}
-        };
-
+        // Bukti potong unifikasi codes (PPh 23, 4(2), 26); PPh 21 codes go on BP21
         int rowNum = 1;
-        for (String[] ref : refs) {
+        for (TaxObjectCode code : TaxObjectCode.values()) {
+            if (code.getTaxType() == TaxType.PPH_21) {
+                continue;
+            }
             Row row = sheet.createRow(rowNum++);
-            row.createCell(0).setCellValue(ref[0]);
-            row.createCell(1).setCellValue(ref[1]);
-            row.createCell(2).setCellValue(ref[2]);
+            row.createCell(0).setCellValue(code.getCode());
+            row.createCell(1).setCellValue(code.getDescription());
+            row.createCell(2).setCellValue(code.getDefaultRate().stripTrailingZeros().toPlainString());
         }
 
         sheet.autoSizeColumn(0);

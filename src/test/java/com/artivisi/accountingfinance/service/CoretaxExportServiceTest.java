@@ -101,7 +101,7 @@ class CoretaxExportServiceTest {
         taxTransactionDetailRepository.save(masukan);
 
         taxTransactionDetailRepository.save(bupot(posted(LocalDate.of(YEAR, 3, 20)), TaxType.PPH_42, bupot42,
-                "28-409-01", "20000000", "10", "2000000", "PT Pemilik Gedung"));
+                "28-403-02", "20000000", "10", "2000000", "PT Pemilik Gedung"));
         taxTransactionDetailRepository.save(bupot(posted(LocalDate.of(YEAR, 3, 10)), TaxType.PPH_23, bupot23,
                 "24-104-01", "5000000", "2", "100000", "CV Konsultan Teknik"));
 
@@ -173,7 +173,7 @@ class CoretaxExportServiceTest {
             Row pph42 = data.getRow(2);
             assertThat(FORMATTER.formatCellValue(pph42.getCell(0))).isEqualTo(bupot42);
             assertThat(FORMATTER.formatCellValue(pph42.getCell(1))).isEqualTo("20/03/" + YEAR);
-            assertThat(FORMATTER.formatCellValue(pph42.getCell(8))).isEqualTo("28-409-01");
+            assertThat(FORMATTER.formatCellValue(pph42.getCell(8))).isEqualTo("28-403-02");
             assertThat(pph42.getCell(9).getNumericCellValue()).isEqualTo(20_000_000d);
             assertThat(pph42.getCell(10).getNumericCellValue()).isEqualTo(10d);
             assertThat(pph42.getCell(11).getNumericCellValue()).isEqualTo(2_000_000d);
@@ -233,9 +233,17 @@ class CoretaxExportServiceTest {
         try (Workbook workbook = open(coretaxExportService.exportBupotUnifikasi(START, END))) {
             Sheet ref = workbook.getSheet("REF");
             assertThat(cells(ref.getRow(0))).containsExactly("Kode Objek Pajak", "Keterangan", "Tarif Default (%)");
-            assertThat(column(ref, 0)).containsExactly("24-104-01", "24-104-02", "24-104-03", "24-104-14", "24-104-21",
-                    "24-104-22", "24-104-99", "24-100-02", "28-409-01", "28-409-07", "28-409-08", "28-423-01");
-            assertThat(column(ref, 2)).containsExactly("2", "2", "2", "2", "2", "2", "2", "2", "10", "1.75", "2.65", "0.5");
+            List<String> codes = column(ref, 0);
+            assertThat(codes).doesNotHaveDuplicates()
+                    .contains("24-104-01", "24-104-06", "24-104-24", "24-100-02", "28-403-02", "28-409-22", "28-423-01", "27-104-01")
+                    .doesNotContain("24-104-99", "28-409-01", "21-100-20");
+            List<String> rates = column(ref, 2);
+            assertThat(rates.get(codes.indexOf("24-104-24"))).isEqualTo("2");
+            assertThat(rates.get(codes.indexOf("28-403-02"))).isEqualTo("10");
+            assertThat(rates.get(codes.indexOf("28-409-22"))).isEqualTo("1.75");
+            assertThat(rates.get(codes.indexOf("28-409-24"))).isEqualTo("2.65");
+            assertThat(rates.get(codes.indexOf("28-423-01"))).isEqualTo("0.5");
+            assertThat(rates.get(codes.indexOf("27-104-01"))).isEqualTo("20");
         }
     }
 

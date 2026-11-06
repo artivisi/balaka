@@ -49,7 +49,7 @@ A payee is a row in `vendors`; the same record serves bills.
   "bankAccountId": "…",
   "description": "Honor desain",
   "treatment": "PPH_21_BUKAN_PEGAWAI",
-  "taxObjectCode": "21-100-09"
+  "taxObjectCode": "21-100-20"
 }
 ```
 

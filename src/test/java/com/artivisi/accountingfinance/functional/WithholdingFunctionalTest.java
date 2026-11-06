@@ -76,7 +76,7 @@ class WithholdingFunctionalTest extends PlaywrightTestBase {
         page.locator("#name").fill(name);
         page.locator("#payeeType").selectOption("ORANG_PRIBADI");
         page.locator("#defaultWithholding").selectOption("PPH_21_BUKAN_PEGAWAI");
-        page.locator("#defaultTaxObjectCode").selectOption("21-100-09");
+        page.locator("#defaultTaxObjectCode").selectOption("21-100-20");
         page.locator("#btn-simpan").click();
         waitForPageLoad();
         assertThat(page.locator("#vendor-payee-type")).hasText("Orang pribadi dalam negeri");
@@ -229,7 +229,7 @@ class WithholdingFunctionalTest extends PlaywrightTestBase {
         waitForPageLoad();
         page.locator("#vendorId").selectOption(vendor.getId().toString());
         page.locator("#treatment").selectOption("PPH_26");
-        page.locator("#taxObjectCode").selectOption("27-100-99");
+        page.locator("#taxObjectCode").selectOption("27-104-01");
         page.locator("#paymentDate").fill(YEAR + "-09-10");
         page.locator("#grossAmount").fill("1000000");
         page.locator("#expenseAccountId").selectOption(accountId("5.1.22"));

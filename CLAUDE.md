@@ -170,7 +170,7 @@ failures indistinguishable from real ones; `run-tests.sh` flags it, and
 ## Database
 
 - PostgreSQL via Testcontainers (tests)
-- Production migrations: V001-V013 (V001 security, V002 core schema, V003 feature schema, V004 seed data, V005 tax filing register, V006 API scope columns widened + new scopes for existing device tokens, V007 journal_entries.line_order, V008 fiscal treatment + benefit-in-kind — V006-V008 not yet deployed, V009 withholding, V010 sales tax chain, V011 payroll bonus/THR, V012 fixed-asset register, V013 evidence completeness)
+- Production migrations: V001-V017 (V001 security, V002 core schema, V003 feature schema, V004 seed data, V005 tax filing register, V006 API scope columns widened + new scopes for existing device tokens, V007 journal_entries.line_order, V008 fiscal treatment + benefit-in-kind — V006-V008 not yet deployed, V009 withholding, V010 sales tax chain, V011 payroll bonus/THR, V012 fixed-asset register, V013 evidence completeness, V014 period close checks, V015 tax self-test, V016 tax audit workspace, V017 Coretax tax object code remap)
 - **Migration caveat:** Modifying already-applied migrations requires manual schema fix on production + checksum update in `flyway_schema_history`. See `docs/03-operations-guide.md` Troubleshooting section.
 - Test data:
   - Functional tests: NO migrations - all data loaded via `@TestConfiguration` initializers from industry-seed/ packs

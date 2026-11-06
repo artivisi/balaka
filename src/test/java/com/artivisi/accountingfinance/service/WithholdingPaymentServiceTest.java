@@ -139,7 +139,7 @@ class WithholdingPaymentServiceTest {
         assertThat(detail.getDpp()).isEqualByComparingTo("5000000");
         assertThat(detail.getTaxAmount()).isEqualByComparingTo("250000");
         assertThat(detail.getTaxRate()).isEqualByComparingTo("5.00");
-        assertThat(detail.getTaxObjectCode()).isEqualTo("21-100-09");
+        assertThat(detail.getTaxObjectCode()).isEqualTo("21-100-20");
     }
 
     @Test
@@ -371,8 +371,8 @@ class WithholdingPaymentServiceTest {
         Vendor treatyDomestic = newVendor(PayeeType.BADAN, null, null, null, null);
         treatyDomestic.setTreatyRate(BigDecimal.TEN);
         assertThatThrownBy(() -> vendorService.create(treatyDomestic)).hasMessageContaining("P3B");
-        Vendor wrongObject = newVendor(PayeeType.BADAN, WithholdingTreatment.PPH_23, "21-100-09", null, null);
-        assertThatThrownBy(() -> vendorService.create(wrongObject)).hasMessageContaining("21-100-09");
+        Vendor wrongObject = newVendor(PayeeType.BADAN, WithholdingTreatment.PPH_23, "21-100-20", null, null);
+        assertThatThrownBy(() -> vendorService.create(wrongObject)).hasMessageContaining("21-100-20");
     }
 
     @Test
@@ -620,7 +620,7 @@ class WithholdingPaymentServiceTest {
             Row withNik = byName.get(individual.getName());
             assertThat(withNik.getCell(4).getStringCellValue()).isEqualTo("NIK");
             assertThat(withNik.getCell(5).getStringCellValue()).isEqualTo(NIK);
-            assertThat(withNik.getCell(8).getStringCellValue()).isEqualTo("21-100-09");
+            assertThat(withNik.getCell(8).getStringCellValue()).isEqualTo("21-100-20");
             assertThat(withNik.getCell(9).getNumericCellValue()).isEqualTo(10000000d);
             assertThat(withNik.getCell(10).getNumericCellValue()).isEqualTo(5000000d);
             assertThat(withNik.getCell(11).getNumericCellValue()).isEqualTo(5d);
@@ -699,11 +699,11 @@ class WithholdingPaymentServiceTest {
     }
 
     private Vendor individual(String nik, String npwp) {
-        return payee(PayeeType.ORANG_PRIBADI, WithholdingTreatment.PPH_21_BUKAN_PEGAWAI, "21-100-09", nik, npwp);
+        return payee(PayeeType.ORANG_PRIBADI, WithholdingTreatment.PPH_21_BUKAN_PEGAWAI, "21-100-20", nik, npwp);
     }
 
     private Vendor foreign(String treatyRate, String dgt, LocalDate validUntil) {
-        Vendor vendor = newVendor(PayeeType.LUAR_NEGERI, WithholdingTreatment.PPH_26, "27-100-99", null, null);
+        Vendor vendor = newVendor(PayeeType.LUAR_NEGERI, WithholdingTreatment.PPH_26, "27-104-01", null, null);
         vendor.setCountryCode("SG");
         vendor.setForeignTin("TIN-SG-1");
         vendor.setTreatyRate(treatyRate == null ? null : new BigDecimal(treatyRate));

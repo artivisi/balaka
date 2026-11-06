@@ -94,7 +94,7 @@ Set in `application.properties` (`app.withholding.*`).
 - PPh 21 bukan pegawai: 50% and 20% come from the issue. Implemented as stated; the "per masa" reading above and the PMK 168/2023 citation are from memory. Pasal 17 brackets are the existing `Pph21CalculationService` values.
 - PPh 23: 2% on all `TaxObjectCode` PPh 23 entries, 100% higher without NPWP or NIK. NIK treated as NPWP. UU PPh Pasal 23, PMK 141/2015, PMK 112/2022, from memory. Objects at 15% (dividend, interest, royalty, prize) have no object code and cannot be selected.
 - PPh 26: 20% of gross (UU PPh Pasal 26 ayat (1)). Tax treaty: the rate is entered per payee, no treaty table exists. It applies only when a DGT form number is on file and valid on the payment date (PER-25/PJ/2018, from memory); otherwise 20% with the reason in `rateBasis`. No check on DGT form content or beneficial ownership. A 0% treaty rate posts no tax line. Branch-profit and 26(4) cases are not handled.
-- Object code `27-100-99` and the BP21 and `PPH26` sheet layouts are unchecked against Coretax. `21-100-09` is the only PPh 21 object code offered.
+- Object codes corrected on 2026-11-06 (see "Regulation check 2026-11-06"). The BP21 and `PPH26` sheet layouts are unchecked against Coretax.
 - Due day 15 for PPh 26 mirrors PPh 23.
 
 ### Cut
@@ -512,3 +512,23 @@ Defects from the review of `36a372ef..HEAD`, each with a test that fails without
 9. **Migrations on legacy seed packs.** V012 placed the gain/loss accounts at fixed codes 4.2.02/5.2.02, which the online-seller, coffee-shop and campus packs use for other accounts (coffee-shop has no 4.2). The app resolves these accounts by name, so V012 now puts each under the deepest header named `Pendapatan Lain-lain` / `Beban Lain-lain` (case-insensitive) with the next free code, and fails with the candidates listed when none or two at one depth exist. `LegacySeedPackMigrationTest` migrates to V007, loads each pack's COA, templates and template lines as of `27b8d868` (test resources), migrates to latest and asserts the resulting codes: it-service 4.2.02/5.2.02, online-seller 4.2.04/5.5.03, coffee-shop 7.1.02/8.1.04, campus 4.2.04/5.4.04 (the same codes the current packs use).
 
 Deploy: V008 and V012 were edited; they are not applied in production yet, so no checksum repair is needed.
+
+## Regulation check 2026-11-06
+
+### Tax object codes
+
+`TaxObjectCode` held codes that point to another tax object in the Coretax list or do not exist (e.g. 24-104-04 was offered as "Jasa Akuntansi" but is "Jasa Penilai"; 24-104-99, 24-100-09, 27-100-99 do not exist; 28-409-01/07/08/09 are pre-PP 9/2022 construction codes, and 28-409-01 was used for land/building rent). Reference: e-Bupot Unifikasi numbering of PER-24/PJ/2021 carried into Coretax, BP21 codes of PER-11/PJ/2025, checked against the datacenter.ortax.org object-and-rate list. Secondary source; the official lampiran was not opened.
+
+- Enum corrected by meaning; added common PPh 23 services (hukum, arsitektur, outsourcing, software/hardware, website, internet, data, perawatan kendaraan, keamanan, event organizer, periklanan, pencetakan, penerjemahan, pengangkutan, pelatihan), PP 9/2022 construction codes 28-409-22..28 (dipotong; the setor-sendiri 15..21 are not offered), PPh 26 27-100-01/27-101-01/27-102-01/27-103-01/27-104-01. Land/building rent is 28-403-02 (dipotong; 28-403-01 is setor sendiri).
+- PPh 21 bukan pegawai: 21-100-09 replaced by 21-100-07 (tenaga ahli), 21-100-18 (penasihat, pengajar, pelatih, penceramah, penyuluh, moderator), 21-100-19 (pengarang, peneliti, penerjemah), 21-100-20 (pemberi jasa dalam segala bidang).
+- No catch-all PPh 23 service code exists, so "Jasa Lainnya" is removed. The Coretax REF sheet and the SPT L4 description are derived from the enum.
+- V017 remaps stored strings in `tax_transaction_details`, `vendors.default_tax_object_code` and `withholding_payments` with one CASE per table (the map contains the permutation 04→06, 05→04, 06→05). Rows with 24-104-99 or 21-100-09 have no single target; V017 raises an exception with counts per table.
+
+Deploy pre-flight on production, before deploying V017:
+
+```sql
+SELECT tax_object_code, count(*) FROM tax_transaction_details
+ WHERE tax_object_code IN ('24-104-99', '21-100-09') GROUP BY tax_object_code;
+```
+
+(`vendors.default_tax_object_code` and `withholding_payments` come from V009, not yet in production.) Recode any rows found to a specific code first. Bukti potong already filed with an old code are not affected; only the app's stored code changes.

@@ -8,6 +8,7 @@ import com.artivisi.accountingfinance.entity.PtkpStatus;
 import com.artivisi.accountingfinance.entity.TaxTransactionDetail;
 import com.artivisi.accountingfinance.enums.FiscalAdjustmentDirection;
 import com.artivisi.accountingfinance.enums.NormalBalance;
+import com.artivisi.accountingfinance.enums.TaxObjectCode;
 import com.artivisi.accountingfinance.enums.TaxType;
 import com.artivisi.accountingfinance.repository.CompanyConfigRepository;
 import com.artivisi.accountingfinance.repository.FiscalLossCarryforwardRepository;
@@ -822,13 +823,8 @@ public class SptTahunanExportService {
     }
 
     private String describeObjectCode(String code) {
-        return switch (code) {
-            case "28-409-01" -> "Sewa Tanah dan/atau Bangunan";
-            case "28-409-07" -> "Jasa Konstruksi - Pelaksana Kecil";
-            case "28-409-08" -> "Jasa Konstruksi - Pelaksana Menengah/Besar";
-            case "28-423-01" -> "PPh Final UMKM (PP 55)";
-            default -> "PPh Final - " + code;
-        };
+        TaxObjectCode known = TaxObjectCode.fromCode(code);
+        return known != null ? known.getDescription() : "PPh Final - " + code;
     }
 
     /**
