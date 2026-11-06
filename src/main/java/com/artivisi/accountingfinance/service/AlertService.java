@@ -21,7 +21,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -48,6 +51,7 @@ public class AlertService {
     private final PayrollRunRepository payrollRunRepository;
     private final BankStatementArchiveService bankStatementArchiveService;
     private final CloseCheckService closeCheckService;
+    private final PlatformTransactionManager transactionManager;
 
     // --- CRUD ---
 
@@ -91,33 +95,55 @@ public class AlertService {
 
     // --- Evaluation ---
 
-    @Transactional
+    /**
+     * Each rule is evaluated in its own transaction: a rule that throws (for example a misconfigured threshold)
+     * is logged and rolls back only its own work, and the events of the other rules commit.
+     * Called inside an existing transaction (tests), the rules join it.
+     */
+    @Transactional(propagation = Propagation.SUPPORTS)
     public int evaluateAllAlerts() {
-        List<AlertRule> enabledRules = alertRuleRepository.findByEnabledTrue();
+        TransactionTemplate perRule = new TransactionTemplate(transactionManager);
+        List<UUID> enabledRuleIds = perRule.execute(status -> alertRuleRepository.findByEnabledTrue().stream()
+                .map(AlertRule::getId)
+                .toList());
         int triggered = 0;
 
-        for (AlertRule rule : enabledRules) {
+        for (UUID ruleId : enabledRuleIds) {
             try {
-                // Dedup: skip if unacknowledged event for same rule within 24h
-                if (alertEventRepository.existsRecentUnacknowledged(rule.getId(), LocalDateTime.now().minusHours(24))) {
-                    log.debug("Skipping {} — recent unacknowledged event exists", rule.getAlertType());
-                    continue;
-                }
-
-                AlertEvent event = evaluateRule(rule);
-                if (event != null) {
-                    alertEventRepository.save(event);
-                    rule.setLastTriggeredAt(LocalDateTime.now());
-                    alertRuleRepository.save(rule);
+                if (Boolean.TRUE.equals(perRule.execute(status -> evaluateAndRecord(ruleId)))) {
                     triggered++;
-                    log.info("Alert triggered: {} [{}] — {}", rule.getAlertType(), event.getSeverity(), event.getMessage());
                 }
-            } catch (Exception e) {
-                log.error("Failed to evaluate alert rule: {}", rule.getAlertType(), e);
+            } catch (RuntimeException e) {
+                log.error("Failed to evaluate alert rule: {}", ruleId, e);
             }
         }
 
         return triggered;
+    }
+
+    private boolean evaluateAndRecord(UUID ruleId) {
+        AlertRule rule = alertRuleRepository.findById(ruleId)
+                .orElseThrow(() -> new EntityNotFoundException("Alert rule not found: " + ruleId));
+        // Dedup: skip if unacknowledged event for same rule within 24h
+        if (alertEventRepository.existsRecentUnacknowledged(rule.getId(), LocalDateTime.now().minusHours(24))) {
+            log.debug("Skipping {} — recent unacknowledged event exists", rule.getAlertType());
+            return false;
+        }
+
+        AlertEvent event;
+        try {
+            event = evaluateRule(rule);
+        } catch (RuntimeException e) {
+            throw new IllegalStateException("Aturan peringatan " + rule.getAlertType() + " gagal dievaluasi: " + e.getMessage(), e);
+        }
+        if (event == null) {
+            return false;
+        }
+        alertEventRepository.save(event);
+        rule.setLastTriggeredAt(LocalDateTime.now());
+        alertRuleRepository.save(rule);
+        log.info("Alert triggered: {} [{}] — {}", rule.getAlertType(), event.getSeverity(), event.getMessage());
+        return true;
     }
 
     private AlertEvent evaluateRule(AlertRule rule) {

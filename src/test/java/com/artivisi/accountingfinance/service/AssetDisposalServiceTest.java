@@ -252,6 +252,27 @@ class AssetDisposalServiceTest {
     }
 
     @Test
+    @DisplayName("Posting the disposal is refused while a PENDING depreciation entry exists")
+    void disposalRefusedWithPendingEntry() {
+        FixedAsset asset = postedAsset("12000000", 24, YearMonth.of(2179, 6));
+        DepreciationEntry entry = fixedAssetService.generatePeriodEntries(YearMonth.of(2179, 6)).stream()
+                .filter(e -> e.getFixedAsset().getId().equals(asset.getId())).findFirst().orElseThrow();
+        fixedAssetService.skipDepreciationEntry(entry.getId());
+        AssetDisposal disposal = disposalService.create(sale(asset, "13000000", LocalDate.of(2179, 6, 20)));
+        entityManager.flush();
+        // Entries reached PENDING this way only before generation skipped assets with a draft disposal
+        entry.setStatus(com.artivisi.accountingfinance.entity.DepreciationEntryStatus.PENDING);
+        entityManager.flush();
+        UUID draftId = disposal.getTransaction().getId();
+
+        assertThatThrownBy(() -> transactionService.post(draftId, "tester"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Aset " + asset.getAssetCode() + " masih punya entri penyusutan PENDING (periode 2179-06-30). "
+                        + "Skip entri tersebut sebelum memposting pelepasan " + disposal.getRecordNumber()
+                        + ", atau batalkan pelepasan, posting penyusutannya, lalu buat ulang pelepasan.");
+    }
+
+    @Test
     @DisplayName("A pending entry cannot post while a draft exists")
     void pendingEntryRefusedWhileDraft() {
         FixedAsset asset = postedAsset("12000000", 24, YearMonth.of(2177, 5));

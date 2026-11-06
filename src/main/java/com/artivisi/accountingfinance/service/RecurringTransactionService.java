@@ -19,7 +19,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -43,6 +46,7 @@ public class RecurringTransactionService {
     private final ChartOfAccountRepository chartOfAccountRepository;
     private final JournalTemplateService journalTemplateService;
     private final TransactionService transactionService;
+    private final PlatformTransactionManager transactionManager;
 
     public RecurringTransaction findById(UUID id) {
         RecurringTransaction result = recurringTransactionRepository.findByIdWithTemplate(id);
@@ -238,31 +242,46 @@ public class RecurringTransactionService {
 
     /**
      * Process all due recurring transactions. Called by the scheduler.
+     * Each item runs in its own transaction: a failure (for example a closed fiscal period on auto-post)
+     * rolls back that item only and is recorded as a FAILED log row in a separate transaction, so the other
+     * items and the failure record commit. Called inside an existing transaction (tests), the items join it.
      * Returns the number of successfully processed transactions.
      */
-    @Transactional
+    @Transactional(propagation = Propagation.SUPPORTS)
     public int processAllDue() {
         LocalDate today = LocalDate.now();
-        List<RecurringTransaction> dueTransactions =
-                recurringTransactionRepository.findByStatusAndNextRunDateLessThanEqual(RecurringStatus.ACTIVE, today);
+        TransactionTemplate perItem = new TransactionTemplate(transactionManager);
+        List<UUID> dueIds = perItem.execute(status -> recurringTransactionRepository
+                .findByStatusAndNextRunDateLessThanEqual(RecurringStatus.ACTIVE, today).stream()
+                .map(RecurringTransaction::getId)
+                .toList());
 
         int successCount = 0;
-        for (RecurringTransaction recurring : dueTransactions) {
+        for (UUID id : dueIds) {
             try {
-                processOne(recurring, today);
+                perItem.executeWithoutResult(status -> processOne(loadForProcessing(id), today));
                 successCount++;
-            } catch (Exception e) {
-                log.error("Failed to process recurring transaction: {} ({})", recurring.getName(), recurring.getId(), e);
-                RecurringTransactionLog logEntry = new RecurringTransactionLog();
-                logEntry.setScheduledDate(recurring.getNextRunDate());
-                logEntry.setExecutedAt(LocalDateTime.now());
-                logEntry.setStatus(RecurringLogStatus.FAILED);
-                logEntry.setErrorMessage(e.getMessage());
-                recurring.addLog(logEntry);
-                recurringTransactionRepository.save(recurring);
+            } catch (RuntimeException e) {
+                log.error("Failed to process recurring transaction {}", id, e);
+                perItem.executeWithoutResult(status -> recordFailure(loadForProcessing(id), e));
             }
         }
         return successCount;
+    }
+
+    private RecurringTransaction loadForProcessing(UUID id) {
+        return recurringTransactionRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException(ERR_NOT_FOUND + id));
+    }
+
+    private void recordFailure(RecurringTransaction recurring, RuntimeException e) {
+        RecurringTransactionLog logEntry = new RecurringTransactionLog();
+        logEntry.setScheduledDate(recurring.getNextRunDate());
+        logEntry.setExecutedAt(LocalDateTime.now());
+        logEntry.setStatus(RecurringLogStatus.FAILED);
+        logEntry.setErrorMessage(e.getMessage());
+        recurring.addLog(logEntry);
+        recurringTransactionRepository.save(recurring);
     }
 
     private void processOne(RecurringTransaction recurring, LocalDate today) {
@@ -298,7 +317,7 @@ public class RecurringTransactionService {
 
         // Auto-post if enabled
         if (recurring.isAutoPost()) {
-            transactionService.post(transaction.getId(), "SYSTEM");
+            transactionService.postAutomatic(transaction.getId(), "SYSTEM");
         }
 
         // Log success

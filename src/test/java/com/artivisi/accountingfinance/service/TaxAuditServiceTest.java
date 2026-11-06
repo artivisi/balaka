@@ -71,6 +71,7 @@ class TaxAuditServiceTest {
     private static final String HEADER = "file,year,type,source,downloaded_on,doc_number,counterparty,amount,description,transaction_number,account_code\n";
 
     @Autowired private EvidencePostingGuard postingGuard;
+    @Autowired private EvidenceQueryService evidenceQueryService;
     @Autowired private CompanyConfigService companyConfigService;
     @Autowired private EvidenceRequirementService requirementService;
     @Autowired private DocumentArchiveService archiveService;
@@ -121,6 +122,31 @@ class TaxAuditServiceTest {
         companyConfigService.setEvidenceRequiredFrom(null);
         UUID off = journal(LocalDate.of(YEAR, 4, 1), "5.1.05", "Sewa April", "2000000");
         assertThat(post(off).getStatus()).isEqualTo(TransactionStatus.POSTED);
+    }
+
+    @Test
+    @DisplayName("Automatic and module postings are not blocked by the evidence policy but still appear in the missing-evidence report")
+    void systemPostingsExemptButReported() {
+        requirementService.create(new EvidenceRequirementService.NewRequirement(account("5.1").getId(), null,
+                EvidenceType.CONTRACT, new BigDecimal("1000000"), null, "test"));
+        companyConfigService.setEvidenceRequiredFrom(LocalDate.of(YEAR, 9, 1));
+
+        UUID manual = journal(LocalDate.of(YEAR, 9, 2), "5.1.05", "Sewa manual", "2000000");
+        assertThatThrownBy(() -> transactionService.post(manual, "test")).hasMessageStartingWith("Posting ditolak: bukti belum lengkap");
+        entityManager.clear();
+
+        UUID recurring = journal(LocalDate.of(YEAR, 9, 3), "5.1.05", "Sewa berulang", "2000000");
+        assertThat(transactionService.postAutomatic(recurring, "SYSTEM").getStatus()).isEqualTo(TransactionStatus.POSTED);
+        UUID module = journal(LocalDate.of(YEAR, 9, 4), "5.1.05", "Sewa dari modul", "2000000");
+        assertThat(transactionService.postSystem(module, "system",
+                com.artivisi.accountingfinance.dto.FormulaContext.of(new BigDecimal("2000000"))).getStatus())
+                .isEqualTo(TransactionStatus.POSTED);
+        entityManager.flush();
+
+        assertThat(evidenceQueryService.gaps(LocalDate.of(YEAR, 9, 1), LocalDate.of(YEAR, 9, 30)))
+                .extracting(EvidenceQueryService.TransactionEvidence::transactionId)
+                .contains(recurring, module);
+        companyConfigService.setEvidenceRequiredFrom(null);
     }
 
     // ==================== archive ====================

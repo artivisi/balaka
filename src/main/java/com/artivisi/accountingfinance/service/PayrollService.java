@@ -425,7 +425,7 @@ public class PayrollService {
 
         // Create and post transaction with payroll context
         Transaction savedTransaction = transactionService.create(transaction, null);
-        Transaction postedTransaction = transactionService.post(savedTransaction.getId(), "system", payrollContext);
+        Transaction postedTransaction = transactionService.postSystem(savedTransaction.getId(), "system", payrollContext);
 
         // Update payroll run status
         payrollRun.setStatus(PayrollStatus.POSTED);

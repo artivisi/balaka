@@ -130,6 +130,7 @@ Period-scoped data (transactions, payroll runs, fiscal periods, schedules) goes 
 
 | Year / period | Owner |
 |---|---|
+| 2000-01 | RecurringSchedulerTest (closed fiscal period, deleted after the test) |
 | 2001 | PurgeVoidedTransactionsApiTest (bounds < 2001-11-10) |
 | 2002-01..02 | AmortizationControllerFunctionalTest batch |
 | 2003-06-15 | ReportApiPersistenceTest (one project cost) |
@@ -149,7 +150,7 @@ Period-scoped data (transactions, payroll runs, fiscal periods, schedules) goes 
 | 2153 | SalesTaxChainApiTest |
 | 2154 | SalesTaxChainFunctionalTest |
 | 2155-2162 (integration DB) | PayrollBonusThrTest |
-| 2163-2171, 2009-01..03 (integration DB; 2009: the alert needs an ended period) | PayrollReconciliationServiceTest |
+| 2163-2171, 2200, 2009-01..03 (integration DB; 2009: the alert needs an ended period) | PayrollReconciliationServiceTest |
 | 2011, 2013 (past: the journal-entry API rejects future dates; payroll list sorts newest first, so later years push PayrollControllerFunctionalTest off page 1) | PayrollReconciliationApiTest |
 | 2014 (past, same reason) | PayrollBonusFunctionalTest |
 | 2172-2179 (integration DB) | AssetDisposalServiceTest |

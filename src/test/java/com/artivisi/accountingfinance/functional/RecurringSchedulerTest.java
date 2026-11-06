@@ -1,14 +1,19 @@
 package com.artivisi.accountingfinance.functional;
 
+import com.artivisi.accountingfinance.entity.FiscalPeriod;
 import com.artivisi.accountingfinance.entity.JournalTemplate;
 import com.artivisi.accountingfinance.entity.RecurringTransaction;
 import com.artivisi.accountingfinance.entity.RecurringTransactionLog;
+import com.artivisi.accountingfinance.enums.FiscalPeriodStatus;
 import com.artivisi.accountingfinance.enums.RecurringFrequency;
 import com.artivisi.accountingfinance.enums.RecurringLogStatus;
 import com.artivisi.accountingfinance.enums.RecurringStatus;
+import com.artivisi.accountingfinance.enums.TransactionStatus;
 import com.artivisi.accountingfinance.functional.service.ServiceTestDataInitializer;
+import com.artivisi.accountingfinance.repository.FiscalPeriodRepository;
 import com.artivisi.accountingfinance.repository.RecurringTransactionLogRepository;
 import com.artivisi.accountingfinance.repository.RecurringTransactionRepository;
+import com.artivisi.accountingfinance.repository.TransactionRepository;
 import com.artivisi.accountingfinance.service.JournalTemplateService;
 import com.artivisi.accountingfinance.service.RecurringTransactionService;
 import com.artivisi.accountingfinance.ui.PlaywrightTestBase;
@@ -40,6 +45,12 @@ class RecurringSchedulerTest extends PlaywrightTestBase {
     @Autowired
     private JournalTemplateService journalTemplateService;
 
+    @Autowired
+    private FiscalPeriodRepository fiscalPeriodRepository;
+
+    @Autowired
+    private TransactionRepository transactionRepository;
+
     @BeforeEach
     void setupAndLogin() {
         loginAsAdmin();
@@ -66,6 +77,50 @@ class RecurringSchedulerTest extends PlaywrightTestBase {
         assertThat(updated.getTotalRuns()).isEqualTo(1);
         assertThat(updated.getLastRunDate()).isEqualTo(LocalDate.now());
         assertThat(updated.getNextRunDate()).isAfter(LocalDate.now());
+    }
+
+    @Test
+    @DisplayName("A failing item is logged FAILED in its own transaction and the other items still commit")
+    void failingItemDoesNotRollBackOthers() {
+        // Reserved 2000-01: a closed period makes the auto-post of that item throw inside TransactionService.post
+        assertThat(fiscalPeriodRepository.findByYearAndMonth(2000, 1)).isEmpty();
+        FiscalPeriod closed = new FiscalPeriod();
+        closed.setYear(2000);
+        closed.setMonth(1);
+        closed.setStatus(FiscalPeriodStatus.MONTH_CLOSED);
+        closed = fiscalPeriodRepository.save(closed);
+        RecurringTransaction failing = createTestRecurring("Scheduler Closed Period", LocalDate.of(2000, 1, 15));
+        try {
+            RecurringTransaction good = createTestRecurring("Scheduler Good Item", LocalDate.now());
+
+            int processed = recurringTransactionService.processAllDue();
+
+            assertThat(processed).isGreaterThanOrEqualTo(1);
+            List<RecurringTransactionLog> failedLogs = logRepository
+                    .findByRecurringTransactionIdOrderByScheduledDateDesc(failing.getId());
+            assertThat(failedLogs).singleElement().satisfies(entry -> {
+                assertThat(entry.getStatus()).isEqualTo(RecurringLogStatus.FAILED);
+                assertThat(entry.getScheduledDate()).isEqualTo(LocalDate.of(2000, 1, 15));
+                assertThat(entry.getErrorMessage()).startsWith("Cannot post journal entry. Fiscal period");
+                assertThat(entry.getTransaction()).isNull();
+            });
+            RecurringTransaction failingAfter = recurringTransactionRepository.findById(failing.getId()).orElseThrow();
+            assertThat(failingAfter.getTotalRuns()).isZero();
+            assertThat(failingAfter.getNextRunDate()).isEqualTo(LocalDate.of(2000, 1, 15));
+
+            List<RecurringTransactionLog> goodLogs = logRepository
+                    .findByRecurringTransactionIdOrderByScheduledDateDesc(good.getId());
+            assertThat(goodLogs).singleElement().satisfies(entry ->
+                    assertThat(entry.getStatus()).isEqualTo(RecurringLogStatus.SUCCESS));
+            assertThat(transactionRepository.findById(goodLogs.getFirst().getTransaction().getId()).orElseThrow().getStatus())
+                    .isEqualTo(TransactionStatus.POSTED);
+            assertThat(recurringTransactionRepository.findById(good.getId()).orElseThrow().getTotalRuns()).isEqualTo(1);
+        } finally {
+            RecurringTransaction cleanup = recurringTransactionRepository.findById(failing.getId()).orElseThrow();
+            cleanup.setStatus(RecurringStatus.PAUSED);
+            recurringTransactionRepository.save(cleanup);
+            fiscalPeriodRepository.delete(closed);
+        }
     }
 
     @Test

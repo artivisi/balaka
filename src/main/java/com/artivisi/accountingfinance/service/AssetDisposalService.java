@@ -142,6 +142,7 @@ public class AssetDisposalService {
     public void onTransactionPosted(TransactionPostedEvent event) {
         disposalRepository.findByTransactionId(event.transaction().getId()).ifPresent(disposal -> {
             FixedAsset asset = disposal.getFixedAsset();
+            assertNoPendingDepreciation(asset, disposal);
             if (asset.getBookValue().compareTo(disposal.getBookValue()) != 0) {
                 throw new IllegalStateException("Nilai buku aset " + asset.getAssetCode() + " berbeda dari catatan pelepasan "
                         + disposal.getRecordNumber() + ". Batalkan pelepasan lalu buat ulang.");
@@ -150,6 +151,24 @@ public class AssetDisposalService {
             disposal.setStatus(AssetDisposalStatus.POSTED);
             log.info("Asset {} disposed by {}", LogSanitizer.sanitize(asset.getAssetCode()), disposal.getRecordNumber());
         });
+    }
+
+    /**
+     * A PENDING entry can never post once the asset is DISPOSED, so the disposal is refused while one exists,
+     * whatever its date. create() already refuses PENDING entries and generation skips an asset with a DRAFT
+     * disposal; this catches entries that reached PENDING another way (data from before that rule).
+     */
+    private void assertNoPendingDepreciation(FixedAsset asset, AssetDisposal disposal) {
+        List<DepreciationEntry> pending = depreciationEntryRepository.findByAssetId(asset.getId()).stream()
+                .filter(DepreciationEntry::isPending)
+                .toList();
+        if (pending.isEmpty()) {
+            return;
+        }
+        String periods = pending.stream().map(e -> e.getPeriodEnd().toString()).sorted().collect(Collectors.joining(", "));
+        throw new IllegalStateException("Aset " + asset.getAssetCode() + " masih punya entri penyusutan PENDING (periode "
+                + periods + "). Skip entri tersebut sebelum memposting pelepasan " + disposal.getRecordNumber()
+                + ", atau batalkan pelepasan, posting penyusutannya, lalu buat ulang pelepasan.");
     }
 
     @EventListener

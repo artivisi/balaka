@@ -202,6 +202,31 @@ class WithholdingPaymentServiceTest {
     }
 
     @Test
+    @DisplayName("A draft cannot be cancelled once a later payment in the masa, computed with it as prior gross, is posted")
+    void cancelRefusedAfterLaterPosted() {
+        Vendor payee = individual(NIK, null);
+        WithholdingPayment first = pay(payee, null, "100000000", LocalDate.of(2140, 3, 5));
+        WithholdingPayment second = pay(payee, null, "100000000", LocalDate.of(2140, 3, 6));
+        assertThat(second.getTaxAmount()).isEqualByComparingTo("6500000");
+        paymentService.post(second.getId(), "tester");
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThatThrownBy(() -> paymentService.cancel(first.getId()))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Draf ini tidak dapat dibatalkan: pembayaran lebih baru ke penerima ini pada masa 2140-03 sudah "
+                        + "diposting dengan bruto draf ini dihitung sebagai penghasilan sebelumnya. "
+                        + "Void pembayaran tersebut lebih dulu, lalu batalkan draf ini.");
+        entityManager.clear();
+        assertThat(queryService.findPayment(first.getId()).getTransaction().getStatus()).isEqualTo(TransactionStatus.DRAFT);
+
+        // An earlier posted payment does not block: it was computed without this draft
+        WithholdingPayment third = pay(payee, null, "10000000", LocalDate.of(2140, 3, 7));
+        paymentService.cancel(third.getId());
+        entityManager.flush();
+    }
+
+    @Test
     @DisplayName("Generic edit, delete and account-mapping routes refuse a withholding draft")
     void genericRoutesRefuseDraft() {
         Vendor payee = individual(NIK, null);

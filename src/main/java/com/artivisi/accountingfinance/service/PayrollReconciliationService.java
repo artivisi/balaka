@@ -18,6 +18,7 @@ import com.artivisi.accountingfinance.repository.PayrollDetailRepository;
 import com.artivisi.accountingfinance.repository.PayrollRunRepository;
 import com.artivisi.accountingfinance.repository.TransactionRepository;
 import jakarta.persistence.EntityNotFoundException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -49,6 +50,7 @@ import java.util.stream.IntStream;
  * <p>Query API for other features: {@link #reconcile(YearMonth)} and {@link #reconcileYear(int)}.
  * {@code runTaxableIncome} and {@code runPph21} on a row are the PPh 21 base and tax of that masa.
  */
+@Slf4j
 @Service
 @Transactional(readOnly = true)
 public class PayrollReconciliationService {
@@ -81,10 +83,35 @@ public class PayrollReconciliationService {
 
     /** The template payroll posts through: the configured id, else the seed pack's template name. */
     public JournalTemplate resolvePayrollTemplate() {
-        return journalTemplateRepository.findByIdWithLines(payrollTemplateId)
-                .or(() -> journalTemplateRepository.findByTemplateNameWithLines(PAYROLL_TEMPLATE_NAME))
+        return findPayrollTemplate()
                 .orElseThrow(() -> new IllegalStateException("Template payroll tidak ditemukan (id: "
                         + payrollTemplateId + ", name: " + PAYROLL_TEMPLATE_NAME + ")"));
+    }
+
+    private Optional<JournalTemplate> findPayrollTemplate() {
+        return journalTemplateRepository.findByIdWithLines(payrollTemplateId)
+                .or(() -> journalTemplateRepository.findByTemplateNameWithLines(PAYROLL_TEMPLATE_NAME));
+    }
+
+    /**
+     * Why salary accounts cannot be derived from the payroll template, or empty when they can. The warnings
+     * report this as a warning text instead of throwing: a warning must not fail the posting or page it is
+     * attached to, but the misconfiguration must stay visible.
+     */
+    private Optional<String> salaryConfigurationProblem() {
+        Optional<JournalTemplate> template = findPayrollTemplate();
+        String problem;
+        if (template.isEmpty()) {
+            problem = "template payroll tidak ditemukan (id " + payrollTemplateId + ", nama " + PAYROLL_TEMPLATE_NAME + ")";
+        } else if (templateAccounts(template.get(), JournalPosition.DEBIT, SALARY_FORMULA).isEmpty()) {
+            problem = "template payroll \"" + template.get().getTemplateName()
+                    + "\" tidak punya baris debit berakun tetap dengan formula grossSalary, bonus, atau thr";
+        } else {
+            return Optional.empty();
+        }
+        log.error("Salary-journal warning check skipped: {}", problem);
+        return Optional.of("Pemeriksaan beban gaji terhadap payroll tidak dapat dijalankan: " + problem
+                + ". Perbaiki template payroll agar transaksi yang mendebit akun gaji terdeteksi.");
     }
 
     // ==================== Warnings ====================
@@ -104,6 +131,10 @@ public class PayrollReconciliationService {
         Optional<PayrollRun> run = activeRun(period);
         if (run.isEmpty() || isRunJournal(run.get(), transaction)) {
             return List.of();
+        }
+        Optional<String> problem = salaryConfigurationProblem();
+        if (problem.isPresent()) {
+            return List.of(problem.get());
         }
         Map<UUID, ChartOfAccount> salaryAccounts = salaryAccounts();
         List<ChartOfAccount> debited = debitedAccounts(transaction).keySet().stream()
@@ -135,6 +166,10 @@ public class PayrollReconciliationService {
                 .orElseThrow(() -> new IllegalArgumentException("Payroll run tidak ditemukan"));
         if (run.getStatus() == PayrollStatus.CANCELLED) {
             return List.of();
+        }
+        Optional<String> problem = salaryConfigurationProblem();
+        if (problem.isPresent()) {
+            return List.of(problem.get());
         }
         return journalsOutsideRun(run.getPeriod(), run, salaryAccounts()).stream()
                 .map(j -> "Transaksi " + (j.transactionNumber() != null ? j.transactionNumber() : "draf")
@@ -272,8 +307,12 @@ public class PayrollReconciliationService {
     }
 
     private Map<UUID, ChartOfAccount> templateAccounts(JournalPosition position, Pattern formula) {
+        return templateAccounts(resolvePayrollTemplate(), position, formula);
+    }
+
+    private static Map<UUID, ChartOfAccount> templateAccounts(JournalTemplate template, JournalPosition position, Pattern formula) {
         Map<UUID, ChartOfAccount> accounts = new LinkedHashMap<>();
-        for (JournalTemplateLine line : resolvePayrollTemplate().getLines()) {
+        for (JournalTemplateLine line : template.getLines()) {
             if (line.getPosition() == position && line.getAccount() != null
                     && formula.matcher(line.getFormula()).find()) {
                 accounts.put(line.getAccount().getId(), line.getAccount());

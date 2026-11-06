@@ -235,31 +235,42 @@ public class TransactionService {
         transactionRepository.save(managed);
     }
 
+    /** Posting by a person (UI or API): the evidence policy applies unless the template is a system template. */
     @Transactional
     public Transaction post(UUID id, String postedBy) {
         Transaction transaction = findById(id);
+        return postWithContext(transaction, postedBy, storedContext(transaction), PostingOrigin.USER);
+    }
 
+    /**
+     * Configured auto-posting (recurring schedule, milestone payment term). Nobody can attach evidence before the post, so the
+     * evidence policy does not block it; the transaction still appears in the missing-evidence report.
+     */
+    @Transactional
+    public Transaction postAutomatic(UUID id, String postedBy) {
+        Transaction transaction = findById(id);
+        return postWithContext(transaction, postedBy, storedContext(transaction), PostingOrigin.SYSTEM);
+    }
+
+    private FormulaContext storedContext(Transaction transaction) {
         // Build context from stored variables (for DETAILED templates) or use amount (for SIMPLE)
-        FormulaContext context;
         if (!transaction.getVariables().isEmpty()) {
             // DETAILED template - use stored variables
             Map<String, BigDecimal> variables = new HashMap<>();
             for (TransactionVariable tv : transaction.getVariables()) {
                 variables.put(tv.getVariableName(), tv.getVariableValue());
             }
-            context = FormulaContext.of(transaction.getAmount(), variables);
-        } else {
-            // SIMPLE template - use transaction amount
-            context = FormulaContext.of(transaction.getAmount());
+            return FormulaContext.of(transaction.getAmount(), variables);
         }
-
-        return postWithContext(transaction, postedBy, context);
+        // SIMPLE template - use transaction amount
+        return FormulaContext.of(transaction.getAmount());
     }
 
     /**
      * Post a transaction with a custom FormulaContext.
      * Used by external modules (payroll, inventory, etc.) that need to provide
-     * module-specific variables for formula evaluation.
+     * module-specific variables for formula evaluation. The evidence policy applies unless the
+     * template is a system template.
      *
      * @param id the transaction ID
      * @param postedBy who is posting
@@ -269,10 +280,24 @@ public class TransactionService {
     @Transactional
     public Transaction post(UUID id, String postedBy, FormulaContext context) {
         Transaction transaction = findById(id);
-        return postWithContext(transaction, postedBy, context);
+        return postWithContext(transaction, postedBy, context, PostingOrigin.USER);
     }
 
-    private Transaction postWithContext(Transaction transaction, String postedBy, FormulaContext context) {
+    /**
+     * Posting composed and posted in one call by a module (payroll run, depreciation entry): no evidence can be
+     * attached between create and post, so the evidence policy does not block it. The transaction still appears
+     * in the missing-evidence report.
+     */
+    @Transactional
+    public Transaction postSystem(UUID id, String postedBy, FormulaContext context) {
+        Transaction transaction = findById(id);
+        return postWithContext(transaction, postedBy, context, PostingOrigin.SYSTEM);
+    }
+
+    private enum PostingOrigin { USER, SYSTEM }
+
+    private Transaction postWithContext(Transaction transaction, String postedBy, FormulaContext context,
+                                        PostingOrigin origin) {
         if (!transaction.isDraft()) {
             throw new IllegalStateException("Only draft transactions can be posted");
         }
@@ -295,7 +320,9 @@ public class TransactionService {
         }
 
         validateJournalBalance(transaction.getJournalEntries());
-        evidencePostingGuard.check(transaction);
+        if (origin == PostingOrigin.USER && !Boolean.TRUE.equals(transaction.getJournalTemplate().getIsSystem())) {
+            evidencePostingGuard.check(transaction);
+        }
 
         transaction.setStatus(TransactionStatus.POSTED);
         transaction.setPostedAt(LocalDateTime.now());

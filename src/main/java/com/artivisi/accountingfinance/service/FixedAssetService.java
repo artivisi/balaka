@@ -619,7 +619,7 @@ public class FixedAssetService {
         }
 
         Transaction savedTransaction = transactionService.create(transaction, accountMappings);
-        Transaction postedTransaction = transactionService.post(savedTransaction.getId(), postedBy, context);
+        Transaction postedTransaction = transactionService.postSystem(savedTransaction.getId(), postedBy, context);
 
         // Update entry
         entry.setStatus(DepreciationEntryStatus.POSTED);

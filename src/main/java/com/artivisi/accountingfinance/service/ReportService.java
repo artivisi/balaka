@@ -154,7 +154,13 @@ public class ReportService {
 
         List<BalanceSheetItem> assetItems = calculateBalanceSheetItems(assetAccounts, periodStart, asOfDate);
         List<BalanceSheetItem> liabilityItems = calculateBalanceSheetItems(liabilityAccounts, periodStart, asOfDate);
-        List<BalanceSheetItem> equityItems = calculateBalanceSheetItems(equityAccounts, periodStart, asOfDate);
+        // Contra-equity (DEBIT normal balance like Prive and Dividen) reduces equity: its line carries the
+        // negative sign, so every consumer of the lines (pages, exports, API) agrees with totalEquity
+        List<BalanceSheetItem> equityItems = calculateBalanceSheetItems(equityAccounts, periodStart, asOfDate).stream()
+                .map(item -> item.account().getNormalBalance() == NormalBalance.DEBIT
+                        ? new BalanceSheetItem(item.account(), item.balance().negate())
+                        : item)
+                .toList();
 
         // Contra-assets (CREDIT normal balance like Accumulated Depreciation) reduce total assets
         BigDecimal totalAssets = assetItems.stream()
@@ -167,11 +173,8 @@ public class ReportService {
                 .map(BalanceSheetItem::balance)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // Contra-equity (DEBIT normal balance like Prive and Dividen) reduces total equity
         BigDecimal totalEquity = equityItems.stream()
-                .map(item -> item.account().getNormalBalance() == NormalBalance.DEBIT
-                        ? item.balance().negate()
-                        : item.balance())
+                .map(BalanceSheetItem::balance)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         LocalDate fiscalYearStart = asOfDate.withDayOfYear(1);

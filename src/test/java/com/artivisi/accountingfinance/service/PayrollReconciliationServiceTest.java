@@ -82,6 +82,26 @@ class PayrollReconciliationServiceTest {
     }
 
     @Test
+    @DisplayName("A payroll template without fixed salary lines yields a warning naming the misconfiguration; posting and the warning calls do not fail")
+    void misconfiguredTemplateWarns() {
+        PayrollRun run = approvedRun(YearMonth.of(2200, 1));
+        var template = reconciliationService.resolvePayrollTemplate();
+        template.getLines().stream()
+                .filter(l -> l.getPosition() == com.artivisi.accountingfinance.enums.JournalPosition.DEBIT)
+                .filter(l -> l.getFormula().matches(".*\\b(grossSalary|bonus|thr)\\b.*"))
+                .forEach(l -> l.setAccount(null));
+        flush();
+
+        String expected = "Pemeriksaan beban gaji terhadap payroll tidak dapat dijalankan: template payroll \"" + template.getTemplateName() + "\" "
+                + "tidak punya baris debit berakun tetap dengan formula grossSalary, bonus, atau thr. "
+                + "Perbaiki template payroll agar transaksi yang mendebit akun gaji terdeteksi.";
+        UUID id = journal(LocalDate.of(2200, 1, 20), "5.1.01", "Gaji Januari", "1000000");
+        assertThat(reconciliationService.warningsForTransaction(id)).containsExactly(expected);
+        assertThat(transactionService.post(id, "test").getStatus()).isEqualTo(com.artivisi.accountingfinance.enums.TransactionStatus.POSTED);
+        assertThat(reconciliationService.warningsForRun(run.getId())).containsExactly(expected);
+    }
+
+    @Test
     @DisplayName("No warning: other expense account, salary credit, another period, no run, cancelled run, closing entry, voided journal")
     void noFalseWarnings() {
         approvedRun(YearMonth.of(2164, 1));

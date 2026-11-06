@@ -689,9 +689,8 @@ public class SptTahunanExportService {
         for (BalanceSheetItem item : bs.equityItems()) {
             String code = item.account().getAccountCode();
             String field = mapEquityCodeToField(code);
-            BigDecimal signed = item.account().getNormalBalance() == NormalBalance.DEBIT
-                    ? item.balance().negate() : item.balance();
-            groups.computeIfPresent(field, (k, v) -> new SptFieldItem(k, v.label(), v.amount().add(signed)));
+            // Contra-equity lines already carry the negative sign (ReportService.generateBalanceSheet)
+            groups.computeIfPresent(field, (k, v) -> new SptFieldItem(k, v.label(), v.amount().add(item.balance())));
         }
 
         // Current year earnings from balance sheet

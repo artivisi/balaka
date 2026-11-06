@@ -171,6 +171,15 @@ public class WithholdingPaymentService {
         WithholdingTreatment treatment = payment.getTreatment();
         LocalDate date = payment.getPaymentDate();
         vendorRepository.findByIdForUpdate(vendorId);
+        // Later drafts are recalculated below; a later POSTED payment keeps the tax it was posted with.
+        YearMonth masa = YearMonth.from(date);
+        if (treatment == WithholdingTreatment.PPH_21_BUKAN_PEGAWAI
+                && paymentRepository.existsLaterPostedInMasa(vendorId, treatment, masa.atDay(1), masa.atEndOfMonth(),
+                        payment.getCreatedAt())) {
+            throw new IllegalStateException("Draf ini tidak dapat dibatalkan: pembayaran lebih baru ke penerima ini pada masa "
+                    + masa + " sudah diposting dengan bruto draf ini dihitung sebagai penghasilan sebelumnya. "
+                    + "Void pembayaran tersebut lebih dulu, lalu batalkan draf ini.");
+        }
 
         TaxTransactionDetail detail = payment.getTaxDetail();
         paymentRepository.delete(payment);

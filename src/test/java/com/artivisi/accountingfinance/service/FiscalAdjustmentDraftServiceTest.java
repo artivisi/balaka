@@ -231,6 +231,23 @@ class FiscalAdjustmentDraftServiceTest {
         assertThat(after.totalEquity().subtract(before.totalEquity())).isEqualByComparingTo("-750000");
         assertThat(after.totalLiabilities().subtract(before.totalLiabilities())).isEqualByComparingTo("750000");
         assertThat(after.totalAssets().subtract(before.totalAssets())).isEqualByComparingTo("0");
+
+        // The line carries the same sign as its effect on the total, in the report and the Coretax neraca
+        assertThat(equityLine(after, "3.2.03").subtract(equityLine(before, "3.2.03"))).isEqualByComparingTo("-750000");
+        BigDecimal lineSum = after.equityItems().stream().map(ReportService.BalanceSheetItem::balance)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal lineSumBefore = before.equityItems().stream().map(ReportService.BalanceSheetItem::balance)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        assertThat(lineSum.subtract(lineSumBefore)).isEqualByComparingTo(after.totalEquity().subtract(before.totalEquity()));
+        assertThat(sptTahunanExportService.generateCoretaxExport(2129).l1dNeraca().pasiva().stream()
+                .filter(i -> i.kodeAkun().equals("3.2.03")).findFirst().orElseThrow().jumlah())
+                .isEqualByComparingTo(equityLine(after, "3.2.03"));
+    }
+
+    private static BigDecimal equityLine(ReportService.BalanceSheetReport report, String code) {
+        // A zero balance has no line
+        return report.equityItems().stream().filter(i -> i.account().getAccountCode().equals(code))
+                .map(ReportService.BalanceSheetItem::balance).findFirst().orElse(BigDecimal.ZERO);
     }
 
     @Test

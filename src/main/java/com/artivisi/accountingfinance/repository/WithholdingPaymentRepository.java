@@ -52,6 +52,16 @@ public interface WithholdingPaymentRepository extends JpaRepository<WithholdingP
                               @Param("start") LocalDate start, @Param("end") LocalDate end,
                               @Param("createdAt") LocalDateTime createdAt);
 
+    /** A POSTED payment created after {@code createdAt}: its tax was fixed with the earlier one counted as prior gross. */
+    @Query("""
+            SELECT COUNT(p) > 0 FROM WithholdingPayment p
+            WHERE p.vendor.id = :vendorId AND p.treatment = :treatment
+              AND p.paymentDate BETWEEN :start AND :end AND p.createdAt > :createdAt
+              AND p.transaction.status = com.artivisi.accountingfinance.enums.TransactionStatus.POSTED""")
+    boolean existsLaterPostedInMasa(@Param("vendorId") UUID vendorId, @Param("treatment") WithholdingTreatment treatment,
+                                    @Param("start") LocalDate start, @Param("end") LocalDate end,
+                                    @Param("createdAt") LocalDateTime createdAt);
+
     @Query("""
             SELECT COALESCE(SUM(p.taxAmount), 0) FROM WithholdingPayment p
             WHERE p.treatment = :treatment AND p.paymentDate BETWEEN :start AND :end AND p.transaction.status = :status""")
