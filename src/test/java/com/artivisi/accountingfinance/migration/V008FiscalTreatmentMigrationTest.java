@@ -32,12 +32,12 @@ class V008FiscalTreatmentMigrationTest {
             JdbcTemplate jdbc = new JdbcTemplate(dataSource);
             flyway(dataSource, "7").migrate();
 
-            account(jdbc, "2.1", "Liabilitas Jangka Pendek", "LIABILITY", "CREDIT", 2);
-            account(jdbc, "3.2", "Laba", "EQUITY", "CREDIT", 2);
-            account(jdbc, "5", "BEBAN", "EXPENSE", "DEBIT", 1);
+            header(jdbc, "2.1", "Liabilitas Jangka Pendek", "LIABILITY", "CREDIT", 2);
+            header(jdbc, "3.2", "Laba", "EQUITY", "CREDIT", 2);
+            header(jdbc, "5", "BEBAN", "EXPENSE", "DEBIT", 1);
             account(jdbc, "5.1.01", "Beban Gaji", "EXPENSE", "DEBIT", 3);
-            // Owner already created this one: kept, not overwritten
-            account(jdbc, "5.8.04", "Denda Milik Pemilik", "EXPENSE", "DEBIT", 3);
+            // Owner already created the same account (name differs only in case): kept, not overwritten
+            account(jdbc, "5.8.04", "beban tidak dapat dikurangkan", "EXPENSE", "DEBIT", 3);
             jdbc.update("INSERT INTO fiscal_adjustments (year, description, adjustment_category, adjustment_direction, amount) "
                     + "VALUES (2025, 'Denda', 'PERMANENT', 'POSITIVE', 1000)");
 
@@ -60,7 +60,7 @@ class V008FiscalTreatmentMigrationTest {
 
             assertThat(treatment(jdbc, "5.1.01")).isNull();
             assertThat(jdbc.queryForObject("SELECT account_name FROM chart_of_accounts WHERE account_code = '5.8.04'", String.class))
-                    .isEqualTo("Denda Milik Pemilik");
+                    .isEqualTo("beban tidak dapat dikurangkan");
             assertThat(treatment(jdbc, "5.8.04")).isNull();
 
             Map<String, Object> adjustment = jdbc.queryForMap("SELECT status, source, amount FROM fiscal_adjustments WHERE year = 2025");
@@ -86,7 +86,7 @@ class V008FiscalTreatmentMigrationTest {
 
             assertThatThrownBy(() -> flyway(dataSource, "8").migrate())
                     .isInstanceOf(FlywayException.class)
-                    .hasMessageContaining("2.1.25 (Kas Kecil, ASSET)");
+                    .hasMessageContaining("2.1.25 (Kas Kecil, ASSET, leaf, DEBIT; expected Hutang PPh 26, LIABILITY, leaf, CREDIT)");
         }
     }
 
@@ -98,8 +98,8 @@ class V008FiscalTreatmentMigrationTest {
             DriverManagerDataSource dataSource = dataSource(postgres);
             JdbcTemplate jdbc = new JdbcTemplate(dataSource);
             flyway(dataSource, "7").migrate();
-            account(jdbc, "2.1", "Liabilitas", "LIABILITY", "CREDIT", 2);
-            account(jdbc, "5", "BEBAN", "EXPENSE", "DEBIT", 1);
+            header(jdbc, "2.1", "Liabilitas", "LIABILITY", "CREDIT", 2);
+            header(jdbc, "5", "BEBAN", "EXPENSE", "DEBIT", 1);
 
             assertThatThrownBy(() -> flyway(dataSource, "8").migrate())
                     .isInstanceOf(FlywayException.class)
@@ -124,6 +124,48 @@ class V008FiscalTreatmentMigrationTest {
 
     private static Flyway flyway(DriverManagerDataSource dataSource, String target) {
         return Flyway.configure().dataSource(dataSource).locations("classpath:db/migration").target(target).load();
+    }
+
+    @Test
+    @DisplayName("Reserved code used by a different account of the same type fails the migration")
+    void sameTypeDifferentAccountFailsLoudly() {
+        try (PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:18-alpine")) {
+            postgres.start();
+            DriverManagerDataSource dataSource = dataSource(postgres);
+            JdbcTemplate jdbc = new JdbcTemplate(dataSource);
+            flyway(dataSource, "7").migrate();
+            header(jdbc, "2.1", "Liabilitas", "LIABILITY", "CREDIT", 2);
+            header(jdbc, "3.2", "Laba", "EQUITY", "CREDIT", 2);
+            header(jdbc, "5", "BEBAN", "EXPENSE", "DEBIT", 1);
+            account(jdbc, "5.8.04", "Denda Milik Pemilik", "EXPENSE", "DEBIT", 3);
+
+            assertThatThrownBy(() -> flyway(dataSource, "8").migrate())
+                    .isInstanceOf(FlywayException.class)
+                    .hasMessageContaining("5.8.04 (Denda Milik Pemilik, EXPENSE, leaf, DEBIT; expected Beban Tidak Dapat Dikurangkan, EXPENSE, leaf, DEBIT)");
+        }
+    }
+
+    @Test
+    @DisplayName("Existing leaf account that would become a parent fails the migration")
+    void leafParentFailsLoudly() {
+        try (PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:18-alpine")) {
+            postgres.start();
+            DriverManagerDataSource dataSource = dataSource(postgres);
+            JdbcTemplate jdbc = new JdbcTemplate(dataSource);
+            flyway(dataSource, "7").migrate();
+            account(jdbc, "2.1", "Liabilitas", "LIABILITY", "CREDIT", 2);
+            header(jdbc, "3.2", "Laba", "EQUITY", "CREDIT", 2);
+            header(jdbc, "5", "BEBAN", "EXPENSE", "DEBIT", 1);
+
+            assertThatThrownBy(() -> flyway(dataSource, "8").migrate())
+                    .isInstanceOf(FlywayException.class)
+                    .hasMessageContaining("leaf accounts would become parents of seed accounts: 2.1 (Liabilitas)");
+        }
+    }
+
+    private static void header(JdbcTemplate jdbc, String code, String name, String type, String balance, int level) {
+        jdbc.update("INSERT INTO chart_of_accounts (id, account_code, account_name, account_type, normal_balance, level, is_header) "
+                + "VALUES (?, ?, ?, ?, ?, ?, TRUE)", UUID.randomUUID(), code, name, type, balance, level);
     }
 
     private static void account(JdbcTemplate jdbc, String code, String name, String type, String balance, int level) {

@@ -9,6 +9,10 @@
 -- 4. asset_verifications: one row per asset per year. asset_movements: custodian, location and condition changes.
 -- 5. Gain and loss accounts and two templates, only on a database with a chart of accounts; otherwise the seed
 --    pack supplies them. Disposal never worked before this: its hard-coded template id did not exist after import.
+--    The app resolves the gain and loss accounts by name, so their code only has to be free: each goes under the
+--    deepest header account named "Pendapatan Lain-lain" (REVENUE) or "Beban Lain-lain" (EXPENSE), case-insensitive,
+--    with the next free two-digit code under it. The seed packs place them there too (4.2.xx, 5.2.xx, 5.5.xx,
+--    5.4.xx, 7.1.xx, 8.1.xx). No such header, or two at the same depth, fails with the candidates listed.
 -- =============================================
 
 ALTER TABLE fixed_assets
@@ -100,6 +104,9 @@ DECLARE
     non_sale_template UUID := gen_random_uuid();
     conflict TEXT;
     account RECORD;
+    parent RECORD;
+    parent_count INT;
+    next_number INT;
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM chart_of_accounts) THEN
         RETURN;
@@ -113,22 +120,39 @@ BEGIN
     END IF;
 
     FOR account IN SELECT * FROM (VALUES
-            ('4.2.02', 'Laba Penjualan Aset', 'REVENUE', 'CREDIT', '4.2', NULL),
-            ('5.2.02', 'Rugi Penjualan Aset', 'EXPENSE', 'DEBIT', '5.2', 'DEDUCTIBLE')
-        ) AS a(code, name, type, balance, parent, treatment) LOOP
+            ('Laba Penjualan Aset', 'REVENUE', 'CREDIT', 'Pendapatan Lain-lain', NULL),
+            ('Rugi Penjualan Aset', 'EXPENSE', 'DEBIT', 'Beban Lain-lain', 'DEDUCTIBLE')
+        ) AS a(name, type, balance, parent_name, treatment) LOOP
         IF NOT EXISTS (SELECT 1 FROM chart_of_accounts WHERE account_name = account.name) THEN
-            SELECT account_name INTO conflict FROM chart_of_accounts WHERE account_code = account.code;
-            IF conflict IS NOT NULL THEN
-                RAISE EXCEPTION 'V012: account code % is used by "%"; create an account named "%" first', account.code, conflict, account.name;
+            -- The deepest matching header wins (a top-level "BEBAN LAIN-LAIN" with a "Beban Lain-lain" child
+            -- resolves to the child); more than one at that depth is ambiguous.
+            SELECT count(*), string_agg(c.account_code || ' ' || c.account_name, ', ' ORDER BY c.account_code)
+              INTO parent_count, conflict
+              FROM chart_of_accounts c
+             WHERE c.is_header = TRUE AND c.account_type = account.type
+               AND lower(btrim(c.account_name)) = lower(account.parent_name)
+               AND length(c.account_code) - length(replace(c.account_code, '.', '')) = (
+                   SELECT max(length(h.account_code) - length(replace(h.account_code, '.', '')))
+                     FROM chart_of_accounts h
+                    WHERE h.is_header = TRUE AND h.account_type = account.type
+                      AND lower(btrim(h.account_name)) = lower(account.parent_name));
+            IF parent_count <> 1 THEN
+                RAISE EXCEPTION 'V012: account "%" needs one deepest % header account named "%" as parent, found %: %. Create an account named "%" first',
+                    account.name, account.type, account.parent_name, parent_count, coalesce(conflict, '-'), account.name;
             END IF;
-            IF NOT EXISTS (SELECT 1 FROM chart_of_accounts WHERE account_code = account.parent) THEN
-                RAISE EXCEPTION 'V012: parent account % for "%" is missing', account.parent, account.name;
-            END IF;
+            SELECT c.* INTO parent FROM chart_of_accounts c
+             WHERE c.is_header = TRUE AND c.account_type = account.type
+               AND lower(btrim(c.account_name)) = lower(account.parent_name)
+             ORDER BY length(c.account_code) - length(replace(c.account_code, '.', '')) DESC
+             LIMIT 1;
+            SELECT coalesce(max(substring(account_code FROM length(parent.account_code) + 2)::INT), 0) + 1
+              INTO next_number
+              FROM chart_of_accounts
+             WHERE account_code ~ ('^' || replace(parent.account_code, '.', '\.') || '\.[0-9]+$');
             INSERT INTO chart_of_accounts (id, account_code, account_name, account_type, normal_balance,
                                            id_parent, level, is_header, active, is_permanent, fiscal_treatment)
-            SELECT gen_random_uuid(), account.code, account.name, account.type, account.balance, p.id, p.level + 1,
-                   FALSE, TRUE, FALSE, account.treatment
-              FROM chart_of_accounts p WHERE p.account_code = account.parent;
+            VALUES (gen_random_uuid(), parent.account_code || '.' || lpad(next_number::TEXT, 2, '0'), account.name,
+                    account.type, account.balance, parent.id, parent.level + 1, FALSE, TRUE, FALSE, account.treatment);
         END IF;
     END LOOP;
 

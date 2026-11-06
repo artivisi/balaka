@@ -1,0 +1,85 @@
+account_code,account_name,account_type,parent_code,normal_balance,active,is_permanent
+1,ASET,ASSET,,DEBIT,true,true
+1.1,Aset Lancar,ASSET,1,DEBIT,true,true
+1.1.01,Kas,ASSET,1.1,DEBIT,true,true
+1.1.02,Bank BCA,ASSET,1.1,DEBIT,true,true
+1.1.03,Bank Mandiri,ASSET,1.1,DEBIT,true,true
+1.1.04,Saldo Tokopedia,ASSET,1.1,DEBIT,true,true
+1.1.05,Saldo Shopee,ASSET,1.1,DEBIT,true,true
+1.1.06,Saldo Lazada,ASSET,1.1,DEBIT,true,true
+1.1.08,Saldo TikTok Shop,ASSET,1.1,DEBIT,true,true
+1.1.10,Piutang Usaha,ASSET,1.1,DEBIT,true,true
+1.1.20,Persediaan Barang Dagangan,ASSET,1.1,DEBIT,true,true
+1.1.25,PPN Masukan,ASSET,1.1,DEBIT,true,true
+1.1.26,Kredit Pajak PPh 23,ASSET,1.1,DEBIT,true,true
+1.2,Aset Tetap,ASSET,1,DEBIT,true,true
+1.2.01,Peralatan Gudang,ASSET,1.2,DEBIT,true,true
+1.2.02,Akum. Penyusutan Peralatan Gudang,ASSET,1.2,CREDIT,true,true
+1.2.03,Komputer & Printer,ASSET,1.2,DEBIT,true,true
+1.2.04,Akum. Penyusutan Komputer,ASSET,1.2,CREDIT,true,true
+1.2.05,Kendaraan Operasional,ASSET,1.2,DEBIT,true,true
+1.2.06,Akum. Penyusutan Kendaraan,ASSET,1.2,CREDIT,true,true
+2,LIABILITAS,LIABILITY,,CREDIT,true,true
+2.1,Liabilitas Jangka Pendek,LIABILITY,2,CREDIT,true,true
+2.1.01,Hutang Usaha,LIABILITY,2.1,CREDIT,true,true
+2.1.02,Hutang Supplier,LIABILITY,2.1,CREDIT,true,true
+2.1.03,Hutang PPN,LIABILITY,2.1,CREDIT,true,true
+2.1.10,Hutang Gaji,LIABILITY,2.1,CREDIT,true,true
+2.1.11,Hutang Reimbursement,LIABILITY,2.1,CREDIT,true,true
+2.1.13,Hutang BPJS,LIABILITY,2.1,CREDIT,true,true
+2.1.20,Hutang PPh 21,LIABILITY,2.1,CREDIT,true,true
+2.1.21,Hutang PPh 23,LIABILITY,2.1,CREDIT,true,true
+2.1.22,Hutang PPh 4(2),LIABILITY,2.1,CREDIT,true,true
+2.1.23,Hutang PPh 25,LIABILITY,2.1,CREDIT,true,true
+2.1.24,Hutang PPh 29,LIABILITY,2.1,CREDIT,true,true
+2.1.30,Pendapatan Diterima Dimuka,LIABILITY,2.1,CREDIT,true,true
+3,EKUITAS,EQUITY,,CREDIT,true,true
+3.1,Modal,EQUITY,3,CREDIT,true,true
+3.1.01,Modal Disetor,EQUITY,3.1,CREDIT,true,true
+3.1.02,Prive,EQUITY,3.1,DEBIT,true,false
+3.2,Laba,EQUITY,3,CREDIT,true,true
+3.2.01,Laba Ditahan,EQUITY,3.2,CREDIT,true,true
+3.2.02,Laba Berjalan,EQUITY,3.2,CREDIT,true,true
+4,PENDAPATAN,REVENUE,,CREDIT,true,false
+4.1,Pendapatan Usaha,REVENUE,4,CREDIT,true,false
+4.1.01,Penjualan Tokopedia,REVENUE,4.1,CREDIT,true,false
+4.1.02,Penjualan Shopee,REVENUE,4.1,CREDIT,true,false
+4.1.03,Penjualan Lazada,REVENUE,4.1,CREDIT,true,false
+4.1.05,Penjualan TikTok Shop,REVENUE,4.1,CREDIT,true,false
+4.1.06,Penjualan Offline/COD,REVENUE,4.1,CREDIT,true,false
+4.1.10,Diskon Penjualan,REVENUE,4.1,DEBIT,true,false
+4.1.11,Retur Penjualan,REVENUE,4.1,DEBIT,true,false
+4.2,Pendapatan Lain-lain,REVENUE,4,CREDIT,true,false
+4.2.01,Pendapatan Bunga,REVENUE,4.2,CREDIT,true,false
+4.2.02,Pendapatan Lain-lain,REVENUE,4.2,CREDIT,true,false
+4.2.03,Cashback Marketplace,REVENUE,4.2,CREDIT,true,false
+5,BEBAN,EXPENSE,,DEBIT,true,false
+5.1,Beban Pokok Penjualan,EXPENSE,5,DEBIT,true,false
+5.1.01,HPP - Harga Pokok Penjualan,EXPENSE,5.1,DEBIT,true,false
+5.1.02,Beban Penyesuaian Persediaan,EXPENSE,5.1,DEBIT,true,false
+5.2,Beban Marketplace,EXPENSE,5,DEBIT,true,false
+5.2.01,Biaya Admin Tokopedia,EXPENSE,5.2,DEBIT,true,false
+5.2.02,Biaya Admin Shopee,EXPENSE,5.2,DEBIT,true,false
+5.2.03,Biaya Admin Lazada,EXPENSE,5.2,DEBIT,true,false
+5.2.05,Biaya Admin TikTok Shop,EXPENSE,5.2,DEBIT,true,false
+5.2.10,Biaya Iklan Marketplace,EXPENSE,5.2,DEBIT,true,false
+5.2.11,Biaya Promo/Voucher,EXPENSE,5.2,DEBIT,true,false
+5.3,Beban Pengiriman,EXPENSE,5,DEBIT,true,false
+5.3.01,Ongkir Ditanggung Penjual,EXPENSE,5.3,DEBIT,true,false
+5.3.02,Biaya Packing,EXPENSE,5.3,DEBIT,true,false
+5.4,Beban Operasional,EXPENSE,5,DEBIT,true,false
+5.4.01,Beban Gaji,EXPENSE,5.4,DEBIT,true,false
+5.4.02,Beban BPJS Perusahaan,EXPENSE,5.4,DEBIT,true,false
+5.4.03,Beban Sewa Gudang,EXPENSE,5.4,DEBIT,true,false
+5.4.04,Beban Listrik,EXPENSE,5.4,DEBIT,true,false
+5.4.05,Beban Telekomunikasi,EXPENSE,5.4,DEBIT,true,false
+5.4.06,Beban Perlengkapan,EXPENSE,5.4,DEBIT,true,false
+5.4.10,Beban Penyusutan,EXPENSE,5.4,DEBIT,true,false
+5.4.99,Beban Operasional Lainnya,EXPENSE,5.4,DEBIT,true,false
+5.5,Beban Lain-lain,EXPENSE,5,DEBIT,true,false
+5.5.01,Beban Admin Bank,EXPENSE,5.5,DEBIT,true,false
+5.5.02,Beban Bunga,EXPENSE,5.5,DEBIT,true,false
+5.9,Beban Pajak,EXPENSE,5,DEBIT,true,false
+5.9.01,Beban PPh Final,EXPENSE,5.9,DEBIT,true,false
+5.9.02,Beban PPh 25,EXPENSE,5.9,DEBIT,true,false
+5.9.03,Beban PPh 29,EXPENSE,5.9,DEBIT,true,false

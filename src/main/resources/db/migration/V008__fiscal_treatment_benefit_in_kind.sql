@@ -51,9 +51,11 @@ INSERT INTO tags (id, id_tag_type, code, name, description)
 SELECT gen_random_uuid(), id, 'NATURA', 'Natura/Kenikmatan', 'Transaksi dengan penerima natura'
 FROM tag_types WHERE code = 'NATURA';
 
--- Seed accounts. A code already in use is kept when its account type matches (the owner may have
--- created the account already); a different type fails the migration, because later features
--- resolve these accounts by code and would post to the wrong account.
+-- Seed accounts. Later features resolve these accounts by code (V011 wires bonus and THR to 5.8.01 and
+-- 5.8.02), so a code already in use is kept only when it is the same account: same type, name
+-- (case-insensitive), header flag and normal balance. Any difference fails the migration and lists the
+-- codes. An existing leaf (non-header) account that would receive a seed account as child also fails,
+-- because it would silently turn into a parent while holding postings.
 CREATE TEMPORARY TABLE v008_seed_accounts (
     account_code VARCHAR(20), account_name VARCHAR(255), account_type VARCHAR(20), normal_balance VARCHAR(10),
     parent_code VARCHAR(20), is_header BOOLEAN, is_permanent BOOLEAN, fiscal_treatment VARCHAR(20), sort_order INT
@@ -73,13 +75,30 @@ DECLARE
     conflict TEXT;
     seed RECORD;
 BEGIN
-    SELECT string_agg(c.account_code || ' (' || c.account_name || ', ' || c.account_type || ')', ', ')
+    SELECT string_agg(c.account_code || ' (' || c.account_name || ', ' || c.account_type || ', '
+                      || CASE WHEN c.is_header THEN 'header' ELSE 'leaf' END || ', ' || c.normal_balance
+                      || '; expected ' || s.account_name || ', ' || s.account_type || ', '
+                      || CASE WHEN s.is_header THEN 'header' ELSE 'leaf' END || ', ' || s.normal_balance || ')',
+                      ', ' ORDER BY c.account_code)
       INTO conflict
       FROM chart_of_accounts c
       JOIN v008_seed_accounts s ON s.account_code = c.account_code
-     WHERE c.account_type <> s.account_type;
+     WHERE c.account_type <> s.account_type
+        OR lower(btrim(c.account_name)) <> lower(s.account_name)
+        OR c.is_header <> s.is_header
+        OR c.normal_balance <> s.normal_balance;
     IF conflict IS NOT NULL THEN
-        RAISE EXCEPTION 'V008: account codes reserved for seed accounts are used with another type: %', conflict;
+        RAISE EXCEPTION 'V008: account codes reserved for seed accounts are used by different accounts: %. Rename or renumber those accounts first.', conflict;
+    END IF;
+
+    SELECT string_agg(DISTINCT p.account_code || ' (' || p.account_name || ')', ', ')
+      INTO conflict
+      FROM v008_seed_accounts s
+      JOIN chart_of_accounts p ON p.account_code = s.parent_code
+     WHERE p.is_header = FALSE
+       AND NOT EXISTS (SELECT 1 FROM chart_of_accounts c WHERE c.account_code = s.account_code);
+    IF conflict IS NOT NULL THEN
+        RAISE EXCEPTION 'V008: leaf accounts would become parents of seed accounts: %. Renumber those accounts first.', conflict;
     END IF;
 
     IF NOT EXISTS (SELECT 1 FROM chart_of_accounts) THEN

@@ -39,7 +39,7 @@ class V012FixedAssetRegisterMigrationTest {
                 assertThat(row.get(column)).as(column).isNull();
             }
 
-            assertThat(jdbc.queryForObject("SELECT account_code FROM chart_of_accounts WHERE account_name = 'Laba Penjualan Aset'", String.class)).isEqualTo("4.2.02");
+            assertThat(jdbc.queryForObject("SELECT account_code FROM chart_of_accounts WHERE account_name = 'Laba Penjualan Aset'", String.class)).isEqualTo("4.2.01");
             assertThat(jdbc.queryForObject("SELECT fiscal_treatment FROM chart_of_accounts WHERE account_name = 'Rugi Penjualan Aset'", String.class)).isEqualTo("DEDUCTIBLE");
             assertThat(lines(jdbc, "Pelepasan Aset Tetap")).containsExactly(
                     "DEBIT:KAS_PENERIMAAN:disposalProceeds", "DEBIT:AKUM_PENYUSUTAN:accumulatedDepreciation",
@@ -81,6 +81,27 @@ class V012FixedAssetRegisterMigrationTest {
     }
 
     @Test
+    @DisplayName("Gain and loss accounts take the next free code under their parent header")
+    void takesNextFreeCode() {
+        try (PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:18-alpine")) {
+            postgres.start();
+            DriverManagerDataSource dataSource = dataSource(postgres);
+            JdbcTemplate jdbc = new JdbcTemplate(dataSource);
+            flyway(dataSource, "11").migrate();
+            seedChart(jdbc);
+            insertAccount(jdbc, "4.2.01", "Pendapatan Bunga", "REVENUE", "CREDIT");
+            insertAccount(jdbc, "4.2.02", "Akun Lain", "REVENUE", "CREDIT");
+            insertAccount(jdbc, "5.2.09", "Beban Bank", "EXPENSE", "DEBIT");
+
+            flyway(dataSource, "12").migrate();
+
+            assertThat(jdbc.queryForObject("SELECT account_code FROM chart_of_accounts WHERE account_name = 'Laba Penjualan Aset'", String.class)).isEqualTo("4.2.03");
+            assertThat(jdbc.queryForObject("SELECT account_code FROM chart_of_accounts WHERE account_name = 'Rugi Penjualan Aset'", String.class)).isEqualTo("5.2.10");
+            assertThat(jdbc.queryForObject("SELECT account_name FROM chart_of_accounts WHERE account_code = '4.2.02'", String.class)).isEqualTo("Akun Lain");
+        }
+    }
+
+    @Test
     @DisplayName("Existing accounts with those names keep their codes")
     void keepsExistingAccounts() {
         try (PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:18-alpine")) {
@@ -102,11 +123,15 @@ class V012FixedAssetRegisterMigrationTest {
     @Test
     @DisplayName("Code conflict, taken template name, missing parent or missing non-deductible account fail the migration")
     void conflictsFail() {
-        assertFails(jdbc -> insertAccount(jdbc, "4.2.02", "Akun Lain", "REVENUE", "CREDIT"), "4.2.02 is used by");
+        assertFails(jdbc -> jdbc.update("DELETE FROM chart_of_accounts WHERE account_code = '4.2'"),
+                "needs one deepest REVENUE header account named \"Pendapatan Lain-lain\" as parent, found 0");
+        assertFails(jdbc -> insertHeader(jdbc, "7.2", "Pendapatan Lain-Lain", "REVENUE", "CREDIT"),
+                "found 2: 4.2 Pendapatan Lain-lain, 7.2 Pendapatan Lain-Lain");
         assertFails(jdbc -> jdbc.update("""
                 INSERT INTO journal_templates (id, template_name, category, cash_flow_category)
                 VALUES (?, 'Pelepasan Aset Tetap', 'INCOME', 'INVESTING')""", UUID.randomUUID()), "already in use");
-        assertFails(jdbc -> jdbc.update("DELETE FROM chart_of_accounts WHERE account_code = '5.2'"), "parent account 5.2");
+        assertFails(jdbc -> jdbc.update("DELETE FROM chart_of_accounts WHERE account_code = '5.2'"),
+                "needs one deepest EXPENSE header account named \"Beban Lain-lain\" as parent, found 0");
         assertFails(jdbc -> jdbc.update("DELETE FROM chart_of_accounts WHERE account_code = '5.8.04'"), "Beban Tidak Dapat Dikurangkan");
     }
 
@@ -143,12 +168,18 @@ class V012FixedAssetRegisterMigrationTest {
     }
 
     private void seedChart(JdbcTemplate jdbc) {
-        insertAccount(jdbc, "4.2", "Pendapatan Lain-lain", "REVENUE", "CREDIT");
-        insertAccount(jdbc, "5.2", "Beban Lain-lain", "EXPENSE", "DEBIT");
+        insertHeader(jdbc, "4.2", "Pendapatan Lain-lain", "REVENUE", "CREDIT");
+        insertHeader(jdbc, "5.2", "Beban Lain-lain", "EXPENSE", "DEBIT");
         insertAccount(jdbc, "5.8.04", "Beban Tidak Dapat Dikurangkan", "EXPENSE", "DEBIT");
         insertAccount(jdbc, "1.2.01", "Peralatan", "ASSET", "DEBIT");
         insertAccount(jdbc, "1.2.02", "Akum", "ASSET", "CREDIT");
         insertAccount(jdbc, "5.1.12", "Beban Penyusutan", "EXPENSE", "DEBIT");
+    }
+
+    private void insertHeader(JdbcTemplate jdbc, String code, String name, String type, String balance) {
+        jdbc.update("""
+                INSERT INTO chart_of_accounts (id, account_code, account_name, account_type, normal_balance, level, is_header, active, is_permanent)
+                VALUES (?, ?, ?, ?, ?, 2, TRUE, TRUE, TRUE)""", UUID.randomUUID(), code, name, type, balance);
     }
 
     private void insertAccount(JdbcTemplate jdbc, String code, String name, String type, String balance) {

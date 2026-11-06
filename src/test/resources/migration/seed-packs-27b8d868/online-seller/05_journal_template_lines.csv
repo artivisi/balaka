@@ -1,0 +1,92 @@
+template_name,line_order,account_code,account_hint,position,formula,description
+Penjualan Tokopedia,1,1.1.04,,DEBIT,grossSales - adminFee,Saldo Tokopedia (netto)
+Penjualan Tokopedia,2,5.2.01,,DEBIT,adminFee,Biaya admin Tokopedia
+Penjualan Tokopedia,3,4.1.01,,CREDIT,grossSales,Penjualan Tokopedia (bruto)
+Penjualan Shopee,1,1.1.05,,DEBIT,grossSales - adminFee,Saldo Shopee (netto)
+Penjualan Shopee,2,5.2.02,,DEBIT,adminFee,Biaya admin Shopee
+Penjualan Shopee,3,4.1.02,,CREDIT,grossSales,Penjualan Shopee (bruto)
+Penjualan Lazada,1,1.1.06,,DEBIT,grossSales - adminFee,Saldo Lazada (netto)
+Penjualan Lazada,2,5.2.03,,DEBIT,adminFee,Biaya admin Lazada
+Penjualan Lazada,3,4.1.03,,CREDIT,grossSales,Penjualan Lazada (bruto)
+Penjualan TikTok Shop,1,1.1.08,,DEBIT,grossSales - adminFee,Saldo TikTok Shop (netto)
+Penjualan TikTok Shop,2,5.2.05,,DEBIT,adminFee,Biaya admin TikTok Shop
+Penjualan TikTok Shop,3,4.1.05,,CREDIT,grossSales,Penjualan TikTok Shop (bruto)
+Penjualan Offline/COD,1,1.1.01,,DEBIT,amount,Penerimaan kas
+Penjualan Offline/COD,2,4.1.06,,CREDIT,amount,Penjualan offline/COD
+Penjualan + PPN,1,,BANK,DEBIT,amount * 1.11,Penerimaan kas/bank (Harga Jual + PPN 11%)
+Penjualan + PPN,2,,PENDAPATAN,CREDIT,amount,Pendapatan (Harga Jual)
+Penjualan + PPN,3,2.1.03,,CREDIT,amount * 0.11,PPN Keluaran efektif 11% (nominal 12% x DPP Nilai Lain PMK 131/2024)
+Withdraw Saldo Tokopedia,1,,BANK,DEBIT,amount,Bank tujuan
+Withdraw Saldo Tokopedia,2,1.1.04,,CREDIT,amount,Saldo Tokopedia
+Withdraw Saldo Shopee,1,,BANK,DEBIT,amount,Bank tujuan
+Withdraw Saldo Shopee,2,1.1.05,,CREDIT,amount,Saldo Shopee
+Withdraw Saldo Lazada,1,,BANK,DEBIT,amount,Bank tujuan
+Withdraw Saldo Lazada,2,1.1.06,,CREDIT,amount,Saldo Lazada
+Withdraw Saldo TikTok Shop,1,,BANK,DEBIT,amount,Bank tujuan
+Withdraw Saldo TikTok Shop,2,1.1.08,,CREDIT,amount,Saldo TikTok Shop
+Retur Penjualan Marketplace,1,4.1.11,,DEBIT,amount,Retur penjualan
+Retur Penjualan Marketplace,2,,BANK,CREDIT,amount,Pengembalian dana ke pembeli
+Bayar Iklan Marketplace,1,5.2.10,,DEBIT,amount,Biaya iklan marketplace
+Bayar Iklan Marketplace,2,,BANK,CREDIT,amount,Pembayaran dari bank
+Pembelian Barang Dagangan,1,1.1.20,,DEBIT,amount,Persediaan barang dagangan
+Pembelian Barang Dagangan,2,,BANK,CREDIT,amount,Pembayaran dari bank
+Pembelian Barang + PPN,1,1.1.20,,DEBIT,amount,Persediaan barang dagangan (Harga Jual)
+Pembelian Barang + PPN,2,1.1.25,,DEBIT,amount * 0.11,PPN Masukan efektif 11% (nominal 12% x DPP Nilai Lain PMK 131/2024)
+Pembelian Barang + PPN,3,,BANK,CREDIT,amount * 1.11,Pembayaran dari bank (Harga Jual + PPN)
+Bayar Supplier,1,2.1.02,,DEBIT,amount,Hutang supplier
+Bayar Supplier,2,,BANK,CREDIT,amount,Pembayaran dari bank
+Ongkir Ditanggung Penjual,1,5.3.01,,DEBIT,amount,Ongkir ditanggung penjual
+Ongkir Ditanggung Penjual,2,,BANK,CREDIT,amount,Pembayaran dari bank
+Biaya Packing,1,5.3.02,,DEBIT,amount,Biaya packing
+Biaya Packing,2,,BANK,CREDIT,amount,Pembayaran dari bank
+Bayar Beban Gaji,1,5.4.01,,DEBIT,amount,Beban gaji
+Bayar Beban Gaji,2,,BANK,CREDIT,amount,Pembayaran dari bank
+Accrual Gaji Bulan Berjalan,1,5.4.01,,DEBIT,amount,Beban gaji
+Accrual Gaji Bulan Berjalan,2,2.1.10,,CREDIT,amount,Hutang gaji
+Bayar Sewa Gudang,1,5.4.03,,DEBIT,amount,Beban sewa gudang
+Bayar Sewa Gudang,2,,BANK,CREDIT,amount,Pembayaran dari bank
+Bayar Beban Listrik,1,5.4.04,,DEBIT,amount,Beban listrik
+Bayar Beban Listrik,2,,BANK,CREDIT,amount,Pembayaran dari bank
+Bayar Beban Operasional,1,5.4.99,,DEBIT,amount,Beban operasional lainnya
+Bayar Beban Operasional,2,,BANK,CREDIT,amount,Pembayaran dari bank
+Penyesuaian Persediaan Masuk,1,1.1.20,,DEBIT,amount,Persediaan bertambah
+Penyesuaian Persediaan Masuk,2,4.2.02,,CREDIT,amount,Pendapatan lain-lain
+Penyesuaian Persediaan Keluar,1,5.1.02,,DEBIT,amount,Beban penyesuaian persediaan
+Penyesuaian Persediaan Keluar,2,1.1.20,,CREDIT,amount,Persediaan berkurang
+Pembelian Persediaan,1,,PERSEDIAAN,DEBIT,amount,Persediaan masuk
+Pembelian Persediaan,2,,BANK,CREDIT,amount,Pembayaran dari bank
+Penjualan Persediaan,1,,BANK,DEBIT,revenueAmount,Penerimaan penjualan
+Penjualan Persediaan,2,,HPP,DEBIT,cogsAmount,Harga pokok penjualan
+Penjualan Persediaan,3,,PENJUALAN,CREDIT,revenueAmount,Pendapatan penjualan
+Penjualan Persediaan,4,,PERSEDIAAN,CREDIT,cogsAmount,Persediaan keluar
+Transfer Antar Bank,1,,Bank Tujuan,DEBIT,amount,Bank tujuan
+Transfer Antar Bank,2,,Bank Asal,CREDIT,amount,Bank asal
+Setoran Modal,1,,BANK,DEBIT,amount,Penerimaan kas/bank
+Setoran Modal,2,3.1.01,,CREDIT,amount,Modal disetor
+Prive / Pengambilan Pribadi,1,3.1.02,,DEBIT,amount,Prive
+Prive / Pengambilan Pribadi,2,,BANK,CREDIT,amount,Pembayaran dari bank
+Beban Admin Bank,1,5.5.01,,DEBIT,amount,Beban admin bank
+Beban Admin Bank,2,,BANK,CREDIT,amount,Potongan dari bank
+Setor PPh 21,1,2.1.20,,DEBIT,amount,Hutang PPh 21
+Setor PPh 21,2,,BANK,CREDIT,amount,Pembayaran dari bank
+Setor PPN,1,2.1.03,,DEBIT,amount,Hutang PPN
+Setor PPN,2,,BANK,CREDIT,amount,Pembayaran dari bank
+Bayar PPh Final UMKM,1,5.9.01,,DEBIT,amount,Beban PPh Final
+Bayar PPh Final UMKM,2,,BANK,CREDIT,amount,Pembayaran dari bank
+Bayar Hutang Gaji,1,2.1.10,,DEBIT,amount,Hutang gaji
+Bayar Hutang Gaji,2,,BANK,CREDIT,amount,Pembayaran dari bank
+Bayar Hutang BPJS,1,2.1.13,,DEBIT,amount,Hutang BPJS
+Bayar Hutang BPJS,2,,BANK,CREDIT,amount,Pembayaran dari bank
+Cashback dari Marketplace,1,,BANK,DEBIT,amount,Penerimaan kas/bank
+Cashback dari Marketplace,2,4.2.03,,CREDIT,amount,Cashback marketplace
+Post Gaji Bulanan,1,5.4.01,,DEBIT,grossSalary,Beban gaji karyawan
+Post Gaji Bulanan,2,5.4.02,,DEBIT,companyBpjs,Beban BPJS perusahaan
+Post Gaji Bulanan,3,2.1.10,,CREDIT,netPay,Hutang gaji karyawan
+Post Gaji Bulanan,4,2.1.13,,CREDIT,totalBpjs,Hutang BPJS
+Post Gaji Bulanan,5,2.1.20,,CREDIT,pph21,Hutang PPh 21
+Pembelian Aset Tetap,1,,ASET_TETAP,DEBIT,assetCost,Aset tetap yang dibeli
+Pembelian Aset Tetap,2,,BANK,CREDIT,assetCost,Pembayaran dari bank
+Jurnal Manual,1,,Akun Debit,DEBIT,amount,Akun yang didebit
+Jurnal Manual,2,,Akun Kredit,CREDIT,amount,Akun yang dikredit
+Penyusutan Aset,1,,BEBAN_PENYUSUTAN,DEBIT,depreciationAmount,Beban penyusutan
+Penyusutan Aset,2,,AKUM_PENYUSUTAN,CREDIT,depreciationAmount,Akumulasi penyusutan
