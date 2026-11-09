@@ -94,8 +94,9 @@ DB_CHECKSUM=$(calculate_checksum "${BACKUP_WORK_DIR}/database.sql")
 if [ -f "${BACKUP_WORK_DIR}/documents.tar.gz" ]; then
     DOCS_CHECKSUM=$(calculate_checksum "${BACKUP_WORK_DIR}/documents.tar.gz")
     DOCS_SIZE=$(stat -c%s "${BACKUP_WORK_DIR}/documents.tar.gz" 2>/dev/null || stat -f%z "${BACKUP_WORK_DIR}/documents.tar.gz")
+    DOCS_CHECKSUM_JSON="\"${DOCS_CHECKSUM}\""
 else
-    DOCS_CHECKSUM="null"
+    DOCS_CHECKSUM_JSON="null"
     DOCS_SIZE="0"
 fi
 
@@ -112,7 +113,7 @@ cat > "${BACKUP_WORK_DIR}/manifest.json" << EOF
         },
         "documents": {
             "filename": "documents.tar.gz",
-            "checksum_sha256": ${DOCS_CHECKSUM:+\"$DOCS_CHECKSUM\"}${DOCS_CHECKSUM:-null},
+            "checksum_sha256": ${DOCS_CHECKSUM_JSON},
             "size_bytes": ${DOCS_SIZE}
         }
     },
