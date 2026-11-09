@@ -311,10 +311,8 @@ public class BankReconciliationService {
             throw new IllegalStateException(ERR_RECON_COMPLETED);
         }
 
-        BankStatementItem item = statementItemRepository.findById(statementItemId)
-                .orElseThrow(() -> new EntityNotFoundException(ERR_STATEMENT_ITEM_NOT_FOUND + statementItemId));
-
-        Transaction transaction = transactionService.findById(transactionId);
+        BankStatementItem item = findUnmatchedItemOfStatement(recon, statementItemId);
+        Transaction transaction = findUnmatchedBookTransaction(recon, transactionId);
 
         recon.setStatus(ReconciliationStatus.IN_PROGRESS);
         createMatch(recon, item, transaction, MatchType.MANUAL, new BigDecimal("1.00"), username);
@@ -329,8 +327,7 @@ public class BankReconciliationService {
             throw new IllegalStateException(ERR_RECON_COMPLETED);
         }
 
-        BankStatementItem item = statementItemRepository.findById(statementItemId)
-                .orElseThrow(() -> new EntityNotFoundException(ERR_STATEMENT_ITEM_NOT_FOUND + statementItemId));
+        BankStatementItem item = findUnmatchedItemOfStatement(recon, statementItemId);
 
         item.setMatchStatus(StatementItemMatchStatus.BANK_ONLY);
         item.setMatchedAt(LocalDateTime.now());
@@ -356,7 +353,7 @@ public class BankReconciliationService {
             throw new IllegalStateException(ERR_RECON_COMPLETED);
         }
 
-        Transaction transaction = transactionService.findById(transactionId);
+        Transaction transaction = findUnmatchedBookTransaction(recon, transactionId);
 
         ReconciliationItem reconItem = new ReconciliationItem();
         reconItem.setReconciliation(recon);
@@ -378,7 +375,9 @@ public class BankReconciliationService {
         }
 
         ReconciliationItem reconItem = reconciliationItemRepository.findById(reconciliationItemId)
-                .orElseThrow(() -> new EntityNotFoundException("Reconciliation item not found: " + reconciliationItemId));
+                .filter(ri -> ri.getReconciliation().getId().equals(reconciliationId))
+                .orElseThrow(() -> new EntityNotFoundException("Reconciliation item not found: " + reconciliationItemId
+                        + " in reconciliation " + reconciliationId));
 
         // Reset statement item if it was matched
         if (reconItem.getStatementItem() != null) {
@@ -406,8 +405,7 @@ public class BankReconciliationService {
             throw new IllegalStateException(ERR_RECON_COMPLETED);
         }
 
-        BankStatementItem item = statementItemRepository.findById(statementItemId)
-                .orElseThrow(() -> new EntityNotFoundException(ERR_STATEMENT_ITEM_NOT_FOUND + statementItemId));
+        BankStatementItem item = findUnmatchedItemOfStatement(recon, statementItemId);
 
         BigDecimal amount = item.getDebitAmount() != null && item.getDebitAmount().compareTo(BigDecimal.ZERO) > 0
                 ? item.getDebitAmount()
@@ -444,6 +442,41 @@ public class BankReconciliationService {
         recon.setCompletedBy(username);
         updateReconciliationCounts(recon);
         reconciliationRepository.save(recon);
+    }
+
+    /**
+     * Loads a statement item of the reconciliation's own bank statement that is still UNMATCHED.
+     * An item of another statement is reported as not found, so one reconciliation cannot
+     * change another one's items.
+     */
+    private BankStatementItem findUnmatchedItemOfStatement(BankReconciliation recon, UUID statementItemId) {
+        BankStatementItem item = statementItemRepository.findById(statementItemId)
+                .filter(i -> i.getBankStatement().getId().equals(recon.getBankStatement().getId()))
+                .orElseThrow(() -> new EntityNotFoundException(ERR_STATEMENT_ITEM_NOT_FOUND + statementItemId
+                        + " in bank statement " + recon.getBankStatement().getId()));
+        if (item.getMatchStatus() != StatementItemMatchStatus.UNMATCHED) {
+            throw new IllegalStateException("Item mutasi baris " + item.getLineNumber()
+                    + " sudah berstatus " + item.getMatchStatus() + "; batalkan dulu sebelum mencocokkan ulang");
+        }
+        return item;
+    }
+
+    /**
+     * Loads a transaction that posts to the bank's GL account within the reconciliation period
+     * and is not yet matched or marked in this reconciliation.
+     */
+    private Transaction findUnmatchedBookTransaction(BankReconciliation recon, UUID transactionId) {
+        Transaction transaction = transactionService.findById(transactionId);
+        boolean candidate = findUnmatchedBookTransactions(recon.getId()).stream()
+                .anyMatch(t -> t.getId().equals(transactionId));
+        if (!candidate) {
+            throw new IllegalArgumentException("Transaksi " + transaction.getTransactionNumber()
+                    + " tidak bisa dipakai: tidak ada jurnal posted di akun "
+                    + recon.getBankAccount().getGlAccount().getAccountCode()
+                    + " pada periode " + recon.getPeriodStart() + " s.d. " + recon.getPeriodEnd()
+                    + ", atau sudah dicocokkan di rekonsiliasi ini");
+        }
+        return transaction;
     }
 
     public List<Transaction> findUnmatchedBookTransactions(UUID reconciliationId) {

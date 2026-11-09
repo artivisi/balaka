@@ -169,6 +169,7 @@ Period-scoped data (transactions, payroll runs, fiscal periods, schedules) goes 
 | 2022 (year view, asserted exactly), 2023, 2025 (past: the journal-entry API rejects future dates) | TaxAuditFunctionalTest |
 | 2099 (integration DB; tax filings stop at 2100) | TaxAuditServiceTest |
 | 2031–2034 | PayrollControllerFunctionalTest, ServicePayrollComprehensiveTest |
+| 2035 | BankReconciliationApiTest (shares the BankReconciliationTest context) |
 | 2040, 2042 | TaxFilingApiTest |
 | 2043 | ServiceReportsTest |
 | 2044 | TaxDetailEntryTest |

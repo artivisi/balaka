@@ -130,6 +130,7 @@ public class BankReconciliationApiController {
             @PathVariable UUID id,
             @RequestParam(value = "matchStatus", required = false) StatementItemMatchStatus matchStatus) {
 
+        importService.findStatementById(id);
         List<BankStatementItem> items;
         if (matchStatus != null) {
             items = statementItemRepository.findByBankStatementIdAndMatchStatusOrderByLineNumberAsc(id, matchStatus);
@@ -234,9 +235,16 @@ public class BankReconciliationApiController {
         return ResponseEntity.ok(reportService.getReconciliationStatement(id));
     }
 
+    @GetMapping("/reconciliations/{id}/items")
+    public ResponseEntity<List<ReconciliationItemDto>> getItems(@PathVariable UUID id) {
+        reconciliationService.findById(id);
+        return ResponseEntity.ok(reportService.getItems(id).stream().map(this::toReconciliationItemDto).toList());
+    }
+
     @GetMapping("/reconciliations/{id}/outstanding")
-    public ResponseEntity<List<ReconciliationItem>> getOutstanding(@PathVariable UUID id) {
-        return ResponseEntity.ok(reportService.getOutstandingItems(id));
+    public ResponseEntity<List<ReconciliationItemDto>> getOutstanding(@PathVariable UUID id) {
+        reconciliationService.findById(id);
+        return ResponseEntity.ok(reportService.getOutstandingItems(id).stream().map(this::toReconciliationItemDto).toList());
     }
 
     // ==================== DTOs ====================
@@ -253,6 +261,8 @@ public class BankReconciliationApiController {
                             BigDecimal bookBalance, BigDecimal bankBalance,
                             Integer totalStatementItems, Integer matchedCount,
                             Integer unmatchedBankCount, Integer unmatchedBookCount) {}
+    record ReconciliationItemDto(UUID id, String matchStatus, String matchType, BigDecimal matchConfidence,
+                                 String notes, UUID statementItemId, UUID transactionId) {}
     record UnmatchedBookTxnDto(UUID id, LocalDate transactionDate, String description, BigDecimal amount) {}
 
     record CreateParserConfigRequest(
@@ -281,10 +291,18 @@ public class BankReconciliationApiController {
 
     private String getCurrentUsername() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth != null && auth.isAuthenticated()) {
-            return auth.getName();
+        if (auth == null || !auth.isAuthenticated()) {
+            throw new IllegalStateException("No authenticated principal for a bank reconciliation API call");
         }
-        return "API";
+        return auth.getName();
+    }
+
+    private ReconciliationItemDto toReconciliationItemDto(ReconciliationItem item) {
+        return new ReconciliationItemDto(item.getId(), item.getMatchStatus().name(),
+                item.getMatchType() != null ? item.getMatchType().name() : null,
+                item.getMatchConfidence(), item.getNotes(),
+                item.getStatementItem() != null ? item.getStatementItem().getId() : null,
+                item.getTransaction() != null ? item.getTransaction().getId() : null);
     }
 
     private StatementDto toStatementDto(BankStatement stmt) {

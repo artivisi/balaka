@@ -291,10 +291,10 @@ class BankReconciliationServiceTest {
             // Get a statement item and a transaction from seed data
             List<BankStatementItem> items = statementItemRepository
                     .findByBankStatementIdOrderByLineNumberAsc(testStatement.getId());
-            BankStatementItem item = items.get(0);
+            BankStatementItem item = items.get(1); // Pembelian laptop, 20,000,000 debit on 2024-01-15
 
-            // Use a posted transaction from V901 test data
-            UUID postedTxnId = UUID.fromString("90100000-0000-0000-1000-000000000001");
+            // V901 TRX-2024-0002: laptop purchase credited to 1.1.02 on 2024-01-15
+            UUID postedTxnId = UUID.fromString("90100000-0000-0000-1000-000000000002");
             Transaction txn = transactionService.findById(postedTxnId);
 
             reconciliationService.manualMatch(recon.getId(), item.getId(), txn.getId(), "admin");
@@ -358,7 +358,8 @@ class BankReconciliationServiceTest {
             BankReconciliation recon = reconciliationService.create(
                     testStatement.getId(), null, "admin");
 
-            UUID postedTxnId = UUID.fromString("90100000-0000-0000-1000-000000000001");
+            // V901 TRX-2024-0003: posts to 1.1.02 on 2024-02-10, inside the statement period
+            UUID postedTxnId = UUID.fromString("90100000-0000-0000-1000-000000000003");
 
             reconciliationService.markBookOnly(
                     recon.getId(), postedTxnId, "Not in statement");

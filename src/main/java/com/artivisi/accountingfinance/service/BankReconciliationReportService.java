@@ -58,12 +58,12 @@ public class BankReconciliationReportService {
                 "matchedCount", matched,
                 "bankOnlyCount", bankOnly,
                 "bookOnlyCount", bookOnly,
-                "totalItems", recon.getTotalStatementItems() != null ? recon.getTotalStatementItems() : 0,
+                "totalItems", requireComputed(recon.getTotalStatementItems(), "total_statement_items", recon),
                 "matchedAmount", matchedAmount,
                 "bankOnlyAmount", bankOnlyAmount,
                 "bookOnlyAmount", bookOnlyAmount,
-                "bookBalance", recon.getBookBalance() != null ? recon.getBookBalance() : BigDecimal.ZERO,
-                "bankBalance", recon.getBankBalance() != null ? recon.getBankBalance() : BigDecimal.ZERO
+                "bookBalance", requireComputed(recon.getBookBalance(), "book_balance", recon),
+                "bankBalance", requireComputed(recon.getBankBalance(), "bank_balance", recon)
         );
     }
 
@@ -72,8 +72,8 @@ public class BankReconciliationReportService {
         List<ReconciliationItem> items = reconciliationItemRepository
                 .findByReconciliationIdWithRelations(reconciliationId);
 
-        BigDecimal bookBalance = recon.getBookBalance() != null ? recon.getBookBalance() : BigDecimal.ZERO;
-        BigDecimal bankBalance = recon.getBankBalance() != null ? recon.getBankBalance() : BigDecimal.ZERO;
+        BigDecimal bookBalance = requireComputed(recon.getBookBalance(), "book_balance", recon);
+        BigDecimal bankBalance = requireComputed(recon.getBankBalance(), "bank_balance", recon);
 
         BigDecimal[] bankOnlyTotals = computeBankOnlyTotals(items);
         BigDecimal bankOnlyDebitTotal = bankOnlyTotals[0];
@@ -136,6 +136,18 @@ public class BankReconciliationReportService {
             }
         }
         return new BigDecimal[]{debitTotal, creditTotal};
+    }
+
+    /** Balances and counts are set when the reconciliation is created; null means the row is corrupt. */
+    private static <T> T requireComputed(T value, String column, BankReconciliation recon) {
+        if (value == null) {
+            throw new IllegalStateException("Rekonsiliasi " + recon.getId() + " tidak memiliki " + column);
+        }
+        return value;
+    }
+
+    public List<ReconciliationItem> getItems(UUID reconciliationId) {
+        return reconciliationItemRepository.findByReconciliationIdWithRelations(reconciliationId);
     }
 
     public List<ReconciliationItem> getOutstandingItems(UUID reconciliationId) {
