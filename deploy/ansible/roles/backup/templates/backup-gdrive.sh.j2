@@ -38,6 +38,22 @@ if [ -z "${BACKUP_FILE}" ]; then
 fi
 
 BASENAME=$(basename "${BACKUP_FILE}")
+
+# Refuse to upload an archive that the nightly job did not refresh. Re-uploading
+# yesterday's file every night manufactures a success signal: during the outage
+# in #36 both offsite jobs reported "upload completed" for seven weeks while no
+# new archive existed.
+MAX_AGE_HOURS={{ backup_max_upload_age_hours | default(26) }}
+ARCHIVE_MTIME=$(stat -c %Y "${BACKUP_FILE}" 2>/dev/null || stat -f %m "${BACKUP_FILE}")
+AGE_HOURS=$(( ( $(date +%s) - ARCHIVE_MTIME ) / 3600 ))
+
+if [ "${AGE_HOURS}" -gt "${MAX_AGE_HOURS}" ]; then
+    log "ERROR: newest archive ${BASENAME} is ${AGE_HOURS}h old, limit ${MAX_AGE_HOURS}h. Refusing to upload a stale backup."
+    exit 1
+fi
+
+log "Archive age: ${AGE_HOURS}h (limit ${MAX_AGE_HOURS}h)"
+
 ENCRYPTED_FILE="/tmp/${BASENAME}.gpg"
 
 log "Starting Google Drive upload: ${BASENAME}"
