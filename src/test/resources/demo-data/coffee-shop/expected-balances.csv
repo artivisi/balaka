@@ -4,7 +4,7 @@
 # Note: Persediaan Barang Jadi shows CREDIT because COGS > production input in demo data
 account_code,account_name,position,amount,notes
 1.1.01,Kas,DEBIT,62450000,Sales cash in - purchases - transfers out
-1.1.02,Bank BCA,DEBIT,14525000,Modal + transfers in - payroll/BPJS/PPh/sewa/listrik out
+1.1.02,Bank BCA,DEBIT,14165000,Modal + transfers in - payroll/BPJS/PPh/sewa/listrik out
 1.1.20,Persediaan Bahan Baku,DEBIT,145300000,Total raw material purchases
 1.1.21,Persediaan Barang Jadi,CREDIT,169480000,COGS consumed > production (demo limitation)
 1.2.01,Peralatan Kopi,DEBIT,25000000,Espresso machine (category CAT-COFFEE)
@@ -12,7 +12,7 @@ account_code,account_name,position,amount,notes
 1.2.05,Komputer & POS,DEBIT,8000000,POS computer (category CAT-COMPUTER)
 1.2.06,Akum. Penyusutan Komputer,CREDIT,833333.35,8M/48 = 166666.67 × 5 months (Aug-Dec)
 2.1.02,Hutang Supplier,CREDIT,10000000,Kredit purchase Q1 unpaid
-2.1.14,Hutang PPh 21,CREDIT,600000,December PPh 21 (deposited Jan 2026)
+2.1.14,Hutang PPh 21,CREDIT,240000,December PPh 21 (deposited Jan 2026)
 3.1.01,Modal Pemilik,CREDIT,250000000,Setoran modal awal (to Kas)
 4.1.01,Pendapatan Penjualan Minuman,CREDIT,533000000,Tunai sales + GrabFood/GoFood
 5.1.01,HPP Kopi,DEBIT,169480000,COGS from Penjualan Tunai template

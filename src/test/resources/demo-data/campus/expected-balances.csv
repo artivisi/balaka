@@ -2,11 +2,11 @@
 # Campus: STMIK Merdeka Digital (non-PKP educational institution)
 # baseSalary=8000000 × 8 employees, jkkRiskClass=1, modal yayasan=200M
 account_code,account_name,position,amount,notes
-1.1.02,Bank BCA,DEBIT,5970096800,Yayasan 200M + SPP/UP/Praktikum/Hibah receipts - all expenses/payroll
+1.1.02,Bank BCA,DEBIT,5968944800,Yayasan 200M + SPP/UP/Praktikum/Hibah receipts - all expenses/payroll
 1.1.10,Piutang SPP Mahasiswa,DEBIT,160000000,Outstanding SPP not yet collected
 1.2.05,Peralatan Laboratorium,DEBIT,35000000,Lab server (category LAB)
 1.2.06,Akum. Penyusutan Lab,CREDIT,7291667,35M/48months × 10 months (Mar-Dec)
-2.1.03,Hutang PPh 21,CREDIT,3840000,December PPh 21 (deposited Jan 2026)
+2.1.03,Hutang PPh 21,CREDIT,2688000,December PPh 21 (deposited Jan 2026)
 3.1.01,Modal Yayasan,CREDIT,200000000,Dana operasional dari yayasan
 4.1.01,Pendapatan SPP,CREDIT,4500000000,3 angkatan × 2 semesters × 900M (billed)
 4.1.02,Pendapatan Uang Pangkal,CREDIT,1800000000,Angkatan 2025 uang pangkal
