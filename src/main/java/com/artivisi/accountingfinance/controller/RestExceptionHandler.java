@@ -181,8 +181,9 @@ public class RestExceptionHandler {
                 ));
     }
 
-    @ExceptionHandler(MaxUploadSizeExceededException.class)
-    public ResponseEntity<ErrorResponse> handleMaxUploadSizeExceeded(MaxUploadSizeExceededException ex) {
+    @ExceptionHandler({MaxUploadSizeExceededException.class,
+            com.artivisi.accountingfinance.exception.FileTooLargeException.class})
+    public ResponseEntity<ErrorResponse> handleMaxUploadSizeExceeded(RuntimeException ex) {
         log.warn("Upload rejected: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.CONTENT_TOO_LARGE)
                 .body(new ErrorResponse(

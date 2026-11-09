@@ -455,6 +455,7 @@ class SptChecklistFunctionalTest extends PlaywrightTestBase {
         for (Line l : lines) {
             JournalEntry entry = new JournalEntry();
             entry.setJournalNumber(number + "-" + String.format("%02d", ++index));
+            entry.setLineOrder(index);
             entry.setTransaction(saved);
             entry.setAccount(account(l.accountCode()));
             entry.setDebitAmount(l.debit());

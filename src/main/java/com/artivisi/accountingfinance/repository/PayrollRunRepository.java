@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -18,6 +19,8 @@ public interface PayrollRunRepository extends JpaRepository<PayrollRun, UUID> {
     Optional<PayrollRun> findByPayrollPeriod(String payrollPeriod);
 
     boolean existsByPayrollPeriod(String payrollPeriod);
+
+    List<PayrollRun> findByStatusAndPeriodEndBeforeOrderByPayrollPeriod(PayrollStatus status, java.time.LocalDate date);
 
     Page<PayrollRun> findByStatus(PayrollStatus status, Pageable pageable);
 

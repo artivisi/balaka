@@ -17,8 +17,7 @@ class OnlineSellerVerificationTest extends DemoVerificationTest {
     @Override protected boolean ppnEnabled() { return false; }
     @Override protected List<FiscalAdj> fiscalAdjustments() {
         return List.of(
-            new FiscalAdj("Beban iklan marketplace non-deductible", "PERMANENT", "POSITIVE",
-                    2000000, "", "Pasal 9 — iklan tanpa bukti")
+            new FiscalAdj("Beban iklan marketplace non-deductible", "PERMANENT", "POSITIVE", 2000000)
         );
     }
 }

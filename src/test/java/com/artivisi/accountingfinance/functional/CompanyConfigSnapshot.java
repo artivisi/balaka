@@ -18,7 +18,8 @@ public record CompanyConfigSnapshot(
         String taxId, String npwp, String nitku, Integer fiscalYearStartMonth, String currencyCode,
         String signingOfficerName, String signingOfficerTitle, String companyLogoPath, String industry,
         LocalDate establishedDate, Boolean isPkp, LocalDate pkpSince,
-        UUID receivableAccountId, UUID payableAccountId, UUID outputTaxAccountId, UUID inputTaxAccountId) {
+        UUID receivableAccountId, UUID payableAccountId, UUID outputTaxAccountId, UUID inputTaxAccountId,
+        LocalDate evidenceRequiredFrom) {
 
     public static CompanyConfigSnapshot capture(CompanyConfigRepository repository) {
         CompanyConfig c = repository.findFirst()
@@ -28,7 +29,8 @@ public record CompanyConfigSnapshot(
                 c.getTaxId(), c.getNpwp(), c.getNitku(), c.getFiscalYearStartMonth(), c.getCurrencyCode(),
                 c.getSigningOfficerName(), c.getSigningOfficerTitle(), c.getCompanyLogoPath(), c.getIndustry(),
                 c.getEstablishedDate(), c.getIsPkp(), c.getPkpSince(),
-                c.getReceivableAccountId(), c.getPayableAccountId(), c.getOutputTaxAccountId(), c.getInputTaxAccountId());
+                c.getReceivableAccountId(), c.getPayableAccountId(), c.getOutputTaxAccountId(), c.getInputTaxAccountId(),
+                c.getEvidenceRequiredFrom());
     }
 
     public void restore(CompanyConfigRepository repository, ChartOfAccountRepository accountRepository) {
@@ -54,6 +56,7 @@ public record CompanyConfigSnapshot(
         c.setPayableAccount(account(accountRepository, payableAccountId));
         c.setOutputTaxAccount(account(accountRepository, outputTaxAccountId));
         c.setInputTaxAccount(account(accountRepository, inputTaxAccountId));
+        c.setEvidenceRequiredFrom(evidenceRequiredFrom);
         repository.save(c);
     }
 

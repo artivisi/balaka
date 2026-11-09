@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{layouts/main :: layout('Kasus Pemeriksaan Pajak', ~{::#page-title}, ~{::section}, ~{})}"
+      lang="id">
+<head>
+    <title>Kasus Pemeriksaan Pajak</title>
+</head>
+<body>
+    <h1 id="page-title" th:text="${view.inquiryCase().title}">Kasus</h1>
+
+    <section class="h-full flex flex-col overflow-y-auto space-y-6" data-testid="tax-inquiry-detail-page"
+             th:with="c=${view.inquiryCase()}, closed=${view.inquiryCase().status.name() == 'CLOSED'}">
+        <div th:if="${successMessage}" data-testid="flash-success" class="p-4 bg-green-50 border border-green-200 rounded-lg text-sm text-green-800" th:text="${successMessage}"></div>
+        <div th:if="${errorMessage}" data-testid="flash-error" class="p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800" th:text="${errorMessage}"></div>
+        <a th:href="@{/tax-audit/cases(year=${c.taxYear})}" class="text-sm text-primary-700 hover:underline">Daftar kasus</a>
+
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <dl class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                <div><dt class="text-xs text-gray-500">Status</dt><dd data-testid="case-status" th:text="${c.status.indonesianName}">Terbuka</dd></div>
+                <div><dt class="text-xs text-gray-500">Tenggat</dt><dd data-testid="case-deadline" th:text="${c.deadline}">2022-01-01</dd></div>
+                <div><dt class="text-xs text-gray-500">Tahun pajak</dt><dd>
+                    <a th:href="@{/tax-audit(year=${c.taxYear})}" class="text-primary-700 hover:underline" th:text="${c.taxYear}">2021</a></dd></div>
+                <div><dt class="text-xs text-gray-500">Kantor pajak</dt><dd th:text="${c.taxOffice}">KPP</dd></div>
+                <div><dt class="text-xs text-gray-500">Tanggal surat</dt><dd th:text="${c.letterDate}"></dd></div>
+                <div><dt class="text-xs text-gray-500">Diterima</dt><dd th:text="${c.receivedDate}"></dd></div>
+                <div><dt class="text-xs text-gray-500">Surat</dt><dd>
+                    <a data-testid="case-letter" th:href="@{/tax-audit/cases/{id}/documents/{d}(id=${c.id}, d=${c.letterDocument.id})}" target="_blank"
+                       class="text-primary-700 hover:underline" th:text="${c.letterDocument.originalFilename}">surat.pdf</a></dd></div>
+                <div th:if="${c.taxFiling != null}"><dt class="text-xs text-gray-500">Pelaporan terkait</dt>
+                    <dd data-testid="case-filing" th:text="|${c.taxFiling.taxType.indonesianName} ${c.taxFiling.period}|"></dd></div>
+            </dl>
+            <p class="mt-3 text-sm text-gray-700" th:text="${c.subject}">Pokok</p>
+            <p th:if="${closed}" class="mt-3 text-sm font-medium text-gray-900" data-testid="case-decision" th:text="|Keputusan ${c.closedOn}: ${c.decision}|"></p>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4" data-testid="case-items">
+            <h2 class="text-base font-semibold text-gray-900 mb-2">Permintaan</h2>
+            <p th:if="${view.items().isEmpty()}" class="text-sm text-gray-500">Belum ada permintaan dicatat.</p>
+            <ol class="text-sm space-y-1">
+                <li th:each="i : ${view.items()}" data-testid="case-item" th:attr="data-item-no=${i.itemNo}">
+                    <span class="font-medium" th:text="|${i.itemNo}. ${i.description}|">1. Permintaan</span>
+                    <a th:if="${i.selfTestLine != null}" class="ml-2 text-xs text-primary-700 hover:underline"
+                       th:href="@{/tax-audit/trace(year=${c.taxYear}, line=${i.selfTestLine.name()}, month=${i.periodMonth})}"
+                       th:text="|${i.selfTestLine.title}${i.periodMonth != 0 ? ' masa ' + i.periodMonth : ''}|">Uji</a>
+                </li>
+            </ol>
+            <form sec:authorize="hasAuthority('TAX_AUDIT_MANAGE')" th:unless="${closed}" th:action="@{/tax-audit/cases/{id}/items(id=${c.id})}" method="post"
+                  id="item-form" class="mt-3 grid grid-cols-1 md:grid-cols-4 gap-2 text-sm">
+                <input type="text" name="description" required placeholder="Uraian permintaan" data-testid="item-description"
+                       class="md:col-span-2 px-3 py-2 border border-gray-300 rounded-lg">
+                <select name="selfTestLine" data-testid="item-line" class="px-3 py-2 border border-gray-300 rounded-lg">
+                    <option value="">-- Tanpa uji mandiri --</option>
+                    <option th:each="l : ${selfTestLines}" th:value="${l.name()}" th:text="${l.title}">Uji</option>
+                </select>
+                <div class="flex gap-2">
+                    <input type="number" name="periodMonth" min="0" max="12" placeholder="Bulan (0 = setahun)" data-testid="item-month"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                    <button type="submit" data-testid="btn-add-item" class="px-3 py-2 text-white bg-primary-600 rounded-lg hover:bg-primary-700">Tambah</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4" data-testid="case-disclosures">
+            <div class="flex items-center justify-between mb-2">
+                <h2 class="text-base font-semibold text-gray-900">Dokumen yang diserahkan</h2>
+                <a sec:authorize="hasAuthority('TAX_AUDIT_MANAGE')" th:unless="${closed}" th:href="@{/tax-audit/cases/{id}/export(id=${c.id})}"
+                   id="btn-prepare-disclosure" class="px-3 py-2 text-sm text-white bg-primary-600 rounded-lg hover:bg-primary-700">Siapkan Penyerahan</a>
+            </div>
+            <p th:if="${view.disclosures().isEmpty()}" class="text-sm text-gray-500">Belum ada dokumen yang diserahkan.</p>
+            <div th:each="group : ${view.disclosuresByEntry()}" class="mb-3" data-testid="disclosure-group">
+                <p class="text-sm font-medium text-gray-900">
+                    <span th:text="|Diserahkan ${group.value[0].disclosedOn}, ${group.value.size()} dokumen|">Diserahkan</span>
+                    <a data-testid="disclosure-download" th:href="@{/tax-audit/cases/{id}/disclosures/{e}/download(id=${c.id}, e=${group.key})}"
+                       class="ml-2 text-xs text-primary-700 hover:underline">Unduh ZIP</a>
+                </p>
+                <table class="w-full text-xs">
+                    <tbody>
+                    <tr th:each="d : ${group.value}" class="border-t border-gray-100" data-testid="disclosure-row" th:attr="data-filename=${d.filename}">
+                        <td class="py-1 pr-2" th:text="|Permintaan ${d.item.itemNo}|">1</td>
+                        <td class="py-1 pr-2">
+                            <a th:href="@{/tax-audit/cases/{id}/documents/{doc}(id=${c.id}, doc=${d.document.id})}" target="_blank"
+                               class="text-primary-700 hover:underline" th:text="${d.filename}">file</a>
+                        </td>
+                        <td class="py-1 pr-2" th:text="${d.transaction != null} ? ${d.transaction.transactionNumber} : (${d.archiveDocument != null} ? 'Arsip' : '-')"></td>
+                        <td class="py-1 font-mono" th:text="${#strings.substring(d.checksumSha256, 0, 12)}">sha</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4" data-testid="case-entries">
+            <h2 class="text-base font-semibold text-gray-900 mb-2">Catatan kasus</h2>
+            <p class="text-xs text-gray-500 mb-2">Catatan tidak dapat diubah atau dihapus. Kesalahan diperbaiki dengan entri koreksi.</p>
+            <ul class="divide-y divide-gray-100 text-sm">
+                <li th:each="ev : ${view.entries()}" th:if="${ev.entry().corrects == null}" class="py-2" data-testid="case-entry"
+                    th:attr="data-type=${ev.entry().entryType.name()}">
+                    <p>
+                        <span class="text-xs px-1.5 py-0.5 rounded bg-gray-100" th:text="${ev.entry().entryType.indonesianName}">Balasan</span>
+                        <span class="text-xs text-gray-500" th:text="|${ev.entry().entryDate}, ${ev.entry().createdBy}${ev.entry().item != null ? ', permintaan ' + ev.entry().item.itemNo : ''}|"></span>
+                    </p>
+                    <p class="mt-1 whitespace-pre-line" data-testid="case-entry-content" th:text="${ev.entry().content}">Isi</p>
+                    <a th:if="${ev.entry().document != null}" th:href="@{/tax-audit/cases/{id}/documents/{d}(id=${c.id}, d=${ev.entry().document.id})}" target="_blank"
+                       class="text-xs text-primary-700 hover:underline" th:text="${ev.entry().document.originalFilename}">file</a>
+                    <div th:each="corr : ${ev.corrections()}" class="mt-1 ml-4 pl-2 border-l-2 border-amber-300 text-sm" data-testid="case-correction">
+                        <span class="text-xs text-amber-800" th:text="|Koreksi ${corr.entryDate}, ${corr.createdBy}:|"></span>
+                        <span th:text="${corr.content}">Koreksi</span>
+                    </div>
+                    <form sec:authorize="hasAuthority('TAX_AUDIT_MANAGE')" th:action="@{/tax-audit/cases/{id}/entries/{e}/correct(id=${c.id}, e=${ev.entry().id})}"
+                          method="post" class="mt-1 flex gap-2">
+                        <input type="text" name="content" required placeholder="Koreksi atas entri ini" data-testid="correction-content"
+                               class="flex-1 px-2 py-1 text-xs border border-gray-300 rounded">
+                        <button type="submit" data-testid="btn-correct" class="px-2 py-1 text-xs text-amber-800 border border-amber-300 rounded hover:bg-amber-50">Koreksi</button>
+                    </form>
+                </li>
+            </ul>
+
+            <form sec:authorize="hasAuthority('TAX_AUDIT_MANAGE')" th:action="@{/tax-audit/cases/{id}/entries(id=${c.id})}" method="post"
+                  enctype="multipart/form-data" id="entry-form" class="mt-4 grid grid-cols-1 md:grid-cols-4 gap-2 text-sm">
+                <select name="entryType" required data-testid="entry-type" class="px-3 py-2 border border-gray-300 rounded-lg">
+                    <option th:each="t : ${entryTypes}" th:value="${t.name()}" th:text="${t.indonesianName}">Balasan</option>
+                </select>
+                <input type="date" name="entryDate" required th:value="${today}" data-testid="entry-date" class="px-3 py-2 border border-gray-300 rounded-lg">
+                <select name="itemId" data-testid="entry-item" class="px-3 py-2 border border-gray-300 rounded-lg">
+                    <option value="">-- Semua permintaan --</option>
+                    <option th:each="i : ${view.items()}" th:value="${i.id}" th:text="|${i.itemNo}. ${i.description}|">1</option>
+                </select>
+                <input type="file" name="file" accept=".pdf,.jpg,.jpeg,.png,.gif" class="text-sm">
+                <textarea name="content" rows="2" required placeholder="Isi balasan, notulen pertemuan atau catatan" data-testid="entry-content"
+                          class="md:col-span-3 px-3 py-2 border border-gray-300 rounded-lg"></textarea>
+                <button type="submit" data-testid="btn-add-entry" class="px-3 py-2 text-white bg-primary-600 rounded-lg hover:bg-primary-700">Catat</button>
+            </form>
+        </div>
+
+        <div sec:authorize="hasAuthority('TAX_AUDIT_MANAGE')" th:unless="${closed}" class="grid grid-cols-1 lg:grid-cols-3 gap-6 text-sm">
+            <form th:action="@{/tax-audit/cases/{id}/deadline(id=${c.id})}" method="post" class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 space-y-2">
+                <h3 class="font-semibold text-gray-900">Ubah tenggat</h3>
+                <input type="date" name="deadline" required data-testid="deadline-new" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                <input type="text" name="reason" required placeholder="Alasan, mis. perpanjangan disetujui" data-testid="deadline-reason" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                <button type="submit" data-testid="btn-change-deadline" class="px-3 py-2 text-white bg-primary-600 rounded-lg hover:bg-primary-700">Simpan</button>
+            </form>
+            <form th:action="@{/tax-audit/cases/{id}/status(id=${c.id})}" method="post" class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 space-y-2">
+                <h3 class="font-semibold text-gray-900">Ubah status</h3>
+                <select name="status" required data-testid="status-new" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                    <option th:each="s : ${statuses}" th:value="${s.name()}" th:text="${s.indonesianName}">Terbuka</option>
+                </select>
+                <input type="text" name="reason" required placeholder="Alasan" data-testid="status-reason" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                <button type="submit" data-testid="btn-change-status" class="px-3 py-2 text-white bg-primary-600 rounded-lg hover:bg-primary-700">Simpan</button>
+            </form>
+            <form th:action="@{/tax-audit/cases/{id}/decision(id=${c.id})}" method="post" class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 space-y-2">
+                <h3 class="font-semibold text-gray-900">Catat keputusan dan tutup kasus</h3>
+                <input type="date" name="decidedOn" required th:value="${today}" data-testid="decision-date" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                <textarea name="decision" rows="2" required placeholder="Mis. LHP2DK: penjelasan diterima, tidak ada usulan pemeriksaan" data-testid="decision-text"
+                          class="w-full px-3 py-2 border border-gray-300 rounded-lg"></textarea>
+                <button type="submit" data-testid="btn-record-decision" class="px-3 py-2 text-white bg-primary-600 rounded-lg hover:bg-primary-700">Catat Keputusan</button>
+            </form>
+        </div>
+    </section>
+</body>
+</html>

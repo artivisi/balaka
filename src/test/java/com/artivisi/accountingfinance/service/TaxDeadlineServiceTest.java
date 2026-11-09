@@ -51,7 +51,7 @@ class TaxDeadlineServiceTest {
         List<TaxDeadline> deadlines = taxDeadlineService.findAllActive();
 
         assertThat(deadlines).extracting(TaxDeadline::getDeadlineType).containsExactlyInAnyOrder(TaxDeadlineType.values());
-        assertThat(deadlines).extracting(TaxDeadline::getDueDay).containsExactly(15, 15, 15, 15, 20, 20, 31, 31);
+        assertThat(deadlines).extracting(TaxDeadline::getDueDay).containsExactly(15, 15, 15, 15, 15, 20, 20, 31, 31);
         assertThat(deadlines).filteredOn(TaxDeadline::getUseLastDayOfMonth)
                 .extracting(TaxDeadline::getDeadlineType)
                 .containsExactlyInAnyOrder(TaxDeadlineType.PPN_PAYMENT, TaxDeadlineType.SPT_PPN);
@@ -85,6 +85,7 @@ class TaxDeadlineServiceTest {
                 .containsExactlyInAnyOrder(
                         tuple(TaxDeadlineType.PPH_21_PAYMENT, LocalDate.of(2067, 2, 15)),
                         tuple(TaxDeadlineType.PPH_23_PAYMENT, LocalDate.of(2067, 2, 15)),
+                        tuple(TaxDeadlineType.PPH_26_PAYMENT, LocalDate.of(2067, 2, 15)),
                         tuple(TaxDeadlineType.PPH_42_PAYMENT, LocalDate.of(2067, 2, 15)),
                         tuple(TaxDeadlineType.PPH_25_PAYMENT, LocalDate.of(2067, 2, 15)),
                         tuple(TaxDeadlineType.SPT_PPH_21, LocalDate.of(2067, 2, 20)),
@@ -126,8 +127,8 @@ class TaxDeadlineServiceTest {
     @DisplayName("Past periods without completions are overdue; a completion clears the overdue flag")
     void shouldMarkPastPeriodOverdueUntilCompleted() {
         TaxDeadlineService.MonthlyChecklistSummary before = taxDeadlineService.getMonthlyChecklistSummary(2021, 7);
-        assertThat(before.totalDeadlines()).isEqualTo(8);
-        assertThat(before.overdueCount()).isEqualTo(8);
+        assertThat(before.totalDeadlines()).isEqualTo(9);
+        assertThat(before.overdueCount()).isEqualTo(9);
         assertThat(before.completedCount()).isZero();
         assertThat(before.pendingCount()).isZero();
 
@@ -136,8 +137,8 @@ class TaxDeadlineServiceTest {
 
         TaxDeadlineService.MonthlyChecklistSummary after = taxDeadlineService.getMonthlyChecklistSummary(2021, 7);
         assertThat(after.completedCount()).isEqualTo(1);
-        assertThat(after.overdueCount()).isEqualTo(7);
-        assertThat(after.getCompletionPercentage()).isEqualTo(12);
+        assertThat(after.overdueCount()).isEqualTo(8);
+        assertThat(after.getCompletionPercentage()).isEqualTo(11);
         assertThat(after.isAllCompleted()).isFalse();
         TaxDeadlineService.TaxDeadlineStatus status = after.deadlines().stream()
                 .filter(s -> s.deadline().getId().equals(PPH_21_PAYMENT_ID))
@@ -197,7 +198,7 @@ class TaxDeadlineServiceTest {
         assertThat(taxDeadlineService.findCompletion(PPH_21_PAYMENT_ID, 2067, 5)).isEmpty();
         TaxDeadlineService.MonthlyChecklistSummary summary = taxDeadlineService.getMonthlyChecklistSummary(2067, 5);
         assertThat(summary.completedCount()).isZero();
-        assertThat(summary.pendingCount()).isEqualTo(8);
+        assertThat(summary.pendingCount()).isEqualTo(9);
     }
 
     @Test
@@ -208,7 +209,7 @@ class TaxDeadlineServiceTest {
         }
 
         TaxDeadlineService.MonthlyChecklistSummary summary = taxDeadlineService.getMonthlyChecklistSummary(2067, 6);
-        assertThat(summary.completedCount()).isEqualTo(8);
+        assertThat(summary.completedCount()).isEqualTo(9);
         assertThat(summary.getCompletionPercentage()).isEqualTo(100);
         assertThat(summary.isAllCompleted()).isTrue();
         assertThat(summary.pendingCount()).isZero();
@@ -225,7 +226,7 @@ class TaxDeadlineServiceTest {
                 .containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12);
         assertThat(year).allSatisfy(m -> {
             assertThat(m.year()).isEqualTo(2067);
-            assertThat(m.totalDeadlines()).isEqualTo(8);
+            assertThat(m.totalDeadlines()).isEqualTo(9);
         });
         assertThat(year.get(8).completedCount()).isEqualTo(1);
         assertThat(year).filteredOn(m -> m.month() != 9).allSatisfy(m -> assertThat(m.completedCount()).isZero());
@@ -241,7 +242,7 @@ class TaxDeadlineServiceTest {
 
         List<TaxDeadlineService.TaxDeadlineStatus> upcoming = taxDeadlineService.getUpcomingDeadlines();
 
-        assertThat(upcoming).hasSize(7);
+        assertThat(upcoming).hasSize(8);
         assertThat(upcoming).extracting(s -> s.deadline().getId()).doesNotContain(PPH_21_PAYMENT_ID);
         assertThat(upcoming).allSatisfy(s -> {
             assertThat(s.year()).isEqualTo(period.getYear());

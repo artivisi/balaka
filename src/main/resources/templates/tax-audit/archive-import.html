@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/main :: layout('Impor Arsip Dokumen', ~{::#page-title}, ~{::section}, ~{})}"
+      lang="id">
+<head>
+    <title>Impor Arsip Dokumen</title>
+</head>
+<body>
+    <h1 id="page-title">Impor Arsip Dokumen</h1>
+
+    <section class="h-full flex flex-col overflow-y-auto space-y-6" data-testid="archive-import-page">
+        <div th:if="${errorMessage}" data-testid="flash-error" class="p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800">
+            <p th:text="${errorMessage}">Error</p>
+            <ul th:if="${importErrors}" class="mt-2 list-disc list-inside">
+                <li th:each="e : ${importErrors}" data-testid="import-error" th:text="${e}">Baris 2: ...</li>
+            </ul>
+        </div>
+        <a th:href="@{/tax-audit/archive}" class="text-sm text-primary-700 hover:underline">Kembali ke arsip</a>
+
+        <form th:action="@{/tax-audit/archive/import}" method="post" enctype="multipart/form-data" id="archive-import-form"
+              class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 flex flex-wrap items-end gap-4 text-sm">
+            <div>
+                <label for="file" class="block text-gray-700 mb-1">File ZIP</label>
+                <input type="file" id="file" name="file" accept=".zip" required>
+            </div>
+            <button type="submit" id="btn-import-archive" class="px-4 py-2 font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">Impor</button>
+        </form>
+
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 text-sm text-gray-700 space-y-2">
+            <h2 class="text-base font-semibold text-gray-900">Format ZIP</h2>
+            <p>Akar ZIP berisi <code>manifest.csv</code> (UTF-8, dipisah koma, baris pertama nama kolom) dan file-file yang disebut di dalamnya. File boleh di dalam folder; kolom <code>file</code> berisi jalurnya, mis. <code>2023/faktur/010-23-00000001.pdf</code>.</p>
+            <p>Kolom wajib: <code th:text="${#strings.listJoin(requiredColumns, ', ')}">file</code>. Kolom opsional: <code th:text="${#strings.listJoin(optionalColumns, ', ')}">doc_number</code>.</p>
+            <p>Nilai <code>type</code>: <span th:text="${#strings.listJoin(types.![name()], ', ')}">FAKTUR_PAJAK</span>. Nilai <code>source</code>: <span th:text="${#strings.listJoin(sources.![name()], ', ')}">BANK</span>.</p>
+            <p>Satu baris yang salah menolak seluruh impor; semua kesalahan ditampilkan dan tidak ada dokumen yang disimpan.</p>
+        </div>
+    </section>
+</body>
+</html>

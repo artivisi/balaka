@@ -183,7 +183,7 @@ public class DocumentStorageService {
         }
 
         if (file.getSize() > maxFileSize) {
-            throw new IllegalArgumentException(
+            throw new com.artivisi.accountingfinance.exception.FileTooLargeException(
                     String.format("File size %d exceeds maximum allowed size %d bytes",
                             file.getSize(), maxFileSize));
         }

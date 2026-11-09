@@ -18,6 +18,8 @@ public interface ChartOfAccountRepository extends JpaRepository<ChartOfAccount, 
 
     Optional<ChartOfAccount> findByAccountCode(String accountCode);
 
+    List<ChartOfAccount> findByAccountName(String accountName);
+
     boolean existsByAccountCode(String accountCode);
 
     List<ChartOfAccount> findByActiveOrderByAccountCodeAsc(Boolean active);
@@ -70,4 +72,7 @@ public interface ChartOfAccountRepository extends JpaRepository<ChartOfAccount, 
            "c.accountType = 'ASSET' AND LOWER(c.accountName) LIKE LOWER(CONCAT('%', 'piutang', '%')) ORDER BY c.accountCode")
     List<ChartOfAccount> findReceivableAccountsByName();
 
+    List<ChartOfAccount> findByCloseCheckRoleOrderByAccountCodeAsc(com.artivisi.accountingfinance.enums.CloseCheckRole role);
+
+    List<ChartOfAccount> findBySelfTestRoleOrderByAccountCodeAsc(com.artivisi.accountingfinance.enums.SelfTestRole role);
 }

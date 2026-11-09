@@ -45,6 +45,9 @@
                 </form>
             </div>
 
+            <!-- Close checklist (issue #50) -->
+            <div class="mb-6" th:insert="~{close-checks/checklist :: checklist(${closeChecklist})}"></div>
+
             <!-- Status Badge -->
             <div id="status-section" class="mb-6">
                 <div id="status-closed" th:if="${preview.alreadyClosed()}" class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">

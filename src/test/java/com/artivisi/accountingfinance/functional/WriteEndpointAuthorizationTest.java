@@ -160,6 +160,7 @@ class WriteEndpointAuthorizationTest extends PlaywrightTestBase {
     @Autowired private TaxDeadlineCompletionRepository completionRepository;
     @Autowired private TaxReportDetailService taxReportDetailService;
     @Autowired private FiscalAdjustmentRepository fiscalAdjustmentRepository;
+    @Autowired private com.artivisi.accountingfinance.repository.BenefitInKindRepository benefitInKindRepository;
     @Autowired private DocumentService documentService;
     @Autowired private DocumentRepository documentRepository;
 
@@ -403,6 +404,12 @@ class WriteEndpointAuthorizationTest extends PlaywrightTestBase {
         c.add(post(payroll + "/recalculate", form("baseSalary", "20000000"), any(Permission.PAYROLL_CREATE),
                 payrollState));
         c.add(post(payroll + "/delete", form(), any(Permission.PAYROLL_CREATE), payrollState));
+        Supplier<String> additionState = () -> payrollState.get()
+                + "|additions=" + payrollService.getAdditions(f.payrollRun.getId()).size();
+        c.add(post(payroll + "/additions", form("employeeId", UUID.randomUUID().toString(), "additionType", "BONUS",
+                "amount", "1000000"), any(Permission.PAYROLL_CREATE), additionState));
+        c.add(post(payroll + "/additions/" + UUID.randomUUID() + "/delete", form(), any(Permission.PAYROLL_CREATE),
+                additionState));
 
         String schedule = "/amortization/" + f.schedule.getId();
         Supplier<String> scheduleState = () -> amortizationScheduleRepository.findById(f.schedule.getId())
@@ -439,6 +446,16 @@ class WriteEndpointAuthorizationTest extends PlaywrightTestBase {
                 any(Permission.FISCAL_PERIOD_MANAGE), adjustmentState));
         c.add(post("/reports/rekonsiliasi-fiskal/adjustments/" + f.fiscalAdjustment.getId() + "/delete",
                 form("year", String.valueOf(FISCAL_YEAR)), any(Permission.FISCAL_PERIOD_MANAGE), adjustmentState));
+        c.add(post("/reports/rekonsiliasi-fiskal/adjustments/generate", form("year", String.valueOf(FISCAL_YEAR)),
+                any(Permission.FISCAL_PERIOD_MANAGE), adjustmentState));
+        c.add(post("/reports/rekonsiliasi-fiskal/adjustments/" + f.fiscalAdjustment.getId() + "/confirm",
+                form("year", String.valueOf(FISCAL_YEAR), "amount", "1"), any(Permission.FISCAL_PERIOD_MANAGE), adjustmentState));
+        Supplier<String> benefitState = () -> String.valueOf(
+                benefitInKindRepository.findByTransactionId(f.transaction.getId()).size());
+        String benefits = "/transactions/" + f.transaction.getId() + "/benefits";
+        c.add(post(benefits, form("employeeId", UUID.randomUUID().toString(), "amount", "1", "description", "Natura"),
+                any(Permission.PAYROLL_CREATE), benefitState));
+        c.add(post(benefits + "/" + UUID.randomUUID() + "/delete", form(), any(Permission.PAYROLL_CREATE), benefitState));
         Supplier<String> closingState = () -> String.valueOf(fiscalYearClosingService.hasClosingEntries(CLOSING_YEAR));
         c.add(post("/reports/fiscal-closing/" + CLOSING_YEAR + "/execute", form(),
                 any(Permission.FISCAL_PERIOD_MANAGE), closingState));

@@ -154,7 +154,13 @@ public class ReportService {
 
         List<BalanceSheetItem> assetItems = calculateBalanceSheetItems(assetAccounts, periodStart, asOfDate);
         List<BalanceSheetItem> liabilityItems = calculateBalanceSheetItems(liabilityAccounts, periodStart, asOfDate);
-        List<BalanceSheetItem> equityItems = calculateBalanceSheetItems(equityAccounts, periodStart, asOfDate);
+        // Contra-equity (DEBIT normal balance like Prive and Dividen) reduces equity: its line carries the
+        // negative sign, so every consumer of the lines (pages, exports, API) agrees with totalEquity
+        List<BalanceSheetItem> equityItems = calculateBalanceSheetItems(equityAccounts, periodStart, asOfDate).stream()
+                .map(item -> item.account().getNormalBalance() == NormalBalance.DEBIT
+                        ? new BalanceSheetItem(item.account(), item.balance().negate())
+                        : item)
+                .toList();
 
         // Contra-assets (CREDIT normal balance like Accumulated Depreciation) reduce total assets
         BigDecimal totalAssets = assetItems.stream()
@@ -422,7 +428,7 @@ public class ReportService {
     }
 
     private BigDecimal calculateCashImpact(Transaction transaction, List<ChartOfAccount> cashAccounts) {
-        List<JournalEntry> entries = journalEntryRepository.findByTransactionIdOrderByJournalNumberAsc(transaction.getId());
+        List<JournalEntry> entries = journalEntryRepository.findByTransactionIdOrderByLineOrderAsc(transaction.getId());
 
         BigDecimal cashInflow = BigDecimal.ZERO;
         BigDecimal cashOutflow = BigDecimal.ZERO;

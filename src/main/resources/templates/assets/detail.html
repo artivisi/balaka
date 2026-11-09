@@ -17,6 +17,12 @@
              class="p-4 rounded-lg bg-red-50 border border-red-200 text-sm font-medium text-red-800"
              th:text="${errorMessage}">Error</div>
 
+        <div th:if="${draftDisposal}" id="disposal-draft-banner"
+             class="p-4 rounded-lg bg-yellow-50 border border-yellow-200 text-sm text-yellow-800">
+            Aset ini punya draf pelepasan. Aset belum berstatus Dilepas sampai jurnalnya diposting.
+            Selama draf ada, aset tidak dapat diubah dan tidak disusutkan.
+        </div>
+
         <!-- Header with actions -->
         <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
@@ -27,14 +33,14 @@
                 </span>
             </div>
             <div class="flex items-center gap-2">
-                <a id="btn-edit" sec:authorize="hasAuthority('ASSET_EDIT')" th:if="${!asset.disposed}"
+                <a id="btn-edit" sec:authorize="hasAuthority('ASSET_EDIT')" th:if="${!asset.disposed and !draftDisposal}"
                    th:href="@{/assets/{id}/edit(id=${asset.id})}"
                    class="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">Edit</a>
-                <a id="btn-dispose" sec:authorize="hasAuthority('ASSET_DISPOSE')" th:if="${!asset.disposed}"
+                <a id="btn-dispose" sec:authorize="hasAuthority('ASSET_DISPOSE')" th:if="${!asset.disposed and !draftDisposal}"
                    th:href="@{/assets/{id}/dispose(id=${asset.id})}"
                    class="px-4 py-2 text-red-600 border border-red-300 rounded-lg hover:bg-red-50">Lepas Aset</a>
                 <form id="form-delete" sec:authorize="hasAuthority('ASSET_DELETE')"
-                      th:if="${!asset.disposed and asset.depreciationPeriodsCompleted == 0 and asset.purchaseTransaction == null}"
+                      th:if="${deletable}"
                       th:action="@{/assets/{id}/delete(id=${asset.id})}" method="post" class="inline">
                     <button id="btn-delete" type="submit"
                             class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">Hapus</button>
@@ -66,9 +72,30 @@
                             <dt class="text-sm text-gray-500">Lokasi</dt>
                             <dd class="text-sm font-medium text-gray-900" th:text="${asset.location ?: '-'}">Kantor</dd>
                         </div>
-                        <div th:if="${asset.serialNumber}">
+                        <div>
                             <dt class="text-sm text-gray-500">Nomor Seri</dt>
-                            <dd class="text-sm font-medium text-gray-900" th:text="${asset.serialNumber}">SN123</dd>
+                            <dd id="asset-serial" class="text-sm font-medium text-gray-900" th:text="${asset.serialNumber ?: '-'}">SN123</dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm text-gray-500">Merek</dt>
+                            <dd id="asset-brand" class="text-sm font-medium text-gray-900" th:text="${asset.brand ?: '-'}">Lenovo</dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm text-gray-500">Model</dt>
+                            <dd id="asset-model" class="text-sm font-medium text-gray-900" th:text="${asset.model ?: '-'}">T14</dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm text-gray-500">Pemegang</dt>
+                            <dd id="asset-custodian" class="text-sm font-medium text-gray-900" th:text="${asset.custodian ?: '-'}">Budi</dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm text-gray-500">Kondisi</dt>
+                            <dd id="asset-condition" class="text-sm font-medium text-gray-900" th:text="${asset.condition?.indonesianName ?: '-'}">Baik</dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm text-gray-500">Terakhir Diverifikasi</dt>
+                            <dd id="asset-last-verified" class="text-sm font-medium text-gray-900"
+                                th:text="${asset.lastVerifiedDate != null} ? ${#temporals.format(asset.lastVerifiedDate, 'dd MMM yyyy')} : '-'">-</dd>
                         </div>
                         <div th:if="${asset.description}" class="col-span-2">
                             <dt class="text-sm text-gray-500">Deskripsi</dt>
@@ -140,6 +167,45 @@
                     </div>
                 </div>
 
+                <!-- Register history -->
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Riwayat Pemegang, Lokasi, dan Kondisi</h3>
+                    <p th:if="${#lists.isEmpty(movements)}" class="text-sm text-gray-500">Belum ada perubahan</p>
+                    <ul class="space-y-2 text-sm">
+                        <li th:each="m : ${movements}" data-testid="movement-row">
+                            <span class="font-medium" th:text="${#temporals.format(m.movementDate, 'dd MMM yyyy')}">01 Jan 2025</span>:
+                            <span th:if="${m.fromCustodian != m.toCustodian}" th:text="|Pemegang ${m.fromCustodian ?: '-'} ke ${m.toCustodian ?: '-'}. |">Pemegang</span>
+                            <span th:if="${m.fromLocation != m.toLocation}" th:text="|Lokasi ${m.fromLocation ?: '-'} ke ${m.toLocation ?: '-'}. |">Lokasi</span>
+                            <span th:if="${m.fromCondition != m.toCondition}" th:text="|Kondisi ${m.fromCondition?.indonesianName ?: '-'} ke ${m.toCondition?.indonesianName ?: '-'}. |">Kondisi</span>
+                            <span class="text-gray-500" th:text="|(${m.recordedBy})|">(admin)</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Riwayat Verifikasi</h3>
+                    <p th:if="${#lists.isEmpty(verifications)}" class="text-sm text-gray-500">Belum pernah diverifikasi</p>
+                    <ul class="space-y-2 text-sm">
+                        <li th:each="v : ${verifications}" data-testid="verification-row"
+                            th:text="|${v.verificationYear}: ${#temporals.format(v.verifiedDate, 'dd MMM yyyy')}, ${v.result.name() == 'FOUND' ? 'ditemukan' : 'tidak ditemukan'} (${v.verifiedBy})|">2025</li>
+                    </ul>
+                </div>
+
+                <div th:if="${!#lists.isEmpty(disposals)}" class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Catatan Pelepasan</h3>
+                    <ul class="space-y-2 text-sm">
+                        <li th:each="d : ${disposals}" data-testid="asset-disposal-row">
+                            <a class="text-primary-600 hover:underline font-mono" th:href="@{/assets/disposals/{id}(id=${d.id})}" th:text="${d.recordNumber}">DSP</a>
+                            <span th:switch="${d.status.name()}">
+                                <span th:case="'DRAFT'">Draf</span>
+                                <span th:case="'POSTED'">Diposting</span>
+                                <span th:case="'VOIDED'">Void</span>
+                                <span th:case="'CANCELLED'">Dibatalkan</span>
+                            </span>
+                        </li>
+                    </ul>
+                </div>
+
                 <!-- Disposal Info (if disposed) -->
                 <div th:if="${asset.disposed}" class="bg-white rounded-lg shadow p-6">
                     <h3 class="text-lg font-medium text-gray-900 mb-4">Informasi Pelepasan</h3>
@@ -153,6 +219,7 @@
                             <dd class="text-sm font-medium text-gray-900">
                                 <span th:switch="${asset.disposalType?.name()}">
                                     <span th:case="'SOLD'">Dijual</span>
+                                    <span th:case="'GIFTED'">Dihibahkan</span>
                                     <span th:case="'WRITTEN_OFF'">Dihapuskan</span>
                                     <span th:case="'TRANSFERRED'">Dipindahkan</span>
                                 </span>
@@ -178,6 +245,22 @@
 
             <!-- Right Column: Summary -->
             <div class="space-y-6">
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Foto</h3>
+                    <img th:if="${asset.photoDocument != null}" id="asset-photo" th:src="@{/assets/{id}/photo(id=${asset.id})}"
+                         th:alt="${asset.name}" class="w-full rounded-lg mb-4">
+                    <p th:if="${asset.photoDocument == null}" id="asset-photo-empty" class="text-sm text-gray-500 mb-4">Belum ada foto</p>
+                    <div sec:authorize="hasAuthority('ASSET_EDIT')" th:if="${!asset.disposed}" class="space-y-2">
+                        <form id="form-photo" th:action="@{/assets/{id}/photo(id=${asset.id})}" method="post" enctype="multipart/form-data" class="space-y-2">
+                            <input type="file" id="photo-file" name="file" accept="image/jpeg,image/png" required class="block w-full text-sm">
+                            <button id="btn-photo-upload" type="submit" class="px-3 py-1.5 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">Unggah Foto</button>
+                        </form>
+                        <form th:if="${asset.photoDocument != null}" th:action="@{/assets/{id}/photo/delete(id=${asset.id})}" method="post">
+                            <button id="btn-photo-delete" type="submit" class="px-3 py-1.5 text-sm text-red-600 border border-red-300 rounded-lg hover:bg-red-50">Hapus Foto</button>
+                        </form>
+                    </div>
+                </div>
+
                 <!-- Financial Summary Card -->
                 <div class="bg-white rounded-lg shadow p-6">
                     <h3 class="text-lg font-medium text-gray-900 mb-4">Ringkasan Nilai</h3>

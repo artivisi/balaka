@@ -4,6 +4,9 @@ import com.artivisi.accountingfinance.entity.FiscalAdjustment;
 import com.artivisi.accountingfinance.entity.FiscalLossCarryforward;
 import com.artivisi.accountingfinance.enums.FiscalAdjustmentCategory;
 import com.artivisi.accountingfinance.enums.FiscalAdjustmentDirection;
+import com.artivisi.accountingfinance.enums.FiscalAdjustmentSource;
+import com.artivisi.accountingfinance.enums.FiscalAdjustmentStatus;
+import com.artivisi.accountingfinance.service.FiscalAdjustmentDraftService;
 import com.artivisi.accountingfinance.service.SptTahunanExportService;
 import com.artivisi.accountingfinance.service.SptTahunanExportService.LossCarryforwardReport;
 import com.artivisi.accountingfinance.service.TaxReportDetailService;
@@ -43,17 +46,41 @@ public class FiscalAdjustmentApiController {
 
     private final TaxReportDetailService taxReportDetailService;
     private final SptTahunanExportService sptTahunanExportService;
+    private final FiscalAdjustmentDraftService fiscalAdjustmentDraftService;
 
     @GetMapping
-    @Operation(summary = "List fiscal adjustments by year")
+    @Operation(summary = "List fiscal adjustments by year, drafts and confirmed; filter with status")
     @ApiResponse(responseCode = "200", description = "List of adjustments")
-    public ResponseEntity<List<FiscalAdjustmentResponse>> list(@RequestParam int year) {
+    public ResponseEntity<List<FiscalAdjustmentResponse>> list(
+            @RequestParam int year,
+            @RequestParam(required = false) FiscalAdjustmentStatus status) {
         List<FiscalAdjustmentResponse> responses = taxReportDetailService
                 .findAdjustmentsByYear(year)
                 .stream()
+                .filter(a -> status == null || a.getStatus() == status)
                 .map(FiscalAdjustmentResponse::from)
                 .toList();
         return ResponseEntity.ok(responses);
+    }
+
+    @PostMapping("/generate")
+    @PreAuthorize("hasAuthority('SCOPE_tax-export:write')")
+    @Operation(summary = "Generate DRAFT adjustments from account fiscal treatment; replaces generated drafts of the year")
+    @ApiResponse(responseCode = "200", description = "Drafts, unclassified accounts with a balance, and NATURA-tagged transactions without a recipient")
+    public ResponseEntity<GenerationResponse> generate(@RequestParam int year) {
+        log.info("API: Generate fiscal adjustment drafts - year={}", year);
+        return ResponseEntity.ok(GenerationResponse.from(fiscalAdjustmentDraftService.generate(year)));
+    }
+
+    @PostMapping("/{id}/confirm")
+    @PreAuthorize("hasAuthority('SCOPE_tax-export:write')")
+    @Operation(summary = "Confirm a DRAFT adjustment so it enters the fiscal reconciliation; edit it first with PUT")
+    @ApiResponse(responseCode = "200", description = "Adjustment confirmed")
+    @ApiResponse(responseCode = "404", description = "Adjustment not found")
+    @ApiResponse(responseCode = "409", description = "Adjustment is already confirmed")
+    public ResponseEntity<FiscalAdjustmentResponse> confirm(@PathVariable UUID id) {
+        log.info("API: Confirm fiscal adjustment - id={}", id);
+        return ResponseEntity.ok(FiscalAdjustmentResponse.from(fiscalAdjustmentDraftService.confirm(id, null)));
     }
 
     @PostMapping
@@ -232,7 +259,9 @@ public class FiscalAdjustmentApiController {
             BigDecimal amount,
             String accountCode,
             String pasal,
-            String notes
+            String notes,
+            FiscalAdjustmentStatus status,
+            FiscalAdjustmentSource source
     ) {
         public static FiscalAdjustmentResponse from(FiscalAdjustment entity) {
             return new FiscalAdjustmentResponse(
@@ -244,7 +273,25 @@ public class FiscalAdjustmentApiController {
                     entity.getAmount(),
                     entity.getAccountCode(),
                     entity.getPasal(),
-                    entity.getNotes()
+                    entity.getNotes(),
+                    entity.getStatus(),
+                    entity.getSource()
+            );
+        }
+    }
+
+    public record GenerationResponse(
+            int year,
+            List<FiscalAdjustmentResponse> drafts,
+            List<String> unclassifiedAccounts,
+            List<String> taggedTransactionsWithoutRecipient
+    ) {
+        static GenerationResponse from(FiscalAdjustmentDraftService.GenerationResult result) {
+            return new GenerationResponse(
+                    result.year(),
+                    result.drafts().stream().map(FiscalAdjustmentResponse::from).toList(),
+                    result.unclassifiedAccounts(),
+                    result.taggedTransactionsWithoutRecipient()
             );
         }
     }

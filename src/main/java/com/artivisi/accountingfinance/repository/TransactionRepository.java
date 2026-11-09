@@ -116,4 +116,53 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
 
     List<Transaction> findBySourceDocumentTypeAndSourceDocumentIdOrderByTransactionDateAsc(
             String sourceDocumentType, UUID sourceDocumentId);
+
+    /** Posted transactions carrying the given tag that have no benefit-in-kind recipient. */
+    @Query("""
+            SELECT t.transactionNumber FROM TransactionTag tt
+            JOIN tt.transaction t
+            WHERE tt.tag.code = :tagCode
+              AND t.status = com.artivisi.accountingfinance.enums.TransactionStatus.POSTED
+              AND t.transactionDate BETWEEN :start AND :end
+              AND NOT EXISTS (SELECT 1 FROM BenefitInKind b WHERE b.transaction = t)
+            ORDER BY t.transactionNumber
+            """)
+    List<String> findPostedNumbersWithTagWithoutBenefit(@Param("tagCode") String tagCode,
+                                                        @Param("start") LocalDate start,
+                                                        @Param("end") LocalDate end);
+
+    @Query("SELECT DISTINCT t FROM Transaction t JOIN t.journalEntries j WHERE t.status = 'POSTED' "
+            + "AND t.transactionDate BETWEEN :start AND :end AND j.account.id IN :accountIds AND j.debitAmount > 0")
+    List<Transaction> findPostedDebitingAccounts(@Param("accountIds") java.util.Collection<UUID> accountIds,
+                                                 @Param("start") LocalDate start,
+                                                 @Param("end") LocalDate end);
+
+    List<Transaction> findByStatusAndTransactionDateBetween(TransactionStatus status, LocalDate start, LocalDate end);
+
+    /** Posted transactions in a period for the evidence check; year-end closing entries carry no outside evidence. */
+    @Query("SELECT t FROM Transaction t JOIN FETCH t.journalTemplate jt LEFT JOIN FETCH jt.originalTemplate "
+            + "LEFT JOIN FETCH t.contract c LEFT JOIN FETCH c.document "
+            + "WHERE t.status = com.artivisi.accountingfinance.enums.TransactionStatus.POSTED "
+            + "AND t.transactionDate BETWEEN :from AND :to AND (t.closingEntry IS NULL OR t.closingEntry = false) "
+            + "ORDER BY t.transactionDate, t.transactionNumber")
+    List<Transaction> findPostedForEvidence(@Param("from") LocalDate from, @Param("to") LocalDate to);
+
+    @Query("SELECT t FROM Transaction t JOIN FETCH t.journalTemplate jt LEFT JOIN FETCH jt.originalTemplate "
+            + "LEFT JOIN FETCH t.contract c LEFT JOIN FETCH c.document WHERE t.id = :id")
+    Optional<Transaction> findForEvidence(@Param("id") UUID id);
+
+    @Query("SELECT t FROM Transaction t WHERE t.contract.id = :contractId ORDER BY t.transactionDate, t.transactionNumber")
+    List<Transaction> findByContractId(@Param("contractId") UUID contractId);
+
+    /** Rows of [transaction, invoice] for posted invoice journals dated after the period of their invoice. */
+    @Query("SELECT t, i FROM Transaction t, Invoice i WHERE i.id = t.sourceDocumentId AND t.sourceDocumentType = 'INVOICE' "
+            + "AND t.status = com.artivisi.accountingfinance.enums.TransactionStatus.POSTED "
+            + "AND i.invoiceDate BETWEEN :from AND :to AND t.transactionDate > :to ORDER BY t.transactionDate, t.transactionNumber")
+    List<Object[]> findInvoiceJournalsAfterPeriod(@Param("from") LocalDate from, @Param("to") LocalDate to);
+
+    /** Rows of [transaction, bill] for posted bill journals dated after the period of their bill. */
+    @Query("SELECT t, b FROM Transaction t, Bill b WHERE b.id = t.sourceDocumentId AND t.sourceDocumentType = 'BILL' "
+            + "AND t.status = com.artivisi.accountingfinance.enums.TransactionStatus.POSTED "
+            + "AND b.billDate BETWEEN :from AND :to AND t.transactionDate > :to ORDER BY t.transactionDate, t.transactionNumber")
+    List<Object[]> findBillJournalsAfterPeriod(@Param("from") LocalDate from, @Param("to") LocalDate to);
 }

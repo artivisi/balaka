@@ -2,6 +2,8 @@ package com.artivisi.accountingfinance.entity;
 
 import com.artivisi.accountingfinance.enums.FiscalAdjustmentCategory;
 import com.artivisi.accountingfinance.enums.FiscalAdjustmentDirection;
+import com.artivisi.accountingfinance.enums.FiscalAdjustmentSource;
+import com.artivisi.accountingfinance.enums.FiscalAdjustmentStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -54,4 +56,13 @@ public class FiscalAdjustment extends TimestampedEntity {
 
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;
+
+    /** An adjustment entered by a user is its own confirmation; generated drafts set DRAFT explicitly. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 20)
+    private FiscalAdjustmentStatus status = FiscalAdjustmentStatus.CONFIRMED;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "source", nullable = false, length = 20)
+    private FiscalAdjustmentSource source = FiscalAdjustmentSource.MANUAL;
 }

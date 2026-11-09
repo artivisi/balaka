@@ -1,0 +1,100 @@
+template_name,line_order,account_code,account_hint,position,formula,description
+Pendapatan Jasa Training,1,,BANK,DEBIT,amount,Penerimaan kas/bank
+Pendapatan Jasa Training,2,4.1.01,,CREDIT,amount,Pendapatan jasa training
+Pendapatan Jasa Konsultasi,1,,BANK,DEBIT,amount,Penerimaan kas/bank
+Pendapatan Jasa Konsultasi,2,4.1.02,,CREDIT,amount,Pendapatan jasa konsultasi
+Pendapatan Jasa + PPN,1,,BANK,DEBIT,amount * 1.11,Penerimaan kas/bank (Harga Jual + PPN 11%)
+Pendapatan Jasa + PPN,2,,PENDAPATAN,CREDIT,amount,Pendapatan jasa (Harga Jual)
+Pendapatan Jasa + PPN,3,2.1.03,,CREDIT,amount * 0.11,PPN Keluaran efektif 11% (nominal 12% x DPP Nilai Lain PMK 131/2024)
+Pendapatan Jasa + PPh 23 Dipotong,1,,BANK,DEBIT,amount * 0.98,Penerimaan kas/bank (netto)
+Pendapatan Jasa + PPh 23 Dipotong,2,1.1.26,,DEBIT,amount * 0.02,Kredit Pajak PPh 23
+Pendapatan Jasa + PPh 23 Dipotong,3,,PENDAPATAN,CREDIT,amount,Pendapatan jasa (bruto)
+Pendapatan Jasa + PPN + PPh 23,1,,BANK,DEBIT,amount * 1.09,Penerimaan kas/bank (Harga Jual + PPN 11% - PPh 23 2%)
+Pendapatan Jasa + PPN + PPh 23,2,1.1.26,,DEBIT,amount * 0.02,Kredit Pajak PPh 23 (2% dari Harga Jual)
+Pendapatan Jasa + PPN + PPh 23,3,,PENDAPATAN,CREDIT,amount,Pendapatan jasa (Harga Jual)
+Pendapatan Jasa + PPN + PPh 23,4,2.1.03,,CREDIT,amount * 0.11,PPN Keluaran efektif 11% (nominal 12% x DPP Nilai Lain PMK 131/2024)
+Terima DP Proyek,1,,BANK,DEBIT,amount,Penerimaan kas/bank
+Terima DP Proyek,2,2.1.04,,CREDIT,amount,Pendapatan diterima dimuka
+Pengakuan Pendapatan Proyek,1,2.1.04,,DEBIT,amount,Pendapatan diterima dimuka
+Pengakuan Pendapatan Proyek,2,,PENDAPATAN,CREDIT,amount,Pendapatan jasa
+Terima Pelunasan Piutang,1,,BANK,DEBIT,amount,Penerimaan kas/bank
+Terima Pelunasan Piutang,2,1.1.10,,CREDIT,amount,Piutang usaha
+Pengakuan Pendapatan Invoice,1,,PIUTANG,DEBIT,arAmount,Piutang usaha
+Pengakuan Pendapatan Invoice,2,,PENDAPATAN,CREDIT,revenueAmount,Pendapatan
+Pengakuan Pendapatan Invoice,3,,PPN_KELUARAN,CREDIT,ppnAmount,PPN Keluaran
+Tagihan Vendor,1,,BEBAN,DEBIT,expenseAmount,Beban
+Tagihan Vendor,2,,PPN_MASUKAN,DEBIT,ppnAmount,PPN Masukan
+Tagihan Vendor,3,,HUTANG,CREDIT,apAmount,Hutang usaha
+Bayar Beban Gaji,1,5.1.01,,DEBIT,amount,Beban gaji
+Bayar Beban Gaji,2,,BANK,CREDIT,amount,Pembayaran dari bank
+Accrual Gaji Bulan Berjalan,1,5.1.01,,DEBIT,amount,Beban gaji
+Accrual Gaji Bulan Berjalan,2,2.1.10,,CREDIT,amount,Hutang gaji
+Bayar BPJS,1,5.1.02,,DEBIT,bpjsKesehatan,Beban BPJS Kesehatan
+Bayar BPJS,2,5.1.03,,DEBIT,bpjsTenagakerja,Beban BPJS Ketenagakerjaan
+Bayar BPJS,3,,BANK,CREDIT,bpjsKesehatan + bpjsTenagakerja,Pembayaran dari bank
+Bayar Beban Cloud & Server,1,5.1.20,,DEBIT,amount,Beban cloud & server
+Bayar Beban Cloud & Server,2,,BANK,CREDIT,amount,Pembayaran dari bank
+Bayar Beban Software & Lisensi,1,5.1.21,,DEBIT,amount,Beban software & lisensi
+Bayar Beban Software & Lisensi,2,,BANK,CREDIT,amount,Pembayaran dari bank
+Bayar Beban Telekomunikasi,1,5.1.06,,DEBIT,amount,Beban telekomunikasi
+Bayar Beban Telekomunikasi,2,,BANK,CREDIT,amount,Pembayaran dari bank
+Bayar Beban Listrik,1,5.1.07,,DEBIT,amount,Beban listrik
+Bayar Beban Listrik,2,,BANK,CREDIT,amount,Pembayaran dari bank
+Bayar Beban Sewa,1,5.1.05,,DEBIT,amount,Beban sewa
+Bayar Beban Sewa,2,,BANK,CREDIT,amount,Pembayaran dari bank
+Bayar Beban Operasional,1,5.1.99,,DEBIT,amount,Beban operasional lainnya
+Bayar Beban Operasional,2,,BANK,CREDIT,amount,Pembayaran dari bank
+Pembelian dengan PPN,1,,BEBAN,DEBIT,amount,Beban/Aset (Harga Jual)
+Pembelian dengan PPN,2,1.1.25,,DEBIT,amount * 0.11,PPN Masukan efektif 11% (nominal 12% x DPP Nilai Lain PMK 131/2024)
+Pembelian dengan PPN,3,,BANK,CREDIT,amount * 1.11,Pembayaran dari bank (Harga Jual + PPN)
+Pembayaran Jasa dengan PPh 23,1,,BEBAN,DEBIT,amount,Beban jasa
+Pembayaran Jasa dengan PPh 23,2,,BANK,CREDIT,amount * 0.98,Pembayaran dari bank (netto)
+Pembayaran Jasa dengan PPh 23,3,2.1.21,,CREDIT,amount * 0.02,Hutang PPh 23
+Pembayaran Sewa dengan PPh 4(2),1,5.1.05,,DEBIT,amount,Beban sewa
+Pembayaran Sewa dengan PPh 4(2),2,,BANK,CREDIT,amount * 0.90,Pembayaran dari bank (netto)
+Pembayaran Sewa dengan PPh 4(2),3,2.1.22,,CREDIT,amount * 0.10,Hutang PPh 4(2)
+Karyawan Reimburse Pengeluaran,1,,BEBAN,DEBIT,amount,Beban yang dibayar karyawan
+Karyawan Reimburse Pengeluaran,2,2.1.11,,CREDIT,amount,Hutang reimbursement karyawan
+Bayar Reimbursement ke Karyawan,1,2.1.11,,DEBIT,amount,Hutang reimbursement karyawan
+Bayar Reimbursement ke Karyawan,2,,BANK,CREDIT,amount,Pembayaran dari bank
+Transfer Antar Bank,1,,Bank Tujuan,DEBIT,amount,Bank tujuan
+Transfer Antar Bank,2,,Bank Asal,CREDIT,amount,Bank asal
+Setoran Modal,1,,BANK,DEBIT,amount,Penerimaan kas/bank
+Setoran Modal,2,3.1.01,,CREDIT,amount,Modal disetor
+Prive / Pengambilan Pribadi,1,3.1.01,,DEBIT,amount,Modal disetor
+Prive / Pengambilan Pribadi,2,,BANK,CREDIT,amount,Pembayaran dari bank
+Beban Admin Bank,1,5.2.01,,DEBIT,amount,Beban bank
+Beban Admin Bank,2,,BANK,CREDIT,amount,Potongan dari bank
+Setor PPh 21,1,2.1.20,,DEBIT,amount,Hutang PPh 21
+Setor PPh 21,2,,BANK,CREDIT,amount,Pembayaran dari bank
+Setor PPh 23,1,2.1.21,,DEBIT,amount,Hutang PPh 23
+Setor PPh 23,2,,BANK,CREDIT,amount,Pembayaran dari bank
+Setor PPh 4(2),1,2.1.22,,DEBIT,amount,Hutang PPh 4(2)
+Setor PPh 4(2),2,,BANK,CREDIT,amount,Pembayaran dari bank
+Setor PPN,1,2.1.03,,DEBIT,amount,Hutang PPN
+Setor PPN,2,,BANK,CREDIT,amount,Pembayaran dari bank
+Bayar PPh 25,1,5.9.02,,DEBIT,amount,Beban PPh 25
+Bayar PPh 25,2,,BANK,CREDIT,amount,Pembayaran dari bank
+Bayar PPh 29,1,5.9.03,,DEBIT,amount,Beban PPh 29
+Bayar PPh 29,2,,BANK,CREDIT,amount,Pembayaran dari bank
+Post Gaji Bulanan,1,5.1.01,,DEBIT,grossSalary,Beban gaji karyawan
+Post Gaji Bulanan,2,5.1.02,,DEBIT,companyBpjsKes,Beban BPJS Kesehatan perusahaan
+Post Gaji Bulanan,3,5.1.03,,DEBIT,companyBpjsTk,Beban BPJS Ketenagakerjaan perusahaan
+Post Gaji Bulanan,4,2.1.10,,CREDIT,netPay,Hutang gaji karyawan
+Post Gaji Bulanan,5,2.1.13,,CREDIT,totalBpjs,Hutang BPJS
+Post Gaji Bulanan,6,2.1.20,,CREDIT,pph21,Hutang PPh 21
+Bayar Hutang Gaji,1,2.1.10,,DEBIT,amount,Hutang gaji
+Bayar Hutang Gaji,2,,BANK,CREDIT,amount,Pembayaran dari bank
+Bayar Hutang BPJS,1,2.1.13,,DEBIT,amount,Hutang BPJS
+Bayar Hutang BPJS,2,,BANK,CREDIT,amount,Pembayaran dari bank
+Pembelian Aset Tetap,1,,ASET_TETAP,DEBIT,assetCost,Aset tetap yang dibeli
+Pembelian Aset Tetap,2,,BANK,CREDIT,assetCost,Pembayaran dari bank
+Saldo Awal Tahun,1,,ASET,DEBIT,amount,Saldo awal aset
+Saldo Awal Tahun,2,,LIABILITAS_EKUITAS,CREDIT,amount,Saldo awal liabilitas/ekuitas
+Pendapatan Jasa BUMN (FP 03),1,,BANK,DEBIT,amount * 0.98,Penerimaan kas/bank (Harga Jual - PPh 23 2%)
+Pendapatan Jasa BUMN (FP 03),2,1.1.26,,DEBIT,amount * 0.02,Kredit Pajak PPh 23 (2% dari Harga Jual)
+Pendapatan Jasa BUMN (FP 03),3,,PENDAPATAN,CREDIT,amount,Pendapatan jasa (Harga Jual)
+Jurnal Manual,1,,Akun Debit,DEBIT,amount,Akun yang didebit
+Jurnal Manual,2,,Akun Kredit,CREDIT,amount,Akun yang dikredit
+Penyusutan Aset,1,,BEBAN_PENYUSUTAN,DEBIT,depreciationAmount,Beban penyusutan
+Penyusutan Aset,2,,AKUM_PENYUSUTAN,CREDIT,depreciationAmount,Akumulasi penyusutan

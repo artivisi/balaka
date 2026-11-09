@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
  * - Kesehatan 4% company + 1% employee of min(salary, 12,000,000)
  * - JKK 0.24 / 0.54 / 0.89 / 1.27 / 1.74% (class 1-5) and JKM 0.3% of salary, company only
  * - JHT 3.7% company + 2% employee of salary, no ceiling
- * - JP 2% company + 1% employee of min(salary, 10,042,300)
+ * - JP 2% company + 1% employee of min(salary, JP ceiling in force today: 11,086,300 since 2026-03)
  */
 @DisplayName("BPJS Calculator Tests")
 @Import(ServiceTestDataInitializer.class)
@@ -81,26 +81,27 @@ class BpjsCalculatorFunctionalTest extends PlaywrightTestBase {
     }
 
     @Test
-    @DisplayName("Should cap JP at 10,042,300 but not Kesehatan for a salary between the two ceilings (11,000,000, class 2)")
+    @DisplayName("Should cap JP at 11,086,300 (in force since 2026-03) but not Kesehatan for a salary between the two ceilings (11,500,000, class 2)")
     void shouldCapOnlyJpBetweenCeilings() {
-        calculate("11000000", "2");
+        calculate("11500000", "2");
 
         assertRate("0.54%");
         assertComponents(
-            "Rp 440,000", "Rp 110,000",     // Kesehatan on full 11,000,000
-            "Rp 59,400", "Rp 33,000",
-            "Rp 407,000", "Rp 220,000",
-            "Rp 200,846", "Rp 100,423");    // JP on 10,042,300
-        assertTotals("Rp 1,140,246", "Rp 430,423", "Rp 1,570,669");
+            "Rp 460,000", "Rp 115,000",     // Kesehatan on full 11,500,000
+            "Rp 62,100", "Rp 34,500",
+            "Rp 425,500", "Rp 230,000",
+            "Rp 221,726", "Rp 110,863");    // JP on 11,086,300
+        assertTotals("Rp 1,203,826", "Rp 455,863", "Rp 1,659,689");
 
         Locator notes = ceilingNotes();
         assertThat(notes).hasCount(1);
         assertThat(notes.first()).hasText(
-            "BPJS JP: Gaji melebihi batas Rp 10,042,300, iuran dihitung dari batas maksimal.");
+            "BPJS JP: Gaji melebihi batas Rp 11,086,300, iuran dihitung dari batas maksimal.");
+        assertThat(page.locator("#jp-ceiling-info")).hasText("Batas Upah BPJS JP: Rp 11.086.300/bulan, berlaku sejak 2026-03");
     }
 
     @Test
-    @DisplayName("Should cap Kesehatan at 12,000,000 and JP at 10,042,300 above both ceilings, JHT/JKK/JKM uncapped (15,000,000, class 3)")
+    @DisplayName("Should cap Kesehatan at 12,000,000 and JP at 11,086,300 above both ceilings, JHT/JKK/JKM uncapped (15,000,000, class 3)")
     void shouldCapKesehatanAndJpAboveCeilings() {
         calculate("15000000", "3");
 
@@ -109,13 +110,13 @@ class BpjsCalculatorFunctionalTest extends PlaywrightTestBase {
             "Rp 480,000", "Rp 120,000",     // Kesehatan on 12,000,000
             "Rp 133,500", "Rp 45,000",      // JKK, JKM on full 15,000,000
             "Rp 555,000", "Rp 300,000",     // JHT on full 15,000,000
-            "Rp 200,846", "Rp 100,423");    // JP on 10,042,300
-        assertTotals("Rp 1,414,346", "Rp 520,423", "Rp 1,934,769");
+            "Rp 221,726", "Rp 110,863");    // JP on 11,086,300
+        assertTotals("Rp 1,435,226", "Rp 530,863", "Rp 1,966,089");
 
         Locator notes = ceilingNotes();
         assertThat(notes).hasText(new String[] {
             "BPJS Kesehatan: Gaji melebihi batas Rp 12,000,000, iuran dihitung dari batas maksimal.",
-            "BPJS JP: Gaji melebihi batas Rp 10,042,300, iuran dihitung dari batas maksimal."
+            "BPJS JP: Gaji melebihi batas Rp 11,086,300, iuran dihitung dari batas maksimal."
         });
         assertThat(page.locator("#riskClass")).hasValue("3");
     }

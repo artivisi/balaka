@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{layouts/main :: layout('Paket Audit Tahunan', ~{::#page-title}, ~{::section}, ~{})}"
+      lang="id">
+<head>
+    <title>Paket Audit Tahunan</title>
+</head>
+<body>
+    <h1 id="page-title">Paket Audit Tahunan</h1>
+
+    <section class="space-y-6">
+        <div th:if="${successMessage}" data-testid="flash-success"
+             class="p-4 rounded-lg bg-green-50 border border-green-200 text-sm font-medium text-green-800"
+             th:text="${successMessage}">Success</div>
+        <div th:if="${errorMessage}" data-testid="flash-error"
+             class="p-4 rounded-lg bg-red-50 border border-red-200 text-sm font-medium text-red-800"
+             th:text="${errorMessage}">Error</div>
+        <p class="text-sm text-gray-600">Paket audit adalah satu file ZIP berisi buku besar, neraca saldo, laporan keuangan, indeks bukti setiap transaksi terposting, indeks arsip rekening koran dan register kontrak tahun tersebut.</p>
+        <form th:action="@{/evidence/audit-pack/download}" method="get" id="audit-pack-form" class="bg-white rounded-lg shadow p-6 space-y-4 text-sm">
+            <div>
+                <label for="year" class="block text-gray-700 mb-1">Tahun</label>
+                <input type="number" id="year" name="year" th:value="${year}" required class="w-32 px-3 py-2 border border-gray-300 rounded-lg">
+            </div>
+            <label class="flex items-center gap-2">
+                <input type="checkbox" id="includeFiles" name="includeFiles" value="true">
+                <span th:text="|Sertakan file dokumen (total paling besar ${maxDocumentBytes / 1048576} MB)|">Sertakan file dokumen</span>
+            </label>
+            <p class="text-xs text-gray-500">Tanpa file dokumen, indeks tetap mencantumkan checksum SHA-256 setiap dokumen.</p>
+            <button type="submit" id="btn-download-audit-pack" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">Unduh Paket Audit</button>
+        </form>
+    </section>
+</body>
+</html>

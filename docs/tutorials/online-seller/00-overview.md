@@ -60,7 +60,7 @@ Tutorial ini mengikuti siklus keuangan 1 tahun penuh (Januari–Desember 2025):
 | Beban Gaji (4 karyawan) | 264.000.000 |
 | Beban BPJS Perusahaan | 27.033.600 |
 | PPh Final UMKM (0,5%) | 3.470.000 |
-| Saldo Bank BCA (31 Des) | 188.222.650 |
+| Saldo Bank BCA (31 Des) | 187.925.650 |
 | Modal Disetor | 300.000.000 |
 
 Semua angka ini dihasilkan oleh aplikasi Balaka melalui simulasi demo data.

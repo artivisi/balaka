@@ -87,6 +87,24 @@ GET /api/payroll/{id}
 
 Returns the payroll run with all employee payroll details (gross salary, deductions, PPh 21, net salary per employee).
 
+## Bonus and THR
+
+```
+GET    /api/payroll/{id}/additions
+POST   /api/payroll/{id}/additions
+DELETE /api/payroll/{id}/additions/{additionId}
+```
+
+Writes need scope `payroll:write` and `PAYROLL_CREATE`; reads need `tax-export:read` and `PAYROLL_VIEW`.
+
+```json
+{ "employeeId": "uuid", "type": "BONUS", "amount": 5000000, "description": "Kinerja" }
+```
+
+`type` is `BONUS` or `THR`. The run must be DRAFT or CALCULATED (otherwise `409`); a CALCULATED run is recalculated at once with its base salary and JKK class. The employee must be active (otherwise `400`). A calculation fails with `409` if a row belongs to an employee who has since become inactive.
+
+On the detail: `grossSalary = baseSalary + bonus + thr`. The TER rate and base use `grossSalary + benefitInKind`; BPJS uses `baseSalary`. December `pph21` is negative when the year was over-withheld, and adds to `netPay`.
+
 ## Calculate Payroll
 
 ```http
@@ -136,6 +154,33 @@ DELETE /api/payroll/{id}
 
 Only `DRAFT` payroll runs can be deleted. Response: `204 No Content`.
 
+## Reconciliation
+
+```
+GET /api/payroll/reconciliation?year=2026
+GET /api/payroll/reconciliation/2026-03
+```
+
+Scope `tax-export:read` and `PAYROLL_VIEW`. Salary accounts are the debit lines of the payroll template with formula `grossSalary`, `bonus` or `thr`. Ledger figures are net debits from POSTED journals, closing entries excluded.
+
+| Field | Meaning |
+|-------|---------|
+| `runId`, `runStatus` | Run of the period, `null` when none or cancelled |
+| `runSalary`, `runBonus`, `runThr` | Parts of `runCashGross` |
+| `runBenefitInKind` | Natura counted in the run; not on salary accounts |
+| `runTaxableIncome`, `runPph21` | PPh 21 base and tax of the masa, posted or not; see `runStatus` |
+| `ledgerSalaryExpense` | `ledgerFromRun` + `ledgerOutsideRun` |
+| `ledgerPph21FromRun` | Net credit on the PPh 21 account from the run's journal |
+| `difference` | `ledgerSalaryExpense - runCashGross` when POSTED, else `ledgerSalaryExpense` |
+| `status` | `MATCHED`, `DIFFERENCE`, `RUN_NOT_POSTED`, `LEDGER_WITHOUT_RUN`, `NO_ACTIVITY` |
+| `journalsOutsideRun` | Journals outside the run debiting a salary account, including DRAFT |
+
+The year response has `periods` (12 rows) and `ledgerSalaryExpense`, `postedCashGross`, `postedTaxableIncome`, `postedPph21`, `difference`.
+
+Java callers use `PayrollReconciliationService.reconcile(YearMonth)` and `reconcileYear(int)`.
+
+`warnings` on `POST /api/payroll`, `/calculate`, `/approve`, `/post` and `GET /api/payroll/{id}` lists salary journals outside the run. The field is absent on list rows.
+
 ## 1721-A1 (Employee Tax Proof)
 
 ```http
@@ -161,11 +206,12 @@ Response:
   "calculation": {
     "penghasilanBruto": 72000000,
     "biayaJabatan": 3600000,
-    "penghasilanNeto": 68400000,
+    "iuranPensiun": 2160000,
+    "penghasilanNeto": 66240000,
     "ptkp": 54000000,
-    "pkp": 14400000,
-    "pph21Terutang": 720000,
-    "pph21Dipotong": 720000,
+    "pkp": 12240000,
+    "pph21Terutang": 612000,
+    "pph21Dipotong": 612000,
     "pph21KurangBayar": 0
   },
   "monthlyBreakdown": [
@@ -175,7 +221,25 @@ Response:
 }
 ```
 
+`penghasilanNeto` = `penghasilanBruto` - `biayaJabatan` (5%, max 6,000,000) - `iuranPensiun` (employee-paid JHT and JP). The employee's BPJS Kesehatan contribution is not deducted. `pkp` is rounded down to the thousand. The December payroll run, this endpoint, the 1721-A1 PDF and the annual e-Bupot export use the same computation.
+
 Returns `404` if the employee has no `POSTED` payroll data for the given year.
+
+## Benefit in Kind (Natura)
+
+```http
+GET    /api/benefits-in-kind?year=2025        # tax-export:read + PAYROLL_VIEW
+POST   /api/benefits-in-kind                  # payroll:write + PAYROLL_CREATE
+DELETE /api/benefits-in-kind/{id}             # payroll:write + PAYROLL_CREATE
+```
+
+```json
+{"transactionId": "...", "employeeId": "...", "amount": 2000000, "description": "Fasilitas mobil"}
+```
+
+The transaction must be `POSTED` (409 otherwise) and the recipients' total cannot exceed its expense debit (400). The first recipient adds the system tag `NATURA`. `POST /api/payroll/{id}/calculate` adds rows dated from 1 January to the period end, not yet counted by a run, to the recipient's PPh 21 base; cash `grossSalary` is unchanged. `payrollPeriod` in the response shows the counting run; such a row cannot be deleted (409) and its transaction cannot be voided until the run is recalculated or cancelled.
+
+`penghasilanBruto` on 1721-A1, `totalGross` on the PPh 21 annual summary, and the annual e-Bupot export include natura from `POSTED` runs.
 
 ## PPh 21 Annual Summary
 

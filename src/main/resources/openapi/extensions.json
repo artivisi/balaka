@@ -144,6 +144,24 @@
       ]
     },
     {
+      "name": "Generated Fiscal Adjustment Drafts",
+      "steps": [
+        "PUT /api/accounts/{id} (set fiscalTreatment=DEDUCTIBLE|NON_DEDUCTIBLE|CONDITIONAL on expense accounts)",
+        "POST /api/fiscal-adjustments/generate?year=2025 (replaces generated DRAFT rows; returns drafts, unclassifiedAccounts, taggedTransactionsWithoutRecipient)",
+        "GET /api/fiscal-adjustments?year=2025&status=DRAFT (review; PUT to edit, DELETE to reject)",
+        "POST /api/fiscal-adjustments/{id}/confirm (only CONFIRMED rows enter rekonsiliasi-fiskal)"
+      ]
+    },
+    {
+      "name": "Benefit in Kind (Natura)",
+      "steps": [
+        "POST /api/benefits-in-kind (transactionId of a POSTED transaction, employeeId, amount, description; adds tag NATURA)",
+        "POST /api/payroll/{id}/calculate (pending rows dated up to the period end, same year, enter the recipient's PPh 21 base)",
+        "GET /api/benefits-in-kind?year=2025 (payrollPeriod shows which run counted each row)",
+        "GET /api/payroll/employees/{id}/1721-a1?year=2025 (penghasilanBruto includes natura from posted runs)"
+      ]
+    },
+    {
       "name": "Tax Filing Register (SPT / BPE / STP per masa)",
       "description": "Records tax returns and the Coretax paperwork that attaches to a tax period rather than to a journal entry. Documents that belong to a transaction (faktur pajak, bukti potong) go on /api/transactions/{id}/documents instead.",
       "steps": [
@@ -220,7 +238,7 @@
     {
       "filename": "02_chart_of_accounts.csv",
       "description": "Chart of Accounts",
-      "columns": "account_code,account_name,account_type,parent_code,normal_balance,active,is_permanent",
+      "columns": "account_code,account_name,account_type,parent_code,normal_balance,active,is_permanent,fiscal_treatment",
       "notes": "account_type: ASSET|LIABILITY|EQUITY|REVENUE|EXPENSE. normal_balance: DEBIT|CREDIT. parent_code: empty for top-level, parent's code for sub-accounts"
     },
     {

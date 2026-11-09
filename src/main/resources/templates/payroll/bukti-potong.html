@@ -58,6 +58,7 @@
                             <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Bulan</th>
                             <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Penghasilan Bruto</th>
                             <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">PPh 21</th>
+                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Termasuk Natura</th>
                             <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Aksi</th>
                         </tr>
                     </thead>
@@ -67,10 +68,12 @@
                             <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900" th:text="${summary.employee().getName()}">John Doe</td>
                             <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-600" th:text="${summary.employee().getNpwp() ?: '-'}">12.345.678.9-012.345</td>
                             <td class="px-4 py-4 whitespace-nowrap text-center text-sm text-gray-900" th:text="${summary.monthCount()}">12</td>
-                            <td class="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-900"
-                                th:text="${'Rp ' + #numbers.formatDecimal(summary.totalGross(), 0, 'COMMA', 0, 'POINT')}">Rp 120,000,000</td>
+                            <td class="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-900" data-testid="total-bruto"
+                                th:text="${'Rp ' + #numbers.formatDecimal(summary.getTotalBruto(), 0, 'COMMA', 0, 'POINT')}">Rp 120,000,000</td>
                             <td class="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-900"
                                 th:text="${'Rp ' + #numbers.formatDecimal(summary.totalPph21(), 0, 'COMMA', 0, 'POINT')}">Rp 2,820,000</td>
+                            <td class="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-900" data-testid="benefit-in-kind"
+                                th:text="${'Rp ' + #numbers.formatDecimal(summary.totalBenefitInKind(), 1, 'COMMA', 0, 'POINT')}">Rp 0</td>
                             <td class="px-4 py-4 whitespace-nowrap text-center">
                                 <a th:href="@{/payroll/bukti-potong/{empId}/{year}/pdf(empId=${summary.employee().getId()}, year=${selectedYear})}"
                                    class="inline-flex items-center px-3 py-1 text-sm font-medium text-blue-700 bg-blue-100 rounded-lg hover:bg-blue-200 transition-colors">

@@ -88,7 +88,7 @@ Di akhir tahun 2025:
 | Akun | Saldo |
 |------|-------|
 | Kas | 62.450.000 |
-| Bank BCA | 14.525.000 |
+| Bank BCA | 14.165.000 |
 
 ## Tips
 

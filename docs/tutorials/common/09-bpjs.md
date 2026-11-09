@@ -33,13 +33,15 @@ Jika gaji > 12 juta, iuran tetap dihitung dari 12 juta.
 
 | Komponen | Tarif | Basis | Cap |
 |----------|-------|-------|-----|
-| Perusahaan | 2% | Gaji | Maks basis Rp 10.042.300 |
-| Karyawan | 1% | Gaji | Maks basis Rp 10.042.300 |
+| Perusahaan | 2% | Gaji | Maks basis Rp 11.086.300 |
+| Karyawan | 1% | Gaji | Maks basis Rp 11.086.300 |
+
+Batas upah JP berubah setiap Maret sesuai pengumuman BPJS Ketenagakerjaan (PP 45/2015 Pasal 29): Rp 10.042.300 sejak Maret 2024, Rp 10.547.400 sejak Maret 2025, Rp 11.086.300 sejak Maret 2026. Balaka memakai batas yang berlaku pada periode payroll.
 
 **Contoh gaji 15 juta:**
-- Basis = 10.042.300 (cap)
-- Perusahaan = 10.042.300 × 2% = Rp 200.846
-- Karyawan = 10.042.300 × 1% = Rp 100.423
+- Basis = 11.086.300 (cap, periode Maret 2026 dan sesudahnya)
+- Perusahaan = 11.086.300 × 2% = Rp 221.726
+- Karyawan = 11.086.300 × 1% = Rp 110.863
 
 ### BPJS Ketenagakerjaan — JKK (Jaminan Kecelakaan Kerja)
 
@@ -59,19 +61,19 @@ Ditanggung 100% perusahaan. Tarif berdasarkan kelas risiko:
 |----------|-------|
 | Perusahaan | 0,3% |
 
-## Ringkasan per Karyawan (Gaji 15 juta, Kelas 1)
+## Ringkasan per Karyawan (Gaji 15 juta, Kelas 1, periode Maret 2026 dan sesudahnya)
 
 | Komponen | Karyawan | Perusahaan |
 |----------|----------|-----------|
 | BPJS Kesehatan | 120.000 | 480.000 |
 | JHT | 300.000 | 555.000 |
-| JP | 100.423 | 200.846 |
+| JP | 110.863 | 221.726 |
 | JKK | — | 36.000 |
 | JKM | — | 45.000 |
-| **Total** | **520.423** | **1.316.846** |
+| **Total** | **530.863** | **1.337.726** |
 
-Total potongan karyawan: Rp 520.423/bulan
-Total beban perusahaan: Rp 1.316.846/bulan (di atas potongan karyawan)
+Total potongan karyawan: Rp 530.863/bulan
+Total beban perusahaan: Rp 1.337.726/bulan (di atas potongan karyawan)
 
 ## Di Balaka
 

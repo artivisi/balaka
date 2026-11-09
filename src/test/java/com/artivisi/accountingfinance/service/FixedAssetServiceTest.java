@@ -6,7 +6,6 @@ import com.artivisi.accountingfinance.entity.AssetStatus;
 import com.artivisi.accountingfinance.entity.DepreciationEntry;
 import com.artivisi.accountingfinance.entity.DepreciationEntryStatus;
 import com.artivisi.accountingfinance.entity.DepreciationMethod;
-import com.artivisi.accountingfinance.entity.DisposalType;
 import com.artivisi.accountingfinance.entity.FixedAsset;
 import com.artivisi.accountingfinance.repository.AssetCategoryRepository;
 import com.artivisi.accountingfinance.repository.DepreciationEntryRepository;
@@ -609,32 +608,6 @@ class FixedAssetServiceTest {
     }
 
     @Nested
-    @DisplayName("Disposal Operations")
-    @WithMockUser(username = "admin")
-    class DisposalOperationsTests {
-
-        @Test
-        @DisplayName("Should reject disposal of already disposed asset")
-        void shouldRejectDisposalOfAlreadyDisposedAsset() {
-            FixedAsset asset = createTestAsset("DISP-TWICE");
-
-            // Mark as disposed
-            asset.setStatus(AssetStatus.DISPOSED);
-            fixedAssetRepository.save(asset);
-
-            assertThatThrownBy(() -> fixedAssetService.disposeAsset(
-                    asset.getId(),
-                    DisposalType.SOLD,
-                    new BigDecimal("5000000"),
-                    "Test disposal",
-                    LocalDate.now(),
-                    "admin"))
-                    .isInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("sudah dilepas");
-        }
-    }
-
-    @Nested
     @DisplayName("Reporting Operations")
     class ReportingOperationsTests {
 
@@ -722,48 +695,8 @@ class FixedAssetServiceTest {
     }
 
     @Nested
-    @DisplayName("Disposal Operations - Additional")
-    @WithMockUser(username = "admin")
-    class DisposalAdditionalTests {
-
-        @Test
-        @DisplayName("Should dispose asset with sale proceeds")
-        void shouldDisposeAssetWithSaleProceeds() {
-            FixedAsset asset = createTestAsset("DISP-SALE");
-
-            FixedAsset disposed = fixedAssetService.disposeAsset(
-                    asset.getId(),
-                    DisposalType.SOLD,
-                    new BigDecimal("5000000"),
-                    "Sold to buyer",
-                    LocalDate.now(),
-                    "admin");
-
-            assertThat(disposed.getStatus()).isEqualTo(AssetStatus.DISPOSED);
-            assertThat(disposed.getDisposalType()).isEqualTo(DisposalType.SOLD);
-            assertThat(disposed.getDisposalTransaction()).isNotNull();
-        }
-
-        @Test
-        @DisplayName("Should dispose asset as write-off with zero proceeds")
-        void shouldDisposeAssetAsWriteOff() {
-            FixedAsset asset = createTestAsset("DISP-WO");
-
-            FixedAsset disposed = fixedAssetService.disposeAsset(
-                    asset.getId(),
-                    DisposalType.WRITTEN_OFF,
-                    BigDecimal.ZERO,
-                    "Asset no longer usable",
-                    LocalDate.now(),
-                    "admin");
-
-            assertThat(disposed.getStatus()).isEqualTo(AssetStatus.DISPOSED);
-            assertThat(disposed.getDisposalType()).isEqualTo(DisposalType.WRITTEN_OFF);
-        }
-    }
-
-    @Nested
     @DisplayName("Update Operations - Additional")
+    @WithMockUser(username = "admin")
     class UpdateAdditionalTests {
 
         @Test

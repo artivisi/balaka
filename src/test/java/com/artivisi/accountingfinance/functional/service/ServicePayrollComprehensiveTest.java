@@ -84,11 +84,11 @@ class ServicePayrollComprehensiveTest extends PlaywrightTestBase {
                 .add(new BigDecimal(d.get("bpjs_jp_employee")));
             Locator cells = page.locator("[data-testid='detail-row-" + d.get("employee_id") + "'] td");
             assertThat(cells.nth(1)).hasText(names.get(d.get("employee_id")));
-            assertThat(cells.nth(2)).hasText(rupiah(d.get("gross_salary")));
-            assertThat(cells.nth(3)).hasText(rupiah(employeeBpjs));
-            assertThat(cells.nth(4)).hasText(rupiah(d.get("pph21")));
-            assertThat(cells.nth(5)).hasText("(" + rupiah(d.get("total_deductions")) + ")");
-            assertThat(cells.nth(6)).hasText(rupiah(d.get("net_pay")));
+            assertThat(cells.nth(5)).hasText(rupiah(d.get("gross_salary")));
+            assertThat(cells.nth(6)).hasText(rupiah(employeeBpjs));
+            assertThat(cells.nth(7)).hasText(rupiah(d.get("pph21")));
+            assertThat(cells.nth(8)).hasText("(" + rupiah(d.get("total_deductions")) + ")");
+            assertThat(cells.nth(9)).hasText(rupiah(d.get("net_pay")));
         }
         takeManualScreenshot("payroll-detail");
     }

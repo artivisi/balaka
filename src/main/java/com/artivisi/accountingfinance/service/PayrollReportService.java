@@ -63,6 +63,7 @@ public class PayrollReportService {
     }
 
     private final PayrollService payrollService;
+    private final Pph21CalculationService pph21CalculationService;
 
     // ==================== PAYROLL SUMMARY REPORT ====================
 
@@ -325,7 +326,7 @@ public class PayrollReportService {
             for (PayrollDetail detail : details) {
                 addTableCell(kesTable, String.valueOf(no++), Element.ALIGN_CENTER);
                 addTableCell(kesTable, detail.getEmployeeName(), Element.ALIGN_LEFT);
-                addTableCell(kesTable, formatNumber(detail.getGrossSalary()), Element.ALIGN_RIGHT);
+                addTableCell(kesTable, formatNumber(detail.getBaseSalary()), Element.ALIGN_RIGHT);
                 addTableCell(kesTable, formatNumber(detail.getBpjsKesCompany()), Element.ALIGN_RIGHT);
                 addTableCell(kesTable, formatNumber(detail.getBpjsKesEmployee()), Element.ALIGN_RIGHT);
                 totalKesCompany = totalKesCompany.add(detail.getBpjsKesCompany());
@@ -355,7 +356,7 @@ public class PayrollReportService {
             for (PayrollDetail detail : details) {
                 addTableCell(tkTable, String.valueOf(no++), Element.ALIGN_CENTER);
                 addTableCell(tkTable, detail.getEmployeeName(), Element.ALIGN_LEFT);
-                addTableCell(tkTable, formatNumber(detail.getGrossSalary()), Element.ALIGN_RIGHT);
+                addTableCell(tkTable, formatNumber(detail.getBaseSalary()), Element.ALIGN_RIGHT);
                 addTableCell(tkTable, formatNumber(detail.getBpjsJkk()), Element.ALIGN_RIGHT);
                 addTableCell(tkTable, formatNumber(detail.getBpjsJkm()), Element.ALIGN_RIGHT);
                 addTableCell(tkTable, formatNumber(detail.getBpjsJhtCompany()), Element.ALIGN_RIGHT);
@@ -421,7 +422,7 @@ public class PayrollReportService {
                 Row row = kesSheet.createRow(rowNum++);
                 createCell(row, 0, String.valueOf(no++), textStyle);
                 createCell(row, 1, detail.getEmployeeName(), textStyle);
-                createNumericCell(row, 2, detail.getGrossSalary(), numberStyle);
+                createNumericCell(row, 2, detail.getBaseSalary(), numberStyle);
                 createNumericCell(row, 3, detail.getBpjsKesCompany(), numberStyle);
                 createNumericCell(row, 4, detail.getBpjsKesEmployee(), numberStyle);
                 totalKesCompany = totalKesCompany.add(detail.getBpjsKesCompany());
@@ -461,7 +462,7 @@ public class PayrollReportService {
                 Row row = tkSheet.createRow(rowNum++);
                 createCell(row, 0, String.valueOf(no++), textStyle);
                 createCell(row, 1, detail.getEmployeeName(), textStyle);
-                createNumericCell(row, 2, detail.getGrossSalary(), numberStyle);
+                createNumericCell(row, 2, detail.getBaseSalary(), numberStyle);
                 createNumericCell(row, 3, detail.getBpjsJkk(), numberStyle);
                 createNumericCell(row, 4, detail.getBpjsJkm(), numberStyle);
                 createNumericCell(row, 5, detail.getBpjsJhtCompany(), numberStyle);
@@ -540,7 +541,16 @@ public class PayrollReportService {
             earningsTable.setSpacingAfter(10);
 
             addPayslipRow(earningsTable, "Gaji Pokok", detail.getBaseSalary());
+            if (detail.getBonus().signum() != 0) {
+                addPayslipRow(earningsTable, "Bonus", detail.getBonus());
+            }
+            if (detail.getThr().signum() != 0) {
+                addPayslipRow(earningsTable, "THR", detail.getThr());
+            }
             addPayslipRow(earningsTable, "Total Pendapatan", detail.getGrossSalary());
+            if (detail.getBenefitInKind().signum() != 0) {
+                addPayslipRow(earningsTable, "Natura (dasar PPh 21, tidak dibayar tunai)", detail.getBenefitInKind());
+            }
             document.add(earningsTable);
 
             // Deductions
@@ -659,32 +669,23 @@ public class PayrollReportService {
             incomeTable.setSpacingBefore(5);
             incomeTable.setSpacingAfter(15);
 
-            // Calculate biaya jabatan (5% of gross, max 6,000,000/year)
-            var biayaJabatan = summary.totalGross().multiply(new java.math.BigDecimal("0.05"));
-            var maxBiayaJabatan = new java.math.BigDecimal("6000000");
-            if (biayaJabatan.compareTo(maxBiayaJabatan) > 0) {
-                biayaJabatan = maxBiayaJabatan;
-            }
+            var annual = pph21CalculationService.calculateAnnualTax(
+                    summary.getTotalBruto(), summary.totalPensionContributions(), employee.getPtkpStatus());
+            var biayaJabatan = annual.biayaJabatan();
+            var penghasilanNeto = annual.annualNeto();
+            var ptkp = annual.ptkpAmount();
+            var pkp = annual.pkp();
 
-            // Penghasilan Neto = Gross - Biaya Jabatan - BPJS JHT (employee) - BPJS JP (employee)
-            var penghasilanNeto = summary.totalGross().subtract(biayaJabatan).subtract(summary.totalBpjsEmployee());
-
-            // Get PTKP
-            var ptkp = getPtkpAmount(employee.getPtkpStatus());
-
-            // PKP = Penghasilan Neto - PTKP
-            var pkp = penghasilanNeto.subtract(ptkp);
-            if (pkp.compareTo(java.math.BigDecimal.ZERO) < 0) {
-                pkp = java.math.BigDecimal.ZERO;
-            }
-
-            addIncomeRow(incomeTable, "9. Penghasilan Bruto (Setahun)", "Rp " + formatNumber(summary.totalGross()));
+            addIncomeRow(incomeTable, "8a. Gaji dan Tunjangan", "Rp " + formatNumber(summary.getTotalSalary()));
+            addIncomeRow(incomeTable, "8b. Natura dan Kenikmatan", "Rp " + formatNumber(summary.totalBenefitInKind()));
+            addIncomeRow(incomeTable, "8c. Tantiem, Bonus, Gratifikasi, Jasa Produksi dan THR", "Rp " + formatNumber(summary.totalBonusAndThr()));
+            addIncomeRow(incomeTable, "9. Penghasilan Bruto (8a + 8b + 8c)", "Rp " + formatNumber(summary.getTotalBruto()));
             addIncomeRow(incomeTable, "10. Biaya Jabatan (5% maks Rp 6.000.000)", "Rp " + formatNumber(biayaJabatan));
-            addIncomeRow(incomeTable, "11. Iuran Pensiun/JHT/JP yang dibayar karyawan", "Rp " + formatNumber(summary.totalBpjsEmployee()));
+            addIncomeRow(incomeTable, "11. Iuran Pensiun/JHT/JP yang dibayar karyawan", "Rp " + formatNumber(summary.totalPensionContributions()));
             addIncomeRow(incomeTable, "12. Penghasilan Neto (9 - 10 - 11)", "Rp " + formatNumber(penghasilanNeto));
             addIncomeRow(incomeTable, "13. PTKP", "Rp " + formatNumber(ptkp));
             addIncomeRow(incomeTable, "14. Penghasilan Kena Pajak (12 - 13)", "Rp " + formatNumber(pkp));
-            addIncomeRow(incomeTable, "15. PPh Pasal 21 Terutang", "Rp " + formatNumber(summary.totalPph21()));
+            addIncomeRow(incomeTable, "15. PPh Pasal 21 Terutang", "Rp " + formatNumber(annual.annualTax()));
             document.add(incomeTable);
 
             // Section D - Summary
@@ -708,6 +709,13 @@ public class PayrollReportService {
 
             document.add(summaryTable);
 
+            if (summary.unprocessedBenefitInKind().signum() > 0) {
+                Paragraph warning = new Paragraph("PERHATIAN: natura Rp " + formatNumber(summary.unprocessedBenefitInKind())
+                        + " belum masuk payroll yang diposting. Nilai ini belum dihitung pada bukti potong ini.", getBoldFont());
+                warning.setSpacingBefore(10);
+                document.add(warning);
+            }
+
             // Footer
             Paragraph footer = new Paragraph("\n\nDokumen ini dibuat secara otomatis oleh sistem.", getSmallFont());
             footer.setAlignment(Element.ALIGN_CENTER);
@@ -724,10 +732,6 @@ public class PayrollReportService {
             log.error("Error generating 1721-A1 for employee: {}", summary.employee().getEmployeeId(), e);
             throw new ReportGenerationException("Failed to generate PDF: " + e.getMessage(), e);
         }
-    }
-
-    private java.math.BigDecimal getPtkpAmount(com.artivisi.accountingfinance.entity.PtkpStatus status) {
-        return status.getAnnualAmount();
     }
 
     private void addIncomeRow(PdfPTable table, String label, String value) {

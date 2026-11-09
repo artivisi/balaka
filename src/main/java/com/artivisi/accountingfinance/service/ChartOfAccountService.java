@@ -3,6 +3,9 @@ package com.artivisi.accountingfinance.service;
 import com.artivisi.accountingfinance.entity.ChartOfAccount;
 import com.artivisi.accountingfinance.enums.AccountType;
 import com.artivisi.accountingfinance.enums.CashBankSource;
+import com.artivisi.accountingfinance.enums.CloseCheckRole;
+import com.artivisi.accountingfinance.enums.FiscalTreatment;
+import com.artivisi.accountingfinance.enums.SelfTestRole;
 import com.artivisi.accountingfinance.enums.NormalBalance;
 import com.artivisi.accountingfinance.exception.InvalidCashBankAccountException;
 import com.artivisi.accountingfinance.repository.ChartOfAccountRepository;
@@ -108,6 +111,10 @@ public class ChartOfAccountService {
         } else if (account.getNormalBalance() == null && account.getAccountType() != null) {
             account.setNormalBalance(deriveNormalBalance(account.getAccountType()));
         }
+        validateFiscalTreatment(account.getFiscalTreatment(), account.getAccountType(), account.getIsHeader());
+        validateServiceExpense(account.getServiceExpense(), account.getAccountType(), account.getIsHeader());
+        validateCloseCheckRole(account.getCloseCheckRole(), account.getAccountType(), account.getIsHeader());
+        validateSelfTestRole(account.getSelfTestRole(), account.getAccountType(), account.getIsHeader());
 
         boolean cashBank = Boolean.TRUE.equals(account.getIsCashBank());
         validateCashBankEligibility(account.getAccountType(), Boolean.TRUE.equals(account.getIsHeader()),
@@ -116,6 +123,32 @@ public class ChartOfAccountService {
         account.setCashBankSource(cashBank ? CashBankSource.EXPLICIT : null);
 
         return chartOfAccountRepository.save(account);
+    }
+
+    private void validateFiscalTreatment(FiscalTreatment treatment, AccountType type, Boolean isHeader) {
+        if (treatment != null && (type != AccountType.EXPENSE || Boolean.TRUE.equals(isHeader))) {
+            throw new IllegalArgumentException("Perlakuan fiskal hanya berlaku untuk akun beban yang bukan header");
+        }
+    }
+
+    private void validateServiceExpense(Boolean serviceExpense, AccountType type, Boolean isHeader) {
+        if (serviceExpense != null && (type != AccountType.EXPENSE || Boolean.TRUE.equals(isHeader))) {
+            throw new IllegalArgumentException("Klasifikasi akun jasa hanya berlaku untuk akun beban yang bukan header");
+        }
+    }
+
+    private void validateCloseCheckRole(CloseCheckRole role, AccountType type, Boolean isHeader) {
+        if (role != null && (Boolean.TRUE.equals(isHeader) || !role.allows(type))) {
+            throw new IllegalArgumentException("Peran pemeriksaan tutup buku " + role.getIndonesianName()
+                    + " tidak berlaku untuk akun header atau akun bertipe " + type);
+        }
+    }
+
+    private void validateSelfTestRole(SelfTestRole role, AccountType type, Boolean isHeader) {
+        if (role != null && (Boolean.TRUE.equals(isHeader) || !role.allows(type))) {
+            throw new IllegalArgumentException("Peran uji mandiri pajak " + role.getIndonesianName()
+                    + " tidak berlaku untuk akun header atau akun bertipe " + type);
+        }
     }
 
     private NormalBalance deriveNormalBalance(AccountType accountType) {
@@ -149,6 +182,14 @@ public class ChartOfAccountService {
             existing.setAccountType(accountData.getAccountType());
             existing.setNormalBalance(accountData.getNormalBalance());
         }
+        validateFiscalTreatment(accountData.getFiscalTreatment(), existing.getAccountType(), existing.getIsHeader());
+        existing.setFiscalTreatment(accountData.getFiscalTreatment());
+        validateServiceExpense(accountData.getServiceExpense(), existing.getAccountType(), existing.getIsHeader());
+        existing.setServiceExpense(accountData.getServiceExpense());
+        validateCloseCheckRole(accountData.getCloseCheckRole(), existing.getAccountType(), existing.getIsHeader());
+        existing.setCloseCheckRole(accountData.getCloseCheckRole());
+        validateSelfTestRole(accountData.getSelfTestRole(), existing.getAccountType(), existing.getIsHeader());
+        existing.setSelfTestRole(accountData.getSelfTestRole());
 
         // null means "not supplied" and must not clear an existing cash flag
         // (the REST API allows clients to omit isCashBank). A supplied value is

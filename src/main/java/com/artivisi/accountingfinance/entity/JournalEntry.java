@@ -11,6 +11,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
@@ -33,6 +34,11 @@ public class JournalEntry extends BaseEntity {
     @Size(max = 50, message = "Journal number must not exceed 50 characters")
     @Column(name = "journal_number", unique = true, length = 50)
     private String journalNumber;
+
+    @NotNull(message = "Line order is required")
+    @Positive(message = "Line order must be positive")
+    @Column(name = "line_order", nullable = false)
+    private Integer lineOrder;
 
     @Column(name = "posted_at")
     private LocalDateTime postedAt;

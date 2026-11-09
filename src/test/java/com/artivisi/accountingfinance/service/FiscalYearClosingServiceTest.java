@@ -272,13 +272,15 @@ class FiscalYearClosingServiceTest {
         tx.setPostedBy("admin");
         tx.setCreatedBy("admin");
         Transaction saved = transactionRepository.save(tx);
-        entry(saved, number + "-01", debitAccount, new BigDecimal(amount), BigDecimal.ZERO);
-        entry(saved, number + "-02", creditAccount, BigDecimal.ZERO, new BigDecimal(amount));
+        entry(saved, number + "-01", 1, debitAccount, new BigDecimal(amount), BigDecimal.ZERO);
+        entry(saved, number + "-02", 2, creditAccount, BigDecimal.ZERO, new BigDecimal(amount));
     }
 
-    private void entry(Transaction tx, String journalNumber, String accountCode, BigDecimal debit, BigDecimal credit) {
+    private void entry(Transaction tx, String journalNumber, int lineOrder, String accountCode, BigDecimal debit,
+                       BigDecimal credit) {
         JournalEntry entry = new JournalEntry();
         entry.setJournalNumber(journalNumber);
+        entry.setLineOrder(lineOrder);
         entry.setTransaction(tx);
         entry.setAccount(account(accountCode));
         entry.setDebitAmount(debit);

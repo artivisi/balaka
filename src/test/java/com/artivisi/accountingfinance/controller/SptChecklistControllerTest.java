@@ -44,7 +44,7 @@ class SptChecklistControllerTest {
         when(reportService.generateIncomeStatementExcludingClosing(LocalDate.of(YEAR, 1, 1), LocalDate.of(YEAR, 12, 31)))
                 .thenReturn(new ReportService.IncomeStatementReport(LocalDate.of(YEAR, 1, 1), LocalDate.of(YEAR, 12, 31),
                         List.of(), List.of(), new BigDecimal("100000"), new BigDecimal("40000"), new BigDecimal("60000")));
-        when(taxReportDetailService.findAdjustmentsByYear(YEAR)).thenReturn(List.of());
+        when(taxReportDetailService.findConfirmedAdjustmentsByYear(YEAR)).thenReturn(List.of());
         when(taxReportDetailService.generateRekonsiliasiFiskal(YEAR))
                 .thenThrow(new MissingConfigurationException("Akun Kredit Pajak belum dikonfigurasi"));
         when(fiscalPeriodService.findByYear(YEAR)).thenReturn(List.of());

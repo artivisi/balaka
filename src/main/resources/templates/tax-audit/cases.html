@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{layouts/main :: layout('Kasus Pemeriksaan Pajak', ~{::#page-title}, ~{::section}, ~{})}"
+      lang="id">
+<head>
+    <title>Kasus Pemeriksaan Pajak</title>
+</head>
+<body>
+    <h1 id="page-title">Kasus Pemeriksaan Pajak</h1>
+
+    <section class="h-full flex flex-col overflow-y-auto space-y-6" data-testid="tax-inquiry-list-page">
+        <div class="flex flex-wrap items-end justify-between gap-4">
+            <form th:action="@{/tax-audit/cases}" method="get" class="flex items-end gap-2">
+                <div>
+                    <label for="year" class="block text-sm text-gray-700 mb-1">Tahun pajak</label>
+                    <input type="number" id="year" name="year" th:value="${year}" min="1983" max="2999"
+                           class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                </div>
+                <button type="submit" class="px-4 py-2 text-sm text-white bg-primary-600 rounded-lg hover:bg-primary-700">Saring</button>
+            </form>
+            <a sec:authorize="hasAuthority('TAX_AUDIT_MANAGE')" th:href="@{/tax-audit/cases/new(year=${year})}" id="btn-new-case"
+               class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">Kasus Baru</a>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+            <p th:if="${cases.isEmpty()}" class="p-4 text-sm text-gray-500">Belum ada kasus.</p>
+            <table th:unless="${cases.isEmpty()}" class="w-full text-sm">
+                <thead>
+                <tr class="text-left text-xs text-gray-500 border-b border-gray-200">
+                    <th class="p-3">Surat</th><th class="p-3">Tahun pajak</th><th class="p-3">Kantor</th>
+                    <th class="p-3">Diterima</th><th class="p-3">Tenggat</th><th class="p-3">Status</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="c : ${cases}" class="border-b border-gray-100" data-testid="case-row" th:attr="data-letter=${c.letterNumber}">
+                    <td class="p-3"><a th:href="@{/tax-audit/cases/{id}(id=${c.id})}" class="text-primary-700 hover:underline" th:text="${c.title}">SP2DK</a></td>
+                    <td class="p-3" th:text="${c.taxYear}">2021</td>
+                    <td class="p-3" th:text="${c.taxOffice}">KPP</td>
+                    <td class="p-3" th:text="${c.receivedDate}">2022-01-01</td>
+                    <td class="p-3" th:text="${c.deadline}">2022-01-15</td>
+                    <td class="p-3" data-testid="case-status" th:text="${c.status.indonesianName}">Terbuka</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</body>
+</html>

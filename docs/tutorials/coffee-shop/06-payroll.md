@@ -80,7 +80,7 @@ Di akhir tahun 2025:
 | 6.1.01 Gaji Barista | 360.000.000 | 30jt × 12 bulan |
 | 6.1.04 BPJS Kesehatan | 14.400.000 | Company Kes × 12 |
 | 6.1.05 BPJS Ketenagakerjaan | 23.544.000 | Company TK × 12 |
-| 2.1.14 Hutang PPh 21 | 600.000 | PPh 21 Desember, disetor Januari 2026 |
+| 2.1.14 Hutang PPh 21 | 240.000 | PPh 21 Desember, disetor Januari 2026. Rekonsiliasi tahunan mengurangkan iuran JHT + JP karyawan (3% gaji) dari penghasilan neto |
 
 Total beban gaji dan BPJS: **397.944.000/tahun** — ini adalah beban terbesar kedai kopi (75% dari total beban operasional).
 

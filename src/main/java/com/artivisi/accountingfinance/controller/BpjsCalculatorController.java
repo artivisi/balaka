@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.math.BigDecimal;
+import java.time.YearMonth;
 
 import static com.artivisi.accountingfinance.controller.ViewConstants.*;
 
@@ -28,6 +29,7 @@ public class BpjsCalculatorController {
     public String showCalculator(Model model) {
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_BPJS_CALCULATOR);
         model.addAttribute("riskClasses", getRiskClassOptions());
+        addJpCeilingInForce(model, YearMonth.now());
         return "bpjs-calculator/index";
     }
 
@@ -40,7 +42,10 @@ public class BpjsCalculatorController {
             throw new IllegalArgumentException("Kelas risiko JKK harus 1-5: " + riskClass);
         }
 
-        BpjsCalculationResult result = bpjsCalculationService.calculate(salary, riskClass);
+        YearMonth period = YearMonth.now();
+        BigDecimal jpCeiling = BpjsCalculationService.jpWageCeiling(period);
+        addJpCeilingInForce(model, period);
+        BpjsCalculationResult result = bpjsCalculationService.calculate(salary, riskClass, period);
 
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_BPJS_CALCULATOR);
         model.addAttribute("riskClasses", getRiskClassOptions());
@@ -50,13 +55,18 @@ public class BpjsCalculatorController {
 
         // Add ceiling info
         model.addAttribute("kesehatanCeiling", BpjsCalculationService.BPJS_KESEHATAN_CEILING);
-        model.addAttribute("jpCeiling", BpjsCalculationService.BPJS_JP_CEILING);
+        model.addAttribute("jpCeiling", jpCeiling);
         model.addAttribute("salaryExceedsKesehatanCeiling",
             salary.compareTo(BpjsCalculationService.BPJS_KESEHATAN_CEILING) > 0);
         model.addAttribute("salaryExceedsJpCeiling",
-            salary.compareTo(BpjsCalculationService.BPJS_JP_CEILING) > 0);
+            salary.compareTo(jpCeiling) > 0);
 
         return "bpjs-calculator/index";
+    }
+
+    private void addJpCeilingInForce(Model model, YearMonth period) {
+        model.addAttribute("jpCeilingInForce", BpjsCalculationService.jpWageCeiling(period));
+        model.addAttribute("jpCeilingPeriod", BpjsCalculationService.jpWageCeilingEffectiveFrom(period));
     }
 
     private record RiskClassOption(int value, String label, String rate) {}

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="id">
+<body>
+<div th:fragment="preview" id="disposal-effect-body">
+    <p th:if="${prompt}" id="disposal-prompt" class="text-sm text-gray-500" th:text="${prompt}">Pilih tipe pelepasan.</p>
+    <th:block th:if="${effect}" th:insert="~{assets/fragments/disposal-effect :: effect}"></th:block>
+</div>
+
+<dl th:fragment="effect" id="disposal-effect" class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+    <div>
+        <dt class="text-gray-500">Hasil Penjualan</dt>
+        <dd id="effect-proceeds" class="font-medium text-gray-900" th:text="'Rp ' + ${#numbers.formatDecimal(effect.proceeds, 0, 'COMMA', 0, 'POINT')}">Rp 0</dd>
+    </div>
+    <div>
+        <dt class="text-gray-500">Nilai Buku</dt>
+        <dd id="effect-book-value" class="font-medium text-gray-900" th:text="'Rp ' + ${#numbers.formatDecimal(effect.bookValue, 0, 'COMMA', 0, 'POINT')}">Rp 0</dd>
+    </div>
+    <div>
+        <dt class="text-gray-500">Laba/Rugi (Hasil Penjualan - Nilai Buku)</dt>
+        <dd id="effect-gain-loss" class="font-bold"
+            th:classappend="${effect.gainLoss.signum() >= 0} ? 'text-green-600' : 'text-red-600'"
+            th:text="'Rp ' + ${#numbers.formatDecimal(effect.gainLoss, 0, 'COMMA', 0, 'POINT')}">Rp 0</dd>
+    </div>
+    <div>
+        <dt class="text-gray-500">Pengaruh ke Penghasilan Kena Pajak</dt>
+        <dd id="effect-taxable" class="font-medium text-gray-900"
+            th:text="${effect.taxableIncomeEffect != null} ? 'Rp ' + ${#numbers.formatDecimal(effect.taxableIncomeEffect, 0, 'COMMA', 0, 'POINT')} : 'Perlu ditinjau'">Rp 0</dd>
+    </div>
+    <div>
+        <dt class="text-gray-500">Koreksi Fiskal Positif</dt>
+        <dd id="effect-correction" class="font-medium text-gray-900"
+            th:text="${effect.fiscalCorrection != null} ? 'Rp ' + ${#numbers.formatDecimal(effect.fiscalCorrection, 0, 'COMMA', 0, 'POINT')} : 'Perlu ditinjau'">Rp 0</dd>
+    </div>
+    <div>
+        <dt class="text-gray-500">PPN Indikatif</dt>
+        <dd id="effect-ppn" class="font-medium text-gray-900"
+            th:text="${effect.estimatedPpn != null} ? 'Rp ' + ${#numbers.formatDecimal(effect.estimatedPpn, 0, 'COMMA', 0, 'POINT')} : 'Tidak dihitung'">Rp 0</dd>
+    </div>
+    <p id="effect-note" class="sm:col-span-2 text-xs text-gray-500" th:text="${effect.note}">Catatan</p>
+</dl>
+</body>
+</html>

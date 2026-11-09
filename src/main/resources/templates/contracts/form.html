@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{layouts/main :: layout('Form Kontrak', ~{::#page-title}, ~{::section}, ~{})}"
+      lang="id">
+<head>
+    <title>Form Kontrak</title>
+</head>
+<body>
+    <h1 id="page-title">Form Kontrak</h1>
+
+    <section class="space-y-6">
+        <div th:if="${successMessage}" data-testid="flash-success"
+             class="p-4 rounded-lg bg-green-50 border border-green-200 text-sm font-medium text-green-800"
+             th:text="${successMessage}">Success</div>
+        <div th:if="${errorMessage}" data-testid="flash-error"
+             class="p-4 rounded-lg bg-red-50 border border-red-200 text-sm font-medium text-red-800"
+             th:text="${errorMessage}">Error</div>
+        <form th:action="${contract == null} ? @{/contracts} : @{/contracts/{id}(id=${contract.id})}" method="post" id="contract-form"
+              class="bg-white rounded-lg shadow p-6 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div>
+                <label for="contractNumber" class="block text-gray-700 mb-1">Nomor Kontrak</label>
+                <input type="text" id="contractNumber" name="contractNumber" required maxlength="100" th:value="${contract?.contractNumber}" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+            </div>
+            <div>
+                <label for="title" class="block text-gray-700 mb-1">Judul</label>
+                <input type="text" id="title" name="title" required maxlength="255" th:value="${contract?.title}" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+            </div>
+            <div>
+                <label for="clientId" class="block text-gray-700 mb-1">Klien</label>
+                <select id="clientId" name="clientId" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                    <option value="">-- Bukan klien --</option>
+                    <option th:each="c : ${clients}" th:value="${c.id}" th:text="${c.name}"
+                            th:selected="${contract != null and contract.client != null and contract.client.id == c.id}">Klien</option>
+                </select>
+            </div>
+            <div>
+                <label for="vendorId" class="block text-gray-700 mb-1">Vendor</label>
+                <select id="vendorId" name="vendorId" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                    <option value="">-- Bukan vendor --</option>
+                    <option th:each="v : ${vendors}" th:value="${v.id}" th:text="${v.name}"
+                            th:selected="${contract != null and contract.vendor != null and contract.vendor.id == v.id}">Vendor</option>
+                </select>
+            </div>
+            <div>
+                <label for="startDate" class="block text-gray-700 mb-1">Tanggal Mulai</label>
+                <input type="date" id="startDate" name="startDate" required th:value="${contract?.startDate}" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+            </div>
+            <div>
+                <label for="endDate" class="block text-gray-700 mb-1">Tanggal Berakhir</label>
+                <input type="date" id="endDate" name="endDate" th:value="${contract?.endDate}" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+            </div>
+            <div>
+                <label for="contractValue" class="block text-gray-700 mb-1">Nilai Kontrak</label>
+                <input type="number" id="contractValue" name="contractValue" min="0" step="0.01" th:value="${contract?.contractValue}" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+            </div>
+            <div>
+                <label for="notes" class="block text-gray-700 mb-1">Catatan</label>
+                <input type="text" id="notes" name="notes" th:value="${contract?.notes}" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+            </div>
+            <p class="md:col-span-2 text-xs text-gray-500">Isi tepat satu pihak: klien atau vendor. Tanggal berakhir kosong berarti kontrak berlaku tanpa batas.</p>
+            <div class="md:col-span-2 flex justify-end">
+                <button type="submit" id="btn-save-contract" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">Simpan</button>
+            </div>
+        </form>
+    </section>
+</body>
+</html>

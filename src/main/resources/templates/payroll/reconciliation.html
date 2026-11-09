@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/main :: layout('Rekonsiliasi Gaji', ~{::#page-title}, ~{::section}, ~{})}"
+      lang="id">
+<head>
+    <title>Rekonsiliasi Gaji</title>
+</head>
+<body>
+    <h1 id="page-title">Rekonsiliasi Gaji</h1>
+
+    <section class="space-y-6">
+        <form th:action="@{/payroll/reconciliation}" method="get" class="flex items-end gap-3">
+            <div>
+                <label for="year" class="block text-xs font-medium text-gray-700 mb-1">Tahun</label>
+                <input id="year" type="number" name="year" th:value="${selectedYear}" required
+                       class="w-28 px-3 py-2 border border-gray-300 rounded-lg text-sm">
+            </div>
+            <button type="submit" id="btn-show" class="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm hover:bg-primary-700">Tampilkan</button>
+        </form>
+
+        <div class="bg-white rounded-lg shadow overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 text-sm" data-testid="reconciliation-table">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Periode</th>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status Payroll</th>
+                        <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Gaji</th>
+                        <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Bonus</th>
+                        <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">THR</th>
+                        <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Natura</th>
+                        <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">PPh 21</th>
+                        <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Beban di Buku</th>
+                        <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Dari Payroll</th>
+                        <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Di Luar Payroll</th>
+                        <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Selisih</th>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Hasil</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    <th:block th:each="row : ${reconciliation.periods()}">
+                        <tr th:attr="data-testid=${'period-' + row.period()}">
+                            <td class="px-3 py-2 whitespace-nowrap">
+                                <a th:if="${row.runId() != null}" th:href="@{/payroll/{id}(id=${row.runId()})}" class="text-primary-600 hover:underline" th:text="${row.period()}">2026-01</a>
+                                <span th:if="${row.runId() == null}" th:text="${row.period()}">2026-01</span>
+                            </td>
+                            <td class="px-3 py-2" th:text="${row.runStatus() != null ? row.runStatus().displayName : '-'}">Posted</td>
+                            <td class="px-3 py-2 text-right" th:text="${#numbers.formatDecimal(row.runSalary(), 1, 'COMMA', 0, 'POINT')}">0</td>
+                            <td class="px-3 py-2 text-right" th:text="${#numbers.formatDecimal(row.runBonus(), 1, 'COMMA', 0, 'POINT')}">0</td>
+                            <td class="px-3 py-2 text-right" th:text="${#numbers.formatDecimal(row.runThr(), 1, 'COMMA', 0, 'POINT')}">0</td>
+                            <td class="px-3 py-2 text-right" th:text="${#numbers.formatDecimal(row.runBenefitInKind(), 1, 'COMMA', 0, 'POINT')}">0</td>
+                            <td class="px-3 py-2 text-right" th:text="${#numbers.formatDecimal(row.runPph21(), 1, 'COMMA', 0, 'POINT')}">0</td>
+                            <td class="px-3 py-2 text-right" th:text="${#numbers.formatDecimal(row.ledgerSalaryExpense(), 1, 'COMMA', 0, 'POINT')}">0</td>
+                            <td class="px-3 py-2 text-right" th:text="${#numbers.formatDecimal(row.ledgerFromRun(), 1, 'COMMA', 0, 'POINT')}">0</td>
+                            <td class="px-3 py-2 text-right" data-testid="ledger-outside" th:text="${#numbers.formatDecimal(row.ledgerOutsideRun(), 1, 'COMMA', 0, 'POINT')}">0</td>
+                            <td class="px-3 py-2 text-right font-medium" data-testid="difference" th:text="${#numbers.formatDecimal(row.difference(), 1, 'COMMA', 0, 'POINT')}">0</td>
+                            <td class="px-3 py-2" data-testid="result" th:text="${row.status().indonesianName}">Sesuai</td>
+                        </tr>
+                        <tr th:each="journal : ${row.journalsOutsideRun()}" class="bg-yellow-50" th:attr="data-testid=${'outside-' + row.period()}">
+                            <td class="px-3 py-1"></td>
+                            <td colspan="11" class="px-3 py-1 text-xs text-yellow-900">
+                                <a th:href="@{/transactions/{id}(id=${journal.transactionId()})}" class="underline"
+                                   th:text="${journal.transactionNumber() != null ? journal.transactionNumber() : 'Draf'}">TRX</a>
+                                <span th:text="${journal.transactionDate() + ' - ' + journal.description() + ' - ' + journal.status() + ' - ' + #strings.listJoin(journal.accounts(), ', ') + ' - Rp ' + #numbers.formatDecimal(journal.amount(), 1, 'COMMA', 0, 'POINT')}">Keterangan</span>
+                            </td>
+                        </tr>
+                    </th:block>
+                </tbody>
+                <tfoot class="bg-gray-50 font-medium">
+                    <tr>
+                        <td class="px-3 py-2" colspan="2">Total payroll terposting</td>
+                        <td class="px-3 py-2 text-right" colspan="5" data-testid="total-posted" th:text="${#numbers.formatDecimal(reconciliation.postedCashGross(), 1, 'COMMA', 0, 'POINT')}">0</td>
+                        <td class="px-3 py-2 text-right" data-testid="total-ledger" th:text="${#numbers.formatDecimal(reconciliation.ledgerSalaryExpense(), 1, 'COMMA', 0, 'POINT')}">0</td>
+                        <td colspan="2"></td>
+                        <td class="px-3 py-2 text-right" data-testid="total-difference" th:text="${#numbers.formatDecimal(reconciliation.difference(), 1, 'COMMA', 0, 'POINT')}">0</td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <div class="bg-gray-50 rounded-lg p-4 text-xs text-gray-600 space-y-1">
+            <p>Beban di buku adalah debit dikurangi kredit dari jurnal terposting pada akun gaji, tanpa jurnal penutup. Akun gaji adalah akun pada baris debit template Post Gaji Bulanan dengan formula grossSalary, bonus atau thr.</p>
+            <p>Selisih adalah beban di buku dikurangi bruto tunai payroll terposting. Payroll yang belum diposting belum masuk buku, sehingga selisihnya sama dengan beban di buku.</p>
+        </div>
+    </section>
+</body>
+</html>

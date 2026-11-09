@@ -149,9 +149,22 @@ class ApiAuthorizationTest extends PlaywrightTestBase {
         String token = deviceFlowToken(createUser(Role.AUDITOR));
         for (String path : List.of(
                 "/api/employees", "/api/salary-components", "/api/payroll",
+                "/api/payroll/reconciliation?year=2041", "/api/payroll/reconciliation/2041-01",
                 "/api/fiscal-adjustments?year=" + ADJUSTMENT_YEAR, "/api/templates",
                 "/api/bank-reconciliation/parser-configs", "/api/drafts/templates", "/api/drafts/accounts",
-                "/api/accounts", "/api/fixed-assets", "/api/tax-filings", "/api/bills", "/api/analysis/reports")) {
+                "/api/accounts", "/api/fixed-assets", "/api/fixed-assets/disposals?year=2041",
+                "/api/fixed-assets/verification?year=2041", "/api/fixed-assets/verification/exceptions?year=2041",
+                "/api/fixed-assets/movement?year=2041", "/api/fixed-assets/register-movements?year=2041", "/api/tax-filings", "/api/bills", "/api/analysis/reports",
+                "/api/withholding/payees", "/api/withholding/payments?year=2041&month=1",
+                "/api/withholding/deposits?year=2041&month=1", "/api/withholding/masa-status?year=2041&month=1",
+                "/api/withholding/undocumented-service-payments?year=2041&month=1",
+                "/api/sales-tax-chain/exceptions?to=2041-01-31", "/api/sales-tax-chain/reconciliation?year=2041&month=1",
+                "/api/evidence/requirements", "/api/evidence/gaps?from=2041-01-01&to=2041-01-31",
+                "/api/evidence/index?from=2041-01-01&to=2041-01-31", "/api/evidence/contracts",
+                "/api/evidence/bank-statements/missing?asOf=2041-01-31&graceDays=10",
+                "/api/close-checks?from=2041-01-01&to=2041-01-31", "/api/close-checks/unmoved-liabilities?asOf=2041-01-31",
+                "/api/close-checks/cut-off?from=2041-01-01&to=2041-01-31", "/api/close-checks/tax-credits?returnYear=2040&asOf=2041-01-31",
+                "/api/self-test?year=2041", "/api/self-test/trace?year=2041&line=CAPITAL_MOVEMENT&month=0")) {
             APIResponse response = api.get(path, bearer(token));
             assertThat(response.status()).as("GET %s: %s", path, response.text()).isEqualTo(200);
         }
@@ -249,7 +262,7 @@ class ApiAuthorizationTest extends PlaywrightTestBase {
     }
 
     @Test
-    @DisplayName("Draft, bank reconciliation and template endpoints require their own scopes")
+    @DisplayName("Draft, bank reconciliation, template and self-test endpoints require their own scopes")
     void draftBankReconTemplateEndpointsRequireScopes() {
         String token = serviceToken("transactions:post");
         String marker = uid();
@@ -263,9 +276,11 @@ class ApiAuthorizationTest extends PlaywrightTestBase {
                 .isEqualTo(403);
         assertThat(api.get("/api/templates", bearer(token)).status()).isEqualTo(403);
         assertThat(api.post("/api/templates", json(token, template(marker))).status()).isEqualTo(403);
+        assertThat(api.get("/api/self-test?year=2041", bearer(token)).status()).isEqualTo(403);
         assertThat(draftRepository.findByCreatedBy("admin")).noneMatch(d -> marker.equals(d.getMerchantName()));
 
-        String scoped = serviceToken("drafts:create,drafts:read,templates:read,bank-recon:read");
+        String scoped = serviceToken("drafts:create,drafts:read,templates:read,bank-recon:read,self-test:read");
+        assertThat(api.get("/api/self-test?year=2041", bearer(scoped)).status()).isEqualTo(200);
         assertThat(api.get("/api/drafts/templates", bearer(scoped)).status()).isEqualTo(200);
         assertThat(api.get("/api/templates", bearer(scoped)).status()).isEqualTo(200);
         assertThat(api.get("/api/bank-reconciliation/parser-configs", bearer(scoped)).status()).isEqualTo(200);
@@ -441,6 +456,9 @@ class ApiAuthorizationTest extends PlaywrightTestBase {
         c.add(new WriteCase("POST", "/api/payroll" + r + "/approve", none(), all(Permission.PAYROLL_APPROVE)));
         c.add(new WriteCase("POST", "/api/payroll" + r + "/post", none(), all(Permission.PAYROLL_POST)));
         c.add(new WriteCase("DELETE", "/api/payroll" + r, none(), all(Permission.PAYROLL_CREATE)));
+        c.add(new WriteCase("POST", "/api/payroll" + r + "/additions",
+                data(Map.of("employeeId", id, "type", "BONUS", "amount", 1000000)), all(Permission.PAYROLL_CREATE)));
+        c.add(new WriteCase("DELETE", "/api/payroll" + r + "/additions" + r2, none(), all(Permission.PAYROLL_CREATE)));
         c.add(new WriteCase("POST", "/api/payroll/schedule", data(Map.of("dayOfMonth", 25, "baseSalary", 5000000,
                 "jkkRiskClass", 1, "autoCalculate", true)), all(Permission.PAYROLL_CREATE, Permission.PAYROLL_APPROVE)));
         c.add(new WriteCase("DELETE", "/api/payroll/schedule", none(),
@@ -452,6 +470,13 @@ class ApiAuthorizationTest extends PlaywrightTestBase {
         c.add(new WriteCase("PUT", "/api/fiscal-adjustments" + r, data(fiscalAdjustment(m)),
                 all(Permission.FISCAL_PERIOD_MANAGE)));
         c.add(new WriteCase("DELETE", "/api/fiscal-adjustments" + r, none(), all(Permission.FISCAL_PERIOD_MANAGE)));
+        c.add(new WriteCase("POST", "/api/fiscal-adjustments/generate?year=" + ADJUSTMENT_YEAR, none(),
+                all(Permission.FISCAL_PERIOD_MANAGE)));
+        c.add(new WriteCase("POST", "/api/fiscal-adjustments" + r + "/confirm", none(),
+                all(Permission.FISCAL_PERIOD_MANAGE)));
+        c.add(new WriteCase("POST", "/api/benefits-in-kind", data(Map.of("transactionId", id, "employeeId", id,
+                "amount", 1000, "description", "Natura " + m)), all(Permission.PAYROLL_CREATE)));
+        c.add(new WriteCase("DELETE", "/api/benefits-in-kind" + r, none(), all(Permission.PAYROLL_CREATE)));
         c.add(new WriteCase("POST", "/api/fiscal-adjustments/loss-carryforward",
                 data(Map.of("originYear", ADJUSTMENT_YEAR, "originalAmount", 1000)), all(Permission.FISCAL_PERIOD_MANAGE)));
         c.add(new WriteCase("DELETE", "/api/fiscal-adjustments/loss-carryforward" + r, none(),
@@ -478,6 +503,11 @@ class ApiAuthorizationTest extends PlaywrightTestBase {
                 all(Permission.ASSET_DEPRECIATE)));
         c.add(new WriteCase("POST", "/api/fixed-assets/depreciation/post-all?period=2041-01", none(),
                 all(Permission.ASSET_DEPRECIATE)));
+        c.add(new WriteCase("POST", "/api/fixed-assets" + r + "/disposal", data(Map.of("type", "WRITTEN_OFF",
+                "date", "2041-01-31", "reason", "Rusak")), all(Permission.ASSET_DISPOSE)));
+        c.add(new WriteCase("POST", "/api/fixed-assets/disposals" + r + "/cancel", none(), all(Permission.ASSET_DISPOSE)));
+        c.add(new WriteCase("POST", "/api/fixed-assets" + r + "/verification", data(Map.of("year", 2041,
+                "date", "2041-01-31", "result", "NOT_FOUND")), all(Permission.ASSET_EDIT)));
 
         // bills
         c.add(new WriteCase("POST", "/api/bills", data(Map.of("vendorName", "Vendor " + m, "billDate", "2026-03-01",
@@ -497,6 +527,27 @@ class ApiAuthorizationTest extends PlaywrightTestBase {
                 all(Permission.TAX_CALENDAR_MANAGE)));
         c.add(new WriteCase("DELETE", "/api/tax-filings" + r + "/documents" + r2, none(),
                 all(Permission.TAX_CALENDAR_MANAGE)));
+
+        // withholding
+        Map<String, Object> payee = Map.of("code", "WH-" + m, "name", "Penerima " + m, "payeeType", "BADAN");
+        c.add(new WriteCase("POST", "/api/withholding/payees", data(payee), all(Permission.VENDOR_CREATE)));
+        c.add(new WriteCase("PUT", "/api/withholding/payees" + r, data(payee), all(Permission.VENDOR_EDIT)));
+        c.add(new WriteCase("POST", "/api/withholding/payments", data(Map.of("vendorId", id, "paymentDate", "2041-01-10",
+                "grossAmount", 1000, "bankAccountId", id, "description", "Bayar " + m)), all(Permission.TRANSACTION_CREATE)));
+        c.add(new WriteCase("POST", "/api/withholding/payments" + r + "/post", none(), all(Permission.TRANSACTION_POST)));
+        c.add(new WriteCase("DELETE", "/api/withholding/payments" + r, none(), all(Permission.TRANSACTION_DELETE)));
+        c.add(new WriteCase("POST", "/api/withholding/deposits", data(Map.of("treatment", "PPH_23", "year", 2041, "month", 1,
+                "amount", 1000, "depositDate", "2041-02-10", "bankAccountId", id)), all(Permission.TRANSACTION_CREATE)));
+        c.add(new WriteCase("POST", "/api/withholding/deposits" + r + "/post", none(), all(Permission.TRANSACTION_POST)));
+        c.add(new WriteCase("DELETE", "/api/withholding/deposits" + r, none(), all(Permission.TRANSACTION_DELETE)));
+
+        // sales tax chain
+        c.add(new WriteCase("POST", "/api/sales-tax-chain/invoices" + r + "/faktur", data(Map.of("fakturNumber", "F" + m.substring(0, 8),
+                "fakturDate", "2041-01-10", "transactionCode", "01", "dpp", 1000, "ppn", 110)),
+                all(Permission.TAX_EXPORT, Permission.INVOICE_EDIT)));
+        c.add(new WriteCase("POST", "/api/sales-tax-chain/invoices" + r + "/bupot", data(Map.of("bupotNumber", "B" + m.substring(0, 8),
+                "bupotDate", "2041-01-10", "taxObjectCode", "24-104-01", "grossAmount", 1000, "taxRate", 2, "taxAmount", 20)),
+                all(Permission.TAX_EXPORT, Permission.INVOICE_EDIT, Permission.TRANSACTION_CREATE)));
 
         // analysis and import
         c.add(new WriteCase("POST", "/api/analysis/reports", data(Map.of("title", "Laporan " + m,

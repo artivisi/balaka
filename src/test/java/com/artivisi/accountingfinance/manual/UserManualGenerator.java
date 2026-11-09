@@ -117,7 +117,9 @@ public class UserManualGenerator {
                 new Section("pencatatan-aset", "Pencatatan Aset", "03-aset-tetap.md", List.of("assets-list", "assets-form")),
                 new Section("jadwal-depresiasi", "Jadwal Depresiasi", "03-aset-tetap.md", List.of("assets-depreciation", "reports-depreciation")),
                 new Section("aset-tetap-laporan-penyusutan", "Laporan Penyusutan", "03-aset-tetap.md", List.of()),
-                new Section("aset-tetap-pelepasan-aset-disposal", "Pelepasan Aset (Disposal)", "03-aset-tetap.md", List.of()),
+                new Section("aset-tetap-identitas-aset", "Identitas Aset", "03-aset-tetap.md", List.of()),
+                new Section("aset-tetap-verifikasi-tahunan", "Verifikasi Tahunan", "03-aset-tetap.md", List.of("assets-verification")),
+                new Section("aset-tetap-pelepasan-aset-disposal", "Pelepasan Aset (Disposal)", "03-aset-tetap.md", List.of("assets-disposal-form", "assets-disposal-record")),
                 new Section("aset-tetap-regulasi-indonesia", "Regulasi Indonesia", "03-aset-tetap.md", List.of()),
                 new Section("aset-tetap-lihat-juga", "Lihat Juga", "03-aset-tetap.md", List.of())
             )),
@@ -127,6 +129,8 @@ public class UserManualGenerator {
                 new Section("jenis-pajak", "Jenis Pajak di Indonesia", "04-perpajakan.md", List.of()),
                 new Section("transaksi-ppn", "Transaksi PPN", "04-perpajakan.md", List.of("reports-ppn-summary")),
                 new Section("transaksi-pph", "Transaksi PPh", "04-perpajakan.md", List.of("reports-pph23-withholding", "reports-tax-summary")),
+                new Section("pemotongan-pph", "Pemotongan PPh atas Pembayaran", "04-perpajakan.md", List.of()),
+                new Section("rantai-pajak-penjualan", "Rantai Pajak Penjualan", "04-perpajakan.md", List.of()),
                 new Section("periode-fiskal", "Periode Fiskal", "04-perpajakan.md", List.of("fiscal-periods-list")),
                 new Section("kalender-pajak", "Kalender Pajak", "04-perpajakan.md", List.of("tax-calendar", "tax-calendar-yearly")),
                 new Section("perpajakan-referensi-regulasi", "Referensi Regulasi", "04-perpajakan.md", List.of()),
@@ -145,6 +149,7 @@ public class UserManualGenerator {
                 new Section("pph21-karyawan", "PPh 21 Karyawan", "05-penggajian.md", List.of("pph21-calculator")),
                 new Section("kapan-menggunakan-payroll", "Kapan Menggunakan Fitur Payroll?", "05-penggajian.md", List.of()),
                 new Section("proses-penggajian", "Proses Penggajian", "05-penggajian.md", List.of("payroll-list", "payroll-form", "payroll-detail")),
+                new Section("bonus-thr-rekonsiliasi", "Bonus, THR, dan Rekonsiliasi Gaji", "05-penggajian.md", List.of()),
                 new Section("pembayaran-kewajiban", "Pembayaran Kewajiban Payroll", "05-penggajian.md", List.of("payroll-lifecycle-bayar-gaji-form", "payroll-lifecycle-bayar-bpjs-form", "payroll-lifecycle-setor-pph21-form")),
                 new Section("layanan-mandiri", "Layanan Mandiri Karyawan", "05-penggajian.md", List.of("self-service-payslips", "self-service-bukti-potong", "self-service-profile")),
                 new Section("bukti-potong-pph21", "Bukti Potong PPh 21", "05-penggajian.md", List.of()),
@@ -314,7 +319,52 @@ public class UserManualGenerator {
                 new Section("hak-akses-recurring", "Hak Akses", "17-transaksi-berulang.md", List.of())
             )),
 
-            // 18. LAMPIRAN (last)
+            // 18. KELENGKAPAN BUKTI
+            new SectionGroup("kelengkapan-bukti", "Kelengkapan Bukti", "M9 12l2 2 4-4M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z", List.of(
+                new Section("aturan-bukti", "Aturan Bukti", "18-kelengkapan-bukti.md", List.of()),
+                new Section("sumber-bukti", "Sumber Bukti", "18-kelengkapan-bukti.md", List.of()),
+                new Section("laporan-kurang-bukti", "Laporan Kurang Bukti", "18-kelengkapan-bukti.md", List.of()),
+                new Section("register-kontrak", "Register Kontrak", "18-kelengkapan-bukti.md", List.of()),
+                new Section("arsip-rekening-koran", "Arsip Rekening Koran", "18-kelengkapan-bukti.md", List.of()),
+                new Section("paket-audit", "Paket Audit", "18-kelengkapan-bukti.md", List.of()),
+                new Section("peringatan-rekening-koran", "Peringatan Rekening Koran", "18-kelengkapan-bukti.md", List.of()),
+                new Section("kelengkapan-bukti-lihat-juga", "Lihat Juga", "18-kelengkapan-bukti.md", List.of())
+            )),
+
+            // 19. PEMERIKSAAN TUTUP BUKU
+            new SectionGroup("pemeriksaan-tutup-buku", "Pemeriksaan Tutup Buku", "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4", List.of(
+                new Section("daftar-periksa-tutup-buku", "Daftar Periksa", "19-pemeriksaan-tutup-buku.md", List.of()),
+                new Section("peran-akun", "Peran Akun", "19-pemeriksaan-tutup-buku.md", List.of()),
+                new Section("kredit-pajak-setelah-spt-tahunan", "Kredit Pajak Setelah SPT Tahunan", "19-pemeriksaan-tutup-buku.md", List.of()),
+                new Section("akun-antara", "Akun Antara", "19-pemeriksaan-tutup-buku.md", List.of()),
+                new Section("liabilitas-tidak-bergerak", "Liabilitas Tidak Bergerak", "19-pemeriksaan-tutup-buku.md", List.of()),
+                new Section("invoice-belum-di-piutang", "Invoice Belum di Piutang", "19-pemeriksaan-tutup-buku.md", List.of()),
+                new Section("jurnal-periode-berikutnya", "Jurnal Periode Berikutnya", "19-pemeriksaan-tutup-buku.md", List.of()),
+                new Section("hasil-pelepasan-aset", "Hasil Pelepasan Aset", "19-pemeriksaan-tutup-buku.md", List.of()),
+                new Section("rekening-koran-pemegang-saham", "Rekening Koran Pemegang Saham", "19-pemeriksaan-tutup-buku.md", List.of()),
+                new Section("pemeriksaan-tutup-buku-lihat-juga", "Lihat Juga", "19-pemeriksaan-tutup-buku.md", List.of())
+            )),
+
+            // 20. UJI MANDIRI PAJAK
+            new SectionGroup("uji-mandiri-pajak", "Uji Mandiri Pajak", "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z", List.of(
+                new Section("membuka-uji-mandiri", "Membuka Laporan", "20-uji-mandiri-pajak.md", List.of()),
+                new Section("baris-pemeriksaan", "Baris Pemeriksaan", "20-uji-mandiri-pajak.md", List.of()),
+                new Section("peran-akun-uji-mandiri", "Peran Akun", "20-uji-mandiri-pajak.md", List.of()),
+                new Section("penjelasan-uji-mandiri", "Penjelasan", "20-uji-mandiri-pajak.md", List.of()),
+                new Section("uji-mandiri-lihat-juga", "Lihat Juga", "20-uji-mandiri-pajak.md", List.of())
+            )),
+
+            // 21. RUANG PEMERIKSAAN PAJAK
+            new SectionGroup("ruang-pemeriksaan-pajak", "Ruang Pemeriksaan Pajak", "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z", List.of(
+                new Section("tampilan-tahun-pajak", "Tampilan Tahun Pajak", "21-ruang-pemeriksaan-pajak.md", List.of()),
+                new Section("rincian-uji-sampai-baris-jurnal", "Rincian Uji sampai Baris Jurnal", "21-ruang-pemeriksaan-pajak.md", List.of()),
+                new Section("bukti-wajib-saat-posting", "Bukti Wajib Saat Posting", "21-ruang-pemeriksaan-pajak.md", List.of()),
+                new Section("kasus-pemeriksaan", "Kasus Pemeriksaan", "21-ruang-pemeriksaan-pajak.md", List.of()),
+                new Section("arsip-dokumen", "Arsip Dokumen", "21-ruang-pemeriksaan-pajak.md", List.of()),
+                new Section("ruang-pemeriksaan-lihat-juga", "Lihat Juga", "21-ruang-pemeriksaan-pajak.md", List.of())
+            )),
+
+            // 22. LAMPIRAN (last)
             new SectionGroup("lampiran", "Lampiran", "M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4", List.of(
                 new Section("glosarium", "Glosarium", "12-lampiran-glosarium.md", List.of()),
                 new Section("referensi-template", "Referensi Template", "12-lampiran-template.md", List.of("service/templates-list", "service/templates-metadata-detail", "service/templates-metadata-form")),
@@ -442,7 +492,11 @@ public class UserManualGenerator {
                 new Section("dev-tax", "Tax Export API", "06-tax-export.md", List.of()),
                 new Section("dev-pagination", "Pagination", "07-pagination.md", List.of()),
                 new Section("dev-fixed-assets", "Fixed Assets API", "08-fixed-assets.md", List.of()),
-                new Section("dev-tax-filings", "Tax Filings API", "09-tax-filings.md", List.of())
+                new Section("dev-tax-filings", "Tax Filings API", "09-tax-filings.md", List.of()),
+                new Section("dev-withholding", "Withholding API", "10-withholding.md", List.of()),
+                new Section("dev-evidence", "Evidence API", "12-evidence.md", List.of()),
+                new Section("dev-close-checks", "Close Checks API", "13-close-checks.md", List.of()),
+                new Section("dev-self-test", "Tax Self-Test API", "14-self-test.md", List.of())
             )),
 
             new SectionGroup("dev-extending", "Developer: Extending Balaka", "M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z", List.of(

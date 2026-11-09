@@ -139,7 +139,7 @@ class FiscalYearClosingPersistenceTest extends PlaywrightTestBase {
             assertThat(voided.getStatus()).isEqualTo(TransactionStatus.VOID);
             assertThat(voided.getVoidNotes()).isEqualTo("Pembatalan Jurnal Penutup: Koreksi pendapatan " + REVERSED_YEAR);
             assertThat(voided.getVoidedBy()).isEqualTo("admin");
-            assertThat(journalEntryRepository.findByTransactionIdOrderByJournalNumberAsc(id))
+            assertThat(journalEntryRepository.findByTransactionIdOrderByLineOrderAsc(id))
                     .hasSize(2)
                     .allSatisfy(je -> assertThat(je.getVoidReason())
                             .isEqualTo("Pembatalan Jurnal Penutup: Koreksi pendapatan " + REVERSED_YEAR));

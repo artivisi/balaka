@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/main :: layout('Rincian Uji Pajak', ~{::#page-title}, ~{::section}, ~{})}"
+      lang="id">
+<head>
+    <title>Rincian Uji Pajak</title>
+</head>
+<body>
+    <h1 id="page-title" th:text="|${line.title} ${month == 0 ? year : 'masa ' + month + '/' + year}|">Rincian Uji Pajak</h1>
+
+    <section class="h-full flex flex-col overflow-y-auto space-y-6" data-testid="tax-audit-trace-page">
+        <a th:href="@{/tax-audit(year=${year})}" class="text-sm text-primary-700 hover:underline">Kembali ke ruang pemeriksaan</a>
+        <div th:if="${errorMessage}" data-testid="flash-error" class="p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800" th:text="${errorMessage}"></div>
+
+        <th:block th:if="${view}">
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                <dl class="grid grid-cols-3 gap-4 text-sm">
+                    <div><dt class="text-xs text-gray-500">Angka buku</dt>
+                        <dd class="font-mono" data-testid="trace-book" th:text="${#numbers.formatDecimal(view.trace().bookFigure(), 1, 'POINT', 2, 'COMMA')}">0</dd></div>
+                    <div><dt class="text-xs text-gray-500">Angka pajak</dt>
+                        <dd class="font-mono" data-testid="trace-tax" th:text="${view.trace().taxFigure() != null} ? ${#numbers.formatDecimal(view.trace().taxFigure(), 1, 'POINT', 2, 'COMMA')} : '-'">0</dd></div>
+                    <div><dt class="text-xs text-gray-500">Transaksi tanpa bukti lengkap</dt>
+                        <dd class="font-mono" data-testid="trace-gap-count" th:text="${view.gapCount()}">0</dd></div>
+                </dl>
+                <p class="mt-2 text-xs text-gray-500" th:text="|Buku: ${line.bookBasis}.| + (${line.taxBasis != null} ? | Pajak: ${line.taxBasis}.| : '')"></p>
+            </div>
+
+            <div th:each="side : ${ {'book', 'tax'} }" class="bg-white rounded-lg shadow-sm border border-gray-200 p-4"
+                 th:with="rows=${side == 'book' ? view.trace().bookRows() : view.trace().taxRows()}"
+                 th:attr="data-testid=|trace-${side}-rows|">
+                <h2 class="text-base font-semibold text-gray-900 mb-2" th:text="${side == 'book'} ? 'Baris angka buku' : 'Baris angka pajak'">Baris</h2>
+                <p th:if="${rows.isEmpty()}" class="text-sm text-gray-500">Tidak ada baris.</p>
+                <table th:unless="${rows.isEmpty()}" class="w-full text-sm">
+                    <thead>
+                    <tr class="text-left text-xs text-gray-500 border-b border-gray-200">
+                        <th class="py-2 pr-2">Tanggal</th>
+                        <th class="py-2 pr-2">Sumber</th>
+                        <th class="py-2 pr-2">Transaksi</th>
+                        <th class="py-2 pr-2">Akun</th>
+                        <th class="py-2 pr-2">Referensi</th>
+                        <th class="py-2 pr-2">Keterangan</th>
+                        <th class="py-2 pr-2 text-right">Jumlah</th>
+                        <th class="py-2">Bukti</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="r : ${rows}" class="border-b border-gray-100" data-testid="trace-row"
+                        th:attr="data-source=${r.source()},data-transaction=${r.transactionNumber()}"
+                        th:with="ev=${r.transactionId() != null ? view.evidenceByTransaction().get(r.transactionId()) : null}">
+                        <td class="py-1 pr-2" th:text="${r.date()}">2021-01-01</td>
+                        <td class="py-1 pr-2 text-xs" th:text="${r.source()}">JOURNAL_LINE</td>
+                        <td class="py-1 pr-2">
+                            <a th:if="${r.transactionId() != null}" data-testid="trace-row-link"
+                               th:href="${r.source() == 'JOURNAL_LINE'} ? @{/tax-audit/transactions/{id}(id=${r.transactionId()}, line=${r.referenceId()})} : @{/tax-audit/transactions/{id}(id=${r.transactionId()})}"
+                               class="text-primary-700 hover:underline" th:text="${r.transactionNumber()}">TRX</a>
+                            <a th:if="${r.source() == 'PAYROLL_DETAIL' and view.payrollRunByDetail().get(r.referenceId()) != null}"
+                               th:href="@{/payroll/{id}(id=${view.payrollRunByDetail().get(r.referenceId())})}" class="text-primary-700 hover:underline">Payroll</a>
+                            <a th:if="${r.source() == 'ASSET'}" th:href="@{/assets/{id}(id=${r.referenceId()})}" class="text-primary-700 hover:underline">Aset</a>
+                        </td>
+                        <td class="py-1 pr-2 font-mono text-xs" th:text="${r.accountCode()}">5.1</td>
+                        <td class="py-1 pr-2 text-xs" th:text="${r.reference()}">ref</td>
+                        <td class="py-1 pr-2 text-xs" th:text="${r.description()}">ket</td>
+                        <td class="py-1 pr-2 text-right font-mono" th:text="${#numbers.formatDecimal(r.amount(), 1, 'POINT', 2, 'COMMA')}">0</td>
+                        <td class="py-1 text-xs" data-testid="trace-row-evidence">
+                            <span th:if="${ev != null and ev.complete()}" class="text-green-700" th:text="${ev.required().isEmpty()} ? 'Tidak wajib' : 'Lengkap'">Lengkap</span>
+                            <span th:if="${ev != null and !ev.complete()}" class="text-red-700 font-medium"
+                                  th:text="|Kurang: ${#strings.listJoin(ev.missing().![indonesianName], ', ')}|">Kurang</span>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </th:block>
+    </section>
+</body>
+</html>

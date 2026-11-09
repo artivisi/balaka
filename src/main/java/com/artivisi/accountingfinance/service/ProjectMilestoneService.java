@@ -151,7 +151,7 @@ public class ProjectMilestoneService {
             // Auto-post if configured
             if (Boolean.TRUE.equals(term.getAutoPost())) {
                 String username = CurrentUser.name();
-                transactionService.post(savedTransaction.getId(), username);
+                transactionService.postAutomatic(savedTransaction.getId(), username);
                 log.info("Auto-posted transaction {}", savedTransaction.getTransactionNumber());
             }
         }

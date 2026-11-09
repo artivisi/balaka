@@ -2,12 +2,12 @@
 # Online Seller: Toko Gadget Sejahtera (UMKM non-PKP)
 # baseSalary=5500000 × 4 employees, jkkRiskClass=1
 account_code,account_name,position,amount,notes
-1.1.02,Bank BCA,DEBIT,188222650,Modal 300M + withdrawals - purchases - payroll - expenses
+1.1.02,Bank BCA,DEBIT,187925650,Modal 300M + withdrawals - purchases - payroll - expenses
 1.1.05,Saldo Shopee,DEBIT,31020000,Shopee sales not yet withdrawn
 1.1.20,Persediaan Barang Dagangan,DEBIT,390000000,Total purchases (no COGS tracked in demo)
 1.2.01,Peralatan Gudang,DEBIT,8000000,Rak Gudang Heavy Duty (Feb 2025)
 1.2.02,Akum. Penyusutan Peralatan Gudang,CREDIT,1666667,8M/48months × 10 months (Mar-Dec)
-2.1.20,Hutang PPh 21,CREDIT,626250,December PPh 21 (deposited Jan 2026)
+2.1.20,Hutang PPh 21,CREDIT,329250,December PPh 21 (deposited Jan 2026)
 3.1.01,Modal Disetor,CREDIT,300000000,Setoran modal awal
 4.1.01,Penjualan Tokopedia,CREDIT,340000000,Gross sales Tokopedia
 4.1.02,Penjualan Shopee,CREDIT,268000000,Gross sales Shopee

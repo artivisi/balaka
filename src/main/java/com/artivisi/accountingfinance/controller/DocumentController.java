@@ -2,9 +2,11 @@ package com.artivisi.accountingfinance.controller;
 
 import com.artivisi.accountingfinance.entity.Document;
 import com.artivisi.accountingfinance.enums.AuditEventType;
+import com.artivisi.accountingfinance.enums.EvidenceType;
 import com.artivisi.accountingfinance.security.Permission;
 import com.artivisi.accountingfinance.service.DocumentService;
 import com.artivisi.accountingfinance.service.SecurityAuditService;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.Resource;
@@ -18,6 +20,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -50,6 +53,9 @@ public class DocumentController {
     private static final String ATTR_DOCUMENT = "document";
     private static final String ATTR_TRANSACTION_ID = "transactionId";
     private static final String USER_SYSTEM = "system";
+    /** Refreshes the evidence panel on the transaction page. */
+    private static final String HX_TRIGGER = "HX-Trigger";
+    private static final String EVENT_EVIDENCE_CHANGED = "evidence-changed";
     private static final String VIEW_DOCUMENT_LIST = "fragments/document-list :: documentList";
 
     private final DocumentService documentService;
@@ -63,8 +69,11 @@ public class DocumentController {
     public String uploadForTransaction(
             @PathVariable UUID transactionId,
             @RequestParam("file") MultipartFile[] files,
+            @RequestParam(required = false) EvidenceType evidenceType,
             Authentication authentication,
+            HttpServletResponse response,
             Model model) {
+        response.setHeader(HX_TRIGGER, EVENT_EVIDENCE_CHANGED);
         String username = authentication != null ? authentication.getName() : USER_SYSTEM;
 
         int successCount = 0;
@@ -76,7 +85,7 @@ public class DocumentController {
                     continue;
                 }
                 try {
-                    Document document = documentService.uploadForTransaction(transactionId, file, username);
+                    Document document = documentService.uploadForTransaction(transactionId, file, username, evidenceType);
                     securityAuditService.log(AuditEventType.DOCUMENT_UPLOAD,
                             AUDIT_UPLOADED_DOC + document.getOriginalFilename() + " for transaction: " + transactionId);
                     successCount++;
@@ -183,6 +192,40 @@ public class DocumentController {
         return VIEW_DOCUMENT_LIST;
     }
 
+    @ModelAttribute("evidenceTypes")
+    public EvidenceType[] evidenceTypes() {
+        return EvidenceType.values();
+    }
+
+    /**
+     * Classify a transaction document as evidence (HTMX endpoint). An empty value clears the classification.
+     */
+    @PostMapping("/{id}/evidence-type")
+    @PreAuthorize("hasAnyAuthority('" + Permission.TRANSACTION_CREATE + "', '" + Permission.TRANSACTION_EDIT + "')")
+    public String classify(@PathVariable UUID id,
+                           @RequestParam UUID transactionId,
+                           @RequestParam(required = false) EvidenceType evidenceType,
+                           HttpServletResponse response,
+                           Model model) {
+        response.setHeader(HX_TRIGGER, EVENT_EVIDENCE_CHANGED);
+        Document document = documentService.findById(id);
+        if (document.getTransaction() == null || !document.getTransaction().getId().equals(transactionId)) {
+            throw new IllegalArgumentException("Dokumen bukan lampiran transaksi ini");
+        }
+        try {
+            documentService.classify(id, evidenceType);
+            model.addAttribute(ATTR_SUCCESS, true);
+            model.addAttribute(ATTR_MESSAGE, "Jenis bukti tersimpan");
+        } catch (IllegalStateException e) {
+            model.addAttribute(ATTR_SUCCESS, false);
+            // nosemgrep: semgrep.missing-html-escape-in-model - rendered only via th:text in fragments/document-list.html, which escapes
+            model.addAttribute(ATTR_MESSAGE, e.getMessage());
+        }
+        model.addAttribute(ATTR_DOCUMENTS, documentService.findByTransactionId(transactionId));
+        model.addAttribute(ATTR_TRANSACTION_ID, transactionId);
+        return VIEW_DOCUMENT_LIST;
+    }
+
     /**
      * Get documents for a transaction (HTMX endpoint).
      */
@@ -258,7 +301,9 @@ public class DocumentController {
             @RequestParam(required = false) UUID transactionId,
             @RequestParam(required = false) UUID journalEntryId,
             @RequestParam(required = false) UUID invoiceId,
+            HttpServletResponse response,
             Model model) {
+        response.setHeader(HX_TRIGGER, EVENT_EVIDENCE_CHANGED);
         try {
             Document document = documentService.findById(id);
             String filename = document.getOriginalFilename();
@@ -267,6 +312,10 @@ public class DocumentController {
                     "Deleted document: " + filename + " (id: " + id + ")");
             model.addAttribute(ATTR_SUCCESS, true);
             model.addAttribute(ATTR_MESSAGE, MSG_DELETE_SUCCESS);
+        } catch (IllegalStateException e) {
+            model.addAttribute(ATTR_SUCCESS, false);
+            // nosemgrep: semgrep.missing-html-escape-in-model - rendered only via th:text in fragments/document-list.html, which escapes
+            model.addAttribute(ATTR_MESSAGE, MSG_DELETE_FAILED + e.getMessage());
         } catch (IOException e) {
             log.error("Failed to delete document {}: {}", id, e.getMessage());
             model.addAttribute(ATTR_SUCCESS, false);

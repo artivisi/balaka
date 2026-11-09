@@ -2,6 +2,9 @@ package com.artivisi.accountingfinance.controller.api;
 
 import com.artivisi.accountingfinance.entity.ChartOfAccount;
 import com.artivisi.accountingfinance.enums.AccountType;
+import com.artivisi.accountingfinance.enums.CloseCheckRole;
+import com.artivisi.accountingfinance.enums.SelfTestRole;
+import com.artivisi.accountingfinance.enums.FiscalTreatment;
 import com.artivisi.accountingfinance.enums.NormalBalance;
 import com.artivisi.accountingfinance.security.LogSanitizer;
 import com.artivisi.accountingfinance.service.ChartOfAccountService;
@@ -131,6 +134,10 @@ public class ChartOfAccountApiController {
         entity.setPermanent(request.permanent() != null && request.permanent());
         entity.setIsCashBank(request.isCashBank());
         entity.setDescription(request.description());
+        entity.setFiscalTreatment(request.fiscalTreatment());
+        entity.setServiceExpense(request.serviceExpense());
+        entity.setCloseCheckRole(request.closeCheckRole());
+        entity.setSelfTestRole(request.selfTestRole());
 
         if (request.parentId() != null) {
             ChartOfAccount parent = chartOfAccountService.findById(request.parentId());
@@ -162,7 +169,12 @@ public class ChartOfAccountApiController {
 
             Boolean isCashBank,
 
-            String description
+            String description,
+
+            FiscalTreatment fiscalTreatment,
+            Boolean serviceExpense,
+            CloseCheckRole closeCheckRole,
+            SelfTestRole selfTestRole
     ) {}
 
     public record AccountResponse(
@@ -178,7 +190,12 @@ public class ChartOfAccountApiController {
             boolean permanent,
             boolean active,
             boolean isCashBank,
-            String description
+            String description,
+
+            FiscalTreatment fiscalTreatment,
+            Boolean serviceExpense,
+            CloseCheckRole closeCheckRole,
+            SelfTestRole selfTestRole
     ) {
         public static AccountResponse from(ChartOfAccount entity) {
             return new AccountResponse(
@@ -194,7 +211,11 @@ public class ChartOfAccountApiController {
                     Boolean.TRUE.equals(entity.getPermanent()),
                     Boolean.TRUE.equals(entity.getActive()),
                     Boolean.TRUE.equals(entity.getIsCashBank()),
-                    entity.getDescription()
+                    entity.getDescription(),
+                    entity.getFiscalTreatment(),
+                    entity.getServiceExpense(),
+                    entity.getCloseCheckRole(),
+                    entity.getSelfTestRole()
             );
         }
     }

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{layouts/main :: layout('Register Kontrak', ~{::#page-title}, ~{::section}, ~{})}"
+      lang="id">
+<head>
+    <title>Register Kontrak</title>
+</head>
+<body>
+    <h1 id="page-title">Register Kontrak</h1>
+
+    <section class="space-y-6">
+        <div th:if="${successMessage}" data-testid="flash-success"
+             class="p-4 rounded-lg bg-green-50 border border-green-200 text-sm font-medium text-green-800"
+             th:text="${successMessage}">Success</div>
+        <div th:if="${errorMessage}" data-testid="flash-error"
+             class="p-4 rounded-lg bg-red-50 border border-red-200 text-sm font-medium text-red-800"
+             th:text="${errorMessage}">Error</div>
+        <div class="flex justify-end">
+            <a sec:authorize="hasAuthority('EVIDENCE_MANAGE')" id="btn-new-contract" th:href="@{/contracts/new}" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">Kontrak Baru</a>
+        </div>
+        <div class="bg-white rounded-lg shadow overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nomor</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Judul</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Pihak</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mulai</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Berakhir</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dokumen</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    <tr th:if="${#lists.isEmpty(contracts)}">
+                        <td colspan="6" class="px-4 py-8 text-center text-gray-500">Belum ada kontrak</td>
+                    </tr>
+                    <tr th:each="c : ${contracts}" data-testid="contract-row" th:data-number="${c.contractNumber}" class="text-sm">
+                        <td class="px-4 py-3"><a class="text-primary-600 hover:underline" th:href="@{/contracts/{id}(id=${c.id})}" th:text="${c.contractNumber}">K-1</a></td>
+                        <td class="px-4 py-3" th:text="${c.title}">Judul</td>
+                        <td class="px-4 py-3" th:text="|${c.counterpartyKind}: ${c.counterpartyName}|">Klien</td>
+                        <td class="px-4 py-3" th:text="${#temporals.format(c.startDate, 'dd/MM/yyyy')}">01/01/2026</td>
+                        <td class="px-4 py-3" th:text="${c.endDate != null} ? ${#temporals.format(c.endDate, 'dd/MM/yyyy')} : 'Tanpa batas'">-</td>
+                        <td class="px-4 py-3" th:text="${c.hasFile()} ? 'Ada' : 'Belum ada'">Ada</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</body>
+</html>

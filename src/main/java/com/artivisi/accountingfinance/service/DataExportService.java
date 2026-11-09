@@ -276,7 +276,8 @@ public class DataExportService {
     private String exportChartOfAccounts() {
         StringBuilder csv = new StringBuilder();
         csv.append("account_code,account_name,account_type,parent_code,normal_balance,active,");
-        csv.append("is_permanent,is_cash_bank,created_at\n");
+        csv.append("is_permanent,is_cash_bank,created_at,");
+        csv.append("fiscal_treatment,service_expense,close_check_role,self_test_role\n");
 
         List<ChartOfAccount> accounts = accountRepository.findAll(Sort.by("accountCode"));
         for (ChartOfAccount a : accounts) {
@@ -288,7 +289,11 @@ public class DataExportService {
             csv.append(a.getActive()).append(",");
             csv.append(Boolean.TRUE.equals(a.getPermanent())).append(",");
             csv.append(Boolean.TRUE.equals(a.getIsCashBank())).append(",");
-            csv.append(a.getCreatedAt() != null ? a.getCreatedAt().format(DATETIME_FORMATTER) : "").append("\n");
+            csv.append(a.getCreatedAt() != null ? a.getCreatedAt().format(DATETIME_FORMATTER) : "").append(",");
+            csv.append(a.getFiscalTreatment() != null ? a.getFiscalTreatment().name() : "").append(",");
+            csv.append(a.getServiceExpense() != null ? a.getServiceExpense().toString() : "").append(",");
+            csv.append(a.getCloseCheckRole() != null ? a.getCloseCheckRole().name() : "").append(",");
+            csv.append(a.getSelfTestRole() != null ? a.getSelfTestRole().name() : "").append("\n");
         }
         return csv.toString();
     }
@@ -718,9 +723,9 @@ public class DataExportService {
         StringBuilder csv = new StringBuilder();
         // Use transaction_id (UUID) as primary key for linking (handles null transaction_number)
         csv.append("journal_number,journal_date,transaction_id,transaction_number,description,status,");
-        csv.append("account_code,debit_amount,credit_amount,posted_at,voided_at,void_reason\n");
+        csv.append("account_code,debit_amount,credit_amount,posted_at,voided_at,void_reason,line_order\n");
 
-        List<JournalEntry> entries = journalEntryRepository.findAll(Sort.by("journalNumber"));
+        List<JournalEntry> entries = journalEntryRepository.findAll(Sort.by("journalNumber", "lineOrder"));
         for (JournalEntry je : entries) {
             csv.append(escapeCsv(je.getJournalNumber())).append(",");
             csv.append(je.getJournalDate().format(DATE_FORMATTER)).append(",");
@@ -733,7 +738,8 @@ public class DataExportService {
             csv.append(je.getCreditAmount()).append(",");
             csv.append(je.getPostedAt() != null ? je.getPostedAt().format(DATETIME_FORMATTER) : "").append(",");
             csv.append(je.getVoidedAt() != null ? je.getVoidedAt().format(DATETIME_FORMATTER) : "").append(",");
-            csv.append(escapeCsv(je.getVoidReason())).append("\n");
+            csv.append(escapeCsv(je.getVoidReason())).append(",");
+            csv.append(je.getLineOrder()).append("\n");
         }
         return csv.toString();
     }
@@ -774,7 +780,7 @@ public class DataExportService {
         StringBuilder csv = new StringBuilder();
         csv.append("payroll_period,employee_id,gross_salary,total_deductions,net_pay,");
         csv.append("bpjs_kes_employee,bpjs_kes_company,bpjs_jht_employee,bpjs_jht_company,");
-        csv.append("bpjs_jp_employee,bpjs_jp_company,bpjs_jkk,bpjs_jkm,pph21\n");
+        csv.append("bpjs_jp_employee,bpjs_jp_company,bpjs_jkk,bpjs_jkm,pph21,benefit_in_kind,base_salary,bonus,thr\n");
 
         List<PayrollRun> payrollRuns = payrollRunRepository.findAll(Sort.by("payrollPeriod"));
         for (PayrollRun pr : payrollRuns) {
@@ -793,7 +799,11 @@ public class DataExportService {
                 csv.append(pd.getBpjsJpCompany()).append(",");
                 csv.append(pd.getBpjsJkk()).append(",");
                 csv.append(pd.getBpjsJkm()).append(",");
-                csv.append(pd.getPph21()).append("\n");
+                csv.append(pd.getPph21()).append(",");
+                csv.append(pd.getBenefitInKind()).append(",");
+                csv.append(pd.getBaseSalary()).append(",");
+                csv.append(pd.getBonus()).append(",");
+                csv.append(pd.getThr()).append("\n");
             }
         }
         return csv.toString();

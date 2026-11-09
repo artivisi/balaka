@@ -13,6 +13,13 @@ import java.util.UUID;
 
 public interface VendorRepository extends JpaRepository<Vendor, UUID> {
 
+    /** Serializes withholding on one payee: tax on a payment depends on earlier payments in the masa. */
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT v FROM Vendor v WHERE v.id = :id")
+    Optional<Vendor> findByIdForUpdate(@Param("id") UUID id);
+
+    List<Vendor> findByPayeeTypeIsNotNullOrderByNameAsc();
+
     Optional<Vendor> findByCode(String code);
 
     boolean existsByCode(String code);

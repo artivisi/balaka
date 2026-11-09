@@ -14,6 +14,8 @@ public interface TagTypeRepository extends JpaRepository<TagType, UUID> {
 
     boolean existsByCode(String code);
 
+    java.util.Optional<TagType> findByCode(String code);
+
     boolean existsByCodeAndIdNot(String code, UUID id);
 
     @Query("SELECT t FROM TagType t WHERE t.active = true ORDER BY t.name")

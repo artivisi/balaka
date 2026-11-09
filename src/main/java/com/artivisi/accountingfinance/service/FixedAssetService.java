@@ -2,21 +2,27 @@ package com.artivisi.accountingfinance.service;
 
 import com.artivisi.accountingfinance.dto.FormulaContext;
 import com.artivisi.accountingfinance.entity.AssetCategory;
+import com.artivisi.accountingfinance.entity.AssetDisposalStatus;
+import com.artivisi.accountingfinance.entity.AssetMovementSource;
 import com.artivisi.accountingfinance.entity.AssetStatus;
 import com.artivisi.accountingfinance.entity.ChartOfAccount;
 import com.artivisi.accountingfinance.entity.DepreciationEntry;
 import com.artivisi.accountingfinance.entity.DepreciationEntryStatus;
 import com.artivisi.accountingfinance.entity.DepreciationMethod;
-import com.artivisi.accountingfinance.entity.DisposalType;
+import com.artivisi.accountingfinance.entity.Document;
 import com.artivisi.accountingfinance.entity.FixedAsset;
 import com.artivisi.accountingfinance.entity.JournalTemplate;
 import com.artivisi.accountingfinance.entity.JournalTemplateLine;
 import com.artivisi.accountingfinance.entity.Transaction;
+import com.artivisi.accountingfinance.enums.TransactionStatus;
 import com.artivisi.accountingfinance.exception.MissingConfigurationException;
 import com.artivisi.accountingfinance.repository.AssetCategoryRepository;
+import com.artivisi.accountingfinance.repository.AssetDisposalRepository;
+import com.artivisi.accountingfinance.repository.TransactionRepository;
 import com.artivisi.accountingfinance.repository.ChartOfAccountRepository;
 import com.artivisi.accountingfinance.repository.DepreciationEntryRepository;
 import com.artivisi.accountingfinance.repository.FixedAssetRepository;
+import com.artivisi.accountingfinance.security.CurrentUser;
 import com.artivisi.accountingfinance.security.LogSanitizer;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -24,9 +30,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -36,6 +45,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -50,7 +60,11 @@ public class FixedAssetService {
 
     private static final String HINT_ASET_TETAP = "ASET_TETAP";
     private static final String ERR_DEPRECIATION_RATE_REQUIRED = "Tarif penyusutan wajib diisi untuk metode saldo menurun";
-    private static final UUID DISPOSAL_TEMPLATE_ID = UUID.fromString("e0000000-0000-0000-0000-000000000017");
+    private static final String ERR_DISPOSAL_DRAFT = "Aset masih punya draf pelepasan. Posting atau batalkan draf tersebut.";
+    private static final Set<String> PHOTO_CONTENT_TYPES = Set.of("image/jpeg", "image/png");
+
+    /** Source document type of the acquisition DRAFT composed by create(). */
+    public static final String ACQUISITION_SOURCE_TYPE = "ASSET";
 
     private final FixedAssetRepository fixedAssetRepository;
     private final AssetCategoryRepository assetCategoryRepository;
@@ -60,6 +74,10 @@ public class FixedAssetService {
     private final com.artivisi.accountingfinance.repository.JournalTemplateRepository journalTemplateRepository;
     private final TransactionService transactionService;
     private final DocumentPostingService documentPostingService;
+    private final DocumentService documentService;
+    private final AssetDisposalRepository assetDisposalRepository;
+    private final AssetMovementRecorder movementRecorder;
+    private final TransactionRepository transactionRepository;
 
     // ============================================
     // Asset CRUD Operations
@@ -122,6 +140,11 @@ public class FixedAssetService {
     @Transactional
     public FixedAsset create(FixedAsset asset, UUID purchaseTransactionId) {
         validateAsset(asset, null);
+        asset.setBrand(AssetMovementRecorder.normalize(asset.getBrand()));
+        asset.setModel(AssetMovementRecorder.normalize(asset.getModel()));
+        asset.setSerialNumber(AssetMovementRecorder.normalize(asset.getSerialNumber()));
+        asset.setCustodian(AssetMovementRecorder.normalize(asset.getCustodian()));
+        asset.setLocation(AssetMovementRecorder.normalize(asset.getLocation()));
 
         // Load and set category
         AssetCategory category = assetCategoryRepository.findById(asset.getCategory().getId())
@@ -183,7 +206,7 @@ public class FixedAssetService {
                 .hintToAccount(hints)
                 .variables(variables)
                 .createdBy("system")
-                .sourceDocumentType("ASSET")
+                .sourceDocumentType(ACQUISITION_SOURCE_TYPE)
                 .sourceDocumentId(saved.getId())
                 .build());
 
@@ -210,14 +233,15 @@ public class FixedAssetService {
         if (existing.isDisposed()) {
             throw new IllegalStateException("Aset yang sudah dilepas tidak dapat diubah");
         }
+        if (hasDraftDisposal(id)) {
+            throw new IllegalStateException(ERR_DISPOSAL_DRAFT);
+        }
 
         // Only allow editing if no depreciation has been recorded
         if (existing.getDepreciationPeriodsCompleted() > 0) {
             // Limited updates for assets with depreciation history
             existing.setName(assetData.getName());
             existing.setDescription(assetData.getDescription());
-            existing.setLocation(assetData.getLocation());
-            existing.setSerialNumber(assetData.getSerialNumber());
             existing.setNotes(assetData.getNotes());
         } else {
             validateAsset(assetData, id);
@@ -243,8 +267,6 @@ public class FixedAssetService {
             existing.setDepreciationStartDate(assetData.getDepreciationStartDate() != null
                     ? assetData.getDepreciationStartDate()
                     : assetData.getPurchaseDate().withDayOfMonth(1));
-            existing.setLocation(assetData.getLocation());
-            existing.setSerialNumber(assetData.getSerialNumber());
             existing.setNotes(assetData.getNotes());
 
             // Update book value
@@ -261,6 +283,13 @@ public class FixedAssetService {
             }
         }
 
+        // Identity is not a financial attribute: editable in both branches, also after depreciation.
+        existing.setBrand(AssetMovementRecorder.normalize(assetData.getBrand()));
+        existing.setModel(AssetMovementRecorder.normalize(assetData.getModel()));
+        existing.setSerialNumber(AssetMovementRecorder.normalize(assetData.getSerialNumber()));
+        movementRecorder.apply(existing, assetData.getCustodian(), assetData.getLocation(), assetData.getCondition(),
+                LocalDate.now(), AssetMovementSource.EDIT, CurrentUser::name);
+
         // autoPost is an operational flag (scheduler posts vs. leaves PENDING), not a
         // financial attribute — togglable in both branches even after depreciation history.
         existing.setAutoPost(assetData.isAutoPost());
@@ -270,21 +299,102 @@ public class FixedAssetService {
         return saved;
     }
 
+    /**
+     * Removing an asset is for a registration mistake that never reached the ledger. Anything else leaves through
+     * the disposal flow: a linked purchase, a posted acquisition, depreciation history or any disposal record blocks it.
+     * The acquisition DRAFT goes with the asset.
+     */
     @Transactional
     public void delete(UUID id) {
         FixedAsset asset = findById(id);
 
         if (asset.getDepreciationPeriodsCompleted() > 0) {
-            throw new IllegalStateException("Aset dengan riwayat penyusutan tidak dapat dihapus");
+            throw new IllegalStateException("Aset dengan riwayat penyusutan tidak dapat dihapus. Gunakan menu Lepas Aset.");
         }
-
         if (asset.getPurchaseTransaction() != null) {
-            throw new IllegalStateException("Aset dengan transaksi pembelian tidak dapat dihapus");
+            throw new IllegalStateException("Aset dengan transaksi pembelian tidak dapat dihapus. Gunakan menu Lepas Aset.");
+        }
+        if (assetDisposalRepository.existsByFixedAssetId(id)) {
+            throw new IllegalStateException("Aset dengan catatan pelepasan tidak dapat dihapus.");
+        }
+        List<Transaction> acquisitions = acquisitionTransactions(id);
+        if (acquisitions.stream().anyMatch(t -> t.getStatus() == TransactionStatus.POSTED)) {
+            throw new IllegalStateException("Aset dengan jurnal pembelian yang sudah diposting tidak dapat dihapus. Gunakan menu Lepas Aset.");
         }
 
+        if (asset.getPhotoDocument() != null) {
+            deletePhotoDocument(asset);
+        }
         depreciationEntryRepository.deleteByFixedAsset(asset);
         fixedAssetRepository.delete(asset);
+        acquisitions.stream().filter(Transaction::isDraft).forEach(t -> transactionService.delete(t.getId()));
         log.info("Deleted fixed asset: {}", LogSanitizer.sanitize(asset.getAssetCode()));
+    }
+
+    public boolean isDeletable(FixedAsset asset) {
+        return asset.getDepreciationPeriodsCompleted() == 0
+                && asset.getPurchaseTransaction() == null
+                && !assetDisposalRepository.existsByFixedAssetId(asset.getId())
+                && acquisitionTransactions(asset.getId()).stream().noneMatch(t -> t.getStatus() == TransactionStatus.POSTED);
+    }
+
+    private List<Transaction> acquisitionTransactions(UUID assetId) {
+        return transactionRepository.findBySourceDocumentTypeAndSourceDocumentIdOrderByTransactionDateAsc(
+                ACQUISITION_SOURCE_TYPE, assetId);
+    }
+
+    public boolean hasDraftDisposal(UUID assetId) {
+        return assetDisposalRepository.existsByFixedAssetIdAndStatus(assetId, AssetDisposalStatus.DRAFT);
+    }
+
+    // ============================================
+    // Photo
+    // ============================================
+
+    /** Stores the photo through the document store and replaces any earlier one. */
+    @Transactional
+    public FixedAsset attachPhoto(UUID id, MultipartFile file, String uploadedBy) throws IOException {
+        FixedAsset asset = findById(id);
+        if (file == null || file.getContentType() == null || !PHOTO_CONTENT_TYPES.contains(file.getContentType())) {
+            throw new IllegalArgumentException("Foto aset harus berformat JPEG atau PNG");
+        }
+        if (asset.getPhotoDocument() != null) {
+            deletePhotoDocument(asset);
+        }
+        asset.setPhotoDocument(documentService.upload(file, uploadedBy));
+        return fixedAssetRepository.save(asset);
+    }
+
+    @Transactional
+    public void removePhoto(UUID id) throws IOException {
+        FixedAsset asset = findById(id);
+        if (asset.getPhotoDocument() == null) {
+            throw new IllegalStateException("Aset belum punya foto");
+        }
+        deletePhotoDocument(asset);
+        fixedAssetRepository.save(asset);
+    }
+
+    public record AssetPhoto(String contentType, Resource resource) {
+    }
+
+    public AssetPhoto loadPhoto(UUID id) {
+        Document photo = findById(id).getPhotoDocument();
+        if (photo == null) {
+            throw new EntityNotFoundException("Aset belum punya foto");
+        }
+        return new AssetPhoto(photo.getContentType(), documentService.loadAsResource(photo.getId()));
+    }
+
+    private void deletePhotoDocument(FixedAsset asset) {
+        UUID documentId = asset.getPhotoDocument().getId();
+        asset.setPhotoDocument(null);
+        fixedAssetRepository.flush();
+        try {
+            documentService.delete(documentId);
+        } catch (IOException e) {
+            throw new IllegalStateException("Gagal menghapus foto aset: " + e.getMessage(), e);
+        }
     }
 
     public boolean existsByAssetCode(String assetCode) {
@@ -453,6 +563,12 @@ public class FixedAssetService {
         }
 
         FixedAsset asset = entry.getFixedAsset();
+        if (asset.isDisposed()) {
+            throw new IllegalStateException("Aset sudah dilepas; entri penyusutan tidak dapat di-posting");
+        }
+        if (hasDraftDisposal(asset.getId())) {
+            throw new IllegalStateException(ERR_DISPOSAL_DRAFT);
+        }
 
         // Get depreciation template with lines loaded, fall back to name lookup
         JournalTemplate template = journalTemplateRepository.findById(DEPRECIATION_TEMPLATE_ID)
@@ -503,7 +619,7 @@ public class FixedAssetService {
         }
 
         Transaction savedTransaction = transactionService.create(transaction, accountMappings);
-        Transaction postedTransaction = transactionService.post(savedTransaction.getId(), postedBy, context);
+        Transaction postedTransaction = transactionService.postSystem(savedTransaction.getId(), postedBy, context);
 
         // Update entry
         entry.setStatus(DepreciationEntryStatus.POSTED);
@@ -561,80 +677,6 @@ public class FixedAssetService {
 
         log.info("Skipped depreciation entry {} for asset {}",
                 entry.getId(), LogSanitizer.sanitize(entry.getFixedAsset().getAssetCode()));
-    }
-
-    // ============================================
-    // Disposal Operations
-    // ============================================
-
-    /**
-     * Dispose an asset (sell, write-off, or transfer).
-     */
-    @Transactional
-    public FixedAsset disposeAsset(UUID assetId, DisposalType type, BigDecimal proceeds,
-                                    String notes, LocalDate disposalDate, String disposedBy) {
-        FixedAsset asset = findByIdWithDetails(assetId);
-
-        if (asset.isDisposed()) {
-            throw new IllegalStateException("Aset sudah dilepas sebelumnya");
-        }
-
-        // Dispose the asset
-        asset.dispose(type, proceeds, notes, disposalDate);
-
-        // Get disposal template with lines loaded
-        JournalTemplate template = journalTemplateService.findByIdWithLines(DISPOSAL_TEMPLATE_ID);
-
-        // Create FormulaContext with disposal variables
-        BigDecimal safeProceeds = proceeds != null ? proceeds : BigDecimal.ZERO;
-        FormulaContext context = FormulaContext.of(
-                asset.getPurchaseCost(),
-                Map.of(
-                        "assetCost", asset.getPurchaseCost(),
-                        "accumulatedDepreciation", asset.getAccumulatedDepreciation(),
-                        "bookValue", asset.getBookValue(),
-                        "disposalProceeds", safeProceeds,
-                        "gainLoss", asset.getGainLossOnDisposal()
-                )
-        );
-
-        // Create account mappings for dynamic accounts (lines with NULL account and account_hint)
-        Map<UUID, UUID> accountMappings = new HashMap<>();
-        for (JournalTemplateLine line : template.getLines()) {
-            if (line.getAccount() == null && line.getAccountHint() != null) {
-                switch (line.getAccountHint()) {
-                    case "AKUM_PENYUSUTAN":
-                        accountMappings.put(line.getId(), asset.getAccumulatedDepreciationAccount().getId());
-                        break;
-                    case HINT_ASET_TETAP:
-                        accountMappings.put(line.getId(), asset.getAssetAccount().getId());
-                        break;
-                    default:
-                        log.warn("Unrecognized account hint '{}' in disposal template line {}",
-                                LogSanitizer.sanitize(line.getAccountHint()), line.getId());
-                        break;
-                }
-            }
-        }
-
-        // Create and post transaction
-        Transaction transaction = new Transaction();
-        transaction.setJournalTemplate(template);
-        transaction.setTransactionDate(disposalDate);
-        transaction.setAmount(asset.getPurchaseCost());
-        transaction.setDescription("Pelepasan Aset: " + asset.getName());
-        transaction.setReferenceNumber("DISP-" + asset.getAssetCode());
-
-        Transaction savedTransaction = transactionService.create(transaction, accountMappings);
-        Transaction postedTransaction = transactionService.post(savedTransaction.getId(), disposedBy, context);
-
-        asset.setDisposalTransaction(postedTransaction);
-
-        FixedAsset savedAsset = fixedAssetRepository.save(asset);
-        log.info("Disposed asset {}: type={}, proceeds={}, gainLoss={}",
-                LogSanitizer.sanitize(asset.getAssetCode()), type, safeProceeds, asset.getGainLossOnDisposal());
-
-        return savedAsset;
     }
 
     // ============================================

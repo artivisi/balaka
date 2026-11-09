@@ -42,6 +42,10 @@ public class InvoicePayment extends TimestampedEntity {
     @Column(name = "amount", nullable = false, precision = 19, scale = 2)
     private BigDecimal amount;
 
+    /** The part of amount the customer withheld as PPh 23 instead of paying in cash. */
+    @Column(name = "pph23_withheld", nullable = false, precision = 19, scale = 2)
+    private BigDecimal pph23Withheld = BigDecimal.ZERO;
+
     @NotNull(message = "Metode pembayaran wajib diisi")
     @Enumerated(EnumType.STRING)
     @Column(name = "payment_method", nullable = false, length = 20)
@@ -54,4 +58,7 @@ public class InvoicePayment extends TimestampedEntity {
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;
 
+    public BigDecimal getCashAmount() {
+        return amount.subtract(pph23Withheld);
+    }
 }

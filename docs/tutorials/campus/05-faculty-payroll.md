@@ -43,11 +43,11 @@ Klik **Buat & Kalkulasi**.
 | Item | Jan-Nov (per bulan) | Desember |
 |------|-------------------|----------|
 | Total Gross | 64.000.000 | 64.000.000 |
-| Total PPh 21 | 960.000 | 3.840.000 |
+| Total PPh 21 | 960.000 | 2.688.000 |
 | Total Net Pay | — | — |
 | Total Company BPJS | — | — |
 
-PPh 21 Desember lebih besar karena **rekonsiliasi tahunan** — PPh 21 dihitung ulang dengan tarif progresif dan selisih dari TER bulanan disesuaikan. Lihat [Panduan Payroll](../common/06-payroll.md#pph-21-ter) untuk penjelasan metode TER.
+PPh 21 Desember lebih besar karena **rekonsiliasi tahunan** — PPh 21 setahun dihitung ulang dengan tarif Pasal 17 dari penghasilan neto (bruto − biaya jabatan − iuran JHT + JP karyawan), lalu dikurangi PPh 21 Jan–Nov. Lihat [Panduan Payroll](../common/06-payroll.md#pph-21-ter) untuk penjelasan metode TER.
 
 ### 3. Approve & Post
 
@@ -71,7 +71,7 @@ Pada gaji Rp 8.000.000/bulan, tarif TER yang diterapkan tergantung status PTKP k
 
 Total PPh 21 bulan Jan-Nov: **Rp 960.000/bulan** (untuk 8 karyawan).
 
-Hutang PPh 21 di akhir tahun: **Rp 3.840.000** — ini adalah PPh 21 Desember yang akan disetor Januari 2026.
+Hutang PPh 21 di akhir tahun: **Rp 2.688.000** — ini adalah PPh 21 Desember yang akan disetor Januari 2026.
 
 ## Total Beban Gaji Tahunan
 

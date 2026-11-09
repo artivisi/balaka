@@ -105,8 +105,8 @@ class ServiceReportsTest extends PlaywrightTestBase {
             tx.setCreatedBy("admin");
             tx = transactionRepository.save(tx);
 
-            saveEntry(tx, account(row.expectedDebitAccount()), amount, BigDecimal.ZERO, number + "-01");
-            saveEntry(tx, account(row.expectedCreditAccount()), BigDecimal.ZERO, amount, number + "-02");
+            saveEntry(tx, account(row.expectedDebitAccount()), amount, BigDecimal.ZERO, number + "-01", 1);
+            saveEntry(tx, account(row.expectedCreditAccount()), BigDecimal.ZERO, amount, number + "-02", 2);
             transactionNumbers.add(number);
         }
         assertEquals(5, transactionNumbers.size(), "service/transactions.csv must hold the five report transactions");
@@ -367,9 +367,10 @@ class ServiceReportsTest extends PlaywrightTestBase {
     }
 
     private void saveEntry(Transaction transaction, ChartOfAccount account, BigDecimal debit, BigDecimal credit,
-                           String journalNumber) {
+                           String journalNumber, int lineOrder) {
         JournalEntry entry = new JournalEntry();
         entry.setJournalNumber(journalNumber);
+        entry.setLineOrder(lineOrder);
         entry.setTransaction(transaction);
         entry.setAccount(account);
         entry.setDebitAmount(debit);

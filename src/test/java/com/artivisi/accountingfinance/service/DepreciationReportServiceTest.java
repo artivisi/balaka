@@ -52,6 +52,15 @@ class DepreciationReportServiceTest {
     private DepreciationReportService reportService;
 
     @Autowired
+    private AssetDisposalService disposalService;
+
+    @Autowired
+    private TransactionService transactionService;
+
+    @Autowired
+    private com.artivisi.accountingfinance.repository.TransactionRepository transactionRepository;
+
+    @Autowired
     private FixedAssetService fixedAssetService;
 
     @Autowired
@@ -134,16 +143,15 @@ class DepreciationReportServiceTest {
     void shouldScopeItemsToPurchaseAndDisposalYears() {
         FixedAsset sold = createAsset(KOMPUTER, "12000000", 24, LocalDate.of(YEAR, 1, 10));
         fixedAssetService.postDepreciationEntry(generate(sold, 1).getId(), "admin");
-        FixedAsset soldDisposed = fixedAssetService.disposeAsset(sold.getId(), DisposalType.SOLD,
-                new BigDecimal("13000000"), "Dijual", LocalDate.of(YEAR, 2, 15), "admin");
+        FixedAsset soldDisposed = dispose(sold, DisposalType.SOLD, "13000000", accountRepository.findByAccountCode("1.1.02").orElseThrow().getId(),
+                "Pembeli", LocalDate.of(YEAR, 2, 15));
         assertThat(soldDisposed.getGainLossOnDisposal()).isEqualByComparingTo("1500000");
         assertThat(lines(soldDisposed.getDisposalTransaction().getId())).containsExactlyInAnyOrder(
                 "1.1.02 D13000000.00 C0.00", "1.2.02 D500000.00 C0.00",
                 "1.2.01 D0.00 C12000000.00", "4.2.02 D0.00 C1500000.00");
 
         FixedAsset scrapped = createAsset(KOMPUTER, "6000000", 12, LocalDate.of(YEAR, 1, 20));
-        FixedAsset scrappedDisposed = fixedAssetService.disposeAsset(scrapped.getId(), DisposalType.WRITTEN_OFF,
-                null, "Rusak", LocalDate.of(YEAR, 3, 1), "admin");
+        FixedAsset scrappedDisposed = dispose(scrapped, DisposalType.WRITTEN_OFF, null, null, null, LocalDate.of(YEAR, 1, 31));
         assertThat(scrappedDisposed.getGainLossOnDisposal()).isEqualByComparingTo("-6000000");
         assertThat(lines(scrappedDisposed.getDisposalTransaction().getId())).containsExactlyInAnyOrder(
                 "5.2.02 D6000000.00 C0.00", "1.2.01 D0.00 C6000000.00");
@@ -185,6 +193,17 @@ class DepreciationReportServiceTest {
     }
 
     // ==================== helpers ====================
+
+    private FixedAsset dispose(FixedAsset asset, DisposalType type, String proceeds, UUID proceedsAccount, String counterparty, LocalDate date) {
+        transactionRepository.findBySourceDocumentTypeAndSourceDocumentIdOrderByTransactionDateAsc(
+                        FixedAssetService.ACQUISITION_SOURCE_TYPE, asset.getId())
+                .forEach(t -> transactionService.post(t.getId(), "admin"));
+        var disposal = disposalService.create(new AssetDisposalService.CreateDisposal(asset.getId(), type, date,
+                proceeds == null ? null : new BigDecimal(proceeds), proceedsAccount, counterparty, "Alasan", "admin"));
+        transactionService.post(disposal.getTransaction().getId(), "admin");
+        entityManager.flush();
+        return fixedAssetService.findById(asset.getId());
+    }
 
     private DepreciationReport report(int year) {
         entityManager.flush();

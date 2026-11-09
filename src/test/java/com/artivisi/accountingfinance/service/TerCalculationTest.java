@@ -11,6 +11,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DisplayName("PPh 21 TER Calculation (PMK 168/2023)")
 class TerCalculationTest {
@@ -141,10 +142,11 @@ class TerCalculationTest {
         }
 
         @Test
-        @DisplayName("Null PTKP should default to TK_0")
+        @DisplayName("Null PTKP should be rejected")
         void nullPtkp() {
-            var result = service.calculateTer(new BigDecimal("10000000"), null);
-            assertThat(result.terCategory()).isEqualTo(TerCategory.A);
+            assertThatThrownBy(() -> service.calculateTer(new BigDecimal("10000000"), null))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("PTKP");
         }
     }
 
@@ -176,7 +178,7 @@ class TerCalculationTest {
             // May-Nov TER: 0 × 7 = 0
             BigDecimal janNovPph21 = new BigDecimal("1125300");
 
-            var result = service.calculateDecemberReconciliation(monthlyGross, PtkpStatus.K_2, janNovPph21);
+            var result = service.calculateDecemberReconciliation(monthlyGross, BigDecimal.ZERO, PtkpStatus.K_2, janNovPph21);
 
             // Expected from reference data:
             // annualGross: 85,012,000
@@ -203,7 +205,7 @@ class TerCalculationTest {
             // TER rate for Cat A, 10M = 2% → 200,000/month × 11 = 2,200,000
             BigDecimal janNovPph21 = new BigDecimal("2200000");
 
-            var result = service.calculateDecemberReconciliation(monthlyGross, PtkpStatus.TK_0, janNovPph21);
+            var result = service.calculateDecemberReconciliation(monthlyGross, BigDecimal.ZERO, PtkpStatus.TK_0, janNovPph21);
 
             // annualGross: 120,000,000
             // biayaJabatan: 6,000,000 (5% = 6M, at cap)
@@ -226,10 +228,36 @@ class TerCalculationTest {
             // Assume some small TER was withheld
             BigDecimal janNovPph21 = new BigDecimal("50000");
 
-            var result = service.calculateDecemberReconciliation(monthlyGross, PtkpStatus.K_I_3, janNovPph21);
+            var result = service.calculateDecemberReconciliation(monthlyGross, BigDecimal.ZERO, PtkpStatus.K_I_3, janNovPph21);
 
             assertThat(result.annualTax()).isEqualByComparingTo("0");
             assertThat(result.decemberPph21()).isEqualByComparingTo("-50000");
+        }
+    }
+
+    @Nested
+    @DisplayName("Rate table against the lampiran of PP 58/2023")
+    class RateTable {
+
+        @org.junit.jupiter.params.ParameterizedTest
+        @org.junit.jupiter.params.provider.CsvSource({
+                // Category A: bracket upper bound is inclusive, the next rupiah takes the next rate
+                "A, 5400000, 0", "A, 5400001, 0.25", "A, 12500000, 4", "A, 12500001, 5", "A, 13750000, 5",
+                "A, 13750001, 6", "A, 15100000, 6", "A, 15100001, 7", "A, 16950001, 8", "A, 19750001, 9",
+                "A, 24150001, 10", "A, 30160000, 13", "A, 39100000, 15", "A, 103000000, 24", "A, 510000000, 30",
+                "A, 1400000000, 33", "A, 1400000001, 34",
+                // Category B
+                "B, 6200000, 0", "B, 9200001, 1.5", "B, 11600001, 3", "B, 12600001, 4", "B, 13600001, 5",
+                "B, 14950001, 6", "B, 21850001, 9", "B, 31450001, 13", "B, 109000000, 24", "B, 555000000, 30",
+                "B, 1405000000, 33", "B, 1405000001, 34",
+                // Category C
+                "C, 6600000, 0", "C, 8850001, 1.25", "C, 11200000, 1.75", "C, 11200001, 2", "C, 12050001, 3", "C, 12950001, 4",
+                "C, 14150001, 5", "C, 19500001, 8", "C, 32600001, 13", "C, 110000000, 24", "C, 561000000, 30",
+                "C, 1419000000, 33", "C, 1419000001, 34"
+        })
+        @DisplayName("Rate at bracket edges")
+        void rateAtBracketEdges(TerCategory category, String gross, String rate) {
+            assertThat(category.lookupRate(new BigDecimal(gross))).isEqualByComparingTo(rate);
         }
     }
 }

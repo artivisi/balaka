@@ -53,6 +53,15 @@ public class CompanyConfigService {
         return companyConfigRepository.save(config);
     }
 
+    /** Evidence at posting (issue #51): null turns the check off. */
+    @Transactional
+    public CompanyConfig setEvidenceRequiredFrom(java.time.LocalDate from) {
+        CompanyConfig config = companyConfigRepository.findFirst()
+                .orElseThrow(() -> new IllegalStateException("Konfigurasi perusahaan belum ada"));
+        config.setEvidenceRequiredFrom(from);
+        return companyConfigRepository.save(config);
+    }
+
     @Transactional
     public CompanyConfig update(UUID id, CompanyConfig updatedConfig) {
         // Always fetch the existing config from database to ensure we're updating the right one

@@ -71,9 +71,11 @@ public interface TaxTransactionDetailRepository extends JpaRepository<TaxTransac
     // For e-Bupot Unifikasi (PPh withholding)
     @Query("SELECT t FROM TaxTransactionDetail t " +
             "JOIN t.transaction trx " +
-            "WHERE t.taxType IN ('PPH_21', 'PPH_23', 'PPH_42') " +
+            "WHERE t.taxType IN ('PPH_23', 'PPH_26', 'PPH_42') " +
             "AND trx.transactionDate BETWEEN :startDate AND :endDate " +
             "AND trx.status = 'POSTED' " +
+            // A bupot received from a customer on an invoice is issued by the customer, not by this company.
+            "AND (trx.sourceDocumentType IS NULL OR trx.sourceDocumentType <> 'INVOICE') " +
             "ORDER BY trx.transactionDate ASC, t.bupotNumber ASC")
     List<TaxTransactionDetail> findEBupotUnifikasiByDateRange(
             @Param("startDate") LocalDate startDate,
@@ -90,6 +92,12 @@ public interface TaxTransactionDetailRepository extends JpaRepository<TaxTransac
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate);
 
+    /** Every status, including VOID; the sales tax chain reads a voided faktur as one without revenue. */
+    @Query("""
+            SELECT t FROM TaxTransactionDetail t JOIN FETCH t.transaction LEFT JOIN FETCH t.invoicePayment
+            WHERE t.taxType = :taxType""")
+    List<TaxTransactionDetail> findAllByTaxTypeWithTransaction(@Param("taxType") TaxType taxType);
+
     boolean existsByFakturNumber(String fakturNumber);
 
     boolean existsByFakturNumberAndIdNot(String fakturNumber, UUID id);
@@ -104,4 +112,16 @@ public interface TaxTransactionDetailRepository extends JpaRepository<TaxTransac
             "AND trx.status = 'POSTED' " +
             "ORDER BY trx.transactionDate DESC")
     List<TaxTransactionDetail> findByCounterpartyNpwp(@Param("npwp") String npwp);
+
+    /** Rows of [transaction id, bupot number] for details that carry a bupot number. */
+    @Query("SELECT t.transaction.id, t.bupotNumber FROM TaxTransactionDetail t "
+            + "WHERE t.transaction.id IN :ids AND t.bupotNumber IS NOT NULL AND TRIM(t.bupotNumber) <> ''")
+    List<Object[]> findBupotNumbersByTransactionIds(@Param("ids") Collection<UUID> ids);
+
+    /** Tax details whose faktur is dated in the period while their posted transaction is dated after it. */
+    @Query("SELECT d FROM TaxTransactionDetail d JOIN FETCH d.transaction t WHERE d.fakturDate BETWEEN :from AND :to "
+            + "AND t.transactionDate > :to AND t.status = com.artivisi.accountingfinance.enums.TransactionStatus.POSTED "
+            + "ORDER BY t.transactionDate, t.transactionNumber")
+    List<TaxTransactionDetail> findFakturInPeriodPostedAfter(@Param("from") java.time.LocalDate from,
+                                                            @Param("to") java.time.LocalDate to);
 }

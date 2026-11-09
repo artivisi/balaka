@@ -1,12 +1,16 @@
 package com.artivisi.accountingfinance.controller.api;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.artivisi.accountingfinance.entity.Employee;
+import com.artivisi.accountingfinance.entity.PayrollAddition;
+import com.artivisi.accountingfinance.entity.PayrollAdditionType;
 import com.artivisi.accountingfinance.entity.PayrollDetail;
 import com.artivisi.accountingfinance.entity.PayrollRun;
 import com.artivisi.accountingfinance.entity.PayrollSchedule;
 import com.artivisi.accountingfinance.entity.PayrollStatus;
 import com.artivisi.accountingfinance.entity.PtkpStatus;
 import com.artivisi.accountingfinance.service.EmployeeService;
+import com.artivisi.accountingfinance.service.PayrollReconciliationService;
 import com.artivisi.accountingfinance.service.PayrollService;
 import com.artivisi.accountingfinance.service.PayrollService.YearlyPayrollSummary;
 import com.artivisi.accountingfinance.service.Pph21CalculationService;
@@ -19,6 +23,8 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -59,6 +65,7 @@ public class PayrollApiController {
     private final PayrollService payrollService;
     private final EmployeeService employeeService;
     private final Pph21CalculationService pph21CalculationService;
+    private final PayrollReconciliationService payrollReconciliationService;
 
     // ==================== PAYROLL RUN CRUD ====================
 
@@ -110,7 +117,7 @@ public class PayrollApiController {
         }
 
         log.info("API: Payroll run created - id={}, period={}", run.getId(), run.getPayrollPeriod());
-        return ResponseEntity.status(HttpStatus.CREATED).body(PayrollRunResponse.from(run));
+        return ResponseEntity.status(HttpStatus.CREATED).body(withWarnings(run));
     }
 
     @GetMapping("/{id}")
@@ -121,7 +128,8 @@ public class PayrollApiController {
         return payrollService.findById(id)
                 .map(run -> {
                     List<PayrollDetail> details = payrollService.getPayrollDetails(id);
-                    return ResponseEntity.ok(PayrollRunDetailResponse.from(run, details));
+                    return ResponseEntity.ok(PayrollRunDetailResponse.from(run, details,
+                            payrollService.getAdditions(id), payrollReconciliationService.warningsForRun(id)));
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -144,7 +152,7 @@ public class PayrollApiController {
         PayrollRun run = payrollService.calculatePayroll(id, request.baseSalary(), jkkRiskClass);
 
         log.info("API: Payroll calculated - id={}, employeeCount={}", run.getId(), run.getEmployeeCount());
-        return ResponseEntity.ok(PayrollRunResponse.from(run));
+        return ResponseEntity.ok(withWarnings(run));
     }
 
     @PostMapping("/{id}/approve")
@@ -159,7 +167,7 @@ public class PayrollApiController {
         PayrollRun run = payrollService.approvePayroll(id);
 
         log.info("API: Payroll approved - id={}", run.getId());
-        return ResponseEntity.ok(PayrollRunResponse.from(run));
+        return ResponseEntity.ok(withWarnings(run));
     }
 
     @PostMapping("/{id}/post")
@@ -181,7 +189,7 @@ public class PayrollApiController {
 
         log.info("API: Payroll posted - id={}, transactionId={}", run.getId(),
                 run.getTransaction() != null ? run.getTransaction().getId() : "null");
-        return ResponseEntity.ok(PayrollRunResponse.from(run));
+        return ResponseEntity.ok(withWarnings(run));
     }
 
     @DeleteMapping("/{id}")
@@ -197,6 +205,65 @@ public class PayrollApiController {
 
         log.info("API: Payroll deleted - id={}", id);
         return ResponseEntity.noContent().build();
+    }
+
+    private PayrollRunResponse withWarnings(PayrollRun run) {
+        return PayrollRunResponse.from(run, payrollReconciliationService.warningsForRun(run.getId()));
+    }
+
+    // ==================== BONUS AND THR ====================
+
+    @GetMapping("/{id}/additions")
+    @Operation(summary = "List bonus and THR rows of a payroll run")
+    @ApiResponse(responseCode = "200", description = "Rows of the run")
+    public ResponseEntity<List<PayrollAdditionResponse>> listAdditions(@PathVariable UUID id) {
+        return ResponseEntity.ok(payrollService.getAdditions(id).stream().map(PayrollAdditionResponse::from).toList());
+    }
+
+    @PostMapping("/{id}/additions")
+    @PreAuthorize("hasAuthority('SCOPE_payroll:write') and hasAuthority('PAYROLL_CREATE')")
+    @Operation(summary = "Add a bonus or THR row for one employee",
+            description = "Requires DRAFT or CALCULATED status. A CALCULATED run is recalculated at once with its "
+                    + "base salary and JKK class. The amount enters the TER base of the month and the December "
+                    + "reconciliation. BPJS is not affected.")
+    @ApiResponse(responseCode = "201", description = "Row added")
+    @ApiResponse(responseCode = "400", description = "Run status does not allow it, amount not positive, or employee not active")
+    public ResponseEntity<PayrollAdditionResponse> addAddition(
+            @PathVariable UUID id,
+            @Valid @RequestBody PayrollAdditionRequest request) {
+        PayrollAddition addition = payrollService.addAddition(id, request.employeeId(), request.type(),
+                request.amount(), request.description());
+        return ResponseEntity.status(HttpStatus.CREATED).body(PayrollAdditionResponse.from(addition));
+    }
+
+    @DeleteMapping("/{id}/additions/{additionId}")
+    @PreAuthorize("hasAuthority('SCOPE_payroll:write') and hasAuthority('PAYROLL_CREATE')")
+    @Operation(summary = "Remove a bonus or THR row",
+            description = "Requires DRAFT or CALCULATED status. A CALCULATED run is recalculated at once.")
+    @ApiResponse(responseCode = "204", description = "Row removed")
+    @ApiResponse(responseCode = "400", description = "Run status does not allow it, or row not on this run")
+    public ResponseEntity<Void> removeAddition(@PathVariable UUID id, @PathVariable UUID additionId) {
+        payrollService.removeAddition(id, additionId);
+        return ResponseEntity.noContent().build();
+    }
+
+    // ==================== RECONCILIATION ====================
+
+    @GetMapping("/reconciliation")
+    @Operation(summary = "Salary expense against payroll for twelve periods of a year",
+            description = "Ledger figures use POSTED journals on the payroll template's salary accounts, closing "
+                    + "entries excluded. Salary accounts are the debit lines with formula grossSalary, bonus or thr.")
+    @ApiResponse(responseCode = "200", description = "One row per month with yearly totals")
+    public ResponseEntity<PayrollReconciliationService.YearReconciliation> reconciliation(@RequestParam int year) {
+        return ResponseEntity.ok(payrollReconciliationService.reconcileYear(year));
+    }
+
+    @GetMapping("/reconciliation/{period}")
+    @Operation(summary = "Salary expense against payroll for one period (YYYY-MM)")
+    @ApiResponse(responseCode = "200", description = "Reconciliation of the period")
+    @ApiResponse(responseCode = "400", description = "Period is not YYYY-MM")
+    public ResponseEntity<PayrollReconciliationService.PeriodReconciliation> reconciliationPeriod(@PathVariable YearMonth period) {
+        return ResponseEntity.ok(payrollReconciliationService.reconcile(period));
     }
 
     // ==================== 1721-A1 ====================
@@ -221,18 +288,14 @@ public class PayrollApiController {
 
         YearlyPayrollSummary summary = payrollService.getYearlyPayrollSummary(employeeId, year);
 
-        // Calculate 1721-A1 using annual reconciliation method
-        BigDecimal penghasilanBruto = summary.totalGross();
-        BigDecimal biayaJabatan = penghasilanBruto.multiply(new BigDecimal("5"))
-                .divide(new BigDecimal("100"), 0, RoundingMode.HALF_UP)
-                .min(Pph21CalculationService.BIAYA_JABATAN_ANNUAL_MAX);
-        BigDecimal penghasilanNeto = penghasilanBruto.subtract(biayaJabatan);
-        BigDecimal ptkp = employee.getPtkpStatus().getAnnualAmount();
-        BigDecimal pkpRaw = penghasilanNeto.subtract(ptkp).max(BigDecimal.ZERO);
-        // Round down to nearest 1000
-        BigDecimal pkp = pkpRaw.divide(new BigDecimal("1000"), 0, RoundingMode.FLOOR)
-                .multiply(new BigDecimal("1000"));
-        BigDecimal pph21Terutang = pph21CalculationService.calculateProgressiveTax(pkp);
+        var annual = pph21CalculationService.calculateAnnualTax(
+                summary.getTotalBruto(), summary.totalPensionContributions(), employee.getPtkpStatus());
+        BigDecimal penghasilanBruto = annual.annualGross();
+        BigDecimal biayaJabatan = annual.biayaJabatan();
+        BigDecimal penghasilanNeto = annual.annualNeto();
+        BigDecimal ptkp = annual.ptkpAmount();
+        BigDecimal pkp = annual.pkp();
+        BigDecimal pph21Terutang = annual.annualTax();
         BigDecimal pph21Dipotong = summary.totalPph21();
         BigDecimal pph21KurangBayar = pph21Terutang.subtract(pph21Dipotong);
 
@@ -240,6 +303,9 @@ public class PayrollApiController {
                 .map(d -> new A1MonthlyBreakdown(
                         d.getPayrollRun().getPayrollPeriod(),
                         d.getGrossSalary(),
+                        d.getBonus(),
+                        d.getThr(),
+                        d.getBenefitInKind(),
                         d.getPph21()))
                 .toList();
 
@@ -255,8 +321,12 @@ public class PayrollApiController {
                         summary.monthCount()
                 ),
                 new A1Calculation(
+                        summary.getTotalSalary(),
+                        summary.totalBonusAndThr(),
+                        summary.totalBenefitInKind(),
                         penghasilanBruto,
                         biayaJabatan,
+                        summary.totalPensionContributions(),
                         penghasilanNeto,
                         ptkp,
                         pkp,
@@ -292,10 +362,10 @@ public class PayrollApiController {
                     summary.employee().getName(),
                     summary.employee().getNpwp(),
                     summary.monthCount(),
-                    summary.totalGross(),
+                    summary.getTotalBruto(),
                     summary.totalPph21()
             ));
-            totalGross = totalGross.add(summary.totalGross());
+            totalGross = totalGross.add(summary.getTotalBruto());
             totalPph21 = totalPph21.add(summary.totalPph21());
         }
 
@@ -332,9 +402,15 @@ public class PayrollApiController {
             int employeeCount,
             String notes,
             UUID transactionId,
-            LocalDateTime postedAt
+            LocalDateTime postedAt,
+            @JsonInclude(JsonInclude.Include.NON_NULL) List<String> warnings
     ) {
+        /** List rows: warnings need a ledger query per run, so the field is absent there. */
         public static PayrollRunResponse from(PayrollRun run) {
+            return from(run, null);
+        }
+
+        public static PayrollRunResponse from(PayrollRun run, List<String> warnings) {
             return new PayrollRunResponse(
                     run.getId(),
                     run.getPayrollPeriod(),
@@ -349,7 +425,8 @@ public class PayrollApiController {
                     run.getEmployeeCount(),
                     run.getNotes(),
                     run.getTransaction() != null ? run.getTransaction().getId() : null,
-                    run.getPostedAt()
+                    run.getPostedAt(),
+                    warnings
             );
         }
     }
@@ -361,9 +438,12 @@ public class PayrollApiController {
             BigDecimal totalGross,
             BigDecimal totalPph21,
             int employeeCount,
-            List<PayrollDetailResponse> details
+            List<PayrollDetailResponse> details,
+            List<PayrollAdditionResponse> additions,
+            List<String> warnings
     ) {
-        public static PayrollRunDetailResponse from(PayrollRun run, List<PayrollDetail> details) {
+        public static PayrollRunDetailResponse from(PayrollRun run, List<PayrollDetail> details,
+                                                    List<PayrollAddition> additions, List<String> warnings) {
             return new PayrollRunDetailResponse(
                     run.getId(),
                     run.getPayrollPeriod(),
@@ -371,7 +451,9 @@ public class PayrollApiController {
                     run.getTotalGross(),
                     run.getTotalPph21(),
                     run.getEmployeeCount(),
-                    details.stream().map(PayrollDetailResponse::from).toList()
+                    details.stream().map(PayrollDetailResponse::from).toList(),
+                    additions.stream().map(PayrollAdditionResponse::from).toList(),
+                    warnings
             );
         }
     }
@@ -381,6 +463,9 @@ public class PayrollApiController {
             UUID employeeId,
             String employeeName,
             BigDecimal baseSalary,
+            BigDecimal bonus,
+            BigDecimal thr,
+            BigDecimal benefitInKind,
             BigDecimal grossSalary,
             BigDecimal pph21,
             BigDecimal totalDeductions,
@@ -401,6 +486,9 @@ public class PayrollApiController {
                     d.getEmployee().getId(),
                     d.getEmployee().getName(),
                     d.getBaseSalary(),
+                    d.getBonus(),
+                    d.getThr(),
+                    d.getBenefitInKind(),
                     d.getGrossSalary(),
                     d.getPph21(),
                     d.getTotalDeductions(),
@@ -415,6 +503,28 @@ public class PayrollApiController {
                     d.getBpjsJpEmployee(),
                     d.getJkkRiskClass()
             );
+        }
+    }
+
+    public record PayrollAdditionRequest(
+            @NotNull(message = "Karyawan wajib diisi") UUID employeeId,
+            @NotNull(message = "Jenis wajib diisi") PayrollAdditionType type,
+            @NotNull(message = "Jumlah wajib diisi")
+            @Positive(message = "Jumlah harus lebih dari nol") BigDecimal amount,
+            @Size(max = 255, message = "Keterangan maksimal 255 karakter") String description
+    ) {}
+
+    public record PayrollAdditionResponse(
+            UUID id,
+            UUID employeeId,
+            String employeeName,
+            PayrollAdditionType type,
+            BigDecimal amount,
+            String description
+    ) {
+        public static PayrollAdditionResponse from(PayrollAddition a) {
+            return new PayrollAdditionResponse(a.getId(), a.getEmployee().getId(), a.getEmployee().getName(),
+                    a.getAdditionType(), a.getAmount(), a.getDescription());
         }
     }
 
@@ -437,8 +547,12 @@ public class PayrollApiController {
     ) {}
 
     public record A1Calculation(
+            BigDecimal gajiDanTunjangan,
+            BigDecimal bonusDanThr,
+            BigDecimal natura,
             BigDecimal penghasilanBruto,
             BigDecimal biayaJabatan,
+            BigDecimal iuranPensiun,
             BigDecimal penghasilanNeto,
             BigDecimal ptkp,
             BigDecimal pkp,
@@ -450,6 +564,9 @@ public class PayrollApiController {
     public record A1MonthlyBreakdown(
             String period,
             BigDecimal grossSalary,
+            BigDecimal bonus,
+            BigDecimal thr,
+            BigDecimal benefitInKind,
             BigDecimal pph21
     ) {}
 

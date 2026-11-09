@@ -63,6 +63,11 @@ public class DocumentPostingService {
     public Transaction createDraftFromTemplate(DraftRequest request) {
         JournalTemplate template = resolveTemplate(request.fixedTemplateId(), request.templateName());
 
+        // A template without lines would post as an empty, trivially balanced journal.
+        if (template.getLines().isEmpty()) {
+            throw new IllegalStateException("Journal template has no lines: " + template.getTemplateName());
+        }
+
         Map<UUID, UUID> accountMappings = new HashMap<>();
         for (JournalTemplateLine line : template.getLines()) {
             if (line.getAccount() == null && line.getAccountHint() != null) {

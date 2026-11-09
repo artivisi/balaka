@@ -15,11 +15,11 @@
 
 | ID | Name | PTKP | TER Category | Monthly PPh 21 (Jan-Nov) |
 |----|------|------|-------------|------------------------|
-| EMP-D001 | Ahmad Fauzi (CTO) | K_2 | B | 675,000 |
-| EMP-D002 | Sari Wulandari (PM) | TK_0 | A | 750,000 |
-| EMP-D003 | Riko Pratama (Senior Dev) | K_1 | B | 675,000 |
-| EMP-D004 | Maya Anggraini (BA) | TK_0 | A | 750,000 |
-| EMP-D005 | Dian Kusuma (QA Lead) | K_0 | A | 750,000 |
+| EMP-D001 | Ahmad Fauzi (CTO) | K_2 | B | 900,000 |
+| EMP-D002 | Sari Wulandari (PM) | TK_0 | A | 900,000 |
+| EMP-D003 | Riko Pratama (Senior Dev) | K_1 | B | 900,000 |
+| EMP-D004 | Maya Anggraini (BA) | TK_0 | A | 900,000 |
+| EMP-D005 | Dian Kusuma (QA Lead) | K_0 | A | 900,000 |
 
 ## Fixed Assets
 
@@ -35,19 +35,25 @@
 |-----------|----------|---------|
 | Kesehatan (cap 12M) | 120,000 | 480,000 |
 | JHT | 300,000 | 555,000 |
-| JP (cap 10,042,300) | 100,423 | 200,846 |
+| JP Jan-Feb (cap 10,042,300) | 100,423 | 200,846 |
+| JP Mar-Dec (cap 10,547,400, BPJS letter B/91/022025) | 105,474 | 210,948 |
 | JKK (class 1) | — | 36,000 |
 | JKM | — | 45,000 |
 
 ### Monthly Payroll Totals (5 employees)
-| Item | Jan-Nov | December |
-|------|---------|----------|
-| Total Gross | 75,000,000 | 75,000,000 |
-| Total Employee BPJS | 2,602,115 | 2,602,115 |
-| Total PPh 21 | 3,600,000 | 16,350,000 |
-| Total Deductions | 6,202,115 | 18,952,115 |
-| Total Net Pay | 68,797,885 | 56,047,885 |
-| Total Company BPJS | 6,584,230 | 6,584,230 |
+| Item | Jan-Feb | Mar-Nov | December |
+|------|---------|---------|----------|
+| Total Gross | 75,000,000 | 75,000,000 | 75,000,000 |
+| Total Employee BPJS | 2,602,115 | 2,627,370 | 2,627,370 |
+| Total PPh 21 | 4,500,000 | 4,500,000 | 2,808,000 |
+| Total Deductions | 7,102,115 | 7,127,370 | 5,435,370 |
+| Total Net Pay | 67,897,885 | 67,872,630 | 69,564,630 |
+| Total Company BPJS | 6,584,230 | 6,634,740 | 6,634,740 |
+
+December PPh 21 per employee: annual gross 180,000,000 - biaya jabatan 6,000,000 - employee JHT 3,600,000 -
+employee JP 1,255,586 (2 × 100,423 + 10 × 105,474) = neto 169,144,414; PKP rounded down to the thousand;
+Pasal 17 tax minus 9,900,000 withheld Jan-Nov. TK/0: 11,271,600 - 9,900,000 = 1,371,600 (two employees);
+K/0: 696,600; K/1: 21,600; K/2: 9,246,600 - 9,900,000 = -653,400 (refund). Total 2,808,000.
 
 ## Income Schedule (2025)
 
@@ -82,23 +88,24 @@ For each month January-December 2025:
 7. **Setor PPh 21** — amount from payrollRun.totalPph21, deposited 10th of next month (auto-generated)
 8. **Setor PPN** — previous month's PPN Keluaran, deposited 15th of current month (auto-generated)
 9. **Generate + post depreciation** — via depreciation management UI
-10. **Close fiscal period** — via fiscal period management UI
+
+The loader does not close fiscal periods; all 2025 periods stay OPEN.
 
 ## Verified Trial Balance at 2025-12-31
 
 | Account | Debit | Credit |
 |---------|-------|--------|
-| 1.1.02 Bank BCA | 1,288,859,240 | |
+| 1.1.02 Bank BCA | 1,274,812,140 | |
 | 1.1.26 Kredit Pajak PPh 23 | 36,600,000 | |
 | 1.2.01 Peralatan Komputer | 70,000,000 | |
 | 1.2.02 Akum. Penyusutan Peralatan Komputer | | 15,625,000 |
 | 2.1.03 Hutang PPN | | 69,300,000 |
-| 2.1.20 Hutang PPh 21 | | 16,350,000 |
+| 2.1.20 Hutang PPh 21 | | 2,808,000 |
 | 3.1.01 Modal Disetor | | 500,000,000 |
 | 4.1.01 Pendapatan Jasa Training | | 2,110,000,000 |
 | 5.1.01 Beban Gaji | 900,000,000 | |
 | 5.1.02 Beban BPJS Kesehatan | 28,800,000 | |
-| 5.1.03 Beban BPJS Ketenagakerjaan | 50,210,760 | |
+| 5.1.03 Beban BPJS Ketenagakerjaan | 50,715,860 | |
 | 5.1.05 Beban Sewa | 180,000,000 | |
 | 5.1.06 Beban Telekomunikasi | 30,000,000 | |
 | 5.1.12 Beban Penyusutan | 15,625,000 | |
@@ -106,18 +113,18 @@ For each month January-December 2025:
 | 5.1.21 Beban Software & Lisensi | 9,900,000 | |
 | 5.1.99 Beban Operasional Lainnya | 35,100,000 | |
 | 5.2.01 Beban Bank | 180,000 | |
-| **TOTAL** | **2,711,275,000** | **2,711,275,000** |
+| **TOTAL** | **2,697,733,000** | **2,697,733,000** |
 
 ## Key Verification Points
 
 ### Payroll
-- PPh 21 Jan-Nov: 3,600,000/month (5 employees × varying TER rates)
-- PPh 21 December: 16,350,000 (annual reconciliation with progressive rates)
-- Total PPh 21 annual: 55,950,000
+- PPh 21 Jan-Nov: 4,500,000/month (5 employees, 6% TER in categories A and B at 15M; PP 58/2023)
+- PPh 21 December: 2,808,000 (annual reconciliation with progressive rates, employee JHT + JP deducted)
+- Total PPh 21 annual: 52,308,000
 - PPh 21 deposits match payroll accruals exactly
 - Hutang Gaji = 0 at each month end (paid same month)
 - Hutang BPJS = 0 at each month end (paid same month)
-- Hutang PPh 21 = 16,350,000 at year end (December, deposited in January 2026)
+- Hutang PPh 21 = 2,808,000 at year end (December, deposited in January 2026)
 
 ### Fixed Assets & Depreciation
 - 2 assets: laptop (12 months depreciation) + server (10 months, from March)

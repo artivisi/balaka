@@ -84,6 +84,12 @@ public class Invoice extends TimestampedEntity {
     @JoinColumn(name = "id_transaction")
     private Transaction transaction;
 
+    /** Contract this invoice bills under; its file is the invoice journal's CONTRACT evidence. */
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_contract")
+    private Contract contract;
+
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;
 

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{layouts/main :: layout('Arsip Rekening Koran', ~{::#page-title}, ~{::section}, ~{})}"
+      lang="id">
+<head>
+    <title>Arsip Rekening Koran</title>
+</head>
+<body>
+    <h1 id="page-title">Arsip Rekening Koran</h1>
+
+    <section class="space-y-6">
+        <div th:if="${successMessage}" data-testid="flash-success"
+             class="p-4 rounded-lg bg-green-50 border border-green-200 text-sm font-medium text-green-800"
+             th:text="${successMessage}">Success</div>
+        <div th:if="${errorMessage}" data-testid="flash-error"
+             class="p-4 rounded-lg bg-red-50 border border-red-200 text-sm font-medium text-red-800"
+             th:text="${errorMessage}">Error</div>
+        <p class="text-sm text-gray-600" th:text="|Satu rekening koran per rekening bank per bulan. Bulan dianggap jatuh tempo ${graceDays} hari setelah akhir bulan; batas ini sama dengan ambang aturan peringatan Rekening Koran Belum Diarsipkan. Dokumen disimpan ${retentionYears} tahun sejak akhir bulan dan tidak dapat dihapus sebelum itu.|">Keterangan</p>
+
+        <form th:action="@{/evidence/bank-statements}" method="get" class="flex items-end gap-3">
+            <div>
+                <label for="year" class="block text-sm font-medium text-gray-700 mb-1">Tahun</label>
+                <input type="number" id="year" name="year" th:value="${year}" class="w-32 px-4 py-2 border border-gray-300 rounded-lg">
+            </div>
+            <button id="btn-filter" type="submit" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">Tampilkan</button>
+        </form>
+
+        <div class="bg-white rounded-lg shadow overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 text-xs">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rekening</th>
+                        <th th:each="m : ${#numbers.sequence(1, 12)}" class="px-2 py-3 text-center text-xs font-medium text-gray-500" th:text="${m}">1</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    <tr th:if="${#lists.isEmpty(rows)}">
+                        <td colspan="13" class="px-4 py-8 text-center text-gray-500">Belum ada rekening bank aktif</td>
+                    </tr>
+                    <tr th:each="row : ${rows}" data-testid="statement-row" th:data-bank="${row.account.bankName}" th:data-account="${row.account.accountName}">
+                        <td class="px-4 py-3 text-sm" th:text="|${row.account.bankName} ${row.account.accountName}|">BCA</td>
+                        <td th:each="cell : ${row.months}" class="px-2 py-3 text-center" data-testid="statement-cell"
+                            th:data-month="${cell.month}" th:data-status="${cell.status}">
+                            <span th:switch="${cell.status.name()}">
+                                <span th:case="'ARCHIVED'" class="text-green-700" title="Diarsipkan">Ada</span>
+                                <span th:case="'MISSING'" class="text-red-700 font-medium" title="Belum diarsipkan">Kurang</span>
+                                <span th:case="'NOT_DUE'" class="text-gray-400" title="Belum jatuh tempo">-</span>
+                                <span th:case="*" class="text-gray-300" title="Belum ada aktivitas">&middot;</span>
+                            </span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <form sec:authorize="hasAuthority('EVIDENCE_MANAGE')" th:action="@{/evidence/bank-statements}" method="post"
+              enctype="multipart/form-data" id="statement-upload-form" class="bg-white rounded-lg shadow p-6 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div>
+                <label for="bankAccountId" class="block text-gray-700 mb-1">Rekening Bank</label>
+                <select id="bankAccountId" name="bankAccountId" required class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                    <option value="">-- Pilih --</option>
+                    <option th:each="b : ${bankAccounts}" th:value="${b.id}" th:text="|${b.bankName} ${b.accountName}|">BCA</option>
+                </select>
+            </div>
+            <div>
+                <label for="month" class="block text-gray-700 mb-1">Bulan</label>
+                <input type="month" id="month" name="month" required class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+            </div>
+            <div>
+                <label for="statement-file" class="block text-gray-700 mb-1">File Rekening Koran</label>
+                <input type="file" id="statement-file" name="file" required accept="image/jpeg,image/png,image/gif,application/pdf" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+            </div>
+            <p class="md:col-span-2 text-xs text-gray-500">Mengunggah ulang bulan yang sudah ada menggantikan file aktif. File lama tetap tersimpan dengan status diganti.</p>
+            <div class="flex justify-end">
+                <button type="submit" id="btn-upload-statement" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">Arsipkan</button>
+            </div>
+        </form>
+
+        <div class="bg-white rounded-lg shadow overflow-x-auto">
+            <div class="p-6 border-b"><h3 class="text-lg font-medium text-gray-900">Riwayat Arsip</h3></div>
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rekening</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Bulan</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">File</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Disimpan Sampai</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"></th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    <tr th:if="${#lists.isEmpty(archives)}">
+                        <td colspan="6" class="px-4 py-8 text-center text-gray-500">Belum ada arsip pada tahun ini</td>
+                    </tr>
+                    <tr th:each="a : ${archives}" data-testid="archive-row" th:data-month="${a.yearMonth}" th:data-status="${a.status}" class="text-sm">
+                        <td class="px-4 py-3" th:text="|${a.bankAccount.bankName} ${a.bankAccount.accountName}|">BCA</td>
+                        <td class="px-4 py-3" th:text="${a.yearMonth}">2026-01</td>
+                        <td class="px-4 py-3"><a class="text-primary-600 hover:underline" th:href="@{/documents/{id}/view(id=${a.document.id})}" target="_blank" th:text="${a.document.originalFilename}">file.pdf</a></td>
+                        <td class="px-4 py-3" th:text="${a.status.name() == 'ACTIVE'} ? 'Aktif' : 'Diganti'">Aktif</td>
+                        <td class="px-4 py-3" th:text="${#temporals.format(a.retentionUntil, 'dd/MM/yyyy')}">31/01/2036</td>
+                        <td class="px-4 py-3 text-right">
+                            <form sec:authorize="hasAuthority('EVIDENCE_MANAGE')" th:unless="${a.isRetainedOn(today)}"
+                                  th:action="@{/evidence/bank-statements/{id}/delete(id=${a.id})}" method="post">
+                                <input type="hidden" name="year" th:value="${year}">
+                                <button type="submit" data-testid="btn-delete-archive" class="text-red-600 hover:underline">Hapus</button>
+                            </form>
+                            <span th:if="${a.isRetainedOn(today)}" class="text-xs text-gray-500">Masa simpan berjalan</span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</body>
+</html>

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/main :: layout('Pembayaran dengan Pemotongan PPh', ~{::#page-title}, ~{::section}, ~{})}"
+      lang="id">
+<head>
+    <title>Pembayaran dengan Pemotongan PPh</title>
+</head>
+<body>
+    <h1 id="page-title">Pembayaran dengan Pemotongan PPh</h1>
+
+    <section class="max-w-2xl" data-testid="withholding-payment-form">
+        <div th:if="${errorMessage}" data-testid="flash-error"
+             class="mb-4 p-4 rounded-lg bg-red-50 border border-red-200 text-sm font-medium text-red-800"
+             th:text="${errorMessage}">Error</div>
+
+        <form th:action="@{/withholding/payments/new}" th:object="${form}" method="post" class="bg-white rounded-lg shadow p-6 space-y-4">
+            <div>
+                <label for="vendorId" class="block text-sm font-medium text-gray-700 mb-1">Penerima</label>
+                <select id="vendorId" th:field="*{vendorId}" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500">
+                    <option value="">Pilih penerima</option>
+                    <option th:each="p : ${payees}" th:value="${p.id}" th:text="|${p.code} - ${p.name}|"></option>
+                </select>
+                <p class="mt-1 text-xs text-gray-500">Hanya vendor dengan Jenis Penerima terisi.</p>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label for="treatment" class="block text-sm font-medium text-gray-700 mb-1">Perlakuan Pajak</label>
+                    <select id="treatment" th:field="*{treatment}" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500">
+                        <option value="">Bawaan penerima</option>
+                        <option th:each="t : ${treatments}" th:value="${t.name()}" th:text="${t.indonesianName}"></option>
+                    </select>
+                </div>
+                <div>
+                    <label for="taxObjectCode" class="block text-sm font-medium text-gray-700 mb-1">Kode Objek Pajak</label>
+                    <select id="taxObjectCode" th:field="*{taxObjectCode}" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500">
+                        <option value="">Bawaan penerima</option>
+                        <option th:each="c : ${objectCodes}" th:value="${c.code}" th:text="${c.displayName}"></option>
+                    </select>
+                </div>
+                <div>
+                    <label for="paymentDate" class="block text-sm font-medium text-gray-700 mb-1">Tanggal Bayar</label>
+                    <input type="date" id="paymentDate" th:field="*{paymentDate}" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500">
+                </div>
+                <div>
+                    <label for="grossAmount" class="block text-sm font-medium text-gray-700 mb-1">Jumlah Bruto (dasar pemotongan)</label>
+                    <input type="number" step="0.01" min="0" id="grossAmount" th:field="*{grossAmount}" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500">
+                </div>
+                <div>
+                    <label for="expenseAccountId" class="block text-sm font-medium text-gray-700 mb-1">Akun Beban</label>
+                    <select id="expenseAccountId" th:field="*{expenseAccountId}" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500">
+                        <option value="">Kosongkan untuk pelunasan tagihan</option>
+                        <option th:each="a : ${expenseAccounts}" th:value="${a.id}" th:text="|${a.accountCode} - ${a.accountName}|"></option>
+                    </select>
+                </div>
+                <div>
+                    <label for="bankAccountId" class="block text-sm font-medium text-gray-700 mb-1">Akun Bank</label>
+                    <select id="bankAccountId" th:field="*{bankAccountId}" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500">
+                        <option value="">Pilih akun</option>
+                        <option th:each="a : ${bankAccounts}" th:value="${a.id}" th:text="|${a.accountCode} - ${a.accountName}|"></option>
+                    </select>
+                </div>
+            </div>
+            <fieldset class="border-t pt-4">
+                <legend class="text-sm font-medium text-gray-900">Pelunasan tagihan (opsional)</legend>
+                <div class="grid grid-cols-2 gap-4 mt-2">
+                    <div>
+                        <label for="billNumber" class="block text-sm font-medium text-gray-700 mb-1">Nomor Tagihan</label>
+                        <input type="text" id="billNumber" th:field="*{billNumber}" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500">
+                    </div>
+                    <div>
+                        <label for="settledAmount" class="block text-sm font-medium text-gray-700 mb-1">Jumlah Pelunasan (termasuk PPN)</label>
+                        <input type="number" step="0.01" min="0" id="settledAmount" th:field="*{settledAmount}" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500">
+                    </div>
+                    <div>
+                        <label for="paymentMethod" class="block text-sm font-medium text-gray-700 mb-1">Metode Pembayaran</label>
+                        <select id="paymentMethod" th:field="*{paymentMethod}" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500">
+                            <option value="">Pilih metode</option>
+                            <option th:each="m : ${paymentMethods}" th:value="${m.name()}" th:text="${m.indonesianName}"></option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="referenceNumber" class="block text-sm font-medium text-gray-700 mb-1">Nomor Referensi</label>
+                        <input type="text" id="referenceNumber" th:field="*{referenceNumber}" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500">
+                    </div>
+                </div>
+            </fieldset>
+            <div>
+                <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Keterangan</label>
+                <input type="text" id="description" th:field="*{description}" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500">
+            </div>
+            <div class="flex justify-end gap-2">
+                <a th:href="@{/withholding}" class="px-4 py-2 border border-gray-300 rounded-lg text-sm">Batal</a>
+                <button type="submit" id="btn-save-payment" class="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm hover:bg-primary-700">Hitung dan Simpan Draf</button>
+            </div>
+        </form>
+    </section>
+</body>
+</html>

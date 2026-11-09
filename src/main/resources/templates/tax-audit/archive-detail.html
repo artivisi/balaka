@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{layouts/main :: layout('Dokumen Arsip', ~{::#page-title}, ~{::section}, ~{})}"
+      lang="id">
+<head>
+    <title>Dokumen Arsip</title>
+</head>
+<body>
+    <h1 id="page-title" th:text="|${doc.docType.indonesianName} ${doc.docNumber != null ? doc.docNumber : ''}|">Dokumen Arsip</h1>
+
+    <section class="h-full flex flex-col overflow-y-auto space-y-6" data-testid="archive-detail-page">
+        <div th:if="${successMessage}" data-testid="flash-success" class="p-4 bg-green-50 border border-green-200 rounded-lg text-sm text-green-800" th:text="${successMessage}"></div>
+        <div th:if="${errorMessage}" data-testid="flash-error" class="p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800" th:text="${errorMessage}"></div>
+        <a th:href="@{/tax-audit/archive(year=${doc.docYear})}" class="text-sm text-primary-700 hover:underline">Kembali ke arsip</a>
+
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <dl class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                <div><dt class="text-xs text-gray-500">Tahun</dt><dd th:text="${doc.docYear}">2020</dd></div>
+                <div><dt class="text-xs text-gray-500">Lawan transaksi</dt><dd th:text="${doc.counterparty}">PT</dd></div>
+                <div><dt class="text-xs text-gray-500">Nilai</dt><dd class="font-mono" th:text="${doc.amount != null} ? ${#numbers.formatDecimal(doc.amount, 1, 'POINT', 2, 'COMMA')} : '-'"></dd></div>
+                <div><dt class="text-xs text-gray-500">Sumber asli</dt><dd data-testid="archive-source" th:text="|${doc.source.indonesianName}, diunduh ${doc.downloadedOn}|"></dd></div>
+                <div><dt class="text-xs text-gray-500">File</dt><dd>
+                    <a th:href="@{/tax-audit/archive/{id}/file(id=${doc.id})}" target="_blank" class="text-primary-700 hover:underline" th:text="${doc.document.originalFilename}">f.pdf</a></dd></div>
+                <div><dt class="text-xs text-gray-500">Teks</dt><dd data-testid="archive-text-status" th:text="${doc.textStatus.indonesianName}"></dd></div>
+                <div><dt class="text-xs text-gray-500">SHA-256</dt><dd class="font-mono text-xs break-all" th:text="${doc.document.checksumSha256}"></dd></div>
+                <div><dt class="text-xs text-gray-500">Ditautkan ke</dt><dd data-testid="archive-link">
+                    <a th:if="${doc.transaction != null}" th:href="@{/tax-audit/transactions/{id}(id=${doc.transaction.id}, line=${doc.journalEntry != null ? doc.journalEntry.id : null})}"
+                       class="text-primary-700 hover:underline"
+                       th:text="${doc.transaction.transactionNumber} + (${doc.journalEntry != null} ? ' baris ' + ${doc.journalEntry.account.accountCode} : '')">TRX</a>
+                    <span th:if="${doc.transaction == null}">-</span></dd></div>
+            </dl>
+            <p th:if="${doc.description}" class="mt-3 text-sm text-gray-700" th:text="${doc.description}"></p>
+        </div>
+
+        <form sec:authorize="hasAuthority('TAX_AUDIT_MANAGE')" th:action="@{/tax-audit/archive/{id}/link(id=${doc.id})}" method="post" id="archive-link-form"
+              class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 flex flex-wrap items-end gap-2 text-sm">
+            <div>
+                <label for="transactionNumber" class="block text-gray-700 mb-1">Nomor transaksi</label>
+                <input type="text" id="transactionNumber" name="transactionNumber" th:value="${doc.transaction != null ? doc.transaction.transactionNumber : ''}"
+                       class="px-3 py-2 border border-gray-300 rounded-lg">
+            </div>
+            <div>
+                <label for="accountCode" class="block text-gray-700 mb-1">Kode akun baris (opsional)</label>
+                <input type="text" id="accountCode" name="accountCode" th:value="${doc.journalEntry != null ? doc.journalEntry.account.accountCode : ''}"
+                       class="px-3 py-2 border border-gray-300 rounded-lg">
+            </div>
+            <button type="submit" id="btn-link-archive" class="px-3 py-2 text-white bg-primary-600 rounded-lg hover:bg-primary-700">Tautkan</button>
+            <p class="w-full text-xs text-gray-500">Kosongkan nomor transaksi untuk melepas tautan.</p>
+        </form>
+
+        <div th:if="${doc.extractedText}" class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <h2 class="text-base font-semibold text-gray-900 mb-2">Teks terbaca</h2>
+            <pre class="text-xs text-gray-700 whitespace-pre-wrap max-h-96 overflow-y-auto" data-testid="archive-text" th:text="${doc.extractedText}"></pre>
+        </div>
+    </section>
+</body>
+</html>

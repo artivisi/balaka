@@ -70,6 +70,7 @@ public class TransactionApiService {
     private final DocumentRepository documentRepository;
     private final ChartOfAccountRepository chartOfAccountRepository;
     private final JournalTemplateRepository journalTemplateRepository;
+    private final PayrollReconciliationService payrollReconciliationService;
 
     /**
      * Create draft transaction from AI-parsed receipt data.
@@ -255,6 +256,7 @@ public class TransactionApiService {
         if (!transaction.isDraft()) {
             throw new IllegalStateException("Only draft transactions can be updated: " + transaction.getStatus());
         }
+        transactionService.assertEditable(transactionId);
 
         if (request.templateId() != null) {
             JournalTemplate template = journalTemplateService.findByIdWithLines(request.templateId());
@@ -587,7 +589,8 @@ public class TransactionApiService {
                 draft.getOverallConfidence(),
                 needsClarification,
                 clarificationQuestion,
-                transactionId
+                transactionId,
+                transactionId != null ? payrollReconciliationService.warningsForTransaction(transactionId) : List.of()
         );
     }
 
@@ -823,7 +826,8 @@ public class TransactionApiService {
                 transaction.getAmount(),
                 transaction.getTransactionDate(),
                 transaction.getDescription(),
-                journalEntries
+                journalEntries,
+                payrollReconciliationService.warningsForTransaction(transaction.getId())
         );
     }
 }

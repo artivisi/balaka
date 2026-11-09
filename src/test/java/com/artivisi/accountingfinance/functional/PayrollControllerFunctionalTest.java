@@ -240,11 +240,11 @@ class PayrollControllerFunctionalTest extends PlaywrightTestBase {
 
             Locator cells = page.locator("[data-testid='detail-row-" + e.nik() + "'] td");
             assertThat(cells.nth(1)).hasText(e.name());
-            assertThat(cells.nth(2)).hasText("Rp 10,000,000");
-            assertThat(cells.nth(3)).hasText("Rp 400,000");
-            assertThat(cells.nth(4)).hasText(rupiah(e.pph21()));
-            assertThat(cells.nth(5)).hasText("(" + rupiah(e.deductions()) + ")");
-            assertThat(cells.nth(6)).hasText(rupiah(e.netPay()));
+            assertThat(cells.nth(5)).hasText("Rp 10,000,000");
+            assertThat(cells.nth(6)).hasText("Rp 400,000");
+            assertThat(cells.nth(7)).hasText(rupiah(e.pph21()));
+            assertThat(cells.nth(8)).hasText("(" + rupiah(e.deductions()) + ")");
+            assertThat(cells.nth(9)).hasText(rupiah(e.netPay()));
         }
 
         int n = details.size();
@@ -441,20 +441,21 @@ class PayrollControllerFunctionalTest extends PlaywrightTestBase {
         assertThat(dewi.getBpjsJkm()).isEqualByComparingTo("36000");
         assertThat(dewi.getBpjsJhtCompany()).isEqualByComparingTo("444000");
         assertThat(dewi.getBpjsJhtEmployee()).isEqualByComparingTo("240000");
-        // JP is capped at the 10,042,300 wage ceiling
-        assertThat(dewi.getBpjsJpCompany()).isEqualByComparingTo("200846");
-        assertThat(dewi.getBpjsJpEmployee()).isEqualByComparingTo("100423");
+        // JP is capped at the latest announced wage ceiling, 11,086,300 (in force since 2026-03)
+        assertThat(dewi.getBpjsJpCompany()).isEqualByComparingTo("221726");
+        assertThat(dewi.getBpjsJpEmployee()).isEqualByComparingTo("110863");
         assertThat(dewi.getPph21()).isEqualByComparingTo("480000");
-        assertThat(dewi.getNetPay()).isEqualByComparingTo("11059577");
+        // 12,000,000 - (120,000 + 240,000 + 110,863) - 480,000
+        assertThat(dewi.getNetPay()).isEqualByComparingTo("11049137");
         PayrollDetail budi = byNik.get(BUDI.nik());
         assertThat(budi.getPph21()).isEqualByComparingTo("360000");
-        assertThat(budi.getNetPay()).isEqualByComparingTo("11179577");
+        assertThat(budi.getNetPay()).isEqualByComparingTo("11169137"); // JP employee 110,863 on the 11,086,300 ceiling
 
         PayrollRun run = payrollRunRepository.findById(id).orElseThrow();
         assertThat(run.getStatus()).isEqualTo(PayrollStatus.CALCULATED);
         assertThat(run.getTotalGross()).isEqualByComparingTo(new BigDecimal("12000000").multiply(BigDecimal.valueOf(employeeCount)));
         openDetail(id);
-        assertThat(page.locator("[data-testid='detail-row-EMP-002'] td").nth(6)).hasText("Rp 11,059,577");
+        assertThat(page.locator("[data-testid='detail-row-EMP-002'] td").nth(9)).hasText("Rp 11,049,137");
 
         payrollService.approvePayroll(id);
         APIResponse rejected = postAction(id, "recalculate",
@@ -647,7 +648,8 @@ class PayrollControllerFunctionalTest extends PlaywrightTestBase {
             assertThat(cells.nth(3)).hasText("2");
             assertThat(cells.nth(4)).hasText("Rp 20,000,000");
             assertThat(cells.nth(5)).hasText(rupiah(e.pph21().multiply(BigDecimal.TWO)));
-            assertThat(cells.nth(6).locator("a"))
+            assertThat(cells.nth(6)).hasText("Rp 0");
+            assertThat(cells.nth(7).locator("a"))
                 .hasAttribute("href", "/payroll/bukti-potong/" + employeeUuid(e) + "/" + BUKTI_POTONG_YEAR + "/pdf");
         }
     }

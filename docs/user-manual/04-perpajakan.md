@@ -119,6 +119,145 @@ Buka menu **Laporan** > **Ringkasan Pajak**.
 
 ---
 
+## Pemotongan PPh atas Pembayaran
+
+Menu **Pembelian** > **Pemotongan PPh** mencatat pembayaran ke freelancer, vendor dan penerima luar negeri. Sistem menghitung bruto, PPh dan jumlah yang dibayar, mencatat hutang PPh, lalu memantau setoran per masa.
+
+### Tarif
+
+| Perlakuan | Penerima | Dasar | Tarif | Tanpa NPWP/NIK |
+|-----------|----------|-------|-------|----------------|
+| PPh 21 Bukan Pegawai | Orang pribadi | 50% bruto per pembayaran | Pasal 17 | Lebih tinggi 20% |
+| PPh 23 | Badan atau orang pribadi | Bruto | 2% | Lebih tinggi 100% |
+| PPh 26 | Luar negeri | Bruto | 20% atau tarif P3B | Tidak berpengaruh |
+
+Tarif dan kode objek pajak dicocokkan dengan PMK 168/2023, PMK 81/2024 dan daftar kode objek pajak e-Bupot per 6 November 2026, belum diperiksa konsultan pajak.
+
+Tarif berjenjang Pasal 17 dihitung dari bruto setiap pembayaran, tidak diakumulasikan dengan pembayaran lain ke penerima yang sama (PMK 168/2023). PTKP tidak dikurangkan. Contoh dengan NIK: dua pembayaran Rp 100.000.000 pada bulan yang sama masing-masing dipotong Rp 2.500.000.
+
+Tarif P3B berlaku hanya jika nomor DGT terisi dan DGT masih berlaku pada tanggal bayar. Jika tidak, sistem menghitung tarif umum 20% dan kolom Dasar Tarif menampilkan alasannya.
+
+### Data Penerima
+
+Buka **Pembelian** > **Vendor**, lalu isi bagian Informasi Pajak:
+
+1. **Jenis Penerima**: Badan dalam negeri, Orang pribadi dalam negeri, atau Penerima luar negeri
+2. **Perlakuan Pajak Bawaan** dan **Kode Objek Pajak Bawaan**
+3. **NPWP** atau **NIK**. Untuk penerima luar negeri: **Kode Negara**, **TIN Luar Negeri**, **Tarif P3B**, **Nomor Formulir DGT**, **DGT Berlaku Sampai**
+
+NPWP dan NIK vendor tersimpan terenkripsi.
+
+### Mencatat Pembayaran
+
+1. Klik **Pembayaran Baru**
+2. Pilih penerima, isi tanggal bayar, jumlah bruto, akun beban, akun bank dan keterangan
+3. Klik **Hitung dan Simpan Draf**
+4. Periksa PPh Dipotong dan Dibayar ke Penerima, lalu klik **Posting**
+
+Draf belum masuk jurnal. **Batalkan Draf** menghapus draf tanpa mengubah pembayaran lain. Pembayaran terposting dibatalkan lewat void transaksi.
+
+Jurnal setelah posting:
+
+```
+Dr. Beban Jasa Profesional  10.000.000
+    Cr. Bank                 9.750.000
+    Cr. Hutang PPh 21          250.000
+```
+
+Akun hutang dicari berdasarkan nama: **Hutang PPh 21**, **Hutang PPh 23**, **Hutang PPh 26**. Jika nama tersebut tidak ada atau ganda, penyimpanan draf ditolak.
+
+### Melunasi Tagihan dengan Pemotongan
+
+Pada form pembayaran, kosongkan Akun Beban dan isi **Nomor Tagihan**, **Jumlah Pelunasan** (termasuk PPN) dan **Metode Pembayaran**. Jumlah Bruto tetap dasar pemotongan, tanpa PPN. Jurnal mendebit Hutang Usaha. Status tagihan berubah saat draf diposting.
+
+### Setoran dan Jatuh Tempo
+
+Pilih masa pada halaman **Pemotongan PPh**. Tabel Status Setor menampilkan PPh dipotong, disetor, sisa, tanggal jatuh tempo dari Kalender Pajak dan statusnya. Hanya transaksi terposting yang dihitung; nilai draf tampil di kolom tersendiri.
+
+Untuk mencatat setoran, isi form Setoran, klik **Simpan Draf Setoran**, lalu **Posting**. Tanggal jatuh tempo belum digeser ke hari kerja berikutnya.
+
+Setoran di menu ini hanya untuk PPh hasil pemotongan di menu ini. PPh 21 karyawan disetor lewat template Setor PPh 21.
+
+### Ekspor
+
+- **Ekspor BP21**: PPh 21 bukan pegawai
+- **Ekspor Bupot Unifikasi**: PPh 23, PPh 26 dan PPh 4(2). PPh 21 tidak lagi masuk ekspor ini
+
+Format kolom belum dicocokkan dengan konverter Coretax terbaru.
+
+### Pembayaran Jasa Tanpa Detail PPh
+
+Bagian ini menampilkan transaksi terposting pada akun jasa yang tidak punya detail PPh 21, 23, 26 atau 4(2) pada masa terpilih. Detail PPN tidak dihitung.
+
+Akun jasa diatur di **Bagan Akun**, kolom **Akun Jasa (Pemotongan PPh)**. Akun beban yang belum diklasifikasi dan punya transaksi pada masa itu muncul sebagai peringatan, karena laporan tidak bisa menilainya.
+
+---
+
+## Rantai Pajak Penjualan
+
+Menu **Pembelian** > **Rantai Pajak Penjualan** dan bagian **Faktur dan Bukti Potong** pada halaman invoice menghubungkan invoice dengan faktur, penerimaan dan bukti potong PPh 23. Nomor faktur dan nomor bukti potong hanya tersimpan di detail pajak transaksi. Detail pajak ikut ke invoice melalui transaksinya.
+
+### Mencatat Faktur
+
+Pada halaman invoice yang sudah terkirim, klik **Catat Faktur**, isi nomor, tanggal, kode transaksi, DPP dan PPN, lalu klik **Simpan Faktur**. Faktur menempel pada transaksi pendapatan pertama dari invoice. Invoice dengan beberapa akun pendapatan tetap memiliki satu faktur. Faktur kedua lewat form ini ditolak.
+
+### Mencatat Penerimaan dengan PPh 23
+
+Jika pelanggan memotong PPh 23, isi **Jumlah** dengan piutang yang lunas, termasuk PPh 23, dan isi **PPh 23 Dipotong Pelanggan** dengan potongannya. Contoh: tagihan Rp 11.100.000, uang masuk Rp 10.900.000, potongan Rp 200.000. Isi Jumlah 11.100.000 dan PPh 23 Dipotong Pelanggan 200.000. Invoice menjadi lunas.
+
+Form ini belum membuat jurnal, sama seperti sebelumnya. Uang masuk tetap dicatat dengan template **Terima Pelunasan Piutang** sebesar Rp 10.900.000.
+
+### Mencatat Bukti Potong
+
+Bukti potong biasanya datang setelah uang masuk. Klik **Catat Bukti Potong**, pilih penerimaan, isi nomor, tanggal, kode objek pajak, bruto, tarif dan PPh, lalu klik **Simpan sebagai Draf**. Sistem membuat draf transaksi dengan template **Pemotongan PPh 23 oleh Pelanggan**. Setelah diposting:
+
+```
+Dr. Kredit Pajak PPh 23    200.000
+    Cr. Piutang Usaha       200.000
+```
+
+Tanggal bukti potong menjadi tanggal transaksi dan menentukan masa kredit pajak. Bukti potong dari pelanggan masuk Lampiran III dan tidak masuk Ekspor Bupot Unifikasi.
+
+Akun dicari berdasarkan nama **Kredit Pajak PPh 23**. Jika nama tersebut tidak ada atau ganda, penyimpanan ditolak.
+
+### Pengecualian
+
+Daftar pengecualian menampilkan semua pengecualian yang tanggalnya sampai akhir masa terpilih. Pengecualian masa lama tetap tampil sampai diperbaiki.
+
+| Jenis | Muncul jika | Tidak muncul jika | Cara Menyelesaikan |
+|-------|-------------|-------------------|--------------------|
+| Dibayar tanpa faktur | Invoice ber-PPN sudah dibayar sebagian atau lunas dan belum punya faktur bernomor | Invoice tanpa PPN, belum dibayar, atau dibatalkan | Catat faktur |
+| Faktur tanpa pendapatan terposting | Pendapatan invoice atau transaksi masih draf, sudah di-void, atau transaksinya tidak punya akun pendapatan | Sebagian pendapatan invoice sudah terposting | Posting pendapatan. Jika faktur sudah dibatalkan di Coretax, hapus detail pajaknya |
+| Lebih dari satu faktur pada satu invoice | Satu invoice punya dua faktur atau lebih pada transaksi yang tidak di-void | Faktur lama berada pada transaksi yang sudah di-void | Hapus detail pajak yang salah |
+| Bukti potong belum ada | PPh 23 pada penerimaan belum tertutup bukti potong, detail PPh 23 pada transaksi pendapatan belum bernomor, atau akun Kredit Pajak PPh 23 didebit tanpa detail PPh 23 | Bukti potong masih draf, atau detail PPh 23 berasal dari pembayaran ke vendor | Catat bukti potong atau isi nomornya |
+
+Bukti potong yang transaksinya di-void tidak dihitung. Tidak ada tombol untuk mengabaikan pengecualian.
+
+### Rekonsiliasi Bulanan
+
+Tabel pertama menjelaskan selisih pendapatan terposting dan DPP SPT Masa PPN pada masa terpilih. DPP SPT Masa PPN adalah jumlah DPP faktur bernomor pada transaksi terposting dengan tanggal faktur pada masa tersebut.
+
+| Baris | Isi |
+|-------|-----|
+| PPN ikut terbukukan sebagai pendapatan | Pendapatan lebih besar dari DPP tepat sebesar PPN faktur |
+| PPh 23 mengurangi pendapatan | Pendapatan lebih kecil dari DPP tepat sebesar PPh 23 |
+| Pendapatan tanpa faktur | Pendapatan tanpa faktur di masa mana pun. Pendapatan bunga juga masuk baris ini |
+| Pendapatan masa ini, faktur di masa lain | Faktur bertanggal di masa lain |
+| Faktur masa ini, pendapatan di masa lain | Pendapatan terposting di masa lain |
+| Faktur tanpa pendapatan terposting | Transaksi terposting tanpa akun pendapatan |
+| Selisih DPP Nilai Lain | Faktur kode 04 |
+| Selisih lain | Selisih yang tidak cocok dengan semua baris di atas |
+
+Faktur pada transaksi draf belum masuk DPP dan muncul sebagai pengecualian.
+
+Tabel kedua menampilkan efek PPN dan PPh 23: DPP ditambah PPN faktur, dikurangi PPh 23 bukti potong, serta selisih PPN dan PPh 23 terhadap buku besar.
+
+Jika Ekspor e-Faktur memuat DPP yang berbeda, halaman menampilkan peringatan. Ekspor memilih baris berdasarkan tanggal transaksi dan memuat baris tanpa nomor faktur.
+
+Status SPT Masa PPN diambil dari Register Pelaporan Pajak. Nilai DPP pada SPT yang dilaporkan ke DJP tidak tersimpan di aplikasi, sehingga angka ini berasal dari data aplikasi.
+
+---
+
 ## Periode Fiskal
 
 Periode fiskal mengontrol kapan transaksi dapat diposting. Setiap bulan memiliki status yang menentukan apakah jurnal dapat dibuat di bulan tersebut.
@@ -284,6 +423,37 @@ Buka menu **Laporan** > **Rekonsiliasi Fiskal**. Di halaman ini:
 
 Hasil koreksi fiskal ditampilkan dalam laporan rekonsiliasi fiskal dan digunakan dalam perhitungan PPh Badan.
 
+### Perlakuan Fiskal Akun
+
+Setiap akun beban yang bukan header memiliki atribut **Perlakuan Fiskal** pada form akun (**Master Data** > **Bagan Akun**):
+
+| Nilai | Dampak pada draf koreksi |
+|-------|--------------------------|
+| Dapat dikurangkan | Tidak ada draf |
+| Tidak dapat dikurangkan | Draf sebesar saldo akun setahun |
+| Bersyarat | Draf sebesar saldo akun setahun dikurangi natura yang punya penerima |
+| Belum diklasifikasi | Tidak ada draf. Akun bersaldo tampil sebagai peringatan |
+
+Akun lama pada basis data yang sudah berjalan berstatus **Belum diklasifikasi** sampai diisi. Atribut ini ditolak pada akun selain beban dan pada akun header.
+
+### Draf Koreksi dari Perlakuan Fiskal
+
+Di halaman **Rekonsiliasi Fiskal**, bagian **Draf Koreksi dari Perlakuan Fiskal Akun**:
+
+1. Klik **Buat Draf Koreksi**. Sistem membuat draf Beda Tetap, arah Positif, untuk akun Tidak dapat dikurangkan dan Bersyarat.
+2. Baca kolom Catatan. Kolom ini memuat saldo akun, natura dengan penerima, dan koreksi yang sudah dikonfirmasi.
+3. Ubah jumlah bila perlu, lalu klik **Konfirmasi**. Koreksi masuk ke perhitungan PKP.
+4. Klik **Tolak** untuk menghapus draf yang tidak berlaku.
+
+Draf tidak masuk ke total koreksi, PKP, PPh Badan, L1, maupun ekspor SPT sebelum dikonfirmasi. **Checklist SPT** menampilkan jumlah draf yang belum ditinjau.
+
+Klik **Buat Draf Koreksi** sekali lagi akan mengganti seluruh draf hasil pembuatan sebelumnya pada tahun tersebut, termasuk draf yang jumlahnya sudah diubah tetapi belum dikonfirmasi dan draf yang sudah ditolak. Koreksi yang sudah dikonfirmasi tetap ada dan mengurangi jumlah draf baru untuk akun yang sama.
+
+Peringatan setelah pembuatan draf:
+
+- **Akun bersaldo tanpa perlakuan fiskal**: isi Perlakuan Fiskal akun tersebut, lalu buat ulang draf.
+- **Transaksi berlabel Natura tanpa penerima**: catat penerima pada detail transaksi (lihat [Natura dan Kenikmatan](05-penggajian.md)).
+
 ### Mengelola Koreksi Fiskal via API
 
 Endpoint CRUD tersedia untuk integrasi dengan sistem eksternal:
@@ -293,6 +463,8 @@ GET    /api/fiscal-adjustments?year=2025     — daftar koreksi per tahun
 POST   /api/fiscal-adjustments               — buat koreksi baru
 PUT    /api/fiscal-adjustments/{id}           — update koreksi
 DELETE /api/fiscal-adjustments/{id}           — hapus koreksi
+POST   /api/fiscal-adjustments/generate?year=2025 — buat draf dari perlakuan fiskal akun
+POST   /api/fiscal-adjustments/{id}/confirm   — konfirmasi draf
 ```
 
 Contoh request membuat koreksi:
@@ -315,17 +487,18 @@ Validasi:
 - `amount`: harus positif
 - `year` dan `description`: wajib diisi
 
-Autentikasi: Bearer token dengan scope `tax-export:read`.
+Autentikasi: Bearer token. Scope `tax-export:read` untuk membaca, `tax-export:write` untuk menulis.
 
 ### Skenario Penggunaan
 
 **Persiapan SPT Tahunan Badan:**
 
 1. Setelah tutup buku komersial, buka Rekonsiliasi Fiskal
-2. Tambahkan koreksi positif untuk biaya yang tidak diakui pajak (denda, natura, biaya tanpa bukti potong)
-3. Tambahkan koreksi negatif jika ada pendapatan yang sudah dikenai pajak final
-4. Verifikasi total koreksi dan PKP yang dihasilkan
-5. Gunakan hasil untuk mengisi SPT Tahunan Badan di Coretax
+2. Klik **Buat Draf Koreksi**, tinjau, lalu konfirmasi atau tolak setiap draf
+3. Tambahkan koreksi positif untuk biaya lain yang tidak diakui pajak dan tidak tercakup draf (biaya tanpa bukti potong)
+4. Tambahkan koreksi negatif jika ada pendapatan yang sudah dikenai pajak final
+5. Verifikasi total koreksi dan PKP yang dihasilkan
+6. Gunakan hasil untuk mengisi SPT Tahunan Badan di Coretax
 
 ---
 

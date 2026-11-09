@@ -156,7 +156,7 @@ Untuk sebagian besar klien Balaka (IT service, online seller, coffee shop, kampu
 |----------|--------------------|-----------------------|-----------------|
 | Kesehatan | 1% | 4% | Rp 12.000.000 |
 | JHT | 2% | 3,7% | Tidak ada |
-| JP | 1% | 2% | Rp 10.042.300 |
+| JP | 1% | 2% | Rp 11.086.300 sejak Maret 2026 (berubah tiap Maret) |
 | JKK | — | Sesuai kelas risiko | Tidak ada |
 | JKM | — | 0,3% | Tidak ada |
 

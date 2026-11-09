@@ -1,10 +1,13 @@
 package com.artivisi.accountingfinance.controller;
 
 import com.artivisi.accountingfinance.entity.PayrollDetail;
+import com.artivisi.accountingfinance.entity.PayrollAdditionType;
 import com.artivisi.accountingfinance.entity.PayrollRun;
 import com.artivisi.accountingfinance.entity.PayrollStatus;
 import com.artivisi.accountingfinance.security.Permission;
 import com.artivisi.accountingfinance.service.PayrollReportService;
+import com.artivisi.accountingfinance.service.EmployeeService;
+import com.artivisi.accountingfinance.service.PayrollReconciliationService;
 import com.artivisi.accountingfinance.service.PayrollService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -53,10 +56,16 @@ public class PayrollController {
 
     private final PayrollService payrollService;
     private final PayrollReportService payrollReportService;
+    private final PayrollReconciliationService payrollReconciliationService;
+    private final EmployeeService employeeService;
 
-    public PayrollController(PayrollService payrollService, PayrollReportService payrollReportService) {
+    public PayrollController(PayrollService payrollService, PayrollReportService payrollReportService,
+                             PayrollReconciliationService payrollReconciliationService,
+                             EmployeeService employeeService) {
         this.payrollService = payrollService;
         this.payrollReportService = payrollReportService;
+        this.payrollReconciliationService = payrollReconciliationService;
+        this.employeeService = employeeService;
     }
 
     @GetMapping
@@ -143,9 +152,57 @@ public class PayrollController {
 
         model.addAttribute(ATTR_PAYROLL_RUN, payrollRun);
         model.addAttribute("details", details);
+        model.addAttribute("additions", payrollService.getAdditions(id));
+        model.addAttribute("additionEmployees", employeeService.findActiveEmployees());
+        model.addAttribute("additionTypes", PayrollAdditionType.values());
+        model.addAttribute("salaryWarnings", payrollReconciliationService.warningsForRun(id));
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_PAYROLL);
 
         return "payroll/detail";
+    }
+
+    @PostMapping("/{id}/additions")
+    @PreAuthorize("hasAuthority('" + Permission.PAYROLL_CREATE + "')")
+    public String addAddition(
+            @PathVariable UUID id,
+            @RequestParam UUID employeeId,
+            @RequestParam PayrollAdditionType additionType,
+            @RequestParam BigDecimal amount,
+            @RequestParam(required = false) String description,
+            RedirectAttributes redirectAttributes
+    ) {
+        try {
+            payrollService.addAddition(id, employeeId, additionType, amount, description);
+            redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, additionType.getDisplayName() + " berhasil ditambahkan");
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, e.getMessage());
+        }
+        return REDIRECT_PAYROLL + "/" + id;
+    }
+
+    @PostMapping("/{id}/additions/{additionId}/delete")
+    @PreAuthorize("hasAuthority('" + Permission.PAYROLL_CREATE + "')")
+    public String removeAddition(
+            @PathVariable UUID id,
+            @PathVariable UUID additionId,
+            RedirectAttributes redirectAttributes
+    ) {
+        try {
+            payrollService.removeAddition(id, additionId);
+            redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Baris bonus/THR berhasil dihapus");
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, e.getMessage());
+        }
+        return REDIRECT_PAYROLL + "/" + id;
+    }
+
+    @GetMapping("/reconciliation")
+    public String reconciliation(@RequestParam(required = false) Integer year, Model model) {
+        int selectedYear = year != null ? year : java.time.Year.now().getValue();
+        model.addAttribute("reconciliation", payrollReconciliationService.reconcileYear(selectedYear));
+        model.addAttribute("selectedYear", selectedYear);
+        model.addAttribute(ATTR_CURRENT_PAGE, PAGE_PAYROLL);
+        return "payroll/reconciliation";
     }
 
     @PostMapping("/{id}/approve")

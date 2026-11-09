@@ -325,7 +325,7 @@
 - [x] BPJS Kesehatan rates (4% company + 1% employee, ceiling Rp 12,000,000)
 - [x] BPJS Ketenagakerjaan rates (JKK 0.24%-1.74%, JKM 0.3%, JHT 3.7%+2%, JP 2%+1%)
 - [x] JKK risk class support (5 classes for different industries)
-- [x] JP ceiling (Rp 10,042,300 for 2025)
+- [x] JP ceiling by payroll period (10,042,300 from 2024-03, 10,547,400 from 2025-03, 11,086,300 from 2026-03)
 - [x] Company vs employee portion separation
 - [x] BpjsCalculationService with BigDecimal precision
 - [x] BpjsCalculationResult record with totals
@@ -1822,6 +1822,10 @@ Gaps found during actual SPT Tahunan Badan 2025 filing via Coretax (2026-03-18).
 - [x] Values are plain numbers (no formatting) for direct entry into Coretax
 
 ---
+
+## Test Suite Audit 2026-09 🔄
+
+Rewrote ~80 test classes that asserted nothing (skip guards, `body` visible, weak-only checks, shared-DB resets) and fixed the application bugs they exposed, including web + API authorization hardening (V006) and explicit journal line order (V007). Tracker (status, resume/deploy checklists, release-notes draft, open decisions): `docs/test-suite-audit-2026-09.md`. Rules and reserved test years: `docs/developer-guide/extending/05-testing.md`.
 
 ## Future Enhancements (As Needed)
 

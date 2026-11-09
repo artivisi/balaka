@@ -20,7 +20,8 @@ public record TransactionResponse(
         @JsonFormat(pattern = "yyyy-MM-dd")
         LocalDate transactionDate,
         String description,
-        List<JournalEntryDto> journalEntries
+        List<JournalEntryDto> journalEntries,
+        List<String> warnings
 ) {
 
     /**

@@ -328,6 +328,74 @@ Dr. Hutang Gaji             xxx
 
 ---
 
+## Bonus, THR, dan Rekonsiliasi Gaji
+
+### Mencatat Bonus dan THR
+
+Bonus dan THR dicatat per karyawan pada payroll berstatus DRAFT atau CALCULATED.
+
+1. Buka detail payroll, bagian **Bonus dan THR**.
+2. Pilih karyawan dan jenis, isi jumlah dan keterangan, lalu klik **Tambah**.
+3. Payroll berstatus CALCULATED langsung dihitung ulang dengan gaji pokok dan kelas JKK yang sama.
+
+Dampak perhitungan:
+
+- Tarif TER dicari dari total gaji, bonus, THR, dan natura bulan itu. Contoh kategori A: gaji 10.000.000 ditambah THR 5.000.000 menjadi 15.000.000 dengan tarif 6%, sehingga PPh 21 bulan itu 900.000.
+- Rekonsiliasi Desember menghitung seluruh penghasilan setahun. Jika potongan Januari sampai November melebihi pajak setahun, PPh 21 Desember bernilai negatif dan kelebihannya menambah gaji bersih.
+- BPJS tetap dihitung dari gaji pokok.
+- 1721-A1 menampilkan bonus dan THR pada baris **8c**. Penghasilan bruto adalah jumlah baris 8a, 8b, dan 8c.
+
+Pembatasan:
+
+- Baris tidak bisa diubah setelah payroll APPROVED. Matikan persetujuan otomatis pada jadwal payroll untuk bulan yang memuat bonus atau THR.
+- Karyawan harus aktif. Perhitungan payroll gagal jika ada baris milik karyawan yang sudah tidak aktif. Hapus baris tersebut atau aktifkan kembali karyawannya.
+
+### Jurnal Payroll
+
+Baris jurnal yang bernilai nol dilewatkan, sehingga payroll tanpa bonus menghasilkan jurnal yang sama seperti sebelumnya.
+
+| Posisi | Akun | Nilai |
+|--------|------|-------|
+| Debit | Beban Gaji | Gaji tanpa bonus dan THR |
+| Debit | 5.8.01 Beban Bonus | Total bonus |
+| Debit | 5.8.02 Beban THR | Total THR |
+| Debit | Beban BPJS | BPJS perusahaan |
+| Debit | Hutang PPh 21 | Kelebihan potong yang dikembalikan, jika total PPh 21 negatif |
+| Kredit | Hutang Gaji | Gaji bersih |
+| Kredit | Hutang BPJS | BPJS perusahaan dan karyawan |
+| Kredit | Hutang PPh 21 | PPh 21, jika total positif |
+
+Natura tidak masuk jurnal payroll karena bebannya sudah dicatat oleh transaksinya sendiri.
+
+### Peringatan Jurnal Gaji
+
+Akun gaji adalah akun pada baris debit template **Post Gaji Bulanan** dengan formula `grossSalary`, `bonus`, atau `thr`.
+
+- Transaksi yang mendebit akun gaji pada bulan yang sudah memiliki payroll menampilkan peringatan di halaman detail transaksi. Posting dari daftar transaksi membuka halaman detail jika ada peringatan. Respons API memuat field `warnings`.
+- Halaman detail payroll dan respons API payroll menampilkan peringatan untuk setiap transaksi di luar payroll yang mendebit akun gaji pada periode tersebut, termasuk draf.
+
+Peringatan tidak menghalangi penyimpanan atau posting. Baris jurnal tidak menyimpan karyawan, sehingga pencocokan berdasarkan periode. Karyawan yang namanya atau NIK-nya tertulis pada keterangan transaksi disebut dalam peringatan.
+
+Payroll yang dibatalkan, jurnal penutup, dan transaksi yang dibatalkan tidak memicu peringatan. Beban gaji pada akun di luar template, misalnya akun tenaga lepas tersendiri, tidak terdeteksi.
+
+### Rekonsiliasi Gaji
+
+Buka menu **Payroll** > **Rekonsiliasi Gaji** dan pilih tahun. Setiap bulan menampilkan isi payroll, beban di buku, dan selisihnya.
+
+| Hasil | Arti |
+|-------|------|
+| Sesuai | Payroll sudah diposting dan beban di buku sama dengan bruto tunai payroll |
+| Ada selisih | Payroll sudah diposting, tetapi beban di buku berbeda: ada jurnal gaji lain, atau jurnal payroll dibatalkan |
+| Payroll belum diposting | Payroll ada tetapi belum masuk buku. Beban di buku pada baris ini berasal dari jurnal di luar payroll |
+| Beban gaji tanpa payroll | Ada beban gaji tanpa payroll, sehingga PPh 21 dan 1721-A1 tidak mencakup penghasilan tersebut |
+| Tidak ada aktivitas | Tidak ada payroll dan tidak ada beban gaji |
+
+Transaksi di luar payroll tampil di bawah baris bulannya dengan tautan ke detail transaksi.
+
+Peringatan **Payroll Belum Diposting** muncul jika payroll berstatus APPROVED belum diposting setelah melewati akhir periode ditambah ambang batas (hari). Lihat [Peringatan](15-peringatan.md).
+
+---
+
 ## Pembayaran Kewajiban Payroll
 
 Setelah posting payroll, ada 3 kewajiban yang harus dibayar:
@@ -460,6 +528,25 @@ Karyawan dengan role EMPLOYEE dapat mengakses:
 - PKP
 - PPh 21 terutang
 - PPh 21 dipotong
+
+### Natura dan Kenikmatan
+
+Natura dicatat per penerima pada transaksi berstatus POSTED. Beban natura tetap dijurnal lewat transaksi biasa, misalnya ke akun 5.8.03 Beban Natura/Kenikmatan.
+
+1. Buka detail transaksi, bagian **Penerima Natura**. Bagian ini tampil untuk pemegang izin `PAYROLL_VIEW`. Mencatat dan menghapus butuh izin `PAYROLL_CREATE`.
+2. Pilih karyawan, isi nilai dan keterangan, lalu klik **Catat Penerima**. Total nilai tidak boleh melebihi total debit akun beban pada transaksi tersebut.
+3. Transaksi otomatis mendapat label Natura, sehingga filter label dan laporan label mencakup transaksi ini.
+
+Dampak ke penggajian:
+
+- Saat payroll dihitung, natura berstatus **Menunggu payroll** yang bertanggal sampai akhir periode, pada tahun yang sama, masuk ke dasar PPh 21 karyawan. Natura yang dicatat setelah bulannya lewat masuk ke payroll berikutnya.
+- Natura menambah dasar TER bulanan dan rekonsiliasi Desember. Gaji bruto kas tidak berubah. PPh 21 atas natura mengurangi gaji bersih.
+- Pada 1721-A1, natura tampil pada baris **8b. Natura dan Kenikmatan** dan menambah penghasilan bruto. Hanya natura dari payroll berstatus POSTED yang dihitung. Natura lain tampil sebagai peringatan pada PDF.
+
+Pembatasan:
+
+- Baris natura yang sudah masuk payroll tidak bisa dihapus, dan transaksinya tidak bisa dibatalkan. Hitung ulang atau batalkan payroll tersebut lebih dulu. Payroll berstatus POSTED tidak bisa dihitung ulang.
+- Nilai yang dicatat adalah nilai yang kena PPh 21. Natura yang dikecualikan PMK 66/2023 tidak perlu dicatat. Sistem tidak menghitung batas pengecualian.
 
 ---
 
@@ -624,6 +711,8 @@ PUT    /api/employees/{id}/salary-components/{componentId}  — update assignmen
 GET    /api/payroll                      — daftar payroll (filter: year, status)
 POST   /api/payroll                      — buat payroll baru (DRAFT)
 GET    /api/payroll/{id}                 — detail dengan semua detail karyawan
+POST   /api/payroll/{id}/additions       — tambah baris bonus atau THR
+DELETE /api/payroll/{id}/additions/{id}  — hapus baris bonus atau THR
 POST   /api/payroll/{id}/calculate       — hitung PPh 21 (TER Jan-Nov / rekonsiliasi Des), set CALCULATED
 POST   /api/payroll/{id}/approve         — set APPROVED
 POST   /api/payroll/{id}/post            — posting ke jurnal
@@ -635,6 +724,8 @@ DELETE /api/payroll/{id}                 — hapus (hanya DRAFT)
 ```
 GET /api/payroll/employees/{id}/1721-a1?year=2025  — data 1721-A1 per karyawan
 GET /api/payroll/pph21/summary?year=2025           — ringkasan PPh 21 seluruh karyawan
+GET /api/payroll/reconciliation?year=2025          — beban gaji dibanding payroll, 12 bulan
+GET /api/payroll/reconciliation/2025-03            — beban gaji dibanding payroll, satu bulan
 ```
 
 Response 1721-A1 berisi:

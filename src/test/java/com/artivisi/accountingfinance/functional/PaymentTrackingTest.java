@@ -103,7 +103,7 @@ class PaymentTrackingTest extends PlaywrightTestBase {
         assertThat(page.locator("#amount")).hasAttribute("max", "8100000.00");
         assertThat(historyRows()).hasCount(1);
         assertThat(historyRows().first().locator("td")).hasText(new String[] {
-                "15 Feb " + YEAR, "Tunai", "KW-001", "Rp 3,000,000"});
+                "15 Feb " + YEAR, "Tunai", "KW-001", "Rp 3,000,000", "Rp 0"});
 
         Invoice saved = invoiceService.findById(invoice.getId());
         assertThat(saved.getStatus()).isEqualTo(InvoiceStatus.PARTIAL);
@@ -135,9 +135,9 @@ class PaymentTrackingTest extends PlaywrightTestBase {
         assertThat(page.getByTestId("payment-form-section")).hasCount(0);
         assertThat(historyRows()).hasCount(2);
         assertThat(historyRows().nth(0).locator("td")).hasText(new String[] {
-                "10 Feb " + YEAR, "Transfer Bank", "TRF-1", "Rp 4,000,000"});
+                "10 Feb " + YEAR, "Transfer Bank", "TRF-1", "Rp 4,000,000", "Rp 0"});
         assertThat(historyRows().nth(1).locator("td")).hasText(new String[] {
-                "20 Feb " + YEAR, "Transfer Bank", "TRF-2", "Rp 7,100,000"});
+                "20 Feb " + YEAR, "Transfer Bank", "TRF-2", "Rp 7,100,000", "Rp 0"});
 
         Invoice saved = invoiceService.findById(invoice.getId());
         assertThat(saved.getStatus()).isEqualTo(InvoiceStatus.PAID);

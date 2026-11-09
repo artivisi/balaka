@@ -16,7 +16,7 @@ import java.util.List;
  * 1. TER method (PMK 168/2023) — used for monthly withholding Jan-Nov:
  *    PPh 21 = gross salary × TER rate (looked up by PTKP category and gross bracket)
  *
- * 2. Progressive bracket method (PP 58/2023) — used for December annual reconciliation:
+ * 2. Pasal 17 ayat (1) huruf a UU PPh brackets (UU HPP) — used for December annual reconciliation:
  *    Annual tax calculated via progressive brackets, minus Jan-Nov TER withholdings
  *
  * Progressive Tax Rates:
@@ -44,107 +44,9 @@ public class Pph21CalculationService {
 
     // Biaya jabatan
     public static final BigDecimal BIAYA_JABATAN_RATE = new BigDecimal("5");  // 5%
-    public static final BigDecimal BIAYA_JABATAN_MONTHLY_MAX = new BigDecimal("500000");
     public static final BigDecimal BIAYA_JABATAN_ANNUAL_MAX = new BigDecimal("6000000");
 
-    // BPJS deductible rates (employee portion only)
-    public static final BigDecimal BPJS_JHT_EMPLOYEE_RATE = new BigDecimal("2");  // 2%
-    public static final BigDecimal BPJS_JP_EMPLOYEE_RATE = new BigDecimal("1");   // 1%
-    public static final BigDecimal BPJS_JP_CEILING = new BigDecimal("10042300");
-
     private static final BigDecimal HUNDRED = new BigDecimal("100");
-    private static final BigDecimal TWELVE = new BigDecimal("12");
-
-    /**
-     * Calculate monthly PPh 21 for an employee.
-     *
-     * @param monthlyGrossIncome Monthly gross income (gaji bruto)
-     * @param ptkpStatus         PTKP status for tax deduction
-     * @param hasNpwp            Whether employee has NPWP (no NPWP = 20% higher tax)
-     * @return Pph21CalculationResult with all calculation details
-     */
-    public Pph21CalculationResult calculate(BigDecimal monthlyGrossIncome, PtkpStatus ptkpStatus, boolean hasNpwp) {
-        if (monthlyGrossIncome == null || monthlyGrossIncome.compareTo(BigDecimal.ZERO) <= 0) {
-            return Pph21CalculationResult.zero();
-        }
-
-        if (ptkpStatus == null) {
-            ptkpStatus = PtkpStatus.TK_0;
-        }
-
-        // Step 1: Calculate biaya jabatan (5%, max 500k/month)
-        BigDecimal biayaJabatan = calculateBiayaJabatan(monthlyGrossIncome);
-
-        // Step 2: Calculate BPJS deductions
-        BigDecimal bpjsJhtEmployee = calculatePercentage(monthlyGrossIncome, BPJS_JHT_EMPLOYEE_RATE);
-        BigDecimal jpBase = monthlyGrossIncome.min(BPJS_JP_CEILING);
-        BigDecimal bpjsJpEmployee = calculatePercentage(jpBase, BPJS_JP_EMPLOYEE_RATE);
-        BigDecimal totalBpjsDeduction = bpjsJhtEmployee.add(bpjsJpEmployee);
-
-        // Step 3: Calculate monthly neto
-        BigDecimal monthlyNeto = monthlyGrossIncome
-            .subtract(biayaJabatan)
-            .subtract(totalBpjsDeduction);
-
-        if (monthlyNeto.compareTo(BigDecimal.ZERO) < 0) {
-            monthlyNeto = BigDecimal.ZERO;
-        }
-
-        // Step 4: Calculate annual neto
-        BigDecimal annualNeto = monthlyNeto.multiply(TWELVE);
-
-        // Step 5: Calculate PKP (Penghasilan Kena Pajak)
-        BigDecimal ptkpAmount = ptkpStatus.getAnnualAmount();
-        BigDecimal pkp = annualNeto.subtract(ptkpAmount);
-
-        if (pkp.compareTo(BigDecimal.ZERO) <= 0) {
-            // No tax if PKP is zero or negative
-            return new Pph21CalculationResult(
-                monthlyGrossIncome,
-                biayaJabatan,
-                totalBpjsDeduction,
-                monthlyNeto,
-                annualNeto,
-                ptkpAmount,
-                BigDecimal.ZERO,
-                BigDecimal.ZERO,
-                BigDecimal.ZERO,
-                hasNpwp
-            );
-        }
-
-        // Step 6: Apply progressive tax rates
-        BigDecimal annualPph21 = calculateProgressiveTax(pkp);
-
-        // Step 7: Apply 20% higher rate if no NPWP
-        if (!hasNpwp) {
-            BigDecimal penalty = annualPph21.multiply(new BigDecimal("20")).divide(HUNDRED, 0, RoundingMode.HALF_UP);
-            annualPph21 = annualPph21.add(penalty);
-        }
-
-        // Step 8: Calculate monthly PPh 21
-        BigDecimal monthlyPph21 = annualPph21.divide(TWELVE, 0, RoundingMode.HALF_UP);
-
-        return new Pph21CalculationResult(
-            monthlyGrossIncome,
-            biayaJabatan,
-            totalBpjsDeduction,
-            monthlyNeto,
-            annualNeto,
-            ptkpAmount,
-            pkp,
-            annualPph21,
-            monthlyPph21,
-            hasNpwp
-        );
-    }
-
-    /**
-     * Calculate with default hasNpwp = true.
-     */
-    public Pph21CalculationResult calculate(BigDecimal monthlyGrossIncome, PtkpStatus ptkpStatus) {
-        return calculate(monthlyGrossIncome, ptkpStatus, true);
-    }
 
     /**
      * Calculate monthly PPh 21 using TER method (PMK 168/2023).
@@ -155,12 +57,11 @@ public class Pph21CalculationService {
      * @return TER calculation result with rate and PPh 21 amount
      */
     public TerCalculationResult calculateTer(BigDecimal monthlyGrossIncome, PtkpStatus ptkpStatus) {
+        if (ptkpStatus == null) {
+            throw new IllegalArgumentException("Status PTKP wajib diisi untuk menghitung TER");
+        }
         if (monthlyGrossIncome == null || monthlyGrossIncome.compareTo(BigDecimal.ZERO) <= 0) {
             return new TerCalculationResult(BigDecimal.ZERO, null, BigDecimal.ZERO, BigDecimal.ZERO);
-        }
-
-        if (ptkpStatus == null) {
-            ptkpStatus = PtkpStatus.TK_0;
         }
 
         TerCategory category = TerCategory.fromPtkpStatus(ptkpStatus);
@@ -175,47 +76,48 @@ public class Pph21CalculationService {
      * Calculate December PPh 21 using annual reconciliation.
      * Annual tax (progressive brackets) minus sum of Jan-Nov TER withholdings.
      *
-     * @param monthlyGrossAmounts List of monthly gross amounts for the year (Jan-Dec)
-     * @param ptkpStatus          PTKP status
-     * @param janNovPph21Total    Sum of PPh 21 already withheld Jan-Nov via TER
+     * @param monthlyGrossAmounts  List of monthly gross amounts for the year (Jan-Dec)
+     * @param pensionContributions Employee-paid JHT and JP contributions of the year
+     * @param ptkpStatus           PTKP status
+     * @param janNovPph21Total     Sum of PPh 21 already withheld Jan-Nov via TER
      * @return December reconciliation result
      */
     public DecemberReconciliationResult calculateDecemberReconciliation(
-            List<BigDecimal> monthlyGrossAmounts, PtkpStatus ptkpStatus, BigDecimal janNovPph21Total) {
-
-        if (ptkpStatus == null) {
-            ptkpStatus = PtkpStatus.TK_0;
-        }
-
+            List<BigDecimal> monthlyGrossAmounts, BigDecimal pensionContributions,
+            PtkpStatus ptkpStatus, BigDecimal janNovPph21Total) {
         BigDecimal annualGross = monthlyGrossAmounts.stream()
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        BigDecimal biayaJabatan = annualGross.multiply(BIAYA_JABATAN_RATE)
-                .divide(HUNDRED, 0, RoundingMode.HALF_UP)
-                .min(BIAYA_JABATAN_ANNUAL_MAX);
-
-        BigDecimal annualNeto = annualGross.subtract(biayaJabatan);
-        BigDecimal ptkpAmount = ptkpStatus.getAnnualAmount();
-        BigDecimal pkpRaw = annualNeto.subtract(ptkpAmount).max(BigDecimal.ZERO);
-        // Round down to nearest 1000 per tax regulation
-        BigDecimal pkp = pkpRaw.divide(new BigDecimal("1000"), 0, RoundingMode.FLOOR)
-                .multiply(new BigDecimal("1000"));
-
-        BigDecimal annualTax = calculateProgressiveTax(pkp);
-        BigDecimal decemberPph21 = annualTax.subtract(janNovPph21Total);
+        AnnualTax annual = calculateAnnualTax(annualGross, pensionContributions, ptkpStatus);
+        BigDecimal decemberPph21 = annual.annualTax().subtract(janNovPph21Total);
 
         return new DecemberReconciliationResult(
-                annualGross, biayaJabatan, annualNeto, ptkpAmount,
-                pkp, annualTax, janNovPph21Total, decemberPph21);
+                annualGross, annual.biayaJabatan(), annual.pensionContributions(), annual.annualNeto(),
+                annual.ptkpAmount(), annual.pkp(), annual.annualTax(), janNovPph21Total, decemberPph21);
     }
 
     /**
-     * Calculate biaya jabatan (occupational expense).
-     * 5% of gross income, max Rp 500,000/month.
+     * Annual PPh 21 of a permanent employee (PMK 168/2023, form 1721-A1 lines 9-17): neto is gross minus
+     * biaya jabatan (5%, max 6,000,000) and the employee-paid pension contributions (JHT and JP). The
+     * employee's BPJS Kesehatan contribution is not a deduction. PKP is rounded down to the thousand.
      */
-    public BigDecimal calculateBiayaJabatan(BigDecimal monthlyGrossIncome) {
-        BigDecimal biayaJabatan = calculatePercentage(monthlyGrossIncome, BIAYA_JABATAN_RATE);
-        return biayaJabatan.min(BIAYA_JABATAN_MONTHLY_MAX);
+    public AnnualTax calculateAnnualTax(BigDecimal annualGross, BigDecimal pensionContributions,
+                                        PtkpStatus ptkpStatus) {
+        if (ptkpStatus == null) {
+            throw new IllegalArgumentException("Status PTKP wajib diisi untuk menghitung PPh 21 tahunan");
+        }
+        if (annualGross == null || pensionContributions == null) {
+            throw new IllegalArgumentException("Penghasilan bruto dan iuran pensiun wajib diisi");
+        }
+        BigDecimal biayaJabatan = annualGross.multiply(BIAYA_JABATAN_RATE)
+                .divide(HUNDRED, 0, RoundingMode.HALF_UP)
+                .min(BIAYA_JABATAN_ANNUAL_MAX);
+        BigDecimal annualNeto = annualGross.subtract(biayaJabatan).subtract(pensionContributions);
+        BigDecimal ptkpAmount = ptkpStatus.getAnnualAmount();
+        BigDecimal pkpRaw = annualNeto.subtract(ptkpAmount).max(BigDecimal.ZERO);
+        BigDecimal pkp = pkpRaw.divide(new BigDecimal("1000"), 0, RoundingMode.FLOOR)
+                .multiply(new BigDecimal("1000"));
+        return new AnnualTax(annualGross, biayaJabatan, pensionContributions, annualNeto, ptkpAmount, pkp,
+                calculateProgressiveTax(pkp));
     }
 
     /**
@@ -280,56 +182,6 @@ public class Pph21CalculationService {
     }
 
     /**
-     * Result record containing all PPh 21 calculation details.
-     */
-    public record Pph21CalculationResult(
-        BigDecimal monthlyGrossIncome,
-        BigDecimal biayaJabatan,
-        BigDecimal bpjsDeduction,
-        BigDecimal monthlyNeto,
-        BigDecimal annualNeto,
-        BigDecimal ptkpAmount,
-        BigDecimal pkp,
-        BigDecimal annualPph21,
-        BigDecimal monthlyPph21,
-        boolean hasNpwp
-    ) {
-        public static Pph21CalculationResult zero() {
-            return new Pph21CalculationResult(
-                BigDecimal.ZERO,
-                BigDecimal.ZERO,
-                BigDecimal.ZERO,
-                BigDecimal.ZERO,
-                BigDecimal.ZERO,
-                BigDecimal.ZERO,
-                BigDecimal.ZERO,
-                BigDecimal.ZERO,
-                BigDecimal.ZERO,
-                true
-            );
-        }
-
-        /**
-         * Get the effective tax rate (annual PPh 21 / annual gross).
-         */
-        public BigDecimal effectiveTaxRate() {
-            if (monthlyGrossIncome.compareTo(BigDecimal.ZERO) <= 0) {
-                return BigDecimal.ZERO;
-            }
-            BigDecimal annualGross = monthlyGrossIncome.multiply(new BigDecimal("12"));
-            return annualPph21.multiply(new BigDecimal("100"))
-                .divide(annualGross, 2, RoundingMode.HALF_UP);
-        }
-
-        /**
-         * Get take home pay (gross - PPh 21 - BPJS deduction).
-         */
-        public BigDecimal takeHomePay() {
-            return monthlyGrossIncome.subtract(monthlyPph21).subtract(bpjsDeduction);
-        }
-    }
-
-    /**
      * Result record for TER monthly calculation.
      */
     public record TerCalculationResult(
@@ -340,11 +192,25 @@ public class Pph21CalculationService {
     ) {}
 
     /**
+     * Result record for the annual PPh 21 computation.
+     */
+    public record AnnualTax(
+        BigDecimal annualGross,
+        BigDecimal biayaJabatan,
+        BigDecimal pensionContributions,
+        BigDecimal annualNeto,
+        BigDecimal ptkpAmount,
+        BigDecimal pkp,
+        BigDecimal annualTax
+    ) {}
+
+    /**
      * Result record for December annual reconciliation.
      */
     public record DecemberReconciliationResult(
         BigDecimal annualGross,
         BigDecimal biayaJabatan,
+        BigDecimal pensionContributions,
         BigDecimal annualNeto,
         BigDecimal ptkpAmount,
         BigDecimal pkp,

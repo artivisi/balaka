@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/main :: layout('Penyerahan Dokumen', ~{::#page-title}, ~{::section}, ~{})}"
+      lang="id">
+<head>
+    <title>Penyerahan Dokumen</title>
+</head>
+<body>
+    <h1 id="page-title" th:text="|Penyerahan Dokumen: ${view.inquiryCase().title}|">Penyerahan Dokumen</h1>
+
+    <section class="h-full flex flex-col overflow-y-auto space-y-6" data-testid="tax-inquiry-export-page" th:with="c=${view.inquiryCase()}">
+        <div th:if="${errorMessage}" data-testid="flash-error" class="p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800" th:text="${errorMessage}"></div>
+        <a th:href="@{/tax-audit/cases/{id}(id=${c.id})}" class="text-sm text-primary-700 hover:underline">Kembali ke kasus</a>
+        <p class="text-sm text-gray-600">Cari file dari transaksi dan arsip, centang yang diminta, pilih permintaan yang dijawab tiap file. Penyerahan dicatat dan tidak dapat dihapus; file ZIP hanya berisi file yang dicentang dan indeksnya.</p>
+
+        <form th:action="@{/tax-audit/cases/{id}/export(id=${c.id})}" method="get" id="candidate-search"
+              class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 grid grid-cols-1 md:grid-cols-4 gap-2 text-sm">
+            <input type="text" name="transactions" th:value="${transactions}" placeholder="Nomor transaksi, pisahkan dengan koma" data-testid="candidate-transactions"
+                   class="md:col-span-2 px-3 py-2 border border-gray-300 rounded-lg">
+            <input type="text" name="q" th:value="${q}" placeholder="Cari di arsip" data-testid="candidate-query" class="px-3 py-2 border border-gray-300 rounded-lg">
+            <div class="flex gap-2">
+                <input type="number" name="archiveYear" th:value="${archiveYear}" placeholder="Tahun arsip" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                <button type="submit" data-testid="btn-find-candidates" class="px-3 py-2 text-white bg-primary-600 rounded-lg hover:bg-primary-700">Cari</button>
+            </div>
+        </form>
+
+        <p th:if="${view.items().isEmpty()}" class="text-sm text-red-700">Catat permintaan di halaman kasus lebih dulu: setiap file harus menjawab satu permintaan.</p>
+
+        <form th:unless="${candidates.isEmpty()}" th:action="@{/tax-audit/cases/{id}/export(id=${c.id})}" method="post" id="disclosure-form"
+              class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 text-sm space-y-3">
+            <table class="w-full">
+                <thead>
+                <tr class="text-left text-xs text-gray-500 border-b border-gray-200">
+                    <th class="py-2 pr-2"></th><th class="py-2 pr-2">File</th><th class="py-2 pr-2">Jenis</th>
+                    <th class="py-2 pr-2">Asal</th><th class="py-2 pr-2">Sudah diserahkan</th><th class="py-2">Menjawab permintaan</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="cand : ${candidates}" class="border-b border-gray-100" data-testid="candidate" th:attr="data-filename=${cand.filename()}">
+                    <td class="py-1 pr-2"><input type="checkbox" name="documentIds" th:value="${cand.documentId()}" data-testid="candidate-select"></td>
+                    <td class="py-1 pr-2" th:text="${cand.filename()}">file.pdf</td>
+                    <td class="py-1 pr-2 text-xs" th:text="${cand.kind()}">Kontrak</td>
+                    <td class="py-1 pr-2 text-xs" th:text="${cand.transactionNumber() != null} ? |${cand.origin()} ${cand.transactionNumber()}| : ${cand.origin()}">asal</td>
+                    <td class="py-1 pr-2 text-xs" data-testid="candidate-earlier">
+                        <span th:each="d : ${cand.earlierDisclosures()}" class="block" th:text="|${d.inquiryCase.title} ${d.disclosedOn}|"></span>
+                    </td>
+                    <td class="py-1">
+                        <select th:name="|item_${cand.documentId()}|" data-testid="candidate-item" class="px-2 py-1 border border-gray-300 rounded">
+                            <option value="">-- Pilih --</option>
+                            <option th:each="i : ${view.items()}" th:value="${i.id}" th:text="|${i.itemNo}. ${i.description}|">1</option>
+                        </select>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+            <div class="flex flex-wrap items-end gap-2">
+                <div>
+                    <label for="disclosedOn" class="block text-gray-700 mb-1">Tanggal diserahkan</label>
+                    <input type="date" id="disclosedOn" name="disclosedOn" required th:value="${today}" class="px-3 py-2 border border-gray-300 rounded-lg">
+                </div>
+                <input type="text" name="note" placeholder="Catatan penyerahan (opsional)" data-testid="disclosure-note" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg">
+                <button type="submit" id="btn-record-disclosure" class="px-4 py-2 font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">Catat Penyerahan</button>
+            </div>
+        </form>
+        <p th:if="${candidates.isEmpty() and (transactions != null or q != null)}" data-testid="no-candidates" class="text-sm text-gray-500">Tidak ada file ditemukan.</p>
+    </section>
+</body>
+</html>

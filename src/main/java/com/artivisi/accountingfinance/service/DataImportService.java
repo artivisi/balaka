@@ -866,8 +866,11 @@ public class DataImportService {
         Map<String, Boolean> requestedCashBank = new HashMap<>();
         Set<String> legacyCanonicalFallback = new HashSet<>();
 
-        // First pass: create all accounts without parents.
-        // CSV columns: account_code,account_name,account_type,parent_code,normal_balance,active,is_permanent,is_cash_bank[,created_at]
+        // Three column layouts exist and each must still import:
+        //   9 columns  - this branch: ...,is_permanent,is_cash_bank,created_at
+        //  11 columns  - main before the merge: ...,is_permanent,fiscal,service,close,self
+        //  13 columns  - canonical now: the 9-column prefix, then the four fiscal
+        //                columns, so an older export reads as a truncation of it.
         for (String[] row : rows) {
             ChartOfAccount account = new ChartOfAccount();
             account.setAccountCode(getField(row, 0));
@@ -883,12 +886,36 @@ public class DataImportService {
             if (permanentField != null && !permanentField.isBlank()) {
                 account.setPermanent(parseBoolean(permanentField));
             }
-            // column 7 = is_cash_bank. Older exports do not carry it; those keep
-            // the canonical seed fallback used by the FAS-77 import path.
-            if (row.length > 7) {
-                requestedCashBank.put(account.getAccountCode(), parseBoolean(getField(row, 7)));
+            boolean mainLegacy = row.length == 11;
+            int cashBankColumn = mainLegacy ? -1 : 7;
+            int fiscalColumn = mainLegacy ? 7 : 9;
+            int serviceColumn = mainLegacy ? 8 : 10;
+            int closeCheckColumn = mainLegacy ? 9 : 11;
+            int selfTestColumn = mainLegacy ? 10 : 12;
+
+            if (cashBankColumn > 0 && row.length > cashBankColumn) {
+                requestedCashBank.put(account.getAccountCode(), parseBoolean(getField(row, cashBankColumn)));
             } else {
+                // No cash column in this layout: keep the canonical seed fallback
+                // used by the FAS-77 import path.
                 legacyCanonicalFallback.add(account.getAccountCode());
+            }
+
+            String fiscalTreatment = getField(row, fiscalColumn);
+            if (!fiscalTreatment.isBlank()) {
+                account.setFiscalTreatment(FiscalTreatment.valueOf(fiscalTreatment));
+            }
+            String serviceExpense = getField(row, serviceColumn);
+            if (!serviceExpense.isBlank()) {
+                account.setServiceExpense(Boolean.valueOf(serviceExpense));
+            }
+            String closeCheckRole = getField(row, closeCheckColumn);
+            if (!closeCheckRole.isBlank()) {
+                account.setCloseCheckRole(CloseCheckRole.valueOf(closeCheckRole));
+            }
+            String selfTestRole = getField(row, selfTestColumn);
+            if (!selfTestRole.isBlank()) {
+                account.setSelfTestRole(SelfTestRole.valueOf(selfTestRole));
             }
             accounts.add(account);
         }
@@ -1508,7 +1535,7 @@ public class DataImportService {
     private int importJournalEntries(String content) {
         List<String[]> rows = parseCsv(content);
         // CSV columns: journal_number,journal_date,transaction_id,transaction_number,description,status,
-        //   account_code,debit_amount,credit_amount,posted_at,voided_at,void_reason
+        //   account_code,debit_amount,credit_amount,posted_at,voided_at,void_reason,line_order
 
         for (String[] row : rows) {
             String txId = getField(row, 2);
@@ -1531,6 +1558,12 @@ public class DataImportService {
             je.setPostedAt(parseDateTime(getField(row, 9)));
             je.setVoidedAt(parseDateTime(getField(row, 10)));
             je.setVoidReason(getField(row, 11));
+            Integer lineOrder = parseInteger(getField(row, 12));
+            if (lineOrder == null) {
+                throw new IllegalArgumentException("line_order is required for journal entry "
+                        + LogSanitizer.sanitize(getField(row, 0)) + " of transaction " + txId);
+            }
+            je.setLineOrder(lineOrder);
 
             journalEntryRepository.save(je);
         }
@@ -1590,6 +1623,20 @@ public class DataImportService {
             pd.setBpjsJkk(parseBigDecimal(getField(row, 11)));
             pd.setBpjsJkm(parseBigDecimal(getField(row, 12)));
             pd.setPph21(parseBigDecimal(getField(row, 13)));
+            // Exports made before V008 have no benefit_in_kind column; the amount was zero then
+            String benefitInKind = getField(row, 14);
+            if (benefitInKind != null && !benefitInKind.isBlank()) {
+                pd.setBenefitInKind(parseBigDecimal(benefitInKind));
+            }
+            // Exports made before V011 have no bonus/THR, so their gross is the base salary
+            String baseSalary = getField(row, 15);
+            if (baseSalary != null && !baseSalary.isBlank()) {
+                pd.setBaseSalary(parseBigDecimal(baseSalary));
+                pd.setBonus(parseBigDecimal(getField(row, 16)));
+                pd.setThr(parseBigDecimal(getField(row, 17)));
+            } else {
+                pd.setBaseSalary(pd.getGrossSalary());
+            }
 
             payrollDetailRepository.save(pd);
         }

@@ -25,4 +25,10 @@ public interface BankStatementItemRepository extends JpaRepository<BankStatement
     long countByBankStatementIdAndMatchStatus(UUID bankStatementId, StatementItemMatchStatus matchStatus);
 
     void deleteByBankStatementId(UUID bankStatementId);
+
+    /** Statement lines matched to these transactions, with statement and bank account for the label. */
+    @Query("SELECT i FROM BankStatementItem i JOIN FETCH i.matchedTransaction t JOIN FETCH i.bankStatement s "
+            + "JOIN FETCH s.bankAccount WHERE t.id IN :ids "
+            + "AND i.matchStatus = com.artivisi.accountingfinance.enums.StatementItemMatchStatus.MATCHED")
+    List<BankStatementItem> findMatchedToTransactions(@Param("ids") java.util.Collection<UUID> ids);
 }

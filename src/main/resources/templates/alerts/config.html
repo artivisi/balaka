@@ -47,7 +47,8 @@
                                        th:value="${rule.threshold}"
                                        class="w-32 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-primary-500 focus:border-primary-500">
                                 <span th:if="${rule.alertType.name() == 'EXPENSE_SPIKE' or rule.alertType.name() == 'PROJECT_MARGIN_DROP' or rule.alertType.name() == 'CLIENT_CONCENTRATION'}" class="text-xs text-gray-500">%</span>
-                                <span th:if="${rule.alertType.name() == 'COLLECTION_SLOWDOWN'}" class="text-xs text-gray-500">hari</span>
+                                <span th:if="${rule.alertType.name() == 'COLLECTION_SLOWDOWN' or rule.alertType.name() == 'PAYROLL_UNPOSTED'}" class="text-xs text-gray-500">hari</span>
+                                <span th:if="${rule.alertType.name() == 'LIABILITY_UNMOVED'}" class="text-xs text-gray-500">bulan</span>
                             </div>
                         </div>
 

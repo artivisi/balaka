@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{layouts/main :: layout('Pemotongan PPh', ~{::#page-title}, ~{::section}, ~{})}"
+      lang="id">
+<head>
+    <title>Pemotongan PPh</title>
+</head>
+<body>
+    <h1 id="page-title">Pemotongan PPh</h1>
+
+    <section class="space-y-6" data-testid="withholding-report">
+        <div th:if="${successMessage}" data-testid="flash-success"
+             class="p-4 rounded-lg bg-green-50 border border-green-200 text-sm font-medium text-green-800"
+             th:text="${successMessage}">Success</div>
+        <div th:if="${errorMessage}" data-testid="flash-error"
+             class="p-4 rounded-lg bg-red-50 border border-red-200 text-sm font-medium text-red-800"
+             th:text="${errorMessage}">Error</div>
+
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <form th:action="@{/withholding}" method="get" class="flex items-center gap-2">
+                <label for="masa" class="text-sm font-medium text-gray-700">Masa</label>
+                <input type="month" id="masa" name="masa" th:value="${masa}" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                <button type="submit" id="btn-filter-masa" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">Tampilkan</button>
+            </form>
+            <div class="flex flex-wrap gap-2">
+                <a sec:authorize="hasAuthority('TAX_EXPORT')" id="btn-export-bp21" th:href="@{/withholding/export/bp21(masa=${masa})}"
+                   class="px-3 py-2 border border-gray-300 rounded-lg text-sm">Ekspor BP21</a>
+                <a sec:authorize="hasAuthority('TAX_EXPORT')" id="btn-export-unifikasi" th:href="@{/withholding/export/bupot-unifikasi(masa=${masa})}"
+                   class="px-3 py-2 border border-gray-300 rounded-lg text-sm">Ekspor Bupot Unifikasi</a>
+                <a sec:authorize="hasAuthority('TRANSACTION_CREATE')" id="btn-new-payment" th:href="@{/withholding/payments/new}"
+                   class="px-3 py-2 bg-primary-600 text-white rounded-lg text-sm hover:bg-primary-700">Pembayaran Baru</a>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-4 overflow-x-auto">
+            <h2 class="text-sm font-semibold text-gray-900 mb-3">Status Setor per Jenis Pajak</h2>
+            <table class="min-w-full text-sm" id="table-masa-status">
+                <thead><tr class="text-left text-gray-500">
+                    <th class="py-2 pr-4">Pajak</th><th class="py-2 pr-4 text-right">Bruto</th><th class="py-2 pr-4 text-right">Dipotong</th>
+                    <th class="py-2 pr-4 text-right">Draf</th><th class="py-2 pr-4 text-right">Disetor</th><th class="py-2 pr-4 text-right">Sisa</th>
+                    <th class="py-2 pr-4">Jatuh Tempo</th><th class="py-2">Status</th>
+                </tr></thead>
+                <tbody>
+                <tr th:each="s : ${statuses}" th:id="|status-${s.treatment().name()}|" class="border-t">
+                    <td class="py-2 pr-4" th:text="${s.treatment().indonesianName}">PPh</td>
+                    <td class="py-2 pr-4 text-right" th:text="${#numbers.formatDecimal(s.gross(), 1, 'POINT', 0, 'COMMA')}">0</td>
+                    <td class="py-2 pr-4 text-right" data-col="withheld" th:text="${#numbers.formatDecimal(s.withheld(), 1, 'POINT', 0, 'COMMA')}">0</td>
+                    <td class="py-2 pr-4 text-right" th:text="${#numbers.formatDecimal(s.draftWithheld(), 1, 'POINT', 0, 'COMMA')}">0</td>
+                    <td class="py-2 pr-4 text-right" data-col="deposited" th:text="${#numbers.formatDecimal(s.deposited(), 1, 'POINT', 0, 'COMMA')}">0</td>
+                    <td class="py-2 pr-4 text-right" data-col="outstanding" th:text="${#numbers.formatDecimal(s.outstanding(), 1, 'POINT', 0, 'COMMA')}">0</td>
+                    <td class="py-2 pr-4" data-col="due" th:text="${#temporals.format(s.dueDate(), 'dd/MM/yyyy')}">-</td>
+                    <td class="py-2" data-col="status" th:text="${s.status().indonesianName}">-</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-4 overflow-x-auto">
+            <h2 class="text-sm font-semibold text-gray-900 mb-3">Pembayaran</h2>
+            <p th:if="${#lists.isEmpty(payments)}" class="text-sm text-gray-500">Tidak ada pembayaran pada masa ini.</p>
+            <table th:unless="${#lists.isEmpty(payments)}" class="min-w-full text-sm" id="table-payments">
+                <thead><tr class="text-left text-gray-500">
+                    <th class="py-2 pr-4">Tanggal</th><th class="py-2 pr-4">Penerima</th><th class="py-2 pr-4">Pajak</th>
+                    <th class="py-2 pr-4 text-right">Bruto</th><th class="py-2 pr-4 text-right">PPh</th><th class="py-2 pr-4 text-right">Dibayar</th><th class="py-2">Status</th>
+                </tr></thead>
+                <tbody>
+                <tr th:each="p : ${payments}" class="border-t">
+                    <td class="py-2 pr-4"><a class="text-primary-600 hover:underline" th:href="@{/withholding/payments/{id}(id=${p.id})}" th:text="${#temporals.format(p.paymentDate, 'dd/MM/yyyy')}">-</a></td>
+                    <td class="py-2 pr-4" th:text="${p.vendor.name}">-</td>
+                    <td class="py-2 pr-4" th:text="${p.treatment.indonesianName}">-</td>
+                    <td class="py-2 pr-4 text-right" th:text="${#numbers.formatDecimal(p.grossAmount, 1, 'POINT', 0, 'COMMA')}">0</td>
+                    <td class="py-2 pr-4 text-right" th:text="${#numbers.formatDecimal(p.taxAmount, 1, 'POINT', 0, 'COMMA')}">0</td>
+                    <td class="py-2 pr-4 text-right" th:text="${#numbers.formatDecimal(p.netAmount, 1, 'POINT', 0, 'COMMA')}">0</td>
+                    <td class="py-2" th:text="${p.transaction.status}">DRAFT</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-4">
+            <h2 class="text-sm font-semibold text-gray-900 mb-3">Setoran</h2>
+            <div th:unless="${#lists.isEmpty(deposits)}" class="overflow-x-auto mb-4">
+                <table class="min-w-full text-sm" id="table-deposits">
+                    <thead><tr class="text-left text-gray-500">
+                        <th class="py-2 pr-4">Tanggal</th><th class="py-2 pr-4">Pajak</th><th class="py-2 pr-4 text-right">Jumlah</th>
+                        <th class="py-2 pr-4">NTPN</th><th class="py-2 pr-4">Status</th><th class="py-2"></th>
+                    </tr></thead>
+                    <tbody>
+                    <tr th:each="d : ${deposits}" class="border-t">
+                        <td class="py-2 pr-4" th:text="${#temporals.format(d.depositDate, 'dd/MM/yyyy')}">-</td>
+                        <td class="py-2 pr-4" th:text="${d.treatment.indonesianName}">-</td>
+                        <td class="py-2 pr-4 text-right" th:text="${#numbers.formatDecimal(d.amount, 1, 'POINT', 0, 'COMMA')}">0</td>
+                        <td class="py-2 pr-4" th:text="${d.ntpn}">-</td>
+                        <td class="py-2 pr-4" data-col="deposit-status" th:text="${d.transaction.status}">DRAFT</td>
+                        <td class="py-2 flex gap-2">
+                            <form th:if="${d.transaction.draft}" sec:authorize="hasAuthority('TRANSACTION_POST')" th:action="@{/withholding/deposits/{id}/post(id=${d.id})}" method="post">
+                                <button type="submit" class="btn-post-deposit text-primary-600 hover:underline">Posting</button>
+                            </form>
+                            <form th:if="${d.transaction.draft}" sec:authorize="hasAuthority('TRANSACTION_DELETE')" th:action="@{/withholding/deposits/{id}/cancel(id=${d.id})}" method="post">
+                                <button type="submit" class="text-red-700 hover:underline">Batalkan</button>
+                            </form>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <form sec:authorize="hasAuthority('TRANSACTION_CREATE')" th:action="@{/withholding/deposits}" method="post" class="grid grid-cols-2 md:grid-cols-3 gap-3 items-end">
+                <input type="hidden" name="year" th:value="${masa.year}">
+                <input type="hidden" name="month" th:value="${masa.monthValue}">
+                <div>
+                    <label for="deposit-treatment" class="block text-xs font-medium text-gray-700 mb-1">Pajak</label>
+                    <select id="deposit-treatment" name="treatment" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500">
+                        <option th:each="t : ${treatments}" th:value="${t.name()}" th:text="${t.indonesianName}"></option>
+                    </select>
+                </div>
+                <div>
+                    <label for="deposit-amount" class="block text-xs font-medium text-gray-700 mb-1">Jumlah</label>
+                    <input type="number" step="0.01" min="0" id="deposit-amount" name="amount" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500">
+                </div>
+                <div>
+                    <label for="deposit-date" class="block text-xs font-medium text-gray-700 mb-1">Tanggal Setor</label>
+                    <input type="date" id="deposit-date" name="depositDate" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500">
+                </div>
+                <div>
+                    <label for="deposit-bank" class="block text-xs font-medium text-gray-700 mb-1">Akun Bank</label>
+                    <select id="deposit-bank" name="bankAccountId" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500">
+                        <option value="">Pilih akun</option>
+                        <option th:each="a : ${bankAccounts}" th:value="${a.id}" th:text="|${a.accountCode} - ${a.accountName}|"></option>
+                    </select>
+                </div>
+                <div>
+                    <label for="deposit-billing" class="block text-xs font-medium text-gray-700 mb-1">Kode Billing</label>
+                    <input type="text" id="deposit-billing" name="billingCode" maxlength="50" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500">
+                </div>
+                <div>
+                    <label for="deposit-ntpn" class="block text-xs font-medium text-gray-700 mb-1">NTPN</label>
+                    <input type="text" id="deposit-ntpn" name="ntpn" maxlength="50" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500">
+                </div>
+                <div>
+                    <button type="submit" id="btn-save-deposit" class="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm hover:bg-primary-700">Simpan Draf Setoran</button>
+                </div>
+            </form>
+            <p class="mt-2 text-xs text-gray-500">Setoran di sini hanya mencatat PPh hasil pemotongan pembayaran di menu ini. PPh 21 karyawan disetor lewat template Setor PPh 21.</p>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-4 overflow-x-auto" id="undocumented-section">
+            <h2 class="text-sm font-semibold text-gray-900 mb-1">Pembayaran Jasa Tanpa Detail PPh</h2>
+            <p class="text-xs text-gray-500 mb-3">Transaksi terposting pada akun jasa yang tidak punya detail PPh 21, 23, 26 atau 4(2). Detail PPN tidak dihitung.</p>
+            <div th:unless="${#lists.isEmpty(undocumented.unclassifiedAccounts())}" id="unclassified-warning"
+                 class="mb-3 p-3 rounded-lg bg-yellow-50 border border-yellow-200 text-sm text-yellow-800">
+                Akun beban berikut punya transaksi pada masa ini tetapi belum diklasifikasi, jadi tidak diperiksa:
+                <span th:text="${#strings.listJoin(undocumented.unclassifiedAccounts(), ', ')}">-</span>.
+                Atur kolom Akun Jasa di Bagan Akun.
+            </div>
+            <p th:if="${#lists.isEmpty(undocumented.rows())}" id="undocumented-empty" class="text-sm text-gray-500">Tidak ada temuan pada akun jasa.</p>
+            <table th:unless="${#lists.isEmpty(undocumented.rows())}" class="min-w-full text-sm" id="table-undocumented">
+                <thead><tr class="text-left text-gray-500">
+                    <th class="py-2 pr-4">Tanggal</th><th class="py-2 pr-4">Transaksi</th><th class="py-2 pr-4">Keterangan</th>
+                    <th class="py-2 pr-4">Akun</th><th class="py-2 text-right">Jumlah</th>
+                </tr></thead>
+                <tbody>
+                <tr th:each="r : ${undocumented.rows()}" class="border-t">
+                    <td class="py-2 pr-4" th:text="${#temporals.format(r.transactionDate(), 'dd/MM/yyyy')}">-</td>
+                    <td class="py-2 pr-4"><a class="text-primary-600 hover:underline" th:href="@{/transactions/{id}(id=${r.transactionId()})}" th:text="${r.transactionNumber()}">-</a></td>
+                    <td class="py-2 pr-4" th:text="${r.description()}">-</td>
+                    <td class="py-2 pr-4" th:text="|${r.accountCode()} ${r.accountName()}|">-</td>
+                    <td class="py-2 text-right" th:text="${#numbers.formatDecimal(r.amount(), 1, 'POINT', 0, 'COMMA')}">0</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</body>
+</html>

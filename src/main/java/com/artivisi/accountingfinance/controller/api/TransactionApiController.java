@@ -11,6 +11,7 @@ import com.artivisi.accountingfinance.enums.AuditEventType;
 import com.artivisi.accountingfinance.security.LogSanitizer;
 import com.artivisi.accountingfinance.service.SecurityAuditService;
 import com.artivisi.accountingfinance.service.TemplateExecutionEngine;
+import com.artivisi.accountingfinance.service.PayrollReconciliationService;
 import com.artivisi.accountingfinance.service.TransactionApiService;
 import com.artivisi.accountingfinance.service.TransactionService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -64,6 +65,7 @@ public class TransactionApiController {
     private final TransactionApiService transactionApiService;
     private final TransactionService transactionService;
     private final SecurityAuditService securityAuditService;
+    private final PayrollReconciliationService payrollReconciliationService;
 
     /**
      * Create and post transaction directly (bypass draft workflow).
@@ -286,11 +288,12 @@ public class TransactionApiController {
         for (UUID txId : request.transactionIds()) {
             try {
                 Transaction posted = transactionService.post(txId, username);
-                results.add(new BulkPostResultDto(txId, true, posted.getTransactionNumber(), null));
+                results.add(new BulkPostResultDto(txId, true, posted.getTransactionNumber(), null,
+                        payrollReconciliationService.warningsForTransaction(txId)));
                 successCount++;
             } catch (Exception e) {
                 log.warn("Bulk post failed for transaction {}: {}", txId, e.getMessage());
-                results.add(new BulkPostResultDto(txId, false, null, e.getMessage()));
+                results.add(new BulkPostResultDto(txId, false, null, e.getMessage(), List.of()));
                 failureCount++;
             }
         }
@@ -366,7 +369,8 @@ public class TransactionApiController {
                 tx.getAmount(),
                 tx.getTransactionDate(),
                 tx.getDescription(),
-                journalEntries);
+                journalEntries,
+                payrollReconciliationService.warningsForTransaction(tx.getId()));
     }
 
     /**
@@ -406,7 +410,8 @@ public class TransactionApiController {
             UUID transactionId,
             boolean success,
             String transactionNumber,
-            String errorMessage
+            String errorMessage,
+            List<String> warnings
     ) {}
 
     public record JournalPreviewResponse(

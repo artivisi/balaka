@@ -5,6 +5,7 @@ import com.artivisi.accountingfinance.entity.FiscalLossCarryforward;
 import com.artivisi.accountingfinance.entity.TaxTransactionDetail;
 import com.artivisi.accountingfinance.enums.FiscalAdjustmentCategory;
 import com.artivisi.accountingfinance.enums.FiscalAdjustmentDirection;
+import com.artivisi.accountingfinance.enums.FiscalAdjustmentStatus;
 import com.artivisi.accountingfinance.repository.ChartOfAccountRepository;
 import com.artivisi.accountingfinance.repository.FiscalAdjustmentRepository;
 import com.artivisi.accountingfinance.repository.FiscalLossCarryforwardRepository;
@@ -151,9 +152,8 @@ public class TaxReportDetailService {
         ReportService.IncomeStatementReport incomeStatement =
                 reportService.generateIncomeStatementExcludingClosing(startDate, endDate);
 
-        // Get fiscal adjustments
-        List<FiscalAdjustment> adjustments = fiscalAdjustmentRepository
-                .findByYearOrderByAdjustmentCategoryAscDescriptionAsc(year);
+        // Drafts wait for review and do not count
+        List<FiscalAdjustment> adjustments = findConfirmedAdjustmentsByYear(year);
 
         // Calculate total positive and negative adjustments
         BigDecimal totalPositiveAdjustment = adjustments.stream()
@@ -272,6 +272,16 @@ public class TaxReportDetailService {
 
     public List<FiscalAdjustment> findAdjustmentsByYear(int year) {
         return fiscalAdjustmentRepository.findByYearOrderByAdjustmentCategoryAscDescriptionAsc(year);
+    }
+
+    public List<FiscalAdjustment> findConfirmedAdjustmentsByYear(int year) {
+        return fiscalAdjustmentRepository.findByYearAndStatusOrderByAdjustmentCategoryAscDescriptionAsc(
+                year, FiscalAdjustmentStatus.CONFIRMED);
+    }
+
+    public List<FiscalAdjustment> findDraftAdjustmentsByYear(int year) {
+        return fiscalAdjustmentRepository.findByYearAndStatusOrderByAdjustmentCategoryAscDescriptionAsc(
+                year, FiscalAdjustmentStatus.DRAFT);
     }
 
     public FiscalAdjustment findAdjustmentById(UUID id) {

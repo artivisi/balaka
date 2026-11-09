@@ -357,6 +357,7 @@ class CashBankFlagMaintenanceTest {
         debit.setAccount(account);
         debit.setDebitAmount(amount);
         debit.setCreditAmount(BigDecimal.ZERO);
+        debit.setLineOrder(1);
 
         JournalEntry credit = new JournalEntry();
         credit.setJournalNumber("JRN-FAS87-C-" + suffix);
@@ -364,6 +365,7 @@ class CashBankFlagMaintenanceTest {
         credit.setAccount(revenue);
         credit.setDebitAmount(BigDecimal.ZERO);
         credit.setCreditAmount(amount);
+        credit.setLineOrder(2);
 
         journalEntryRepository.saveAll(List.of(debit, credit));
     }

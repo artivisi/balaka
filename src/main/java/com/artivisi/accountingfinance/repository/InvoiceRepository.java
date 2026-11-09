@@ -84,4 +84,38 @@ public interface InvoiceRepository extends JpaRepository<Invoice, UUID> {
     BigDecimal sumInvoicesBeforeDate(
             @Param("clientId") UUID clientId,
             @Param("date") LocalDate date);
+
+    /** Issued, not cancelled invoices with their payments: what the sales tax chain checks for faktur and bupot. */
+    @Query("""
+            SELECT DISTINCT i FROM Invoice i JOIN FETCH i.client LEFT JOIN FETCH i.payments
+            WHERE i.status NOT IN (com.artivisi.accountingfinance.enums.InvoiceStatus.DRAFT,
+                                   com.artivisi.accountingfinance.enums.InvoiceStatus.CANCELLED)
+            ORDER BY i.invoiceDate ASC, i.invoiceNumber ASC""")
+    List<Invoice> findIssuedWithPayments();
+
+    @Query("""
+            SELECT new com.artivisi.accountingfinance.repository.InvoiceRepository$PaymentTransactionLink(i.transaction.id, i.id)
+            FROM Invoice i WHERE i.transaction IS NOT NULL""")
+    List<PaymentTransactionLink> findPaymentTransactionLinks();
+
+    /** invoices.id_transaction: the receipt transaction booked through the mark-paid screen. */
+    record PaymentTransactionLink(UUID transactionId, UUID invoiceId) {}
+
+    /** Invoices whose journal is one of these transactions through id_transaction. */
+    @Query("SELECT i FROM Invoice i JOIN FETCH i.transaction t LEFT JOIN FETCH i.contract c LEFT JOIN FETCH c.document "
+            + "WHERE t.id IN :transactionIds")
+    List<Invoice> findByTransactionIdsWithContract(@Param("transactionIds") java.util.Collection<UUID> transactionIds);
+
+    @Query("SELECT i FROM Invoice i LEFT JOIN FETCH i.contract c LEFT JOIN FETCH c.document WHERE i.id IN :ids")
+    List<Invoice> findByIdsWithContract(@Param("ids") java.util.Collection<UUID> ids);
+
+    @Query("SELECT i FROM Invoice i WHERE i.contract.id = :contractId ORDER BY i.invoiceDate, i.invoiceNumber")
+    List<Invoice> findByContractId(@Param("contractId") UUID contractId);
+
+    /** Invoices issued (sent, partly or fully paid, overdue) with an invoice date in the period. */
+    @Query("SELECT i FROM Invoice i JOIN FETCH i.client WHERE i.invoiceDate BETWEEN :from AND :to "
+            + "AND i.status IN (com.artivisi.accountingfinance.enums.InvoiceStatus.SENT, "
+            + "com.artivisi.accountingfinance.enums.InvoiceStatus.PARTIAL, com.artivisi.accountingfinance.enums.InvoiceStatus.PAID, "
+            + "com.artivisi.accountingfinance.enums.InvoiceStatus.OVERDUE) ORDER BY i.invoiceDate, i.invoiceNumber")
+    List<Invoice> findIssuedInPeriod(@Param("from") LocalDate from, @Param("to") LocalDate to);
 }

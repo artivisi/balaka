@@ -73,17 +73,17 @@ Surplus yang besar (5,98M) terutama berasal dari pendapatan uang pangkal angkata
 
 ```
 ASET
-  Bank BCA                        5.970.096.800
+  Bank BCA                        5.968.944.800
   Piutang SPP Mahasiswa             160.000.000
   Aset Tetap (Server Lab)           35.000.000
   Akum. Penyusutan                   (7.291.667)
                                   ─────────────
-  Total Aset                      6.157.805.133
+  Total Aset                      6.156.653.133
 
 KEWAJIBAN
-  Hutang PPh 21                      3.840.000
+  Hutang PPh 21                      2.688.000
                                   ─────────────
-  Total Kewajiban                     3.840.000
+  Total Kewajiban                     2.688.000
 
 EKUITAS
   Modal Yayasan                     200.000.000

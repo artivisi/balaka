@@ -35,6 +35,7 @@ public class FiscalPeriodController {
     private static final String REDIRECT_FISCAL_PERIODS_PREFIX = "redirect:/fiscal-periods/";
 
     private final FiscalPeriodService fiscalPeriodService;
+    private final com.artivisi.accountingfinance.service.CloseCheckService closeCheckService;
 
     @GetMapping
     public String list(
@@ -116,6 +117,8 @@ public class FiscalPeriodController {
     public String detail(@PathVariable UUID id, Model model) {
         FiscalPeriod period = fiscalPeriodService.findById(id);
         model.addAttribute("period", period);
+        model.addAttribute("closeChecklist",
+                closeCheckService.checklistForMonth(java.time.YearMonth.of(period.getYear(), period.getMonth())));
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_FISCAL_PERIODS);
         return "fiscal-periods/detail";
     }

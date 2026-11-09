@@ -35,12 +35,12 @@ Sistem menghitung BPJS dan PPh 21 otomatis per karyawan:
 |------|-------------------|----------|
 | Total Gross | 22.000.000 | 22.000.000 |
 | Total Employee BPJS | 762.300 | 762.300 |
-| Total PPh 21 | 626.250 | 626.250 |
-| Total Deductions | 1.388.550 | 1.388.550 |
-| Total Net Pay | 20.611.450 | 20.611.450 |
+| Total PPh 21 | 626.250 | 329.250 |
+| Total Deductions | 1.388.550 | 1.091.550 |
+| Total Net Pay | 20.611.450 | 20.908.450 |
 | Total Company BPJS | 2.252.800 | 2.252.800 |
 
-**Catatan tentang PPh 21:** Dengan gaji 5,5 juta per bulan, PPh 21 per karyawan relatif kecil. Pada level gaji ini, tarif TER (Tarif Efektif Rata-rata) menghasilkan potongan yang rendah. Rekonsiliasi Desember juga tidak menghasilkan selisih yang signifikan karena penghasilan neto tahunan masih di bawah batas PTKP untuk sebagian karyawan.
+**Catatan tentang PPh 21:** Dengan gaji 5,5 juta per bulan, PPh 21 per karyawan relatif kecil. Pada level gaji ini, tarif TER (Tarif Efektif Rata-rata) menghasilkan potongan yang rendah. Rekonsiliasi Desember menghitung PPh 21 setahun dari penghasilan neto (bruto − biaya jabatan − iuran JHT + JP karyawan) dengan tarif Pasal 17, lalu dikurangi PPh 21 Jan–Nov. Hasilnya 329.250, lebih kecil dari potongan TER bulanan. Karyawan K/1 tidak terutang PPh 21 setahun karena penghasilan netonya di bawah PTKP.
 
 ### 3. Approve & Post
 
@@ -86,7 +86,7 @@ Setor PPh 21 (bulan berikutnya, tgl 10):
 
 ## Hutang PPh 21 Akhir Tahun
 
-Per 31 Desember 2025, Hutang PPh 21 menunjukkan saldo **626.250** — ini adalah PPh 21 Desember yang akan disetor Januari 2026.
+Per 31 Desember 2025, Hutang PPh 21 menunjukkan saldo **329.250** — ini adalah PPh 21 Desember yang akan disetor Januari 2026.
 
 ## Tips
 

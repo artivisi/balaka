@@ -11,6 +11,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
@@ -57,6 +58,12 @@ public class Transaction extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_project")
     private Project project;
+
+    /** Contract this transaction falls under; its file is the transaction's CONTRACT evidence. */
+    @JsonIgnore
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_contract")
+    private Contract contract;
 
     @NotNull(message = "Amount is required")
     @DecimalMin(value = "0", message = "Amount must be non-negative")
@@ -134,6 +141,7 @@ public class Transaction extends BaseEntity {
     @JsonIgnore
     @Getter(AccessLevel.NONE)
     @OneToMany(mappedBy = "transaction", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OrderBy("lineOrder ASC")
     private List<JournalEntry> journalEntries = new ArrayList<>();
 
     @JsonIgnore
@@ -179,7 +187,15 @@ public class Transaction extends BaseEntity {
         variable.setTransaction(this);
     }
 
+    /**
+     * Appends a journal line; its line order is the next position after the lines already present.
+     */
     public void addJournalEntry(JournalEntry entry) {
+        int nextLineOrder = journalEntries.stream()
+                .mapToInt(JournalEntry::getLineOrder)
+                .max()
+                .orElse(0) + 1;
+        entry.setLineOrder(nextLineOrder);
         journalEntries.add(entry);
         entry.setTransaction(this);
     }

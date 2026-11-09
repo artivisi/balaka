@@ -55,7 +55,7 @@ PT Maju Teknologi,Jl. Sudirman 10 Jakarta,021-5551234,admin@maju.co.id,,01.234.5
 ### 02_chart_of_accounts.csv — Bagan Akun
 
 ```csv
-account_code,account_name,account_type,parent_code,normal_balance,active,is_permanent
+account_code,account_name,account_type,parent_code,normal_balance,active,is_permanent,fiscal_treatment
 1,ASET,ASSET,,DEBIT,true,true
 1.1,Aset Lancar,ASSET,1,DEBIT,true,true
 1.1.01,Kas,ASSET,1.1,DEBIT,true,true
@@ -69,6 +69,7 @@ account_code,account_name,account_type,parent_code,normal_balance,active,is_perm
 | parent_code | Kode akun induk (kosong untuk akun level tertinggi) |
 | normal_balance | `DEBIT` atau `CREDIT` |
 | is_permanent | `true` untuk akun neraca, `false` untuk akun laba rugi |
+| fiscal_treatment | `DEDUCTIBLE`, `NON_DEDUCTIBLE`, `CONDITIONAL`, atau kosong. Hanya untuk akun beban yang bukan header |
 
 ### 04_journal_templates.csv — Template Jurnal
 

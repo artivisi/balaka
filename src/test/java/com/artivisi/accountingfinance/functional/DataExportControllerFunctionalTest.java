@@ -122,7 +122,8 @@ class DataExportControllerFunctionalTest extends PlaywrightTestBase {
 
         List<String> accounts = zip.get("02_chart_of_accounts.csv").lines().toList();
         assertThat(accounts.getFirst())
-                .isEqualTo("account_code,account_name,account_type,parent_code,normal_balance,active,created_at");
+                .isEqualTo("account_code,account_name,account_type,parent_code,normal_balance,active,created_at,"
+                        + "fiscal_treatment,service_expense,close_check_role,self_test_role");
         assertThat(accounts).hasSize((int) accountRepository.count() + 1);
         assertThat(accounts).anyMatch(l -> l.startsWith(SEEDED_ACCOUNT_CODE + "," + account.getAccountName() + ","
                 + account.getAccountType() + "," + SEEDED_ACCOUNT_PARENT + ","

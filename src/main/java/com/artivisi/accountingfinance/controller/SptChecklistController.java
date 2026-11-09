@@ -88,9 +88,10 @@ public class SptChecklistController {
         }
 
         // 2. Fiscal adjustments entered
-        var adjustments = taxReportDetailService.findAdjustmentsByYear(year);
+        var adjustments = taxReportDetailService.findConfirmedAdjustmentsByYear(year);
         boolean hasFiscalAdjustments = !adjustments.isEmpty();
         int adjustmentCount = adjustments.size();
+        int draftAdjustmentCount = taxReportDetailService.findDraftAdjustmentsByYear(year).size();
 
         // 3. PPh Badan calculated
         boolean hasPphBadan = false;
@@ -146,7 +147,7 @@ public class SptChecklistController {
 
         return new ChecklistResult(
                 year, hasIncomeStatement, totalRevenue, netIncome,
-                hasFiscalAdjustments, adjustmentCount,
+                hasFiscalAdjustments, adjustmentCount, draftAdjustmentCount,
                 hasPphBadan, pphTerutang, pph29,
                 allMonthsClosed, closedMonths,
                 hasDepreciation, assetCount,
@@ -168,6 +169,7 @@ public class SptChecklistController {
             BigDecimal netIncome,
             boolean hasFiscalAdjustments,
             int adjustmentCount,
+            int draftAdjustmentCount,
             boolean hasPphBadan,
             BigDecimal pphTerutang,
             BigDecimal pph29,

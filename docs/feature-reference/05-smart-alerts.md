@@ -17,6 +17,7 @@ Sistem menyediakan 7 jenis peringatan bawaan:
 | PROJECT_MARGIN_DROP | Margin Proyek Turun | Margin proyek turun di bawah X% | % |
 | COLLECTION_SLOWDOWN | Penagihan Melambat | Rata-rata hari penagihan melebihi X hari | hari |
 | CLIENT_CONCENTRATION | Konsentrasi Klien | Satu klien menyumbang lebih dari X% pendapatan | % |
+| PAYROLL_UNPOSTED | Payroll Belum Diposting | Payroll berstatus APPROVED belum diposting X hari setelah akhir periode | hari |
 
 ## Tingkat Keparahan (Severity)
 

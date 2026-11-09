@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>4.1.1</version>
+		<version>4.1.2</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.artivisi</groupId>
@@ -39,13 +39,21 @@
 	</properties>
 	<dependencyManagement>
 		<dependencies>
-			<!-- CVE pin, not in the Boot BOM: jsoup < 1.23.1 Cleaner bypass with
-			     custom raw-text elements (CVE-2026-71497 medium); pulled test-scope
-			     via flexmark-html2md-converter 0.64.8 (declares 1.15.4) -->
+			<!-- CVE pin, not in the Boot BOM: jsoup < 1.23.2 XmlTreeBuilder memory
+			     exhaustion via nested namespace declarations (Dependabot #80 high);
+			     pulled test-scope via flexmark-html2md-converter 0.64.8 (declares 1.15.4) -->
 			<dependency>
 				<groupId>org.jsoup</groupId>
 				<artifactId>jsoup</artifactId>
 				<version>1.23.2</version>
+			</dependency>
+			<!-- CVE pin, not in the Boot BOM: guava <= 33.7.1 CompactHashMap/CompactHashSet
+			     deserialization memory allocation (Dependabot #81 high); pulled compile-scope
+			     via google-cloud-vision 3.93.0 (declares 33.6.0-jre) -->
+			<dependency>
+				<groupId>com.google.guava</groupId>
+				<artifactId>guava</artifactId>
+				<version>33.7.2-jre</version>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>

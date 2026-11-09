@@ -61,7 +61,7 @@ VALUES (
 
 -- Journal entries for TRX-TAX-0001
 -- Debit: Bank BCA 11.100.000
-INSERT INTO journal_entries (id, journal_number, id_transaction, id_account, debit_amount, credit_amount, posted_at, created_at, updated_at)
+INSERT INTO journal_entries (id, journal_number, id_transaction, id_account, debit_amount, credit_amount, posted_at, created_at, updated_at, line_order)
 VALUES (
     'c1000000-0000-0000-0000-000000000001',
     'JE-TAX-0001',
@@ -71,11 +71,12 @@ VALUES (
     0,
     NOW(),
     NOW(),
-    NOW()
+    NOW(),
+    1
 );
 
 -- Credit: Pendapatan Jasa Konsultasi 10.000.000
-INSERT INTO journal_entries (id, journal_number, id_transaction, id_account, debit_amount, credit_amount, posted_at, created_at, updated_at)
+INSERT INTO journal_entries (id, journal_number, id_transaction, id_account, debit_amount, credit_amount, posted_at, created_at, updated_at, line_order)
 VALUES (
     'c1000000-0000-0000-0000-000000000002',
     'JE-TAX-0001',
@@ -85,11 +86,12 @@ VALUES (
     10000000,
     NOW(),
     NOW(),
-    NOW()
+    NOW(),
+    2
 );
 
 -- Credit: Hutang PPN 1.100.000 (PPN Keluaran)
-INSERT INTO journal_entries (id, journal_number, id_transaction, id_account, debit_amount, credit_amount, posted_at, created_at, updated_at)
+INSERT INTO journal_entries (id, journal_number, id_transaction, id_account, debit_amount, credit_amount, posted_at, created_at, updated_at, line_order)
 VALUES (
     'c1000000-0000-0000-0000-000000000003',
     'JE-TAX-0001',
@@ -99,7 +101,8 @@ VALUES (
     1100000,
     NOW(),
     NOW(),
-    NOW()
+    NOW(),
+    3
 );
 
 -- ============================================
@@ -127,7 +130,7 @@ VALUES (
 
 -- Journal entries for TRX-TAX-0002
 -- Debit: Beban Server & Cloud 5.000.000
-INSERT INTO journal_entries (id, journal_number, id_transaction, id_account, debit_amount, credit_amount, posted_at, created_at, updated_at)
+INSERT INTO journal_entries (id, journal_number, id_transaction, id_account, debit_amount, credit_amount, posted_at, created_at, updated_at, line_order)
 VALUES (
     'c1000000-0000-0000-0000-000000000004',
     'JE-TAX-0002',
@@ -137,11 +140,12 @@ VALUES (
     0,
     NOW(),
     NOW(),
-    NOW()
+    NOW(),
+    1
 );
 
 -- Debit: PPN Masukan 550.000
-INSERT INTO journal_entries (id, journal_number, id_transaction, id_account, debit_amount, credit_amount, posted_at, created_at, updated_at)
+INSERT INTO journal_entries (id, journal_number, id_transaction, id_account, debit_amount, credit_amount, posted_at, created_at, updated_at, line_order)
 VALUES (
     'c1000000-0000-0000-0000-000000000005',
     'JE-TAX-0002',
@@ -151,11 +155,12 @@ VALUES (
     0,
     NOW(),
     NOW(),
-    NOW()
+    NOW(),
+    2
 );
 
 -- Credit: Bank BCA 5.550.000
-INSERT INTO journal_entries (id, journal_number, id_transaction, id_account, debit_amount, credit_amount, posted_at, created_at, updated_at)
+INSERT INTO journal_entries (id, journal_number, id_transaction, id_account, debit_amount, credit_amount, posted_at, created_at, updated_at, line_order)
 VALUES (
     'c1000000-0000-0000-0000-000000000006',
     'JE-TAX-0002',
@@ -165,7 +170,8 @@ VALUES (
     5550000,
     NOW(),
     NOW(),
-    NOW()
+    NOW(),
+    3
 );
 
 -- ============================================
@@ -193,7 +199,7 @@ VALUES (
 
 -- Journal entries for TRX-TAX-0003
 -- Debit: Beban Software & Lisensi 2.000.000
-INSERT INTO journal_entries (id, journal_number, id_transaction, id_account, debit_amount, credit_amount, posted_at, created_at, updated_at)
+INSERT INTO journal_entries (id, journal_number, id_transaction, id_account, debit_amount, credit_amount, posted_at, created_at, updated_at, line_order)
 VALUES (
     'c1000000-0000-0000-0000-000000000007',
     'JE-TAX-0003',
@@ -203,11 +209,12 @@ VALUES (
     0,
     NOW(),
     NOW(),
-    NOW()
+    NOW(),
+    1
 );
 
 -- Credit: Bank BCA 1.960.000 (Net payment)
-INSERT INTO journal_entries (id, journal_number, id_transaction, id_account, debit_amount, credit_amount, posted_at, created_at, updated_at)
+INSERT INTO journal_entries (id, journal_number, id_transaction, id_account, debit_amount, credit_amount, posted_at, created_at, updated_at, line_order)
 VALUES (
     'c1000000-0000-0000-0000-000000000008',
     'JE-TAX-0003',
@@ -217,11 +224,12 @@ VALUES (
     1960000,
     NOW(),
     NOW(),
-    NOW()
+    NOW(),
+    2
 );
 
 -- Credit: Hutang PPh 23 40.000 (Withheld)
-INSERT INTO journal_entries (id, journal_number, id_transaction, id_account, debit_amount, credit_amount, posted_at, created_at, updated_at)
+INSERT INTO journal_entries (id, journal_number, id_transaction, id_account, debit_amount, credit_amount, posted_at, created_at, updated_at, line_order)
 VALUES (
     'c1000000-0000-0000-0000-000000000009',
     'JE-TAX-0003',
@@ -231,7 +239,8 @@ VALUES (
     40000,
     NOW(),
     NOW(),
-    NOW()
+    NOW(),
+    3
 );
 
 -- ============================================
@@ -259,7 +268,7 @@ VALUES (
 
 -- Journal entries for TRX-TAX-0004
 -- Debit: Bank BCA 16.650.000
-INSERT INTO journal_entries (id, journal_number, id_transaction, id_account, debit_amount, credit_amount, posted_at, created_at, updated_at)
+INSERT INTO journal_entries (id, journal_number, id_transaction, id_account, debit_amount, credit_amount, posted_at, created_at, updated_at, line_order)
 VALUES (
     'c1000000-0000-0000-0000-000000000010',
     'JE-TAX-0004',
@@ -269,11 +278,12 @@ VALUES (
     0,
     NOW(),
     NOW(),
-    NOW()
+    NOW(),
+    1
 );
 
 -- Credit: Pendapatan Jasa Development 15.000.000
-INSERT INTO journal_entries (id, journal_number, id_transaction, id_account, debit_amount, credit_amount, posted_at, created_at, updated_at)
+INSERT INTO journal_entries (id, journal_number, id_transaction, id_account, debit_amount, credit_amount, posted_at, created_at, updated_at, line_order)
 VALUES (
     'c1000000-0000-0000-0000-000000000011',
     'JE-TAX-0004',
@@ -283,11 +293,12 @@ VALUES (
     15000000,
     NOW(),
     NOW(),
-    NOW()
+    NOW(),
+    2
 );
 
 -- Credit: Hutang PPN 1.650.000 (PPN Keluaran)
-INSERT INTO journal_entries (id, journal_number, id_transaction, id_account, debit_amount, credit_amount, posted_at, created_at, updated_at)
+INSERT INTO journal_entries (id, journal_number, id_transaction, id_account, debit_amount, credit_amount, posted_at, created_at, updated_at, line_order)
 VALUES (
     'c1000000-0000-0000-0000-000000000012',
     'JE-TAX-0004',
@@ -297,7 +308,8 @@ VALUES (
     1650000,
     NOW(),
     NOW(),
-    NOW()
+    NOW(),
+    3
 );
 
 -- ============================================

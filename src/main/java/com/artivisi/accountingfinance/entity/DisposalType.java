@@ -10,6 +10,11 @@ public enum DisposalType {
     SOLD,
 
     /**
+     * Asset given away. No proceeds; the book value is a non-deductible loss.
+     */
+    GIFTED,
+
+    /**
      * Asset written off (scrapped, no longer usable).
      */
     WRITTEN_OFF,

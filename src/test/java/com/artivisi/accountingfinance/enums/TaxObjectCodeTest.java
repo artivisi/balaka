@@ -27,14 +27,14 @@ class TaxObjectCodeTest {
     @DisplayName("Should return description for PPH23 service")
     void shouldReturnDescriptionForPph23Service() {
         assertThat(TaxObjectCode.PPH23_JASA_TEKNIK.getDescription()).isEqualTo("Jasa Teknik");
-        assertThat(TaxObjectCode.PPH23_JASA_CATERING.getDescription()).isEqualTo("Jasa Katering");
+        assertThat(TaxObjectCode.PPH23_JASA_CATERING.getDescription()).isEqualTo("Jasa Katering atau Tata Boga");
     }
 
     @Test
     @DisplayName("Should return default rate for PPH23")
     void shouldReturnDefaultRateForPph23() {
         assertThat(TaxObjectCode.PPH23_JASA_TEKNIK.getDefaultRate()).isEqualByComparingTo(new BigDecimal("2.00"));
-        assertThat(TaxObjectCode.PPH23_SEWA_KENDARAAN.getDefaultRate()).isEqualByComparingTo(new BigDecimal("2.00"));
+        assertThat(TaxObjectCode.PPH23_SEWA_HARTA.getDefaultRate()).isEqualByComparingTo(new BigDecimal("2.00"));
     }
 
     @Test
@@ -49,7 +49,7 @@ class TaxObjectCodeTest {
     void shouldReturnTaxType() {
         assertThat(TaxObjectCode.PPH23_JASA_TEKNIK.getTaxType()).isEqualTo(TaxType.PPH_23);
         assertThat(TaxObjectCode.PPH42_SEWA_TANAH_BANGUNAN.getTaxType()).isEqualTo(TaxType.PPH_42);
-        assertThat(TaxObjectCode.PPH21_HONORARIUM.getTaxType()).isEqualTo(TaxType.PPH_21);
+        assertThat(TaxObjectCode.PPH21_PEMBERI_JASA.getTaxType()).isEqualTo(TaxType.PPH_21);
     }
 
     @Test
@@ -87,14 +87,17 @@ class TaxObjectCodeTest {
     void shouldFindAllPph23ServiceCodes() {
         assertThat(TaxObjectCode.fromCode("24-104-02")).isEqualTo(TaxObjectCode.PPH23_JASA_MANAJEMEN);
         assertThat(TaxObjectCode.fromCode("24-104-03")).isEqualTo(TaxObjectCode.PPH23_JASA_KONSULTAN);
-        assertThat(TaxObjectCode.fromCode("24-104-04")).isEqualTo(TaxObjectCode.PPH23_JASA_AKUNTANSI);
-        assertThat(TaxObjectCode.fromCode("24-104-21")).isEqualTo(TaxObjectCode.PPH23_JASA_CATERING);
+        assertThat(TaxObjectCode.fromCode("24-104-04")).isEqualTo(TaxObjectCode.PPH23_JASA_PENILAI);
+        assertThat(TaxObjectCode.fromCode("24-104-06")).isEqualTo(TaxObjectCode.PPH23_JASA_AKUNTANSI);
+        assertThat(TaxObjectCode.fromCode("24-104-24")).isEqualTo(TaxObjectCode.PPH23_JASA_SOFTWARE);
+        assertThat(TaxObjectCode.fromCode("24-104-39")).isEqualTo(TaxObjectCode.PPH23_JASA_CATERING);
     }
 
     @Test
     @DisplayName("Should find PPH42 codes")
     void shouldFindPph42Codes() {
-        assertThat(TaxObjectCode.fromCode("28-409-01")).isEqualTo(TaxObjectCode.PPH42_SEWA_TANAH_BANGUNAN);
+        assertThat(TaxObjectCode.fromCode("28-403-02")).isEqualTo(TaxObjectCode.PPH42_SEWA_TANAH_BANGUNAN);
+        assertThat(TaxObjectCode.fromCode("28-409-22")).isEqualTo(TaxObjectCode.PPH42_JASA_KONSTRUKSI_KECIL);
         assertThat(TaxObjectCode.fromCode("28-423-01")).isEqualTo(TaxObjectCode.PPH42_UMKM);
     }
 
@@ -110,7 +113,7 @@ class TaxObjectCodeTest {
         assertThat(pph23Codes).contains(
                 TaxObjectCode.PPH23_JASA_TEKNIK,
                 TaxObjectCode.PPH23_JASA_KONSULTAN,
-                TaxObjectCode.PPH23_SEWA_KENDARAAN
+                TaxObjectCode.PPH23_SEWA_HARTA
         );
     }
 
@@ -133,7 +136,18 @@ class TaxObjectCodeTest {
         TaxObjectCode[] pph21Codes = TaxObjectCode.getByTaxType(TaxType.PPH_21);
 
         assertThat(pph21Codes).isNotEmpty();
-        assertThat(pph21Codes).contains(TaxObjectCode.PPH21_HONORARIUM);
+        assertThat(pph21Codes).extracting(TaxObjectCode::getCode)
+                .containsExactly("21-100-07", "21-100-18", "21-100-19", "21-100-20");
+    }
+
+    @Test
+    @DisplayName("Codes are unique and none of the codes missing from the Coretax list is offered")
+    void codesAreUniqueAndCurrent() {
+        assertThat(TaxObjectCode.values()).extracting(TaxObjectCode::getCode).doesNotHaveDuplicates()
+                .doesNotContain("24-104-99", "24-100-09", "27-100-99", "21-100-09", "28-409-01", "28-409-07",
+                        "28-409-08", "28-409-09");
+        assertThat(TaxObjectCode.getByTaxType(TaxType.PPH_26)).extracting(TaxObjectCode::getCode)
+                .containsExactly("27-100-01", "27-101-01", "27-102-01", "27-103-01", "27-104-01");
     }
 
     // ==================== Enum Values ====================

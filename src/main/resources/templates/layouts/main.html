@@ -125,9 +125,20 @@
                             <a sec:authorize="hasAuthority('ASSET_VIEW')" id="nav-assets" th:href="@{/assets}"
                                th:classappend="${#strings.equals(currentPage, 'assets')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
                                class="flex items-center px-3 py-2 rounded-lg transition-colors">Aset Tetap</a>
+                            <a sec:authorize="hasAuthority('ASSET_VIEW')" id="nav-asset-verification" th:href="@{/assets/verification}"
+                               class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Verifikasi Aset</a>
+                            <a sec:authorize="hasAuthority('ASSET_VIEW')" id="nav-asset-disposals" th:href="@{/assets/disposals}"
+                               class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Pelepasan Aset</a>
                             <a sec:authorize="hasAuthority('BANK_RECONCILIATION_VIEW')" id="nav-bank-recon" th:href="@{/bank-reconciliation}"
                                th:classappend="${currentPage != null && currentPage.startsWith('bank-recon')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
                                class="flex items-center px-3 py-2 rounded-lg transition-colors">Rekonsiliasi Bank</a>
+                            <a sec:authorize="hasAuthority('EVIDENCE_VIEW')" id="nav-evidence-missing" th:href="@{/evidence/missing}"
+                               class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Kelengkapan Bukti</a>
+                            <a sec:authorize="hasAuthority('EVIDENCE_VIEW')" id="nav-contracts" th:href="@{/contracts}"
+                               th:classappend="${#strings.equals(currentPage, 'contracts')} ? 'bg-primary-600' : ''"
+                               class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Register Kontrak</a>
+                            <a sec:authorize="hasAuthority('EVIDENCE_VIEW')" id="nav-bank-statements" th:href="@{/evidence/bank-statements}"
+                               class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Arsip Rekening Koran</a>
                             <a sec:authorize="hasAuthority('RECURRING_VIEW')" id="nav-recurring" th:href="@{/recurring}"
                                th:classappend="${#strings.equals(currentPage, 'recurring')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
                                class="flex items-center px-3 py-2 rounded-lg transition-colors">Transaksi Berulang</a>
@@ -166,12 +177,17 @@
                             <a sec:authorize="hasAuthority('REPORT_VIEW')" id="nav-aging-payables" th:href="@{/reports/aging/payables}"
                                th:classappend="${#strings.equals(currentPage, 'aging-payables')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
                                class="flex items-center px-3 py-2 rounded-lg transition-colors">Umur Hutang</a>
+                            <a sec:authorize="hasAuthority('REPORT_VIEW')" id="nav-shareholder-statement" th:href="@{/statements/shareholder}"
+                               th:classappend="${#strings.equals(currentPage, 'shareholder-statement')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
+                               class="flex items-center px-3 py-2 rounded-lg transition-colors">Rekening Koran Pemegang Saham</a>
                             <a sec:authorize="hasAuthority('ANALYSIS_REPORT_VIEW')" id="nav-analysis-reports" th:href="@{/analysis-reports}"
                                th:classappend="${#strings.equals(currentPage, 'analysis-reports')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
                                class="flex items-center px-3 py-2 rounded-lg transition-colors">Analisis AI</a>
                             <a sec:authorize="hasAuthority('ALERT_VIEW')" id="nav-alerts" th:href="@{/alerts}"
                                th:classappend="${currentPage != null and currentPage.startsWith('alert')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
                                class="flex items-center px-3 py-2 rounded-lg transition-colors">Peringatan</a>
+                            <a sec:authorize="hasAuthority('REPORT_EXPORT')" id="nav-audit-pack" th:href="@{/evidence/audit-pack}"
+                               class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Paket Audit</a>
                         </div>
                     </details>
 
@@ -221,6 +237,21 @@
                             <a sec:authorize="hasAuthority('BILL_VIEW')" id="nav-bills" th:href="@{/bills}"
                                th:classappend="${#strings.equals(currentPage, 'bills')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
                                class="flex items-center px-3 py-2 rounded-lg transition-colors">Tagihan</a>
+                            <a sec:authorize="hasAuthority('TAX_REPORT_VIEW')" id="nav-withholding" th:href="@{/withholding}"
+                               th:classappend="${#strings.equals(currentPage, 'withholding')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
+                               class="flex items-center px-3 py-2 rounded-lg transition-colors">Pemotongan PPh</a>
+                            <a sec:authorize="hasAuthority('TAX_REPORT_VIEW')" id="nav-sales-tax-chain" th:href="@{/sales-tax-chain}"
+                               th:classappend="${#strings.equals(currentPage, 'sales-tax-chain')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
+                               class="flex items-center px-3 py-2 rounded-lg transition-colors">Rantai Pajak Penjualan</a>
+                            <a sec:authorize="hasAuthority('TAX_REPORT_VIEW')" id="nav-self-test" th:href="@{/reports/self-test}"
+                               th:classappend="${#strings.equals(currentPage, 'self-test')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
+                               class="flex items-center px-3 py-2 rounded-lg transition-colors">Uji Mandiri Pajak</a>
+                            <a sec:authorize="hasAuthority('TAX_AUDIT_VIEW')" id="nav-tax-audit" th:href="@{/tax-audit}"
+                               th:classappend="${#strings.equals(currentPage, 'tax-audit') or #strings.equals(currentPage, 'tax-inquiry')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
+                               class="flex items-center px-3 py-2 rounded-lg transition-colors">Ruang Pemeriksaan Pajak</a>
+                            <a sec:authorize="hasAuthority('TAX_AUDIT_VIEW')" id="nav-document-archive" th:href="@{/tax-audit/archive}"
+                               th:classappend="${#strings.equals(currentPage, 'document-archive')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
+                               class="flex items-center px-3 py-2 rounded-lg transition-colors">Arsip Dokumen Pajak</a>
                         </div>
                     </details>
 
@@ -279,6 +310,8 @@
                             <a sec:authorize="hasAuthority('PAYROLL_VIEW')" id="nav-payroll" th:href="@{/payroll}"
                                th:classappend="${#strings.equals(currentPage, 'payroll')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
                                class="flex items-center px-3 py-2 rounded-lg transition-colors">Penggajian</a>
+                            <a sec:authorize="hasAuthority('PAYROLL_VIEW')" id="nav-payroll-reconciliation" th:href="@{/payroll/reconciliation}"
+                               class="flex items-center px-3 py-2 rounded-lg transition-colors hover:bg-primary-600">Rekonsiliasi Gaji</a>
                             <a sec:authorize="hasAuthority('EMPLOYEE_SELF_SERVICE')" id="nav-employee-portal" th:href="@{/employee-portal}"
                                th:classappend="${#strings.equals(currentPage, 'employee-portal')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
                                class="flex items-center px-3 py-2 rounded-lg transition-colors">Portal Karyawan</a>
@@ -311,6 +344,8 @@
                             <a sec:authorize="hasAuthority('FISCAL_PERIOD_VIEW')" id="nav-fiscal-periods" th:href="@{/fiscal-periods}"
                                th:classappend="${#strings.equals(currentPage, 'fiscal-periods')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
                                class="flex items-center px-3 py-2 rounded-lg transition-colors">Periode Fiskal</a>
+                            <a sec:authorize="hasAuthority('EVIDENCE_VIEW')" id="nav-evidence-requirements" th:href="@{/evidence/requirements}"
+                               class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Aturan Bukti</a>
                         </div>
                     </details>
 
@@ -443,8 +478,18 @@
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Amortisasi</a>
                             <a sec:authorize="hasAuthority('ASSET_VIEW')" th:href="@{/assets}"
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Aset Tetap</a>
+                            <a sec:authorize="hasAuthority('ASSET_VIEW')" th:href="@{/assets/verification}"
+                               class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Verifikasi Aset</a>
+                            <a sec:authorize="hasAuthority('ASSET_VIEW')" th:href="@{/assets/disposals}"
+                               class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Pelepasan Aset</a>
                             <a sec:authorize="hasAuthority('BANK_RECONCILIATION_VIEW')" th:href="@{/bank-reconciliation}"
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Rekonsiliasi Bank</a>
+                            <a sec:authorize="hasAuthority('EVIDENCE_VIEW')" th:href="@{/evidence/missing}"
+                               class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Kelengkapan Bukti</a>
+                            <a sec:authorize="hasAuthority('EVIDENCE_VIEW')" th:href="@{/contracts}"
+                               class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Register Kontrak</a>
+                            <a sec:authorize="hasAuthority('EVIDENCE_VIEW')" th:href="@{/evidence/bank-statements}"
+                               class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Arsip Rekening Koran</a>
                             <a sec:authorize="hasAuthority('RECURRING_VIEW')" th:href="@{/recurring}"
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Transaksi Berulang</a>
                         </div>
@@ -476,10 +521,14 @@
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Umur Piutang</a>
                             <a sec:authorize="hasAuthority('REPORT_VIEW')" th:href="@{/reports/aging/payables}"
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Umur Hutang</a>
+                            <a sec:authorize="hasAuthority('REPORT_VIEW')" th:href="@{/statements/shareholder}"
+                               class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Rekening Koran Pemegang Saham</a>
                             <a sec:authorize="hasAuthority('ANALYSIS_REPORT_VIEW')" th:href="@{/analysis-reports}"
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Analisis AI</a>
                             <a sec:authorize="hasAuthority('ALERT_VIEW')" th:href="@{/alerts}"
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Peringatan</a>
+                            <a sec:authorize="hasAuthority('REPORT_EXPORT')" th:href="@{/evidence/audit-pack}"
+                               class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Paket Audit</a>
                         </div>
                     </details>
 
@@ -524,6 +573,16 @@
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Vendor</a>
                             <a sec:authorize="hasAuthority('BILL_VIEW')" th:href="@{/bills}"
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Tagihan</a>
+                            <a sec:authorize="hasAuthority('TAX_REPORT_VIEW')" th:href="@{/withholding}"
+                               class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Pemotongan PPh</a>
+                            <a sec:authorize="hasAuthority('TAX_REPORT_VIEW')" th:href="@{/sales-tax-chain}"
+                               class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Rantai Pajak Penjualan</a>
+                            <a sec:authorize="hasAuthority('TAX_REPORT_VIEW')" th:href="@{/reports/self-test}"
+                               class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Uji Mandiri Pajak</a>
+                            <a sec:authorize="hasAuthority('TAX_AUDIT_VIEW')" th:href="@{/tax-audit}"
+                               class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Ruang Pemeriksaan Pajak</a>
+                            <a sec:authorize="hasAuthority('TAX_AUDIT_VIEW')" th:href="@{/tax-audit/archive}"
+                               class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Arsip Dokumen Pajak</a>
                         </div>
                     </details>
 
@@ -574,6 +633,8 @@
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Karyawan</a>
                             <a sec:authorize="hasAuthority('PAYROLL_VIEW')" th:href="@{/payroll}"
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Penggajian</a>
+                            <a sec:authorize="hasAuthority('PAYROLL_VIEW')" th:href="@{/payroll/reconciliation}"
+                               class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Rekonsiliasi Gaji</a>
                             <a sec:authorize="hasAuthority('EMPLOYEE_SELF_SERVICE')" th:href="@{/employee-portal}"
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Portal Karyawan</a>
                         </div>
@@ -601,6 +662,8 @@
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Label Transaksi</a>
                             <a sec:authorize="hasAuthority('FISCAL_PERIOD_VIEW')" th:href="@{/fiscal-periods}"
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Periode Fiskal</a>
+                            <a sec:authorize="hasAuthority('EVIDENCE_VIEW')" th:href="@{/evidence/requirements}"
+                               class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Aturan Bukti</a>
                         </div>
                     </details>
 

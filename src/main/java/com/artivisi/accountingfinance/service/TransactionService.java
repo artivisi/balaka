@@ -17,6 +17,12 @@ import com.artivisi.accountingfinance.enums.JournalPosition;
 import com.artivisi.accountingfinance.enums.TemplateCategory;
 import com.artivisi.accountingfinance.enums.TransactionStatus;
 import com.artivisi.accountingfinance.enums.VoidReason;
+import com.artivisi.accountingfinance.repository.BenefitInKindRepository;
+import com.artivisi.accountingfinance.repository.WithholdingDepositRepository;
+import com.artivisi.accountingfinance.repository.WithholdingPaymentRepository;
+import com.artivisi.accountingfinance.service.event.TransactionPostedEvent;
+import com.artivisi.accountingfinance.service.event.TransactionVoidedEvent;
+import org.springframework.context.ApplicationEventPublisher;
 import com.artivisi.accountingfinance.repository.ChartOfAccountRepository;
 import com.artivisi.accountingfinance.repository.DraftTransactionRepository;
 import com.artivisi.accountingfinance.repository.JournalEntryRepository;
@@ -39,6 +45,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -60,10 +67,16 @@ public class TransactionService {
     private final DraftTransactionRepository draftTransactionRepository;
     private final ProjectRepository projectRepository;
     private final TagRepository tagRepository;
+    private final BenefitInKindRepository benefitInKindRepository;
+    private final WithholdingPaymentRepository withholdingPaymentRepository;
+    private final WithholdingDepositRepository withholdingDepositRepository;
+    private final com.artivisi.accountingfinance.repository.AssetDisposalRepository assetDisposalRepository;
+    private final ApplicationEventPublisher eventPublisher;
     private final JournalTemplateService journalTemplateService;
     private final FormulaEvaluator formulaEvaluator;
     private final TaxTransactionDetailService taxTransactionDetailService;
     private final FiscalPeriodService fiscalPeriodService;
+    private final EvidencePostingGuard evidencePostingGuard;
     private final EntityManager entityManager;
 
     public List<Transaction> findAll() {
@@ -184,6 +197,7 @@ public class TransactionService {
         if (!existing.isDraft()) {
             throw new IllegalStateException("Only draft transactions can be edited");
         }
+        assertNotManagedByWithholding(existing.getId());
 
         // Update only the editable fields, preserve system-generated fields like transactionNumber
         // The existing entity already has transactionNumber from database, we don't touch it
@@ -221,31 +235,42 @@ public class TransactionService {
         transactionRepository.save(managed);
     }
 
+    /** Posting by a person (UI or API): the evidence policy applies unless the template is a system template. */
     @Transactional
     public Transaction post(UUID id, String postedBy) {
         Transaction transaction = findById(id);
+        return postWithContext(transaction, postedBy, storedContext(transaction), PostingOrigin.USER);
+    }
 
+    /**
+     * Configured auto-posting (recurring schedule, milestone payment term). Nobody can attach evidence before the post, so the
+     * evidence policy does not block it; the transaction still appears in the missing-evidence report.
+     */
+    @Transactional
+    public Transaction postAutomatic(UUID id, String postedBy) {
+        Transaction transaction = findById(id);
+        return postWithContext(transaction, postedBy, storedContext(transaction), PostingOrigin.SYSTEM);
+    }
+
+    private FormulaContext storedContext(Transaction transaction) {
         // Build context from stored variables (for DETAILED templates) or use amount (for SIMPLE)
-        FormulaContext context;
         if (!transaction.getVariables().isEmpty()) {
             // DETAILED template - use stored variables
             Map<String, BigDecimal> variables = new HashMap<>();
             for (TransactionVariable tv : transaction.getVariables()) {
                 variables.put(tv.getVariableName(), tv.getVariableValue());
             }
-            context = FormulaContext.of(transaction.getAmount(), variables);
-        } else {
-            // SIMPLE template - use transaction amount
-            context = FormulaContext.of(transaction.getAmount());
+            return FormulaContext.of(transaction.getAmount(), variables);
         }
-
-        return postWithContext(transaction, postedBy, context);
+        // SIMPLE template - use transaction amount
+        return FormulaContext.of(transaction.getAmount());
     }
 
     /**
      * Post a transaction with a custom FormulaContext.
      * Used by external modules (payroll, inventory, etc.) that need to provide
-     * module-specific variables for formula evaluation.
+     * module-specific variables for formula evaluation. The evidence policy applies unless the
+     * template is a system template.
      *
      * @param id the transaction ID
      * @param postedBy who is posting
@@ -255,10 +280,24 @@ public class TransactionService {
     @Transactional
     public Transaction post(UUID id, String postedBy, FormulaContext context) {
         Transaction transaction = findById(id);
-        return postWithContext(transaction, postedBy, context);
+        return postWithContext(transaction, postedBy, context, PostingOrigin.USER);
     }
 
-    private Transaction postWithContext(Transaction transaction, String postedBy, FormulaContext context) {
+    /**
+     * Posting composed and posted in one call by a module (payroll run, depreciation entry): no evidence can be
+     * attached between create and post, so the evidence policy does not block it. The transaction still appears
+     * in the missing-evidence report.
+     */
+    @Transactional
+    public Transaction postSystem(UUID id, String postedBy, FormulaContext context) {
+        Transaction transaction = findById(id);
+        return postWithContext(transaction, postedBy, context, PostingOrigin.SYSTEM);
+    }
+
+    private enum PostingOrigin { USER, SYSTEM }
+
+    private Transaction postWithContext(Transaction transaction, String postedBy, FormulaContext context,
+                                        PostingOrigin origin) {
         if (!transaction.isDraft()) {
             throw new IllegalStateException("Only draft transactions can be posted");
         }
@@ -281,6 +320,9 @@ public class TransactionService {
         }
 
         validateJournalBalance(transaction.getJournalEntries());
+        if (origin == PostingOrigin.USER && !Boolean.TRUE.equals(transaction.getJournalTemplate().getIsSystem())) {
+            evidencePostingGuard.check(transaction);
+        }
 
         transaction.setStatus(TransactionStatus.POSTED);
         transaction.setPostedAt(LocalDateTime.now());
@@ -288,6 +330,7 @@ public class TransactionService {
 
         Transaction saved = transactionRepository.save(transaction);
         taxTransactionDetailService.autoPopulateFromTransaction(saved);
+        eventPublisher.publishEvent(new TransactionPostedEvent(saved));
         return saved;
     }
 
@@ -297,7 +340,10 @@ public class TransactionService {
         if (needsJournalNumber) {
             String journalNumber = generateJournalNumber();
             int lineIndex = 0;
-            for (JournalEntry entry : transaction.getJournalEntries()) {
+            List<JournalEntry> inLineOrder = transaction.getJournalEntries().stream()
+                    .sorted(Comparator.comparing(JournalEntry::getLineOrder))
+                    .toList();
+            for (JournalEntry entry : inLineOrder) {
                 entry.setJournalNumber(journalNumber + "-" + String.format("%02d", ++lineIndex));
             }
         }
@@ -360,6 +406,10 @@ public class TransactionService {
         if (!transaction.isPosted()) {
             throw new IllegalStateException("Only posted transactions can be voided");
         }
+        if (benefitInKindRepository.existsByTransactionIdAndPayrollDetailIsNotNull(id)) {
+            throw new IllegalStateException("Transaksi memuat natura yang sudah masuk payroll. "
+                    + "Hitung ulang atau batalkan payroll tersebut sebelum membatalkan transaksi.");
+        }
 
         String reversalJournalNumber = generateJournalNumber();
         int lineIndex = 0;
@@ -384,7 +434,25 @@ public class TransactionService {
         transaction.setVoidedAt(LocalDateTime.now());
         transaction.setVoidedBy(voidedBy);
 
-        return transactionRepository.save(transaction);
+        Transaction voided = transactionRepository.save(transaction);
+        eventPublisher.publishEvent(new TransactionVoidedEvent(voided));
+        return voided;
+    }
+
+    public void assertEditable(UUID transactionId) {
+        assertNotManagedByWithholding(transactionId);
+    }
+
+    /** Journal amounts of these drafts are derived from the withholding row; edits go through its menu. */
+    private void assertNotManagedByWithholding(UUID transactionId) {
+        if (withholdingPaymentRepository.findByTransactionId(transactionId).isPresent()
+                || withholdingDepositRepository.findByTransactionId(transactionId).isPresent()) {
+            throw new IllegalStateException("Draf ini dikelola lewat menu Pemotongan PPh. Batalkan dari menu tersebut.");
+        }
+        // Its amounts are a snapshot of the register; a changed draft would no longer match the disposal record.
+        if (assetDisposalRepository.findByTransactionId(transactionId).isPresent()) {
+            throw new IllegalStateException("Draf ini dikelola lewat menu Pelepasan Aset. Batalkan dari menu tersebut.");
+        }
     }
 
     @Transactional
@@ -400,6 +468,7 @@ public class TransactionService {
      */
     @Transactional
     public void replaceAccountMappings(Transaction transaction, Map<UUID, UUID> accountMappings) {
+        assertNotManagedByWithholding(transaction.getId());
         JournalTemplate template = journalTemplateService.findByIdWithLines(transaction.getJournalTemplate().getId());
 
         transaction.clearAccountMappings();
@@ -528,6 +597,7 @@ public class TransactionService {
         if (!transaction.isDraft()) {
             throw new IllegalStateException("Only draft transactions can be deleted");
         }
+        assertNotManagedByWithholding(id);
 
         // Clear DraftTransaction FK reference if this transaction was created from a draft
         draftTransactionRepository.findByTransactionId(id).ifPresent(draft -> {

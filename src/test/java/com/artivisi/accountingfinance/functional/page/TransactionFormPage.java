@@ -2,7 +2,7 @@ package com.artivisi.accountingfinance.functional.page;
 
 import com.microsoft.playwright.Page;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -91,27 +91,18 @@ public class TransactionFormPage {
     }
 
     /**
-     * Drive the accountPicker combobox for a template-line account mapping. The
-     * picker input id is accountMapping_<lineId>; we type the accountId (treated
-     * as a code substring) and click the first result. Callers that pass a real
-     * UUID won't match — server search returns accounts by code/name, not id.
+     * Select an account by exact code in the template-line picker with input id
+     * accountMapping_<lineId>.
      */
-    public TransactionFormPage selectAccountMapping(String mappingId, String search) {
-        var input = page.locator("#" + mappingId);
-        input.click();
-        input.fill(search);
-        page.waitForTimeout(400);
-        var results = page.locator("[data-testid='account-picker-result']");
-        if (results.count() > 0) {
-            results.first().click();
-        }
+    public TransactionFormPage selectAccountMapping(String mappingId, String accountCode) {
+        AccountPicker.select(page, page.locator("#" + mappingId), accountCode);
         return this;
     }
 
     /**
      * Fill inputs from a pipe-separated string.
      * Format: "field1:value1|field2:value2|..."
-     * Special handling for account hints: "BANK:1.1.01" will select account 1.1.01 in the BANK dropdown
+     * Account hints: "BANK:1.1.02" selects account 1.1.02 in the picker whose label contains BANK.
      */
     public TransactionFormPage fillInputs(String inputs) {
         Map<String, String> inputMap = parseInputs(inputs);
@@ -120,30 +111,20 @@ public class TransactionFormPage {
             String value = entry.getValue();
 
             if (fieldId.startsWith("accountMapping")) {
-                // Combobox: type the value (account code) and pick the first match.
-                var input = page.locator("#" + fieldId);
-                input.click();
-                input.fill(value);
-                page.waitForTimeout(400);
-                var results = page.locator("[data-testid='account-picker-result']");
-                if (results.count() > 0) {
-                    results.first().click();
-                }
+                selectAccountMapping(fieldId, value);
             } else if (fieldId.equals("amount")) {
                 fillAmount(value);
             } else if (fieldId.startsWith("var_")) {
                 page.locator("#" + fieldId).fill(value);
             } else if (isAccountHint(fieldId)) {
-                // Handle account hints like "BANK:1.1.01"
                 selectAccountByHint(fieldId, value);
+            } else {
+                throw new IllegalArgumentException("Unknown transaction input '" + fieldId + "' in: " + inputs);
             }
         }
         return this;
     }
 
-    /**
-     * Check if field is a known account hint.
-     */
     private boolean isAccountHint(String fieldId) {
         return fieldId.equals("BANK") || fieldId.equals("PENDAPATAN") ||
                fieldId.equals("BEBAN") || fieldId.equals("PIUTANG") ||
@@ -151,36 +132,18 @@ public class TransactionFormPage {
     }
 
     /**
-     * Select account by hint and account code.
-     * Finds the select element whose label contains the hint text.
+     * Select the account in the template-line picker whose label contains the hint.
      */
     private void selectAccountByHint(String hint, String accountCode) {
-        // Each template-line picker is an input id=accountMapping_<lineId>. Find
-        // the one whose label contains the hint and drive its combobox.
-        var inputs = page.locator("input[id^='accountMapping_']").all();
-        for (var input : inputs) {
+        for (var input : page.locator("input[id^='accountMapping_']").all()) {
             String inputId = input.getAttribute("id");
-            var label = page.locator("label[for='" + inputId + "']");
-            String labelText = label.textContent();
-            if (labelText == null || !labelText.contains(hint)) continue;
-
-            input.click();
-            input.fill(accountCode);
-            page.waitForTimeout(400);
-            var results = page.locator("[data-testid='account-picker-result']");
-            int n = Math.min(results.count(), 10);
-            for (int i = 0; i < n; i++) {
-                String code = results.nth(i).locator(".font-medium").textContent();
-                if (code != null && code.startsWith(accountCode)) {
-                    results.nth(i).click();
-                    return;
-                }
+            String labelText = page.locator("label[for='" + inputId + "']").textContent();
+            if (labelText.contains(hint)) {
+                AccountPicker.select(page, input, accountCode);
+                return;
             }
-            if (n > 0) {
-                results.first().click();
-            }
-            return;
         }
+        throw new IllegalStateException("No account picker labelled with hint '" + hint + "' on " + page.url());
     }
 
     /**
@@ -223,17 +186,17 @@ public class TransactionFormPage {
      * Parse inputs string from CSV into key-value map.
      */
     private Map<String, String> parseInputs(String inputs) {
-        Map<String, String> result = new HashMap<>();
+        Map<String, String> result = new LinkedHashMap<>();
         if (inputs == null || inputs.isEmpty()) {
             return result;
         }
 
-        String[] pairs = inputs.split("\\|");
-        for (String pair : pairs) {
+        for (String pair : inputs.split("\\|")) {
             String[] kv = pair.split(":", 2);
-            if (kv.length == 2) {
-                result.put(kv[0].trim(), kv[1].trim());
+            if (kv.length != 2) {
+                throw new IllegalArgumentException("Malformed transaction input '" + pair + "' in: " + inputs);
             }
+            result.put(kv[0].trim(), kv[1].trim());
         }
         return result;
     }
@@ -272,15 +235,6 @@ public class TransactionFormPage {
      * "Rp 3.333.333" -> 3333333
      */
     private long parseRupiahAmount(String text) {
-        if (text == null || text.isEmpty()) {
-            return 0;
-        }
-        // Remove "Rp " prefix and thousand separators
-        String cleaned = text.replace("Rp", "").replace(".", "").trim();
-        try {
-            return Long.parseLong(cleaned);
-        } catch (NumberFormatException _) {
-            return 0;
-        }
+        return Long.parseLong(text.replace("Rp", "").replace(".", "").trim());
     }
 }

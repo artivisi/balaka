@@ -3,6 +3,7 @@ package com.artivisi.accountingfinance.enums;
 public enum TaxDeadlineType {
     PPH_21_PAYMENT("Setor PPh 21", "Pembayaran PPh 21"),
     PPH_23_PAYMENT("Setor PPh 23", "Pembayaran PPh 23"),
+    PPH_26_PAYMENT("Setor PPh 26", "Pembayaran PPh 26"),
     PPH_42_PAYMENT("Setor PPh 4(2)", "Pembayaran PPh 4(2)"),
     PPH_25_PAYMENT("Setor PPh 25", "Pembayaran PPh 25 (Angsuran)"),
     PPN_PAYMENT("Setor PPN", "Pembayaran PPN"),

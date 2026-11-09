@@ -2,6 +2,7 @@ package com.artivisi.accountingfinance.service;
 
 import com.artivisi.accountingfinance.entity.CompanyConfig;
 import com.artivisi.accountingfinance.entity.TaxTransactionDetail;
+import com.artivisi.accountingfinance.enums.TaxObjectCode;
 import com.artivisi.accountingfinance.enums.TaxType;
 import com.artivisi.accountingfinance.repository.CompanyConfigRepository;
 import com.artivisi.accountingfinance.repository.TaxTransactionDetailRepository;
@@ -119,7 +120,25 @@ public class CoretaxExportService {
 
         try (Workbook workbook = new XSSFWorkbook()) {
             createBupotSheet(workbook, details, config);
+            createPph26Sheet(workbook, details);
             createBupotReferenceSheet(workbook);
+
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            workbook.write(outputStream);
+            return outputStream.toByteArray();
+        }
+    }
+
+    /**
+     * Export BP21 data: PPh 21 bukan pegawai and other PPh 21 tax details. These rows are not in Bupot Unifikasi,
+     * so a masa is never uploaded twice. Column layout unverified against the Coretax BP21 converter.
+     */
+    public byte[] exportBp21(LocalDate startDate, LocalDate endDate) throws IOException {
+        List<TaxTransactionDetail> details = taxTransactionDetailRepository.findByTaxTypeAndDateRange(TaxType.PPH_21, startDate, endDate);
+        CompanyConfig config = getCompanyConfig();
+
+        try (Workbook workbook = new XSSFWorkbook()) {
+            createBp21Sheet(workbook, details, config);
 
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             workbook.write(outputStream);
@@ -300,7 +319,70 @@ public class CoretaxExportService {
         setNumberCell(row, 9, detail.getGrossAmount(), numberStyle);
         setNumberCell(row, 10, detail.getTaxRate(), numberStyle);
         setNumberCell(row, 11, detail.getTaxAmount(), numberStyle);
-        setStringCell(row, 12, ""); // FacilityType - empty for normal
+        setStringCell(row, 12, detail.getDgtFormNumber() != null ? "DGT" : ""); // FacilityType - empty for normal
+    }
+
+    private void createPph26Sheet(Workbook workbook, List<TaxTransactionDetail> details) {
+        Sheet sheet = workbook.createSheet("PPH26");
+        CellStyle headerStyle = createHeaderStyle(workbook);
+        CellStyle numberStyle = createNumberStyle(workbook);
+        String[] headers = {"RecipientName", "Country", "ForeignTin", "DgtFormNumber", "TaxObjectCode", "GrossAmount", "TaxRate", "TaxAmount"};
+        writeHeader(sheet, headers, headerStyle);
+
+        int rowNum = 1;
+        for (TaxTransactionDetail detail : details) {
+            if (detail.getTaxType() != TaxType.PPH_26) {
+                continue;
+            }
+            Row row = sheet.createRow(rowNum++);
+            setStringCell(row, 0, detail.getCounterpartyName());
+            setStringCell(row, 1, detail.getCounterpartyCountry());
+            setStringCell(row, 2, detail.getCounterpartyForeignTin());
+            setStringCell(row, 3, detail.getDgtFormNumber());
+            setStringCell(row, 4, detail.getTaxObjectCode());
+            setNumberCell(row, 5, detail.getGrossAmount(), numberStyle);
+            setNumberCell(row, 6, detail.getTaxRate(), numberStyle);
+            setNumberCell(row, 7, detail.getTaxAmount(), numberStyle);
+        }
+    }
+
+    private void createBp21Sheet(Workbook workbook, List<TaxTransactionDetail> details, CompanyConfig config) {
+        Sheet sheet = workbook.createSheet("DATA");
+        CellStyle headerStyle = createHeaderStyle(workbook);
+        CellStyle numberStyle = createNumberStyle(workbook);
+        String[] headers = {"BupotNumber", "BupotDate", "CutterTaxId", "CutterNitku", "RecipientIdType", "RecipientIdNumber",
+                "RecipientName", "RecipientAddress", "TaxObjectCode", "GrossAmount", "Dpp", "TaxRate", "TaxAmount"};
+        writeHeader(sheet, headers, headerStyle);
+
+        int rowNum = 1;
+        for (TaxTransactionDetail detail : details) {
+            Row row = sheet.createRow(rowNum++);
+            setStringCell(row, 0, detail.getBupotNumber());
+            setDateCell(row, 1, detail.getTransaction().getTransactionDate());
+            setStringCell(row, 2, config.getNpwp());
+            setStringCell(row, 3, config.getNitku());
+            setStringCell(row, 4, detail.getCounterpartyIdType());
+            setStringCell(row, 5, detail.getCounterpartyIdNumber());
+            setStringCell(row, 6, detail.getCounterpartyName());
+            setStringCell(row, 7, detail.getCounterpartyAddress());
+            setStringCell(row, 8, detail.getTaxObjectCode());
+            setNumberCell(row, 9, detail.getGrossAmount(), numberStyle);
+            setNumberCell(row, 10, detail.getDpp(), numberStyle);
+            setNumberCell(row, 11, detail.getTaxRate(), numberStyle);
+            setNumberCell(row, 12, detail.getTaxAmount(), numberStyle);
+        }
+        for (int i = 0; i < headers.length; i++) {
+            sheet.autoSizeColumn(i);
+        }
+    }
+
+    private void writeHeader(Sheet sheet, String[] headers, CellStyle headerStyle) {
+        Row headerRow = sheet.createRow(0);
+        for (int i = 0; i < headers.length; i++) {
+            Cell cell = headerRow.createCell(i);
+            cell.setCellValue(headers[i]);
+            cell.setCellStyle(headerStyle);
+        }
     }
 
     private void createBupotReferenceSheet(Workbook workbook) {
@@ -315,28 +397,16 @@ public class CoretaxExportService {
         headerRow.getCell(1).setCellStyle(headerStyle);
         headerRow.getCell(2).setCellStyle(headerStyle);
 
-        // Common tax object codes
-        String[][] refs = {
-                {"24-104-01", "Jasa Teknik", "2"},
-                {"24-104-02", "Jasa Manajemen", "2"},
-                {"24-104-03", "Jasa Konsultan", "2"},
-                {"24-104-14", "Jasa Pemeliharaan/Perawatan/Perbaikan", "2"},
-                {"24-104-21", "Jasa Katering", "2"},
-                {"24-104-22", "Jasa Kebersihan/Cleaning Service", "2"},
-                {"24-104-99", "Jasa Lainnya", "2"},
-                {"24-100-02", "Sewa Kendaraan Angkutan Darat", "2"},
-                {"28-409-01", "Sewa Tanah dan/atau Bangunan", "10"},
-                {"28-409-07", "Jasa Konstruksi - Pelaksana Kecil", "1.75"},
-                {"28-409-08", "Jasa Konstruksi - Pelaksana Menengah/Besar", "2.65"},
-                {"28-423-01", "PPh Final UMKM", "0.5"}
-        };
-
+        // Bukti potong unifikasi codes (PPh 23, 4(2), 26); PPh 21 codes go on BP21
         int rowNum = 1;
-        for (String[] ref : refs) {
+        for (TaxObjectCode code : TaxObjectCode.values()) {
+            if (code.getTaxType() == TaxType.PPH_21) {
+                continue;
+            }
             Row row = sheet.createRow(rowNum++);
-            row.createCell(0).setCellValue(ref[0]);
-            row.createCell(1).setCellValue(ref[1]);
-            row.createCell(2).setCellValue(ref[2]);
+            row.createCell(0).setCellValue(code.getCode());
+            row.createCell(1).setCellValue(code.getDescription());
+            row.createCell(2).setCellValue(code.getDefaultRate().stripTrailingZeros().toPlainString());
         }
 
         sheet.autoSizeColumn(0);

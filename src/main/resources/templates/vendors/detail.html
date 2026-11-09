@@ -69,12 +69,27 @@
         </div>
 
         <!-- Tax Info -->
+        <div class="bg-white rounded-lg shadow p-6" id="vendor-payee" th:if="${vendor.payeeType != null}">
+            <h3 class="text-sm font-medium text-gray-900 mb-3">Penerima Pemotongan PPh</h3>
+            <dl class="grid grid-cols-2 gap-4 text-sm">
+                <div><dt class="text-gray-500">Jenis Penerima</dt><dd class="font-medium" id="vendor-payee-type" th:text="${vendor.payeeType.indonesianName}">-</dd></div>
+                <div th:if="${vendor.defaultWithholding}"><dt class="text-gray-500">Perlakuan Pajak Bawaan</dt><dd class="font-medium" id="vendor-default-withholding" th:text="${vendor.defaultWithholding.indonesianName}">-</dd></div>
+                <div th:if="${vendor.defaultTaxObjectCode}"><dt class="text-gray-500">Kode Objek Pajak</dt><dd class="font-medium font-mono" th:text="${vendor.defaultTaxObjectCode}">-</dd></div>
+                <div th:if="${vendor.countryCode}"><dt class="text-gray-500">Negara</dt><dd class="font-medium" th:text="${vendor.countryCode}">-</dd></div>
+                <div th:if="${vendor.foreignTin}"><dt class="text-gray-500">TIN Luar Negeri</dt><dd class="font-medium font-mono" th:text="${vendor.foreignTin}">-</dd></div>
+                <div th:if="${vendor.treatyRate}"><dt class="text-gray-500">Tarif P3B</dt><dd class="font-medium" th:text="|${vendor.treatyRate}%|">-</dd></div>
+                <div th:if="${vendor.dgtFormNumber}"><dt class="text-gray-500">Formulir DGT</dt><dd class="font-medium" th:text="${vendor.dgtFormNumber}">-</dd></div>
+                <div th:if="${vendor.dgtValidUntil}"><dt class="text-gray-500">DGT Berlaku Sampai</dt><dd class="font-medium" th:text="${#temporals.format(vendor.dgtValidUntil, 'dd/MM/yyyy')}">-</dd></div>
+            </dl>
+        </div>
+
         <div class="bg-white rounded-lg shadow p-6" th:if="${vendor.npwp != null or vendor.nitku != null or vendor.nik != null}">
             <h3 class="text-lg font-medium text-gray-900 mb-4">Informasi Pajak</h3>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                 <div th:if="${vendor.npwp}">
                     <p class="text-gray-500">NPWP</p>
-                    <p class="font-medium font-mono" th:text="${vendor.npwp}">00.000.000.0-000.000</p>
+                    <p class="font-medium font-mono" id="vendor-npwp" sec:authorize="hasAuthority('VENDOR_EDIT')" th:text="${vendor.npwp}">00.000.000.0-000.000</p>
+                    <p class="font-medium font-mono" sec:authorize="!hasAuthority('VENDOR_EDIT')">Disembunyikan</p>
                 </div>
                 <div th:if="${vendor.nitku}">
                     <p class="text-gray-500">NITKU</p>
@@ -82,7 +97,8 @@
                 </div>
                 <div th:if="${vendor.nik}">
                     <p class="text-gray-500">NIK</p>
-                    <p class="font-medium font-mono" th:text="${vendor.nik}">0000000000000000</p>
+                    <p class="font-medium font-mono" id="vendor-nik" sec:authorize="hasAuthority('VENDOR_EDIT')" th:text="${vendor.nik}">0000000000000000</p>
+                    <p class="font-medium font-mono" sec:authorize="!hasAuthority('VENDOR_EDIT')">Disembunyikan</p>
                 </div>
             </div>
         </div>

@@ -69,7 +69,7 @@ public class JournalEntryService {
     }
 
     public List<JournalEntry> findByTransactionId(UUID transactionId) {
-        return journalEntryRepository.findByTransactionIdOrderByJournalNumberAsc(transactionId);
+        return journalEntryRepository.findByTransactionIdOrderByLineOrderAsc(transactionId);
     }
 
     public Page<JournalEntry> findAllByDateRange(LocalDate startDate, LocalDate endDate, Pageable pageable) {
@@ -348,66 +348,6 @@ public class JournalEntryService {
     }
 
     /**
-     * Update a draft journal entry group.
-     * Transaction contains updated header info (date, description, reference).
-     */
-    @Transactional
-    public Transaction update(String journalNumber, Transaction updatedHeader, List<JournalEntry> updatedEntries) {
-        // Extract base journal number (remove line suffix like "-01")
-        String baseJournalNumber = journalNumber.contains("-")
-                ? journalNumber.substring(0, journalNumber.lastIndexOf("-"))
-                : journalNumber;
-
-        List<JournalEntry> existingEntries = journalEntryRepository.findAllByJournalNumberOrderByIdAsc(journalNumber);
-
-        // If not found with exact match, try finding by base number pattern
-        if (existingEntries.isEmpty()) {
-            existingEntries = journalEntryRepository.findByReferenceNumberLike(baseJournalNumber + "-%");
-        }
-
-        if (existingEntries.isEmpty()) {
-            throw new EntityNotFoundException("Journal entry not found with number: " + journalNumber);
-        }
-
-        // Get the parent transaction
-        Transaction transaction = existingEntries.get(0).getTransaction();
-
-        if (!transaction.isDraft()) {
-            throw new IllegalStateException("Cannot update journal entry with status: " + transaction.getStatus());
-        }
-
-        if (updatedEntries == null || updatedEntries.size() < 2) {
-            throw new IllegalArgumentException("Journal entry must have at least 2 lines");
-        }
-
-        validateBalance(updatedEntries);
-
-        // Clear existing entries
-        transaction.getJournalEntries().clear();
-        journalEntryRepository.deleteAll(existingEntries);
-
-        // Calculate new total
-        BigDecimal totalDebit = updatedEntries.stream()
-                .map(JournalEntry::getDebitAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        // Update transaction header from provided transaction
-        transaction.setTransactionDate(updatedHeader.getTransactionDate());
-        transaction.setAmount(totalDebit);
-        transaction.setDescription(updatedHeader.getDescription());
-        transaction.setReferenceNumber(updatedHeader.getReferenceNumber());
-
-        // Add new entries
-        int lineIndex = 0;
-        for (JournalEntry entry : updatedEntries) {
-            entry.setJournalNumber(baseJournalNumber + "-" + String.format("%02d", ++lineIndex));
-            transaction.addJournalEntry(entry);
-        }
-
-        return transactionRepository.save(transaction);
-    }
-
-    /**
      * Post a draft journal entry group.
      * Validates balance before posting.
      */
@@ -443,7 +383,7 @@ public class JournalEntryService {
         }
 
         // Get ALL entries for this transaction (not just the one passed in)
-        List<JournalEntry> entries = journalEntryRepository.findByTransactionIdOrderByJournalNumberAsc(transaction.getId());
+        List<JournalEntry> entries = journalEntryRepository.findByTransactionIdOrderByLineOrderAsc(transaction.getId());
 
         validateBalance(entries);
 

@@ -3,6 +3,8 @@ package com.artivisi.accountingfinance.service;
 import com.artivisi.accountingfinance.entity.AlertEvent;
 import com.artivisi.accountingfinance.entity.AlertRule;
 import com.artivisi.accountingfinance.entity.Invoice;
+import com.artivisi.accountingfinance.entity.PayrollRun;
+import com.artivisi.accountingfinance.entity.PayrollStatus;
 import com.artivisi.accountingfinance.entity.Project;
 import com.artivisi.accountingfinance.enums.AlertSeverity;
 import com.artivisi.accountingfinance.enums.AlertType;
@@ -11,6 +13,7 @@ import com.artivisi.accountingfinance.enums.ProjectStatus;
 import com.artivisi.accountingfinance.repository.AlertEventRepository;
 import com.artivisi.accountingfinance.repository.AlertRuleRepository;
 import com.artivisi.accountingfinance.repository.InvoiceRepository;
+import com.artivisi.accountingfinance.repository.PayrollRunRepository;
 import com.artivisi.accountingfinance.repository.ProjectRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +21,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -42,6 +48,10 @@ public class AlertService {
     private final InvoiceRepository invoiceRepository;
     private final ProjectProfitabilityService projectProfitabilityService;
     private final ProjectRepository projectRepository;
+    private final PayrollRunRepository payrollRunRepository;
+    private final BankStatementArchiveService bankStatementArchiveService;
+    private final CloseCheckService closeCheckService;
+    private final PlatformTransactionManager transactionManager;
 
     // --- CRUD ---
 
@@ -85,33 +95,55 @@ public class AlertService {
 
     // --- Evaluation ---
 
-    @Transactional
+    /**
+     * Each rule is evaluated in its own transaction: a rule that throws (for example a misconfigured threshold)
+     * is logged and rolls back only its own work, and the events of the other rules commit.
+     * Called inside an existing transaction (tests), the rules join it.
+     */
+    @Transactional(propagation = Propagation.SUPPORTS)
     public int evaluateAllAlerts() {
-        List<AlertRule> enabledRules = alertRuleRepository.findByEnabledTrue();
+        TransactionTemplate perRule = new TransactionTemplate(transactionManager);
+        List<UUID> enabledRuleIds = perRule.execute(status -> alertRuleRepository.findByEnabledTrue().stream()
+                .map(AlertRule::getId)
+                .toList());
         int triggered = 0;
 
-        for (AlertRule rule : enabledRules) {
+        for (UUID ruleId : enabledRuleIds) {
             try {
-                // Dedup: skip if unacknowledged event for same rule within 24h
-                if (alertEventRepository.existsRecentUnacknowledged(rule.getId(), LocalDateTime.now().minusHours(24))) {
-                    log.debug("Skipping {} — recent unacknowledged event exists", rule.getAlertType());
-                    continue;
-                }
-
-                AlertEvent event = evaluateRule(rule);
-                if (event != null) {
-                    alertEventRepository.save(event);
-                    rule.setLastTriggeredAt(LocalDateTime.now());
-                    alertRuleRepository.save(rule);
+                if (Boolean.TRUE.equals(perRule.execute(status -> evaluateAndRecord(ruleId)))) {
                     triggered++;
-                    log.info("Alert triggered: {} [{}] — {}", rule.getAlertType(), event.getSeverity(), event.getMessage());
                 }
-            } catch (Exception e) {
-                log.error("Failed to evaluate alert rule: {}", rule.getAlertType(), e);
+            } catch (RuntimeException e) {
+                log.error("Failed to evaluate alert rule: {}", ruleId, e);
             }
         }
 
         return triggered;
+    }
+
+    private boolean evaluateAndRecord(UUID ruleId) {
+        AlertRule rule = alertRuleRepository.findById(ruleId)
+                .orElseThrow(() -> new EntityNotFoundException("Alert rule not found: " + ruleId));
+        // Dedup: skip if unacknowledged event for same rule within 24h
+        if (alertEventRepository.existsRecentUnacknowledged(rule.getId(), LocalDateTime.now().minusHours(24))) {
+            log.debug("Skipping {} — recent unacknowledged event exists", rule.getAlertType());
+            return false;
+        }
+
+        AlertEvent event;
+        try {
+            event = evaluateRule(rule);
+        } catch (RuntimeException e) {
+            throw new IllegalStateException("Aturan peringatan " + rule.getAlertType() + " gagal dievaluasi: " + e.getMessage(), e);
+        }
+        if (event == null) {
+            return false;
+        }
+        alertEventRepository.save(event);
+        rule.setLastTriggeredAt(LocalDateTime.now());
+        alertRuleRepository.save(rule);
+        log.info("Alert triggered: {} [{}] — {}", rule.getAlertType(), event.getSeverity(), event.getMessage());
+        return true;
     }
 
     private AlertEvent evaluateRule(AlertRule rule) {
@@ -123,6 +155,9 @@ public class AlertService {
             case PROJECT_MARGIN_DROP -> evaluateProjectMarginDrop(rule);
             case COLLECTION_SLOWDOWN -> evaluateCollectionSlowdown(rule);
             case CLIENT_CONCENTRATION -> evaluateClientConcentration(rule);
+            case PAYROLL_UNPOSTED -> evaluatePayrollUnposted(rule);
+            case BANK_STATEMENT_MISSING -> evaluateBankStatementMissing(rule);
+            case LIABILITY_UNMOVED -> evaluateLiabilityUnmoved(rule);
         };
     }
 
@@ -303,6 +338,68 @@ public class AlertService {
             return event;
         }
         return null;
+    }
+
+    /** Threshold: days after the period end. Until posted, PPh 21 and 1721-A1 do not see the run. */
+    private AlertEvent evaluatePayrollUnposted(AlertRule rule) {
+        LocalDate cutoff = LocalDate.now().minusDays(rule.getThreshold().longValue());
+        List<String> periods = payrollRunRepository
+                .findByStatusAndPeriodEndBeforeOrderByPayrollPeriod(PayrollStatus.APPROVED, cutoff).stream()
+                .map(PayrollRun::getPayrollPeriod)
+                .toList();
+        if (periods.isEmpty()) {
+            return null;
+        }
+        AlertEvent event = new AlertEvent();
+        event.setAlertRule(rule);
+        event.setSeverity(AlertSeverity.WARNING);
+        event.setMessage(String.format("Payroll sudah disetujui tetapi belum diposting untuk periode: %s",
+                String.join(", ", periods)));
+        return event;
+    }
+
+    /** Threshold: days after the month end. One event lists every account with missing months. */
+    private AlertEvent evaluateBankStatementMissing(AlertRule rule) {
+        List<BankStatementArchiveService.MissingStatement> missing =
+                bankStatementArchiveService.missingStatements(LocalDate.now(), rule.getThreshold().intValue());
+        if (missing.isEmpty()) {
+            return null;
+        }
+        java.util.Map<UUID, List<BankStatementArchiveService.MissingStatement>> byAccount = new java.util.LinkedHashMap<>();
+        for (BankStatementArchiveService.MissingStatement m : missing) {
+            byAccount.computeIfAbsent(m.bankAccountId(), k -> new java.util.ArrayList<>()).add(m);
+        }
+        List<String> parts = byAccount.values().stream().map(list -> {
+            BankStatementArchiveService.MissingStatement first = list.getFirst();
+            String months = list.size() <= 6
+                    ? String.join(", ", list.stream().map(m -> m.month().toString()).toList())
+                    : list.size() + " bulan, paling awal " + first.month() + ", paling akhir " + list.getLast().month();
+            return first.bankName() + " " + first.accountName() + ": " + months;
+        }).toList();
+        AlertEvent event = new AlertEvent();
+        event.setAlertRule(rule);
+        event.setSeverity(AlertSeverity.WARNING);
+        event.setMessage("Rekening koran belum diarsipkan. " + String.join("; ", parts));
+        return event;
+    }
+
+    /** Threshold: months without a posted line on a liability account that still has a balance, as of today. */
+    private AlertEvent evaluateLiabilityUnmoved(AlertRule rule) {
+        List<CloseCheckService.UnmovedLiability> unmoved =
+                closeCheckService.unmovedLiabilities(LocalDate.now(), closeCheckService.configuredUnmovedMonths());
+        if (unmoved.isEmpty()) {
+            return null;
+        }
+        List<String> parts = unmoved.stream()
+                .map(l -> l.accountCode() + " " + l.accountName() + " saldo " + l.balance().toPlainString()
+                        + ", mutasi terakhir " + l.lastMovement())
+                .toList();
+        AlertEvent event = new AlertEvent();
+        event.setAlertRule(rule);
+        event.setSeverity(AlertSeverity.WARNING);
+        event.setMessage("Liabilitas tidak bergerak " + closeCheckService.configuredUnmovedMonths() + " bulan. "
+                + String.join("; ", parts));
+        return event;
     }
 
     private AlertEvent evaluateClientConcentration(AlertRule rule) {

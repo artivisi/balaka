@@ -171,6 +171,10 @@ Validation errors (`400 Bad Request`):
 - Header account used (only leaf accounts allowed).
 - A line has both debit and credit as zero or both non-zero.
 
+## Salary Journal Warning
+
+`TransactionResponse` has `warnings` (array of strings), on `POST /api/transactions`, `POST /api/transactions/journal-entry`, `PUT /api/transactions/{id}` and `POST /api/transactions/{id}/post`. `bulk-post` results and `DraftResponse` carry the same field. It is non-empty when the transaction debits a payroll salary account in a period with a non-cancelled payroll run. It does not block the request.
+
 ## Update Draft Transaction
 
 Updates a DRAFT transaction. All fields are optional; only provided fields are updated.

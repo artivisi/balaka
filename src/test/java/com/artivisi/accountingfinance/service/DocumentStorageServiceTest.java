@@ -46,7 +46,8 @@ class DocumentStorageServiceTest {
             );
 
             assertThatThrownBy(() -> documentStorageService.store(file))
-                    .isInstanceOf(IllegalArgumentException.class);
+                    .isInstanceOf(com.artivisi.accountingfinance.exception.FileTooLargeException.class)
+                    .hasMessageContaining("exceeds maximum allowed size 10485760");
         }
 
         @Test

@@ -24,6 +24,8 @@ public final class ViewConstants {
 
     // Current page values (navigation)
     public static final String PAGE_DASHBOARD = "dashboard";
+    public static final String PAGE_WITHHOLDING = "withholding";
+    public static final String PAGE_SALES_TAX_CHAIN = "sales-tax-chain";
     public static final String PAGE_ACCOUNTS = "accounts";
     public static final String PAGE_TRANSACTIONS = "transactions";
     public static final String PAGE_TEMPLATES = "templates";
@@ -41,6 +43,8 @@ public final class ViewConstants {
     public static final String PAGE_AMORTIZATION = "amortization";
     public static final String PAGE_ABOUT = "about";
     public static final String PAGE_ASSETS = "assets";
+    public static final String PAGE_EVIDENCE = "evidence";
+    public static final String PAGE_CONTRACTS = "contracts";
     public static final String PAGE_BPJS_CALCULATOR = "bpjs-calculator";
     public static final String PAGE_DRAFTS = "drafts";
     public static final String PAGE_JOURNALS = "journals";
@@ -78,6 +82,11 @@ public final class ViewConstants {
     // Current page values - Statements
     public static final String PAGE_CLIENT_STATEMENT = "client-statement";
     public static final String PAGE_VENDOR_STATEMENT = "vendor-statement";
+    public static final String PAGE_SHAREHOLDER_STATEMENT = "shareholder-statement";
+    public static final String PAGE_SELF_TEST = "self-test";
+    public static final String PAGE_TAX_AUDIT = "tax-audit";
+    public static final String PAGE_TAX_INQUIRY = "tax-inquiry";
+    public static final String PAGE_DOCUMENT_ARCHIVE = "document-archive";
 
     // Current page values - Bills
     public static final String PAGE_BILLS = "bills";

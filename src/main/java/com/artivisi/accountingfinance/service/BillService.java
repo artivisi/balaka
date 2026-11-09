@@ -292,6 +292,21 @@ public class BillService {
         return billRepository.save(bill);
     }
 
+    /** Removes a recorded payment and puts the bill back to PARTIAL or APPROVED. */
+    @Transactional
+    public Bill reversePayment(UUID billPaymentId) {
+        BillPayment payment = billPaymentRepository.findById(billPaymentId)
+                .orElseThrow(() -> new EntityNotFoundException("Pembayaran tagihan tidak ditemukan: " + billPaymentId));
+        Bill bill = payment.getBill();
+        billPaymentRepository.delete(payment);
+        billPaymentRepository.flush();
+
+        BigDecimal remaining = billPaymentRepository.sumPaymentsByBillId(bill.getId());
+        bill.setStatus(remaining.signum() > 0 ? BillStatus.PARTIAL : BillStatus.APPROVED);
+        bill.setPaidAt(null);
+        return billRepository.save(bill);
+    }
+
     public List<BillPayment> findPaymentsByBillId(UUID billId) {
         return billPaymentRepository.findByBillIdOrderByPaymentDateAsc(billId);
     }

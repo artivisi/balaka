@@ -399,12 +399,13 @@ company_name,company_address,company_phone,company_email,tax_id,npwp,nitku,fisca
 **`02_chart_of_accounts.csv`** -- Daftar akun:
 
 ```
-account_code,account_name,account_type,parent_code,normal_balance,active,is_permanent
+account_code,account_name,account_type,parent_code,normal_balance,active,is_permanent,fiscal_treatment
 ```
 
 - `account_type`: `ASSET`, `LIABILITY`, `EQUITY`, `REVENUE`, `EXPENSE`
 - `normal_balance`: `DEBIT` atau `CREDIT`
 - `parent_code`: kosong jika akun top-level, isi kode parent jika sub-akun
+- `fiscal_treatment`: `DEDUCTIBLE`, `NON_DEDUCTIBLE`, `CONDITIONAL`, atau kosong. Hanya untuk akun beban yang bukan header
 
 **`04_journal_templates.csv`** -- Template jurnal:
 
@@ -1558,6 +1559,14 @@ Setiap user dapat melihat dan mencabut device token miliknya di halaman **Perang
 | Method | Endpoint | Deskripsi |
 |--------|----------|-----------|
 | POST | `/api/analysis/reports` | Publikasi laporan analisis terstruktur |
+
+### Pemotongan PPh (scope: `withholding:*`)
+
+Lihat [Withholding API](../developer-guide/api/10-withholding.md). Pembayaran dan setoran berstatus DRAFT sampai diposting.
+
+### Rantai Pajak Penjualan (scope: `sales-tax-chain:*`)
+
+Lihat [Sales Tax Chain API](../developer-guide/api/11-sales-tax-chain.md). Bukti potong berstatus DRAFT sampai diposting.
 
 ### Tagihan Vendor (scope: `bills:*`)
 

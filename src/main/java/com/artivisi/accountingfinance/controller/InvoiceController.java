@@ -9,11 +9,16 @@ import com.artivisi.accountingfinance.entity.InvoicePayment;
 import com.artivisi.accountingfinance.entity.Project;
 import com.artivisi.accountingfinance.enums.InvoiceStatus;
 import com.artivisi.accountingfinance.enums.PaymentMethod;
+import com.artivisi.accountingfinance.enums.TaxObjectCode;
+import com.artivisi.accountingfinance.enums.TaxType;
+import com.artivisi.accountingfinance.security.CurrentUser;
 import com.artivisi.accountingfinance.security.Permission;
 import com.artivisi.accountingfinance.service.ClientService;
 import com.artivisi.accountingfinance.service.CompanyBankAccountService;
 import com.artivisi.accountingfinance.service.CompanyConfigService;
 import com.artivisi.accountingfinance.service.InvoiceService;
+import com.artivisi.accountingfinance.service.InvoiceTaxLinkService;
+import com.artivisi.accountingfinance.service.SalesTaxChainService;
 import com.artivisi.accountingfinance.service.ProductService;
 import com.artivisi.accountingfinance.service.ProjectService;
 import com.artivisi.accountingfinance.util.AmountToWordsUtil;
@@ -63,6 +68,8 @@ public class InvoiceController {
     private static final String VIEW_FORM = "invoices/form";
 
     private final InvoiceService invoiceService;
+    private final InvoiceTaxLinkService invoiceTaxLinkService;
+    private final SalesTaxChainService salesTaxChainService;
     private final ClientService clientService;
     private final ProjectService projectService;
     private final ProductService productService;
@@ -211,6 +218,8 @@ public class InvoiceController {
         model.addAttribute(ATTR_INVOICE, invoice);
         model.addAttribute("payments", invoiceService.findPaymentsByInvoiceId(invoice.getId()));
         model.addAttribute("paymentMethods", PaymentMethod.values());
+        model.addAttribute("chain", salesTaxChainService.getChain(invoice.getId()));
+        model.addAttribute("pph23ObjectCodes", TaxObjectCode.getByTaxType(TaxType.PPH_23));
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_INVOICES);
         return "invoices/detail";
     }
@@ -321,6 +330,7 @@ public class InvoiceController {
             @RequestParam LocalDate paymentDate,
             @RequestParam BigDecimal amount,
             @RequestParam PaymentMethod paymentMethod,
+            @RequestParam(required = false) BigDecimal pph23Withheld,
             @RequestParam(required = false) String referenceNumber,
             @RequestParam(required = false) String paymentNotes,
             RedirectAttributes redirectAttributes) {
@@ -329,12 +339,73 @@ public class InvoiceController {
             InvoicePayment payment = new InvoicePayment();
             payment.setPaymentDate(paymentDate);
             payment.setAmount(amount);
+            if (pph23Withheld != null) {
+                payment.setPph23Withheld(pph23Withheld);
+            }
             payment.setPaymentMethod(paymentMethod);
             payment.setReferenceNumber(referenceNumber);
             payment.setNotes(paymentNotes);
 
             invoiceService.recordPayment(invoice.getId(), payment);
             redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Pembayaran berhasil dicatat");
+        } catch (IllegalStateException | IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, e.getMessage());
+        }
+        return REDIRECT_INVOICES_PREFIX + invoiceNumber;
+    }
+
+    @PostMapping("/{invoiceNumber}/faktur")
+    @PreAuthorize("hasAuthority('" + Permission.INVOICE_EDIT + "') and hasAuthority('" + Permission.TAX_EXPORT + "')")
+    public String recordFaktur(
+            @PathVariable String invoiceNumber,
+            @RequestParam(required = false) String fakturNumber,
+            @RequestParam(required = false) LocalDate fakturDate,
+            @RequestParam(required = false) String transactionCode,
+            @RequestParam(required = false) BigDecimal dpp,
+            @RequestParam(required = false) BigDecimal ppn,
+            RedirectAttributes redirectAttributes) {
+        try {
+            invoiceTaxLinkService.recordFaktur(InvoiceTaxLinkService.RecordFaktur.builder()
+                    .invoiceId(invoiceService.findByInvoiceNumber(invoiceNumber).getId())
+                    .fakturNumber(fakturNumber)
+                    .fakturDate(fakturDate)
+                    .transactionCode(transactionCode)
+                    .dpp(dpp)
+                    .ppn(ppn)
+                    .build());
+            redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Faktur tersimpan");
+        } catch (IllegalStateException | IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, e.getMessage());
+        }
+        return REDIRECT_INVOICES_PREFIX + invoiceNumber;
+    }
+
+    @PostMapping("/{invoiceNumber}/bupot")
+    @PreAuthorize("hasAuthority('" + Permission.INVOICE_EDIT + "') and hasAuthority('" + Permission.TAX_EXPORT
+            + "') and hasAuthority('" + Permission.TRANSACTION_CREATE + "')")
+    public String recordBupot(
+            @PathVariable String invoiceNumber,
+            @RequestParam(required = false) UUID paymentId,
+            @RequestParam(required = false) String bupotNumber,
+            @RequestParam(required = false) LocalDate bupotDate,
+            @RequestParam(required = false) String taxObjectCode,
+            @RequestParam(required = false) BigDecimal grossAmount,
+            @RequestParam(required = false) BigDecimal taxRate,
+            @RequestParam(required = false) BigDecimal taxAmount,
+            RedirectAttributes redirectAttributes) {
+        try {
+            invoiceTaxLinkService.recordBupot(InvoiceTaxLinkService.RecordBupot.builder()
+                    .invoiceId(invoiceService.findByInvoiceNumber(invoiceNumber).getId())
+                    .paymentId(paymentId)
+                    .bupotNumber(bupotNumber)
+                    .bupotDate(bupotDate)
+                    .taxObjectCode(taxObjectCode)
+                    .grossAmount(grossAmount)
+                    .taxRate(taxRate)
+                    .taxAmount(taxAmount)
+                    .createdBy(CurrentUser.name())
+                    .build());
+            redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Bukti potong tersimpan sebagai draf transaksi. Posting transaksinya agar masuk jurnal.");
         } catch (IllegalStateException | IllegalArgumentException e) {
             redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, e.getMessage());
         }

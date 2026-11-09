@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.time.LocalDate;
+import java.util.UUID;
 
 import static com.artivisi.accountingfinance.controller.ViewConstants.*;
 import static com.artivisi.accountingfinance.security.Permission.REPORT_VIEW;
@@ -139,5 +140,31 @@ public class StatementController {
         model.addAttribute("documentLabel", "Tagihan");
         model.addAttribute("columnLabel", "Tagihan");
         return "statements/statement-print";
+    }
+
+    /** Shareholder/director current account statement (issue #50). Without dates only the selection form shows. */
+    @GetMapping("/shareholder")
+    public String shareholderStatement(
+            @RequestParam(required = false) UUID accountId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFrom,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateTo,
+            Model model) {
+        model.addAttribute("accounts", statementService.shareholderAccounts());
+        model.addAttribute("accountId", accountId);
+        model.addAttribute("dateFrom", dateFrom);
+        model.addAttribute("dateTo", dateTo);
+        if (accountId != null || dateFrom != null || dateTo != null) {
+            if (accountId == null || dateFrom == null || dateTo == null) {
+                model.addAttribute("errorMessage", "Pilih akun dan isi tanggal awal serta tanggal akhir");
+            } else {
+                try {
+                    model.addAttribute(ATTR_STATEMENT, statementService.generateShareholderStatement(accountId, dateFrom, dateTo));
+                } catch (IllegalArgumentException e) {
+                    model.addAttribute("errorMessage", e.getMessage());
+                }
+            }
+        }
+        model.addAttribute(ATTR_CURRENT_PAGE, PAGE_SHAREHOLDER_STATEMENT);
+        return "statements/shareholder";
     }
 }

@@ -128,6 +128,22 @@ public class TaxExportController {
                 .body(excelData);
     }
 
+    @GetMapping("/bp21")
+    public ResponseEntity<byte[]> exportBp21(
+            @RequestParam String startMonth,
+            @RequestParam String endMonth) throws IOException {
+
+        YearMonth start = YearMonth.parse(startMonth);
+        YearMonth end = YearMonth.parse(endMonth);
+        byte[] excelData = coretaxExportService.exportBp21(start.atDay(1), end.atEndOfMonth());
+
+        String filename = String.format("bp21_%s_%s.xlsx", start.format(FILE_MONTH_FORMAT), end.format(FILE_MONTH_FORMAT));
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, ATTACHMENT_FILENAME_PREFIX + filename + "\"")
+                .contentType(MediaType.parseMediaType(CONTENT_TYPE_XLSX))
+                .body(excelData);
+    }
+
     /**
      * The last 24 months, newest first, plus the selected months when they lie outside that window,
      * so the selectors always show the period being displayed.

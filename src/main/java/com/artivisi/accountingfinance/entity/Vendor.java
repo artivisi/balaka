@@ -1,6 +1,12 @@
 package com.artivisi.accountingfinance.entity;
 
+import com.artivisi.accountingfinance.enums.PayeeType;
+import com.artivisi.accountingfinance.enums.WithholdingTreatment;
+import com.artivisi.accountingfinance.security.EncryptedStringConverter;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
@@ -12,6 +18,10 @@ import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.springframework.format.annotation.DateTimeFormat;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
 
 @Entity
 @Table(name = "vendors")
@@ -50,7 +60,8 @@ public class Vendor extends TimestampedEntity {
     private String notes;
 
     @Size(max = 20, message = "NPWP maksimal 20 karakter")
-    @Column(name = "npwp", length = 20)
+    @Column(name = "npwp", length = 255)  // Extended for encrypted data
+    @Convert(converter = EncryptedStringConverter.class)
     private String npwp;
 
     @Size(max = 22, message = "NITKU maksimal 22 karakter")
@@ -58,12 +69,47 @@ public class Vendor extends TimestampedEntity {
     private String nitku;
 
     @Size(max = 16, message = "NIK maksimal 16 karakter")
-    @Column(name = "nik", length = 16)
+    @Column(name = "nik", length = 255)  // Extended for encrypted data
+    @Convert(converter = EncryptedStringConverter.class)
     private String nik;
 
     @Size(max = 10, message = "Tipe ID maksimal 10 karakter")
     @Column(name = "id_type", length = 10)
     private String idType = "TIN";
+
+    /** Null on vendors not classified as a payee yet; the withholding flow rejects them. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payee_type", length = 20)
+    private PayeeType payeeType;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "default_withholding", length = 30)
+    private WithholdingTreatment defaultWithholding;
+
+    @Size(max = 20, message = "Kode objek pajak maksimal 20 karakter")
+    @Column(name = "default_tax_object_code", length = 20)
+    private String defaultTaxObjectCode;
+
+    /** ISO 3166-1 alpha-2, required for {@link PayeeType#LUAR_NEGERI}. */
+    @Size(max = 2, message = "Kode negara 2 huruf")
+    @Column(name = "country_code", length = 2)
+    private String countryCode;
+
+    @Size(max = 50, message = "TIN luar negeri maksimal 50 karakter")
+    @Column(name = "foreign_tin", length = 50)
+    private String foreignTin;
+
+    /** Rate under the tax treaty (P3B), entered per payee. It applies only with a valid DGT form. */
+    @Column(name = "treaty_rate", precision = 5, scale = 2)
+    private BigDecimal treatyRate;
+
+    @Size(max = 50, message = "Nomor DGT maksimal 50 karakter")
+    @Column(name = "dgt_form_number", length = 50)
+    private String dgtFormNumber;
+
+    @Column(name = "dgt_valid_until")
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+    private LocalDate dgtValidUntil;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_default_expense_account")
@@ -86,6 +132,11 @@ public class Vendor extends TimestampedEntity {
 
     @Column(name = "active", nullable = false)
     private Boolean active = true;
+
+    /** A blank NPWP or NIK counts as absent. */
+    public boolean hasTaxId() {
+        return (npwp != null && !npwp.isBlank()) || (nik != null && !nik.isBlank());
+    }
 
     public boolean isActive() {
         return Boolean.TRUE.equals(active);
