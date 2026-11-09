@@ -121,6 +121,9 @@ ansible-playbook -i inventory.ini deploy.yml
 │   ├── backup.sh
 │   ├── backup-b2.sh
 │   ├── backup-gdrive.sh
+│   ├── backup-upload.sh   (sourced by the two upload scripts)
+│   ├── backup-check.sh
+│   ├── backup-lib.sh      (shared: config, logging, alerts, archive checks)
 │   └── restore.sh
 ├── backup.conf
 ├── .backup-key
@@ -313,6 +316,19 @@ on:
 | Local | Daily 02:00 | 7 days | `/opt/aplikasi-akunting/backup/` |
 | B2 | Daily 03:00 | 4 weeks | Backblaze B2 |
 | Google Drive | Daily 04:00 | 12 months | Google Drive |
+| Freshness check | Daily 06:00 | — | local archive and each enabled remote |
+
+### Failure Alerts
+
+Every backup job sends an alert and exits non-zero on failure. The role requires an alert channel and fails without one: Telegram (`telegram_bot_enabled` + `telegram_admin_chat_id`) and/or a webhook (`backup_notification_enabled` + `backup_notification_url`).
+
+| Job | Fails and alerts when |
+|-----|-----------------------|
+| `backup.sh` | `pg_dump` fails or writes nothing, `manifest.json` is not valid JSON, the archive cannot be read back, or any other command fails. The partial working directory is removed. |
+| `backup-b2.sh`, `backup-gdrive.sh` | the newest local archive is older than `backup_max_age_hours` (default 26), its `database.sql` is empty, its manifest is invalid, encryption or upload fails, or the uploaded object is missing or empty. A stale archive is never uploaded. |
+| `backup-check.sh` | the newest local archive, or the newest object in B2/Google Drive, is older than `backup_max_age_hours`. Catches jobs that stopped running. |
+
+A failed retention cleanup on a remote alerts without failing the upload.
 
 ### Backup Contents
 

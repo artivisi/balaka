@@ -1,4 +1,14 @@
 ---
+- name: Require a failure alert channel for backups
+  ansible.builtin.assert:
+    that:
+      - (telegram_bot_enabled | default(false) and telegram_admin_chat_id is defined)
+        or (backup_notification_enabled | default(false) and backup_notification_url is defined)
+    fail_msg: >-
+      Backup failures need an alert channel: set telegram_bot_enabled with
+      telegram_admin_chat_id, or backup_notification_enabled with backup_notification_url.
+      Without one a failing backup stays silent (issue #36).
+
 - name: Create scripts directory
   ansible.builtin.file:
     path: "/opt/{{ app_name }}/scripts"
@@ -22,6 +32,30 @@
     owner: "{{ app_user }}"
     group: "{{ app_user }}"
     mode: "0755"
+
+- name: Deploy shared backup functions
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "/opt/{{ app_name }}/scripts/{{ item }}"
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: "0755"
+  loop:
+    - backup-lib.sh
+    - backup-upload.sh
+    - backup-check.sh
+
+# Scripts from a superseded generation of this role, referenced by nothing.
+# cloud-sync.sh re-uploaded a stale archive nightly (issue #36).
+- name: Remove legacy backup scripts
+  ansible.builtin.file:
+    path: "/opt/{{ app_name }}/scripts/{{ item }}"
+    state: absent
+  loop:
+    - cloud-sync.sh
+    - upload-b2.sh
+    - upload-gdrive.sh
+    - report.sh
 
 - name: Deploy backup script
   ansible.builtin.template:
@@ -83,12 +117,6 @@
     group: "{{ app_user }}"
     mode: "0600"
 
-- name: Set PGPASSFILE environment variable in backup script
-  ansible.builtin.lineinfile:
-    path: "/opt/{{ app_name }}/scripts/backup.sh"
-    insertafter: "^set -e"
-    line: "export PGPASSFILE=\"/opt/{{ app_name }}/.pgpass\""
-
 # Backup Configuration File
 - name: Deploy backup configuration file
   ansible.builtin.template:
@@ -97,6 +125,15 @@
     owner: "{{ app_user }}"
     group: "{{ app_user }}"
     mode: "0600"
+
+- name: Configure daily backup freshness check cron job
+  ansible.builtin.cron:
+    name: "{{ app_name }} daily backup freshness check"
+    user: "{{ app_user }}"
+    hour: "{{ backup_check_cron_hour | default('6') }}"
+    minute: "{{ backup_check_cron_minute | default('0') }}"
+    job: "/opt/{{ app_name }}/scripts/backup-check.sh"
+    state: "{{ 'present' if backup_cron_enabled | default(true) else 'absent' }}"
 
 # Remote Backup to Backblaze B2
 - name: Validate B2 configuration
@@ -299,6 +336,13 @@
   when:
     - backup_gdrive_enabled | default(false)
     - gdrive_files.stdout | length == 0
+
+- name: Run backup freshness check
+  ansible.builtin.command:
+    cmd: "/opt/{{ app_name }}/scripts/backup-check.sh"
+  become: true
+  become_user: "{{ app_user }}"
+  changed_when: false
 
 - name: Display backup verification results
   ansible.builtin.debug:

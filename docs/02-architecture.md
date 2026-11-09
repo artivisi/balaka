@@ -316,6 +316,10 @@ services:
 ├── scripts/
 │   ├── backup.sh
 │   ├── backup-b2.sh
+│   ├── backup-gdrive.sh
+│   ├── backup-upload.sh
+│   ├── backup-check.sh
+│   ├── backup-lib.sh
 │   └── restore.sh
 └── .backup-key
 

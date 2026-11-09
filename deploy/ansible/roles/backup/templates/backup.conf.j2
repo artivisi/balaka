@@ -31,3 +31,17 @@ BACKUP_GDRIVE_RETENTION_MONTHS={{ backup_gdrive_retention_months | default(12) }
 # rclone remotes (configured in ~/.config/rclone/rclone.conf)
 RCLONE_B2_REMOTE="b2"
 RCLONE_GDRIVE_REMOTE="gdrive"
+
+# Freshness limit: uploads and the daily check fail when the newest archive is older.
+BACKUP_MAX_AGE_HOURS={{ backup_max_age_hours | default(26) }}
+
+# Failure alerts (at least one channel is required; the role fails otherwise)
+ALERT_TELEGRAM_ENABLED={{ 'true' if (telegram_bot_enabled | default(false)) and telegram_admin_chat_id is defined else 'false' }}
+{% if (telegram_bot_enabled | default(false)) and telegram_admin_chat_id is defined %}
+TELEGRAM_BOT_TOKEN="{{ telegram_bot_token }}"
+TELEGRAM_CHAT_ID="{{ telegram_admin_chat_id }}"
+{% endif %}
+ALERT_WEBHOOK_ENABLED={{ 'true' if backup_notification_enabled | default(false) else 'false' }}
+{% if backup_notification_enabled | default(false) %}
+ALERT_WEBHOOK_URL="{{ backup_notification_url }}"
+{% endif %}
