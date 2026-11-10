@@ -1,0 +1,4 @@
+# Fails the boot before the application context exists when a deployment has no
+# usable PII encryption key. See PiiEncryptionProductionGuard.
+org.springframework.boot.env.EnvironmentPostProcessor=\
+com.artivisi.accountingfinance.security.PiiEncryptionProductionGuard

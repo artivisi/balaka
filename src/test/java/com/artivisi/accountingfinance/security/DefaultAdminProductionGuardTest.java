@@ -118,7 +118,18 @@ class DefaultAdminProductionGuardTest {
     }
 
     @Test
-    void skipsCheckOutsideProduction() {
+    void enforcesWithoutAnyProfile() {
+        // Fail closed: an instance started without --spring.profiles.active is still a deployment.
+        UUID id = DefaultAdminProductionGuard.SEEDED_ADMIN_ID;
+        when(userRepository.findByUsername("admin"))
+                .thenReturn(Optional.of(admin(id, "{bcrypt}changed")));
+
+        assertThrows(IllegalStateException.class, () -> guard(environment()).validate());
+    }
+
+    @Test
+    void skipsCheckForExplicitDevelopmentProfiles() {
+        assertDoesNotThrow(() -> guard(environment("bootstrap")).validate());
         assertDoesNotThrow(() -> guard(environment("test")).validate());
 
         verify(userRepository, never()).findByUsername("admin");

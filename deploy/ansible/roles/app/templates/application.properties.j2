@@ -75,15 +75,14 @@ google.cloud.vision.enabled={{ google_cloud_vision_enabled | default(false) | lo
 google.cloud.vision.credentials-path=/opt/{{ app_name }}/gcp-credentials.json
 {% endif %}
 
-# Field-level encryption for PII (AES-256-GCM)
-{% if document_encryption_key is defined %}
+# Field-level encryption for PII (AES-256-GCM). Required: validate-production-secrets.yml
+# refuses to deploy without it, and the application refuses to start without it.
 app.encryption.key={{ document_encryption_key }}
-{% endif %}
 
 # First-run setup wizard. Production deployments create the first admin through
 # the deployment bootstrap, so the anonymous /setup claim path stays disabled
 # unless an operator deliberately enables it.
-app.setup.enabled={{ app_setup_enabled | default(false) | lower }}
+app.setup.enabled={{ app_setup_enabled | lower }}
 
 # Remember Me (hash-based, 7 days)
 app.remember-me.key={{ app_remember_me_key }}

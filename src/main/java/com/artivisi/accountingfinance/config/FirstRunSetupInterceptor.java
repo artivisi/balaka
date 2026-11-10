@@ -12,8 +12,7 @@ import org.springframework.web.servlet.HandlerInterceptor;
  * redirect any browser request to /setup. Static assets, error pages, API, and
  * the setup endpoint itself are excluded via WebMvcConfig path patterns.
  *
- * When {@code app.setup.enabled=false} (the default) this interceptor is a
- * no-op, so an empty database can never expose an unauthenticated first-admin
+ * When {@code app.setup.enabled=false} this interceptor is a no-op, so an empty database can never expose an unauthenticated first-admin
  * claim path. Once any user exists, it is also a no-op (single count() query
  * on a small indexed table — negligible overhead).
  */
@@ -24,7 +23,7 @@ public class FirstRunSetupInterceptor implements HandlerInterceptor {
     private final boolean setupEnabled;
 
     public FirstRunSetupInterceptor(UserRepository userRepository,
-                                    @Value("${app.setup.enabled:false}") boolean setupEnabled) {
+                                    @Value("${app.setup.enabled}") boolean setupEnabled) {
         this.userRepository = userRepository;
         this.setupEnabled = setupEnabled;
     }

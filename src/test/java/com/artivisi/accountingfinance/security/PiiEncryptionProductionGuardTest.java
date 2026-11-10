@@ -11,9 +11,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PiiEncryptionProductionGuardTest {
 
-    private static MockEnvironment environment(String... profiles) {
+    private final PiiEncryptionProductionGuard guard = new PiiEncryptionProductionGuard();
+
+    private static MockEnvironment environment(String key, String... profiles) {
         MockEnvironment environment = new MockEnvironment();
         environment.setActiveProfiles(profiles);
+        if (key != null) {
+            environment.setProperty(PiiEncryptionProductionGuard.ENCRYPTION_KEY_PROPERTY, key);
+        }
         return environment;
     }
 
@@ -22,65 +27,61 @@ class PiiEncryptionProductionGuardTest {
     }
 
     @Test
-    void rejectsBlankKeyInProduction() {
-        var guard = new PiiEncryptionProductionGuard(environment("production"), "  ");
-
-        var error = assertThrows(IllegalStateException.class, guard::validate);
+    void rejectsBlankKey() {
+        var error = assertThrows(IllegalStateException.class,
+                () -> guard.validate(environment("  ", "production")));
 
         assertTrue(error.getMessage().contains("APP_ENCRYPTION_KEY is required"));
     }
 
     @Test
-    void rejectsMissingKeyInProduction() {
-        var guard = new PiiEncryptionProductionGuard(environment("production"), null);
-
-        assertThrows(IllegalStateException.class, guard::validate);
+    void rejectsMissingKey() {
+        assertThrows(IllegalStateException.class, () -> guard.validate(environment(null, "production")));
     }
 
     @Test
-    void rejectsNonBase64KeyInProduction() {
-        var guard = new PiiEncryptionProductionGuard(environment("production"), "not-base64!!");
+    void rejectsMissingKeyWithNoProfileAtAll() {
+        // Fail closed: forgetting --spring.profiles.active must not disable the guard.
+        assertThrows(IllegalStateException.class, () -> guard.validate(environment(null)));
+    }
 
-        var error = assertThrows(IllegalStateException.class, guard::validate);
+    @Test
+    void rejectsNonBase64Key() {
+        var error = assertThrows(IllegalStateException.class,
+                () -> guard.validate(environment("not-base64!!", "production")));
 
         assertTrue(error.getMessage().contains("valid Base64"));
     }
 
     @Test
-    void rejectsWrongLengthKeyInProduction() {
+    void rejectsWrongLengthKey() {
         String shortKey = Base64.getEncoder().encodeToString(new byte[16]);
-        var guard = new PiiEncryptionProductionGuard(environment("production"), shortKey);
-
-        var error = assertThrows(IllegalStateException.class, guard::validate);
+        var error = assertThrows(IllegalStateException.class,
+                () -> guard.validate(environment(shortKey, "production")));
 
         assertTrue(error.getMessage().contains("exactly 32 bytes"));
     }
 
     @Test
-    void acceptsValidKeyInProduction() {
-        var guard = new PiiEncryptionProductionGuard(environment("production"), validKey());
-
-        assertDoesNotThrow(guard::validate);
+    void acceptsValidKey() {
+        assertDoesNotThrow(() -> guard.validate(environment(validKey(), "production")));
     }
 
     @Test
-    void acceptsKeyWithSurroundingWhitespaceInProduction() {
-        var guard = new PiiEncryptionProductionGuard(environment("production"), "  " + validKey() + "\n");
-
-        assertDoesNotThrow(guard::validate);
+    void acceptsKeyWithSurroundingWhitespace() {
+        assertDoesNotThrow(() -> guard.validate(environment("  " + validKey() + "\n", "production")));
     }
 
     @Test
-    void allowsBlankKeyOutsideProduction() {
-        var guard = new PiiEncryptionProductionGuard(environment("test"), "");
-
-        assertDoesNotThrow(guard::validate);
+    void allowsBlankKeyInDevelopmentProfiles() {
+        for (String profile : new String[]{"dev", "test", "functional", "bootstrap"}) {
+            assertDoesNotThrow(() -> guard.validate(environment("", profile)), profile);
+        }
     }
 
     @Test
-    void doesNotMatchSimilarlyNamedProfiles() {
-        var guard = new PiiEncryptionProductionGuard(environment("production-eu"), "");
-
-        assertDoesNotThrow(guard::validate);
+    void enforcesForAnyOtherProfileName() {
+        // A profile called production-eu is still a deployment, not a development run.
+        assertThrows(IllegalStateException.class, () -> guard.validate(environment(null, "production-eu")));
     }
 }

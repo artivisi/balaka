@@ -117,12 +117,15 @@ Build JAR di mesin lokal, upload ke server:
 ./deploy.sh <client>
 ```
 
-Proses yang dilakukan:
-1. Build JAR lokal (`./mvnw clean package -DskipTests`)
-2. Upload JAR ke server via SCP
-3. Konfigurasi admin user
-4. Restart service
-5. Health check
+Proses yang dilakukan (`deploy/ansible/deploy.yml`):
+1. Validasi `document_encryption_key` di `pre_tasks` (sebelum menyentuh server)
+2. Build JAR lokal (`./mvnw clean package -DskipTests`)
+3. Upload JAR + `application.properties` ke server
+4. Tulis ulang unit systemd dari template (memuat
+   `--spring.profiles.active=production`) dan `daemon-reload`
+5. Jalankan migrasi Flyway dalam profile `bootstrap` (tanpa web server, timeout
+   600 detik) lalu tukar admin bawaan
+6. Start service production + health check
 
 #### Metode 2: `deploy-remote-build.sh` (Build di Server)
 
@@ -138,6 +141,13 @@ Proses yang dilakukan:
 3. Build JAR di server
 4. Restart service
 5. Health check
+
+**Perhatian:** jalur ini hanya me-restart service, jadi unit systemd di server
+tidak ikut diperbarui. Guard startup aktif untuk semua profile kecuali `dev`,
+`test`, `functional` dan `bootstrap`; unit lama tanpa
+`--spring.profiles.active=production` tetap diperiksa, dan deployment yang belum
+menukar admin bawaan akan menolak start. Jalankan `deploy.yml` (Metode 1) minimal
+sekali setelah perubahan ini.
 
 **Perhatian:** Jika `git pull` gagal karena history divergence (misalnya setelah force push), perbaiki dulu:
 

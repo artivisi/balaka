@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.LockedException;
@@ -36,6 +37,10 @@ public class SecurityConfig {
     private boolean requireApiAuth;
 
     @Bean
+    // The guard fails startup for a seeded admin or an empty user table. Depending on it
+    // from the filter chain makes it run while the web layer is being built, before the
+    // embedded server accepts requests; as an ApplicationRunner it would run too late.
+    @DependsOn("defaultAdminProductionGuard")
     @SuppressWarnings({"java:S112", "java:S1130"}) // Spring Security API requires throws Exception
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http,
