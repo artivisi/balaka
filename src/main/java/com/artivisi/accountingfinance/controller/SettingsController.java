@@ -9,6 +9,7 @@ import com.artivisi.accountingfinance.entity.SecurityAuditLog;
 import com.artivisi.accountingfinance.entity.TelegramUserLink;
 import com.artivisi.accountingfinance.entity.User;
 import com.artivisi.accountingfinance.enums.AuditEventType;
+import com.artivisi.accountingfinance.exception.InvalidCashBankAccountException;
 import com.artivisi.accountingfinance.repository.TelegramUserLinkRepository;
 import com.artivisi.accountingfinance.repository.UserRepository;
 import com.artivisi.accountingfinance.security.Permission;
@@ -357,6 +358,12 @@ public class SettingsController {
     /**
      * Mask bank account number for audit logging (show only last 4 digits).
      */
+    private String glAuditSuffix(CompanyBankAccount bankAccount) {
+        return bankAccount.getGlAccount() == null
+                ? ""
+                : ", GL account " + bankAccount.getGlAccount().getAccountCode() + " marked cash/bank";
+    }
+
     private String maskAccountNumber(String accountNumber) {
         if (accountNumber == null || accountNumber.length() <= 4) {
             return "****";
@@ -386,7 +393,7 @@ public class SettingsController {
     @PreAuthorize("hasAuthority('" + Permission.SETTINGS_EDIT + "')")
     public String newBankAccountForm(Model model) {
         model.addAttribute("bankAccount", new CompanyBankAccount());
-        model.addAttribute(ATTR_GL_ACCOUNTS, chartOfAccountService.findTransactableAccounts());
+        model.addAttribute(ATTR_GL_ACCOUNTS, chartOfAccountService.findAssetAccounts());
         model.addAttribute(ATTR_SELECTED_GL_ACCOUNT_ID, null);
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_SETTINGS);
         return VIEW_BANK_FORM;
@@ -402,7 +409,7 @@ public class SettingsController {
             RedirectAttributes redirectAttributes) {
 
         if (bindingResult.hasErrors()) {
-            model.addAttribute(ATTR_GL_ACCOUNTS, chartOfAccountService.findTransactableAccounts());
+            model.addAttribute(ATTR_GL_ACCOUNTS, chartOfAccountService.findAssetAccounts());
             model.addAttribute(ATTR_SELECTED_GL_ACCOUNT_ID, glAccountId);
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_SETTINGS);
             return VIEW_BANK_FORM;
@@ -415,12 +422,20 @@ public class SettingsController {
             }
             bankAccountService.create(bankAccount);
             securityAuditService.log(AuditEventType.SETTINGS_CHANGE,
-                    "Bank account created: " + bankAccount.getBankName() + " - " + maskAccountNumber(bankAccount.getAccountNumber()));
+                    "Bank account created: " + bankAccount.getBankName() + " - "
+                            + maskAccountNumber(bankAccount.getAccountNumber())
+                            + glAuditSuffix(bankAccount));
             redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Rekening bank berhasil ditambahkan");
             return REDIRECT_SETTINGS;
+        } catch (InvalidCashBankAccountException e) {
+            bindingResult.reject("glAccount", e.getMessage());
+            model.addAttribute(ATTR_GL_ACCOUNTS, chartOfAccountService.findAssetAccounts());
+            model.addAttribute(ATTR_SELECTED_GL_ACCOUNT_ID, glAccountId);
+            model.addAttribute(ATTR_CURRENT_PAGE, PAGE_SETTINGS);
+            return VIEW_BANK_FORM;
         } catch (IllegalArgumentException e) {
             bindingResult.rejectValue("accountNumber", "duplicate", e.getMessage());
-            model.addAttribute(ATTR_GL_ACCOUNTS, chartOfAccountService.findTransactableAccounts());
+            model.addAttribute(ATTR_GL_ACCOUNTS, chartOfAccountService.findAssetAccounts());
             model.addAttribute(ATTR_SELECTED_GL_ACCOUNT_ID, glAccountId);
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_SETTINGS);
             return VIEW_BANK_FORM;
@@ -432,7 +447,7 @@ public class SettingsController {
     public String editBankAccountForm(@PathVariable UUID id, Model model) {
         CompanyBankAccount bankAccount = bankAccountService.findById(id);
         model.addAttribute("bankAccount", bankAccount);
-        model.addAttribute(ATTR_GL_ACCOUNTS, chartOfAccountService.findTransactableAccounts());
+        model.addAttribute(ATTR_GL_ACCOUNTS, chartOfAccountService.findAssetAccounts());
         model.addAttribute(ATTR_SELECTED_GL_ACCOUNT_ID,
                 bankAccount.getGlAccount() != null ? bankAccount.getGlAccount().getId() : null);
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_SETTINGS);
@@ -451,7 +466,7 @@ public class SettingsController {
 
         if (bindingResult.hasErrors()) {
             form.setId(id);
-            model.addAttribute(ATTR_GL_ACCOUNTS, chartOfAccountService.findTransactableAccounts());
+            model.addAttribute(ATTR_GL_ACCOUNTS, chartOfAccountService.findAssetAccounts());
             model.addAttribute(ATTR_SELECTED_GL_ACCOUNT_ID, glAccountId);
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_SETTINGS);
             return VIEW_BANK_FORM;
@@ -466,13 +481,22 @@ public class SettingsController {
             }
             bankAccountService.update(id, bankAccount);
             securityAuditService.log(AuditEventType.SETTINGS_CHANGE,
-                    "Bank account updated: " + bankAccount.getBankName() + " - " + maskAccountNumber(bankAccount.getAccountNumber()));
+                    "Bank account updated: " + bankAccount.getBankName() + " - "
+                            + maskAccountNumber(bankAccount.getAccountNumber())
+                            + glAuditSuffix(bankAccount));
             redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Rekening bank berhasil diperbarui");
             return REDIRECT_SETTINGS;
+        } catch (InvalidCashBankAccountException e) {
+            form.setId(id);
+            bindingResult.reject("glAccount", e.getMessage());
+            model.addAttribute(ATTR_GL_ACCOUNTS, chartOfAccountService.findAssetAccounts());
+            model.addAttribute(ATTR_SELECTED_GL_ACCOUNT_ID, glAccountId);
+            model.addAttribute(ATTR_CURRENT_PAGE, PAGE_SETTINGS);
+            return VIEW_BANK_FORM;
         } catch (IllegalArgumentException e) {
             bindingResult.rejectValue("accountNumber", "duplicate", e.getMessage());
             form.setId(id);
-            model.addAttribute(ATTR_GL_ACCOUNTS, chartOfAccountService.findTransactableAccounts());
+            model.addAttribute(ATTR_GL_ACCOUNTS, chartOfAccountService.findAssetAccounts());
             model.addAttribute(ATTR_SELECTED_GL_ACCOUNT_ID, glAccountId);
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_SETTINGS);
             return VIEW_BANK_FORM;

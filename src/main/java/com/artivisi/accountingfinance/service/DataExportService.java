@@ -275,7 +275,7 @@ public class DataExportService {
     // ============================================
     private String exportChartOfAccounts() {
         StringBuilder csv = new StringBuilder();
-        csv.append("account_code,account_name,account_type,parent_code,normal_balance,active,created_at,fiscal_treatment,service_expense,close_check_role,self_test_role\n");
+        csv.append("account_code,account_name,account_type,parent_code,normal_balance,active,created_at,fiscal_treatment,service_expense,close_check_role,self_test_role,is_cash_bank\n");
 
         List<ChartOfAccount> accounts = accountRepository.findAll(Sort.by("accountCode"));
         for (ChartOfAccount a : accounts) {
@@ -289,7 +289,8 @@ public class DataExportService {
             csv.append(a.getFiscalTreatment() != null ? a.getFiscalTreatment().name() : "").append(",");
             csv.append(a.getServiceExpense() != null ? a.getServiceExpense().toString() : "").append(",");
             csv.append(a.getCloseCheckRole() != null ? a.getCloseCheckRole().name() : "").append(",");
-            csv.append(a.getSelfTestRole() != null ? a.getSelfTestRole().name() : "").append("\n");
+            csv.append(a.getSelfTestRole() != null ? a.getSelfTestRole().name() : "").append(",");
+            csv.append(Boolean.TRUE.equals(a.getIsCashBank())).append("\n");
         }
         return csv.toString();
     }
@@ -532,7 +533,7 @@ public class DataExportService {
     // ============================================
     private String exportCompanyBankAccounts() {
         StringBuilder csv = new StringBuilder();
-        csv.append("bank_name,account_number,account_name,bank_branch,is_default,active\n");
+        csv.append("bank_name,account_number,account_name,bank_branch,is_default,active,gl_account_code\n");
 
         List<CompanyBankAccount> accounts = bankAccountRepository.findAll(Sort.by("bankName", "accountNumber"));
         for (CompanyBankAccount ba : accounts) {
@@ -541,7 +542,8 @@ public class DataExportService {
             csv.append(escapeCsv(ba.getAccountName())).append(",");
             csv.append(escapeCsv(ba.getBankBranch())).append(",");
             csv.append(ba.getIsDefault()).append(",");
-            csv.append(ba.getActive()).append("\n");
+            csv.append(ba.getActive()).append(",");
+            csv.append(ba.getGlAccount() != null ? escapeCsv(ba.getGlAccount().getAccountCode()) : "").append("\n");
         }
         return csv.toString();
     }

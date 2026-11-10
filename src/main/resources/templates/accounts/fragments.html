@@ -55,6 +55,13 @@
                           class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700">
                         Header
                     </span>
+
+                    <!-- Cash/Bank badge -->
+                    <span th:if="${account.isCashBank}"
+                          th:id="'account-cash-bank-' + ${#strings.replace(account.accountCode, '.', '-')}"
+                          class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-800">
+                        Kas/Bank
+                    </span>
                 </div>
 
                 <!-- Type -->
