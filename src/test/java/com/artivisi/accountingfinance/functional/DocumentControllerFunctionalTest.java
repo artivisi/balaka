@@ -406,6 +406,47 @@ class DocumentControllerFunctionalTest extends PlaywrightTestBase {
         assertEquals(filename, documents.get(0).getOriginalFilename());
     }
 
+    // ==================== Multi-file upload ====================
+
+    @Test
+    @DisplayName("Should store every selected file and flag the rejected one")
+    void shouldUploadSeveralFilesAndFlagTheRejectedOne() {
+        UUID transactionId = createDraftTransaction();
+        String first = uniqueName("multi-first", "pdf");
+        String second = uniqueName("multi-second", "pdf");
+        String rejected = uniqueName("multi-rejected", "sh");
+
+        navigateTo("/transactions/" + transactionId + "/edit");
+        waitForPageLoad();
+        assertThat(page.locator("[data-testid='document-upload-form']"))
+                .hasAttribute("hx-post", "/documents/transaction/" + transactionId);
+
+        page.locator("[data-testid='document-file-input']").setInputFiles(new FilePayload[]{
+                new FilePayload(first, "application/pdf", pdfContent(first)),
+                new FilePayload(second, "application/pdf", pdfContent(second)),
+                new FilePayload(rejected, "application/x-sh",
+                        "#!/bin/sh\necho nope\n".getBytes(StandardCharsets.UTF_8))});
+        page.locator("[data-testid='btn-upload-document']").click();
+
+        // Both accepted files are listed...
+        assertThat(itemByFilename(first)).hasCount(1);
+        assertThat(itemByFilename(second)).hasCount(1);
+
+        // ...and the panel is the red one, counting what landed and naming the failure.
+        Locator panel = page.locator("[data-testid='document-upload-error']");
+        assertThat(panel).hasCount(1);
+        assertThat(panel).containsText("2 dokumen berhasil diunggah");
+        assertThat(panel).containsText(rejected);
+        assertThat(page.locator("[data-testid='document-upload-success']")).hasCount(0);
+
+        List<Document> documents = documentRepository.findByTransactionIdOrderByCreatedAtDesc(transactionId);
+        assertEquals(2, documents.size(), "Stored documents: " + documents.stream()
+                .map(Document::getOriginalFilename).toList());
+        assertTrue(documents.stream().anyMatch(d -> first.equals(d.getOriginalFilename())));
+        assertTrue(documents.stream().anyMatch(d -> second.equals(d.getOriginalFilename())));
+        assertTrue(documents.stream().noneMatch(d -> rejected.equals(d.getOriginalFilename())));
+    }
+
     // ==================== helpers ====================
 
     private UUID createDraftTransaction() {

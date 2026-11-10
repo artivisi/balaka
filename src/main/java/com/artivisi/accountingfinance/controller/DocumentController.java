@@ -33,6 +33,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @io.swagger.v3.oas.annotations.Hidden
 @Controller
@@ -77,7 +78,7 @@ public class DocumentController {
         String username = authentication != null ? authentication.getName() : USER_SYSTEM;
 
         int successCount = 0;
-        List<String> errors = new ArrayList<>();
+        List<UploadFailure> failures = new ArrayList<>();
 
         if (files != null) {
             for (MultipartFile file : files) {
@@ -91,23 +92,31 @@ public class DocumentController {
                     successCount++;
                 } catch (IOException e) {
                     log.error("Failed to upload document for transaction {}: {}", transactionId, e.getMessage());
-                    errors.add(file.getOriginalFilename() + ": " + e.getMessage());
+                    failures.add(new UploadFailure(file.getOriginalFilename(), e.getMessage(), true));
                 } catch (IllegalArgumentException e) {
-                    errors.add(file.getOriginalFilename() + ": " + e.getMessage());
+                    failures.add(new UploadFailure(file.getOriginalFilename(), e.getMessage(), false));
                 }
             }
         }
 
-        if (successCount > 0 && errors.isEmpty()) {
+        // Partial failure is still a failure: the panel must not turn green while the
+        // message names files that were rejected.
+        if (successCount > 0 && failures.isEmpty()) {
             model.addAttribute(ATTR_SUCCESS, true);
-            model.addAttribute(ATTR_MESSAGE, successCount + " dokumen berhasil diunggah");
+            model.addAttribute(ATTR_MESSAGE, storedCountMessage(successCount));
         } else if (successCount > 0) {
-            model.addAttribute(ATTR_SUCCESS, true);
-            model.addAttribute(ATTR_MESSAGE, successCount + " dokumen berhasil diunggah; " + errors.size() + " gagal: " + String.join("; ", errors));
-        } else if (!errors.isEmpty()) {
             model.addAttribute(ATTR_SUCCESS, false);
             // nosemgrep: semgrep.missing-html-escape-in-model - rendered only via th:text in fragments/document-list.html, which escapes
-            model.addAttribute(ATTR_MESSAGE, MSG_UPLOAD_FAILED + String.join("; ", errors));
+            model.addAttribute(ATTR_MESSAGE,
+                    storedCountMessage(successCount) + "; " + failures.size() + " gagal: " + describe(failures));
+        } else if (!failures.isEmpty()) {
+            model.addAttribute(ATTR_SUCCESS, false);
+            // nosemgrep: semgrep.missing-html-escape-in-model - rendered only via th:text in fragments/document-list.html, which escapes
+            // A single rejected file keeps the wording it had before multi-upload: the
+            // validation message alone, or MSG_UPLOAD_FAILED prefixed to an I/O failure.
+            model.addAttribute(ATTR_MESSAGE, failures.size() == 1
+                    ? singleFailureMessage(failures.get(0))
+                    : MSG_UPLOAD_FAILED + describe(failures));
         } else {
             model.addAttribute(ATTR_SUCCESS, false);
             model.addAttribute(ATTR_MESSAGE, "Tidak ada file yang dipilih");
@@ -358,5 +367,28 @@ public class DocumentController {
     @ResponseBody
     public ResponseEntity<List<Document>> getDocumentsForTransactionApi(@PathVariable UUID transactionId) {
         return ResponseEntity.ok(documentService.findByTransactionId(transactionId));
+    }
+
+    /**
+     * A single upload keeps the established wording; several files are reported by
+     * count so the operator sees how many landed.
+     */
+    private static String storedCountMessage(int storedCount) {
+        return storedCount == 1 ? MSG_UPLOAD_SUCCESS : storedCount + " dokumen berhasil diunggah";
+    }
+
+    /** Names the rejected file only when the message has to cover more than one. */
+    private static String describe(List<UploadFailure> failures) {
+        return failures.stream().map(UploadFailure::describe).collect(Collectors.joining("; "));
+    }
+
+    private static String singleFailureMessage(UploadFailure failure) {
+        return failure.ioError() ? MSG_UPLOAD_FAILED + failure.reason() : failure.reason();
+    }
+
+    private record UploadFailure(String filename, String reason, boolean ioError) {
+        String describe() {
+            return filename + ": " + reason;
+        }
     }
 }
