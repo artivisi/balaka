@@ -3,6 +3,7 @@ package com.artivisi.accountingfinance.functional;
 import com.artivisi.accountingfinance.entity.ChartOfAccount;
 import com.artivisi.accountingfinance.entity.User;
 import com.artivisi.accountingfinance.enums.AccountType;
+import com.artivisi.accountingfinance.enums.CashBankSource;
 import com.artivisi.accountingfinance.enums.NormalBalance;
 import com.artivisi.accountingfinance.enums.Role;
 import com.artivisi.accountingfinance.functional.service.ServiceTestDataInitializer;
@@ -21,6 +22,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -347,6 +350,70 @@ class ChartOfAccountsTest extends PlaywrightTestBase {
                 .hasCount(0);
     }
 
+    @Test
+    @DisplayName("Flagging an account as cash/bank in the form adds it to the dashboard cash and the cash flow statement")
+    void shouldFlagAccountAsCashBankAndSeeItInCashReports() {
+        String code = code();
+        String name = "Kas Uji " + code;
+
+        // Flag it from the chart-of-accounts form, under the seeded Aset Lancar header.
+        navigateTo("/accounts/new");
+        waitForPageLoad();
+        page.locator("#accountCode").fill(code);
+        page.locator("#accountName").fill(name);
+        page.getByTestId("account-type").selectOption("ASSET");
+        page.locator("#parentId").selectOption(new SelectOption().setLabel("1.1 - Aset Lancar"));
+        page.getByTestId("is-cash-bank").check();
+        page.getByTestId("btn-submit").click();
+        page.waitForURL(baseUrl() + "/accounts");
+        assertThat(page.locator("#success-message")).hasText("Akun berhasil ditambahkan");
+
+        ChartOfAccount flagged = account(code);
+        assertThat(flagged.getIsCashBank()).isTrue();
+        assertThat(flagged.getCashBankSource()).isEqualTo(CashBankSource.EXPLICIT);
+
+        // A balance makes the account measurable in both reports.
+        long amount = 1750000L;
+        String transactionId = postJournal(LocalDate.now().toString(), "Saldo kas uji " + code,
+                flagged.getId(), account("4.1.01").getId(), amount);
+
+        navigateTo("/dashboard");
+        waitForPageLoad();
+        assertThat(page.locator("#section-saldo-kas")).containsText(name);
+
+        LocalDate today = LocalDate.now();
+        String cashFlowUrl = "/reports/cash-flow?startDate=" + today.withDayOfMonth(1) + "&endDate=" + today;
+        navigateTo(cashFlowUrl);
+        waitForPageLoad();
+        assertThat(page.locator("#cash-flow-content")).containsText(name);
+        BigDecimal withCashInCashFlow = amountOf(page.locator("#ending-balance").textContent());
+
+        // Un-flagging takes it out of the cash universe again, without touching the balance.
+        navigateTo("/accounts/" + flagged.getId() + "/edit");
+        waitForPageLoad();
+        page.getByTestId("is-cash-bank").uncheck();
+        page.getByTestId("btn-submit").click();
+        page.waitForURL(baseUrl() + "/accounts");
+        assertThat(account(code).getIsCashBank()).isFalse();
+
+        navigateTo(cashFlowUrl);
+        waitForPageLoad();
+        assertThat(page.locator("#cash-flow-content")).not().containsText(name);
+        BigDecimal withoutCashInCashFlow = amountOf(page.locator("#ending-balance").textContent());
+        assertThat(withCashInCashFlow.subtract(withoutCashInCashFlow))
+                .as("the ending balance must drop by the un-flagged account's balance")
+                .isEqualByComparingTo(BigDecimal.valueOf(amount));
+
+        navigateTo("/dashboard");
+        waitForPageLoad();
+        assertThat(page.locator("#section-saldo-kas")).not().containsText(name);
+
+        // Leave the shared fixture neutral: the balance is voided, the account stays unflagged.
+        APIResponse voided = page.request().post(baseUrl() + "/transactions/api/" + transactionId + "/void",
+                withCsrf().setData(Map.of("reason", "INPUT_ERROR", "notes", "uji laporan kas")));
+        assertThat(voided.status()).as(voided.text()).isEqualTo(200);
+    }
+
     // ==================== helpers ====================
 
     private ChartOfAccount createAccount(String code, String name, String type, UUID parentId, boolean header) {
@@ -372,7 +439,7 @@ class ChartOfAccountsTest extends PlaywrightTestBase {
         return form;
     }
 
-    private void postJournal(String date, String description, UUID debitAccount, UUID creditAccount, long amount) {
+    private String postJournal(String date, String description, UUID debitAccount, UUID creditAccount, long amount) {
         APIResponse created = page.request().post(baseUrl() + "/transactions/journal-entry", withCsrf().setData(Map.of(
                 "transactionDate", date, "description", description,
                 "lines", List.of(
@@ -387,6 +454,7 @@ class ChartOfAccountsTest extends PlaywrightTestBase {
         }
         APIResponse posted = page.request().post(baseUrl() + "/transactions/api/" + transactionId + "/post", withCsrf());
         assertThat(posted.status()).as(posted.text()).isEqualTo(200);
+        return transactionId;
     }
 
     private List<String> pickerCodes(String query) {
@@ -432,6 +500,12 @@ class ChartOfAccountsTest extends PlaywrightTestBase {
 
     private static String rowId(String code) {
         return code.replace('.', '-');
+    }
+
+    /** "Rp 1.750.000" -> 1750000; the reports format whole rupiah with a dot separator. */
+    private static BigDecimal amountOf(String text) {
+        String digits = text == null ? "" : text.replaceAll("[^0-9]", "");
+        return digits.isEmpty() ? BigDecimal.ZERO : new BigDecimal(digits);
     }
 
     private static String code() {

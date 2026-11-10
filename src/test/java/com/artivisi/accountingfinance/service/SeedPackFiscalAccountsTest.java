@@ -23,6 +23,7 @@ class SeedPackFiscalAccountsTest {
 
     private static final int CODE = 0;
     private static final int NAME = 1;
+    private static final int CASH_BANK = 11;
     private static final int TYPE = 2;
     private static final int PARENT = 3;
     private static final int TREATMENT = 7;
@@ -33,7 +34,7 @@ class SeedPackFiscalAccountsTest {
     void packCarriesSeedAccounts(String pack) throws IOException {
         List<String[]> rows = Files.readAllLines(Path.of("industry-seed", pack, "seed-data", "02_chart_of_accounts.csv"))
                 .stream().skip(1).map(l -> l.split(",", -1)).toList();
-        rows.forEach(r -> assertThat(r).as(String.join(",", r)).hasSize(11));
+        rows.forEach(r -> assertThat(r).as(String.join(",", r)).hasSize(12));
         Map<String, String[]> byCode = rows.stream().collect(Collectors.toMap(r -> r[CODE], Function.identity()));
 
         assertAccount(byCode, "2.1.25", "Hutang PPh 26", "LIABILITY", "");
@@ -58,6 +59,17 @@ class SeedPackFiscalAccountsTest {
                 .extracting(r -> r[CODE] + "=" + r[9])
                 .containsExactlyInAnyOrder("1.1.26=TAX_CREDIT", "2.1.50=SHAREHOLDER_CURRENT");
         assertAccount(byCode, "2.1.50", "Rekening Koran Pemegang Saham/Direksi", "LIABILITY", "");
+
+        // Cash/bank membership is declared per row. The online-seller marketplace balances
+        // are cash; receivables, prepaid expenses and input VAT never are.
+        Set<String> expectedCash = "online-seller".equals(pack)
+                ? Set.of("1.1.01", "1.1.02", "1.1.03", "1.1.04", "1.1.05", "1.1.06", "1.1.08")
+                : Set.of("1.1.01", "1.1.02", "1.1.03");
+        assertThat(rows).as("cash/bank rows in %s", pack).filteredOn(r -> "true".equals(r[CASH_BANK]))
+                .extracting(r -> r[CODE]).containsExactlyInAnyOrderElementsOf(expectedCash);
+        assertThat(rows).as("receivables, prepaid and input VAT are not cash in %s", pack)
+                .filteredOn(r -> Set.of("1.1.10", "1.1.15", "1.1.25", "1.1.26").contains(r[CODE]))
+                .allSatisfy(r -> assertThat(r[CASH_BANK]).isEqualTo("false"));
 
         // Self-test roles: only on leaf expense accounts; PPh 23 and 4(2) roles only on service accounts.
         assertThat(rows).as("one OTHER_EXPENSE account in %s", pack).filteredOn(r -> "OTHER_EXPENSE".equals(r[10]))
