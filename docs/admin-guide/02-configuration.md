@@ -98,10 +98,33 @@ Saat `true`, setiap halaman menampilkan banner peringatan bahwa ini adalah insta
 
 | Property | Default | Keterangan |
 |----------|---------|------------|
-| `app.storage.documents.path` | `data/documents` | Direktori penyimpanan dokumen upload |
+| `app.storage.documents.path` | `data/documents` (`APP_DOCUMENT_STORAGE_PATH`) | Direktori penyimpanan dokumen upload; bisa dioverride lewat environment variable |
 | `app.storage.documents.max-file-size` | `10485760` | Ukuran maksimal file (10 MB) |
 | `app.storage.documents.allowed-types` | `image/jpeg,image/png,image/gif,application/pdf` | MIME type yang diizinkan |
 
+Kontainer dan deployment non-Ansible mengarahkan penyimpanan dokumen tanpa
+mengubah file konfigurasi:
+
+```bash
+APP_DOCUMENT_STORAGE_PATH=/var/lib/balaka/documents
+```
+
+## Reverse Proxy
+
+`server.forward-headers-strategy=framework` aktif secara default, sehingga
+redirect HTTPS dan URL absolut mengikuti header `X-Forwarded-*` dari reverse
+proxy atau Cloudflare tunnel. Tanpa ini aplikasi membangun URL `http://` dan
+redirect ke halaman login berakhir di skema yang salah.
+
+## Remember Me
+
+| Property | Default | Keterangan |
+|----------|---------|------------|
+| `app.remember-me.key` | `dev-remember-me-key` | Key untuk hash-based remember-me token |
+
+**Perhatian:** Ganti default key di production. Gunakan string random yang panjang.
+
+>>>>>>> 86c2de8c (feat(config): document storage path and forwarded headers from the environment)
 ## OpenAPI / Swagger
 
 | Property | Default | Keterangan |
