@@ -23,7 +23,8 @@ ExecStart=/usr/bin/java \
     -Dfile.encoding=UTF-8 \
     -Duser.timezone=Asia/Jakarta \
     -jar /opt/{{ app_name }}/{{ app_name }}.jar \
-    --spring.config.location=/opt/{{ app_name }}/application.properties
+    --spring.config.location=/opt/{{ app_name }}/application.properties \
+    --spring.profiles.active=production
 
 # Security: Prevent core dumps that may contain sensitive data
 LimitCORE=0

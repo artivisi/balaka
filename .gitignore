@@ -50,3 +50,7 @@ clients/artivisi/artivisi-seed-data.zip
 
 .DS_Store
 logs
+
+### Python ###
+__pycache__/
+*.py[cod]

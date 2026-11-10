@@ -66,6 +66,8 @@ Field yang dienkripsi termasuk data sensitif karyawan (NIK, NPWP, nomor rekening
 - Simpan encryption key di tempat terpisah dari database
 - Jika key hilang, data PII yang terenkripsi tidak bisa dipulihkan
 - Jangan pernah mengubah key setelah ada data terenkripsi (data lama tidak akan bisa didekripsi dengan key baru)
+- Deployment (`site.yml`/`deploy.yml`) menolak berjalan jika
+  `document_encryption_key` tidak diset atau bukan Base64 32 byte
 
 ## Content Security Policy (CSP)
 

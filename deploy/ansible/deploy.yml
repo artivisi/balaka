@@ -80,20 +80,29 @@
         group: "{{ app_user }}"
         mode: "0644"
 
-    - name: Start application
-      ansible.builtin.systemd:
-        name: "{{ app_name }}"
-        state: started
-        enabled: yes
-
-    - name: Wait for application to start
-      ansible.builtin.uri:
-        url: "http://localhost:{{ app_port }}/login"
-        status_code: 200
-      register: result
-      until: result.status == 200
-      retries: 30
-      delay: 5
+    - name: Apply database migrations in bootstrap mode (production guard not active)
+      # One-shot non-production run: applies Flyway migrations, validates JPA, then
+      # exits without serving requests. This lets the admin swap below happen before
+      # the production profile (and DefaultAdminProductionGuard) starts.
+      ansible.builtin.shell:
+        cmd: |
+          set -e
+          set -a
+          if [ -f /opt/{{ app_name }}/env.conf ]; then . /opt/{{ app_name }}/env.conf; fi
+          set +a
+          exec /usr/bin/java -jar /opt/{{ app_name }}/{{ app_name }}.jar \
+            --spring.config.location=/opt/{{ app_name }}/application.properties \
+            --app.bootstrap.exit-after-migrate=true \
+            --server.address=127.0.0.1 \
+            --server.port=0
+        executable: /bin/bash
+      args:
+        chdir: "/opt/{{ app_name }}"
+      become: yes
+      become_user: "{{ app_user }}"
+      register: bootstrap_migration
+      changed_when: false
+      failed_when: bootstrap_migration.rc != 0
 
     - name: Delete default admin user roles
       community.postgresql.postgresql_query:
@@ -160,3 +169,18 @@
           ON CONFLICT DO NOTHING
         named_args:
           user_id: "{{ admin_user_result.query_result[0].id }}"
+
+    - name: Start application
+      ansible.builtin.systemd:
+        name: "{{ app_name }}"
+        state: started
+        enabled: yes
+
+    - name: Wait for application to start
+      ansible.builtin.uri:
+        url: "http://localhost:{{ app_port }}/login"
+        status_code: 200
+      register: result
+      until: result.status == 200
+      retries: 30
+      delay: 5
