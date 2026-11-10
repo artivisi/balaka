@@ -10,6 +10,17 @@ public enum AuditEventType {
     LOGOUT,
     ACCOUNT_LOCKED,
 
+    // Multi-factor authentication
+    MFA_ENABLED,
+    MFA_ENABLE_FAILED,
+    MFA_DISABLED,
+    MFA_VERIFY_SUCCESS,
+    MFA_VERIFY_FAILED,
+    MFA_LOCKED,
+    MFA_RECOVERY_USED,
+    MFA_RECOVERY_CODES_REGENERATED,
+    MFA_ADMIN_RESET,
+
     // User management
     USER_CREATE,
     USER_CREATED,

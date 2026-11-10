@@ -379,6 +379,9 @@
                             <a sec:authorize="hasAuthority('SECURITY_SETTINGS_VIEW')" id="nav-security-settings" th:href="@{/settings/security}"
                                th:classappend="${#strings.equals(currentPage, 'security-settings')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
                                class="flex items-center px-3 py-2 rounded-lg transition-colors">Keamanan</a>
+                            <a sec:authorize="isAuthenticated()" id="nav-mfa" th:href="@{/settings/mfa}"
+                               th:classappend="${#strings.equals(currentPage, 'mfa')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
+                               class="flex items-center px-3 py-2 rounded-lg transition-colors">Verifikasi Dua Langkah</a>
                             <a sec:authorize="hasAuthority('SETTINGS_VIEW')" id="nav-devices" th:href="@{/settings/devices}"
                                th:classappend="${#strings.equals(currentPage, 'devices')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
                                class="flex items-center px-3 py-2 rounded-lg transition-colors">Perangkat API</a>
@@ -689,6 +692,8 @@
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Peran</a>
                             <a sec:authorize="hasAuthority('SECURITY_SETTINGS_VIEW')" th:href="@{/settings/security}"
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Keamanan</a>
+                            <a sec:authorize="isAuthenticated()" th:href="@{/settings/mfa}"
+                               class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Verifikasi Dua Langkah</a>
                             <a sec:authorize="hasAuthority('SETTINGS_VIEW')" th:href="@{/settings/devices}"
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Perangkat API</a>
                             <a sec:authorize="hasAuthority('SETTINGS_EDIT')" th:href="@{/settings/api-clients}"

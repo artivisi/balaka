@@ -67,6 +67,37 @@ Field yang dienkripsi termasuk data sensitif karyawan (NIK, NPWP, nomor rekening
 - Jika key hilang, data PII yang terenkripsi tidak bisa dipulihkan
 - Jangan pernah mengubah key setelah ada data terenkripsi (data lama tidak akan bisa didekripsi dengan key baru)
 
+## Verifikasi Dua Langkah (TOTP)
+
+Setiap pengguna bisa mengaktifkan TOTP dari menu **Verifikasi Dua Langkah**.
+Aktivasi bersifat opsional per pengguna, tetapi peran yang tercantum di
+`app.mfa.required-roles` wajib memakainya sebelum bisa memakai aplikasi.
+
+| Property | Default | Keterangan |
+|----------|---------|------------|
+| `app.mfa.enabled` | `true` (`APP_MFA_ENABLED`) | Saklar seluruh fitur; `false` untuk suite uji fungsional |
+| `app.mfa.required-roles` | `ADMIN,OWNER` (`APP_MFA_REQUIRED_ROLES`) | Peran yang wajib MFA |
+| `app.mfa.max-attempts` | `5` | Percobaan `/mfa-verify` sebelum dikunci |
+| `app.mfa.attempt-window-seconds` | `900` | Jendela hitung percobaan |
+
+Detail implementasi:
+
+- Algoritma HMAC-SHA1, 6 digit, periode 30 detik, toleransi satu langkah untuk
+  selisih jam. Google Authenticator dan aplikasi lain kompatibel.
+- Rahasia dibuat di server saat halaman setup dibuka dan disimpan di sesi sampai
+  kode konfirmasi diterima; parameter `secret` dari form tidak pernah dipakai.
+  Rahasia disimpan terenkripsi memakai `EncryptedStringConverter` (AES-256-GCM
+  dengan `APP_ENCRYPTION_KEY`).
+- Setiap kode hanya diterima sekali: langkah waktu terakhir disimpan dan kode
+  pada langkah yang sama atau sebelumnya ditolak.
+- Sepuluh kode pemulihan dibuat saat aktivasi dan saat regenerasi; hanya hash
+  SHA-256 yang disimpan dan setiap kode berlaku sekali.
+- Administrator dapat mereset MFA pengguna (tombol **Reset MFA** di halaman
+  pengguna) ketika authenticator hilang.
+- Semua peristiwa (`MFA_ENABLED`, `MFA_DISABLED`, `MFA_VERIFY_SUCCESS`,
+  `MFA_VERIFY_FAILED`, `MFA_LOCKED`, `MFA_RECOVERY_USED`, `MFA_ADMIN_RESET`)
+  tercatat di audit log keamanan.
+
 ## Content Security Policy (CSP)
 
 Balaka mengimplementasikan CSP strict dengan dynamic nonce:
