@@ -5,6 +5,7 @@ import com.artivisi.accountingfinance.entity.User;
 import com.artivisi.accountingfinance.enums.Role;
 import com.artivisi.accountingfinance.repository.UserMfaRecoveryCodeRepository;
 import com.artivisi.accountingfinance.repository.UserRepository;
+import com.artivisi.accountingfinance.service.SecurityAuditService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,6 +21,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
 
 /**
  * The second factor is optional per user, mandatory only for the configured
@@ -29,7 +31,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @SpringBootTest(properties = {
         "app.mfa.enabled=true",
         "app.mfa.required-roles=ADMIN,OWNER",
-        "app.mfa.max-attempts=3"
+        "app.mfa.max-attempts=3",
+        "app.encryption.key=MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE="
 })
 @Import(TestcontainersConfiguration.class)
 @ActiveProfiles("test")
@@ -203,6 +206,51 @@ class MfaServiceTest {
         assertThat(second).hasSize(10).doesNotContainAnyElementsOf(first);
         assertThat(mfaService.verifyRecoveryCode(staff, first.get(0))).isFalse();
         assertThat(mfaService.verifyRecoveryCode(staff, second.get(0))).isTrue();
+    }
+
+    @Test
+    @DisplayName("an already enrolled user cannot be re-enrolled and have the secret swapped")
+    void reEnrollmentIsRefused() {
+        String enrolled = enrolledSecret(staff);
+        String attackerSecret = totpService.generateSecret();
+
+        assertThatThrownBy(() -> mfaService.startEnrollment(staff))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("sudah aktif");
+        assertThatThrownBy(() -> mfaService.completeEnrollment(staff, attackerSecret,
+                totpService.generateCode(attackerSecret, totpService.currentStep()), "attacker"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("sudah aktif");
+
+        User saved = userRepository.findById(staff.getId()).orElseThrow();
+        assertThat(saved.getMfaSecret()).isEqualTo(enrolled);
+        assertThat(mfaService.remainingRecoveryCodes(saved)).isEqualTo(10);
+    }
+
+    @Test
+    @DisplayName("enrolment is refused when the deployment has no encryption key")
+    void enrolmentRequiresEncryptionKey() {
+        MfaService withoutKey = new MfaService(totpService, attemptService, userRepository,
+                recoveryCodeRepository, mock(SecurityAuditService.class), true, "ADMIN", " ");
+
+        assertThatThrownBy(() -> withoutKey.startEnrollment(staff))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("APP_ENCRYPTION_KEY");
+
+        String secret = totpService.generateSecret();
+        assertThatThrownBy(() -> withoutKey.completeEnrollment(staff, secret,
+                totpService.generateCode(secret, totpService.currentStep()), "test"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("APP_ENCRYPTION_KEY");
+    }
+
+    @Test
+    @DisplayName("a misspelled role in app.mfa.required-roles stops startup instead of dropping the requirement")
+    void unknownRoleFailsFast() {
+        assertThatThrownBy(() -> new MfaService(totpService, attemptService, userRepository,
+                recoveryCodeRepository, mock(SecurityAuditService.class), true, "ADMIN,ADMN", "key"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("ADMN");
     }
 
     private String enrolledSecret(User user) {

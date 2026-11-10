@@ -104,6 +104,22 @@ class MfaEnforcementFilterTest {
     }
 
     @Test
+    @DisplayName("an HTMX request is redirected with HX-Redirect instead of a 302")
+    void htmxRequestGetsRedirectHeader() throws Exception {
+        when(mfaService.isEnabled()).thenReturn(true);
+        when(mfaService.mustVerify(user)).thenReturn(true);
+
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/transactions");
+        request.addHeader(MfaEnforcementFilter.HX_REQUEST_HEADER, "true");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        filter.doFilter(request, response, new MockFilterChain());
+
+        assertThat(response.getStatus()).isEqualTo(200);
+        assertThat(response.getHeader(MfaEnforcementFilter.HX_REDIRECT_HEADER)).isEqualTo("/mfa-verify");
+        assertThat(response.getRedirectedUrl()).isNull();
+    }
+
+    @Test
     @DisplayName("nothing is enforced when MFA is switched off for the deployment")
     void doesNothingWhenDisabled() throws Exception {
         when(mfaService.isEnabled()).thenReturn(false);

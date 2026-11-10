@@ -27,8 +27,9 @@ import java.util.List;
  * success handler is skipped when the cookie authenticates the request.
  *
  * <p>Paths that must stay reachable while a verification is pending are
- * allowlisted; {@code /api/**} is excluded because those endpoints authenticate
- * with bearer tokens, which this factor does not apply to.
+ * allowlisted and tested before any database read; {@code /api/**} is excluded
+ * because those endpoints authenticate with bearer tokens, which this factor does
+ * not apply to.
  */
 @Component
 @Order(2)
@@ -37,6 +38,9 @@ public class MfaEnforcementFilter extends OncePerRequestFilter {
 
     /** The session attribute set once /mfa-verify accepted a code. */
     public static final String VERIFIED_USER_SESSION_ATTRIBUTE = "MFA_VERIFIED_USER";
+
+    static final String HX_REQUEST_HEADER = "HX-Request";
+    static final String HX_REDIRECT_HEADER = "HX-Redirect";
 
     private static final List<String> ALWAYS_ALLOWED_PREFIXES = List.of(
             "/css/", "/js/", "/img/", "/themes/", "/webjars/", "/favicon", "/api/", "/actuator/");
@@ -58,6 +62,11 @@ public class MfaEnforcementFilter extends OncePerRequestFilter {
         }
 
         String path = request.getRequestURI().substring(request.getContextPath().length());
+        if (isAllowed(path)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !auth.isAuthenticated() || auth instanceof AnonymousAuthenticationToken) {
             filterChain.doFilter(request, response);
@@ -70,22 +79,32 @@ public class MfaEnforcementFilter extends OncePerRequestFilter {
             return;
         }
 
-        if (isAllowed(path)) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
         if (mfaService.mustVerify(user) && !isVerifiedSession(request, user)) {
-            response.sendRedirect(request.getContextPath() + "/mfa-verify");
+            redirect(request, response, "/mfa-verify");
             return;
         }
 
         if (mfaService.mustEnroll(user)) {
-            response.sendRedirect(request.getContextPath() + "/settings/mfa?required=true");
+            redirect(request, response, "/settings/mfa?required=true");
             return;
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    /**
+     * An HTMX request follows a 302 by swapping the redirect target's body into the
+     * current fragment; HX-Redirect makes the browser navigate instead.
+     */
+    private void redirect(HttpServletRequest request, HttpServletResponse response, String target)
+            throws IOException {
+        String location = request.getContextPath() + target;
+        if (request.getHeader(HX_REQUEST_HEADER) != null) {
+            response.setHeader(HX_REDIRECT_HEADER, location);
+            response.setStatus(HttpServletResponse.SC_OK);
+        } else {
+            response.sendRedirect(location);
+        }
     }
 
     private boolean isVerifiedSession(HttpServletRequest request, User user) {
