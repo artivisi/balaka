@@ -102,14 +102,6 @@ Saat `true`, setiap halaman menampilkan banner peringatan bahwa ini adalah insta
 | `app.storage.documents.max-file-size` | `10485760` | Ukuran maksimal file (10 MB) |
 | `app.storage.documents.allowed-types` | `image/jpeg,image/png,image/gif,application/pdf` | MIME type yang diizinkan |
 
-## Remember Me
-
-| Property | Default | Keterangan |
-|----------|---------|------------|
-| `app.remember-me.key` | `dev-remember-me-key` | Key untuk hash-based remember-me token |
-
-**Perhatian:** Ganti default key di production. Gunakan string random yang panjang.
-
 ## OpenAPI / Swagger
 
 | Property | Default | Keterangan |
@@ -186,9 +178,6 @@ spring.thymeleaf.cache=true
 
 # Encryption
 app.encryption.key=<base64-encoded-32-byte-key>
-
-# Remember Me
-app.remember-me.key=<random-long-string>
 
 # Session
 server.servlet.session.timeout=15m
