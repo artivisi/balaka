@@ -1,5 +1,6 @@
 package com.artivisi.accountingfinance.service;
 
+import com.artivisi.accountingfinance.entity.ChartOfAccount;
 import com.artivisi.accountingfinance.entity.CompanyBankAccount;
 import com.artivisi.accountingfinance.repository.CompanyBankAccountRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -17,6 +18,7 @@ import java.util.UUID;
 public class CompanyBankAccountService {
 
     private final CompanyBankAccountRepository bankAccountRepository;
+    private final ChartOfAccountService chartOfAccountService;
 
     public List<CompanyBankAccount> findAll() {
         return bankAccountRepository.findAllByOrderByBankNameAsc();
@@ -45,7 +47,9 @@ public class CompanyBankAccountService {
         }
 
         bankAccount.setActive(true);
-        return bankAccountRepository.save(bankAccount);
+        CompanyBankAccount saved = bankAccountRepository.save(bankAccount);
+        chartOfAccountService.applyBankLink(saved.getGlAccount());
+        return saved;
     }
 
     @Transactional
@@ -65,9 +69,19 @@ public class CompanyBankAccountService {
         existing.setAccountName(updatedAccount.getAccountName());
         existing.setCurrencyCode(updatedAccount.getCurrencyCode());
         existing.setIsDefault(updatedAccount.getIsDefault());
-        existing.setGlAccount(updatedAccount.getGlAccount());
 
-        return bankAccountRepository.save(existing);
+        ChartOfAccount previousGl = existing.getGlAccount();
+        ChartOfAccount newGl = updatedAccount.getGlAccount();
+        existing.setGlAccount(newGl);
+
+        CompanyBankAccount saved = bankAccountRepository.save(existing);
+
+        if (previousGl != null && (newGl == null || !previousGl.getId().equals(newGl.getId()))) {
+            chartOfAccountService.releaseBankLink(previousGl);
+        }
+        chartOfAccountService.applyBankLink(newGl);
+
+        return saved;
     }
 
     @Transactional
@@ -97,7 +111,10 @@ public class CompanyBankAccountService {
     @Transactional
     public void delete(UUID id) {
         CompanyBankAccount account = findById(id);
+        ChartOfAccount glAccount = account.getGlAccount();
         bankAccountRepository.delete(account);
+        bankAccountRepository.flush();
+        chartOfAccountService.releaseBankLink(glAccount);
     }
 
     /**

@@ -4,6 +4,7 @@ import com.artivisi.accountingfinance.enums.AccountType;
 import com.artivisi.accountingfinance.enums.CloseCheckRole;
 import com.artivisi.accountingfinance.enums.SelfTestRole;
 import com.artivisi.accountingfinance.enums.FiscalTreatment;
+import com.artivisi.accountingfinance.enums.CashBankSource;
 import com.artivisi.accountingfinance.enums.NormalBalance;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -76,6 +77,22 @@ public class ChartOfAccount extends BaseEntity {
 
     @Column(name = "is_permanent", nullable = false)
     private Boolean permanent = true;
+
+    /**
+     * Explicit marker for accounts that hold cash on hand or bank balances.
+     * Receivables, prepaid expenses and input VAT are current assets but are
+     * never cash; they must keep this flag false.
+     */
+    @Column(name = "is_cash_bank", nullable = false)
+    private Boolean isCashBank = false;
+
+    /**
+     * Why {@link #isCashBank} is true. Only {@link CashBankSource#BANK_LINK}
+     * flags are cleared automatically when the last bank account unlinks.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "cash_bank_source", length = 20)
+    private CashBankSource cashBankSource;
 
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;

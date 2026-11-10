@@ -16,4 +16,6 @@ public interface CompanyBankAccountRepository extends JpaRepository<CompanyBankA
     List<CompanyBankAccount> findAllByOrderByBankNameAsc();
 
     Optional<CompanyBankAccount> findByIsDefaultTrueAndActiveTrue();
+
+    boolean existsByGlAccount_Id(UUID glAccountId);
 }
