@@ -355,15 +355,16 @@ public class SettingsController {
         return "application/octet-stream";
     }
 
-    /**
-     * Mask bank account number for audit logging (show only last 4 digits).
-     */
+    /** Records which GL account a bank link flags as cash/bank, for the audit trail. */
     private String glAuditSuffix(CompanyBankAccount bankAccount) {
         return bankAccount.getGlAccount() == null
                 ? ""
                 : ", GL account " + bankAccount.getGlAccount().getAccountCode() + " marked cash/bank";
     }
 
+    /**
+     * Mask bank account number for audit logging (show only last 4 digits).
+     */
     private String maskAccountNumber(String accountNumber) {
         if (accountNumber == null || accountNumber.length() <= 4) {
             return "****";

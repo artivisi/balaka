@@ -1,4 +1,4 @@
--- V018: Explicit cash/bank account universe (FAS-77)
+-- V018: Explicit cash/bank account universe
 --
 -- Cash reporting must never infer cash from an account-code prefix. The previous
 -- selector (account_code LIKE '1.1.0%') also matched receivables, prepaid expenses
@@ -9,13 +9,12 @@ ALTER TABLE chart_of_accounts
     ADD COLUMN is_cash_bank BOOLEAN NOT NULL DEFAULT FALSE;
 
 COMMENT ON COLUMN chart_of_accounts.is_cash_bank IS
-    'True only for accounts holding cash on hand or bank balances. Receivables, prepaid expenses and input VAT must stay false (FAS-77).';
+    'True only for accounts holding cash on hand or bank balances. Receivables, prepaid expenses and input VAT must stay false.';
 
--- Deterministic backfill for the canonical Balaka chart of accounts:
---   1.1.01 Kas, 1.1.02 Bank BCA, 1.1.03 Bank BNI.
--- This is a closed code list, not a prefix rule. Any other cash/bank account must
--- be marked explicitly (the FASTERNET COA code mapping is owned by the Finance
--- Controller, contract open item 1).
+-- Backfill for existing databases: the three canonical Balaka cash/bank accounts
+-- (1.1.01 Kas, 1.1.02 Bank BCA, 1.1.03 Bank BNI). This is a one-off data migration
+-- for rows that already exist, not a rule the application keeps applying: seed packs
+-- declare the flag in their own chart_of_accounts CSV.
 UPDATE chart_of_accounts
 SET is_cash_bank = TRUE
 WHERE account_code IN ('1.1.01', '1.1.02', '1.1.03')

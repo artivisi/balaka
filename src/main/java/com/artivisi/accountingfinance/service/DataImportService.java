@@ -36,14 +36,6 @@ import java.util.zip.ZipInputStream;
 @SuppressWarnings("java:S1192") // Table names and CSV filenames must match database schema exactly
 public class DataImportService {
 
-    /**
-     * Canonical Balaka cash-on-hand and bank accounts, used only to seed the explicit
-     * {@code is_cash_bank} flag when a seed pack is imported. Cash reporting itself
-     * reads the flag; it never infers cash from an account-code prefix (FAS-77).
-     */
-    private static final Set<String> CANONICAL_CASH_BANK_CODES =
-            Set.of("1.1.01", "1.1.02", "1.1.03");
-
     private final EntityManager entityManager;
     private final DocumentStorageService documentStorageService;
     private final ChartOfAccountService chartOfAccountService;
@@ -832,7 +824,6 @@ public class DataImportService {
         List<ChartOfAccount> accounts = new ArrayList<>();
         Map<String, String> parentCodes = new HashMap<>();
         Map<String, Boolean> requestedCashBank = new HashMap<>();
-        Set<String> legacyCanonicalFallback = new HashSet<>();
 
         // First pass: create all accounts without parents.
         // CSV columns: account_code,account_name,account_type,parent_code,normal_balance,active,
@@ -868,12 +859,10 @@ public class DataImportService {
             if (!selfTestRole.isBlank()) {
                 account.setSelfTestRole(SelfTestRole.valueOf(selfTestRole));
             }
-            // column 11 = is_cash_bank. Older exports do not carry it; those keep
-            // the canonical seed fallback used by the FAS-77 import path.
+            // column 11 = is_cash_bank. Exports without the column import as "not cash":
+            // the flag is never inferred from the account code.
             if (row.length > 11) {
                 requestedCashBank.put(account.getAccountCode(), parseBoolean(getField(row, 11)));
-            } else {
-                legacyCanonicalFallback.add(account.getAccountCode());
             }
             accounts.add(account);
         }
@@ -910,12 +899,6 @@ public class DataImportService {
                 }
                 account.setIsCashBank(true);
                 account.setCashBankSource(CashBankSource.EXPLICIT);
-            } else if (legacyCanonicalFallback.contains(account.getAccountCode())
-                    && account.getAccountType() == AccountType.ASSET
-                    && !Boolean.TRUE.equals(account.getIsHeader())
-                    && CANONICAL_CASH_BANK_CODES.contains(account.getAccountCode())) {
-                account.setIsCashBank(true);
-                account.setCashBankSource(CashBankSource.MIGRATED);
             } else {
                 account.setIsCashBank(false);
                 account.setCashBankSource(null);
@@ -1222,7 +1205,7 @@ public class DataImportService {
             ba.setIsDefault(parseBoolean(getField(row, 4)));
             ba.setActive(parseBoolean(getField(row, 5)));
 
-            // column 6 = gl_account_code (optional, added by FAS-87)
+            // column 6 = gl_account_code (optional)
             String glAccountCode = getField(row, 6);
             if (!glAccountCode.isEmpty()) {
                 ChartOfAccount glAccount = accountMap.get(glAccountCode);

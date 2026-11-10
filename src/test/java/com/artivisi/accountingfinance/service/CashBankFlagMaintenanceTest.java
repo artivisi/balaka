@@ -37,17 +37,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * FAS-87: the explicit cash/bank flag must be maintained at runtime, not only
- * backfilled by a migration. Linking a company bank account flags its ASSET
- * leaf; unlinking releases only automatically derived flags; explicit Finance
- * Controller decisions and ZIP round-trips are durable; non-cash account types
- * and headers can never be flagged.
+ * The explicit cash/bank flag must be maintained at runtime, not only backfilled by
+ * a migration. Linking a company bank account flags its ASSET leaf; unlinking
+ * releases only automatically derived flags; explicit decisions and ZIP round-trips
+ * are durable; non-cash account types, headers and parents can never be flagged.
  */
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
 @ActiveProfiles("test")
 @Transactional
-@DisplayName("Cash/bank flag maintenance (FAS-87)")
+@DisplayName("Cash/bank flag maintenance")
 class CashBankFlagMaintenanceTest {
 
     private static final LocalDate AS_OF = LocalDate.of(2024, 6, 30);
@@ -99,7 +98,7 @@ class CashBankFlagMaintenanceTest {
                 .contains("1.1.90");
 
         BigDecimal before = dashboardService.calculateCashBalance(AS_OF);
-        postDebit(leaf, new BigDecimal("1250000.00"), "FAS-87 linked account balance");
+        postDebit(leaf, new BigDecimal("1250000.00"), "linked account balance");
         BigDecimal after = dashboardService.calculateCashBalance(AS_OF);
 
         assertThat(after).isEqualTo(before.add(new BigDecimal("1250000.00")));
@@ -199,33 +198,80 @@ class CashBankFlagMaintenanceTest {
     }
 
     @Test
-    @DisplayName("an update that omits isCashBank (REST API) keeps an explicit cash flag")
-    void omittedCashFlagOnUpdateKeepsExplicitFlag() {
+    @DisplayName("an update replaces the cash flag like every other field, so omitting it clears it")
+    void omittedCashFlagOnUpdateClearsTheFlag() {
         ChartOfAccount explicit = createAssetLeaf("1.1.98", "Kas API", true);
 
-        ChartOfAccount partial = detachedCopy(explicit, false);
-        partial.setIsCashBank(null);
-        chartOfAccountService.update(explicit.getId(), partial);
+        ChartOfAccount withoutFlag = detachedCopy(explicit, false);
+        withoutFlag.setIsCashBank(null);
+        chartOfAccountService.update(explicit.getId(), withoutFlag);
 
         ChartOfAccount reloaded = chartOfAccountRepository.findByAccountCode("1.1.98").orElseThrow();
-        assertThat(reloaded.getIsCashBank()).isTrue();
-        assertThat(reloaded.getCashBankSource()).isEqualTo(CashBankSource.EXPLICIT);
+        assertThat(reloaded.getIsCashBank()).isFalse();
+        assertThat(reloaded.getCashBankSource()).isNull();
     }
 
     @Test
-    @DisplayName("an update that omits isCashBank (REST API) keeps a bank-linked flag")
-    void omittedCashFlagOnUpdateKeepsBankLink() {
+    @DisplayName("an update cannot clear the flag a company bank account depends on")
+    void omittedCashFlagOnBankLinkedAccountIsRefused() {
         ChartOfAccount leaf = createAssetLeaf("1.1.99", "Bank API");
         createBankAccount("9000000099", leaf);
 
         ChartOfAccount linked = chartOfAccountRepository.findByAccountCode("1.1.99").orElseThrow();
-        ChartOfAccount partial = detachedCopy(linked, false);
-        partial.setIsCashBank(null);
-        chartOfAccountService.update(linked.getId(), partial);
+        ChartOfAccount withoutFlag = detachedCopy(linked, false);
+        withoutFlag.setIsCashBank(null);
 
-        ChartOfAccount reloaded = chartOfAccountRepository.findByAccountCode("1.1.99").orElseThrow();
-        assertThat(reloaded.getIsCashBank()).isTrue();
-        assertThat(reloaded.getCashBankSource()).isEqualTo(CashBankSource.BANK_LINK);
+        assertThatThrownBy(() -> chartOfAccountService.update(linked.getId(), withoutFlag))
+                .isInstanceOf(InvalidCashBankAccountException.class)
+                .hasMessageContaining("masih terhubung ke rekening bank");
+    }
+
+    @Test
+    @DisplayName("an update that turns a flagged account into a header is refused")
+    void updateToHeaderOnFlaggedAccountIsRefused() {
+        ChartOfAccount explicit = createAssetLeaf("1.1.95", "Kas Bentuk Lain", true);
+
+        ChartOfAccount asHeader = detachedCopy(explicit, true);
+        asHeader.setIsHeader(true);
+
+        assertThatThrownBy(() -> chartOfAccountService.update(explicit.getId(), asHeader))
+                .isInstanceOf(InvalidCashBankAccountException.class)
+                .hasMessageContaining("tidak boleh ditandai sebagai kas/bank");
+    }
+
+    @Test
+    @DisplayName("an update that moves a flagged account off ASSET is refused")
+    void updateToNonAssetOnFlaggedAccountIsRefused() {
+        ChartOfAccount explicit = createAssetLeaf("1.1.93", "Kas Bentuk Lain", true);
+
+        ChartOfAccount asLiability = detachedCopy(explicit, true);
+        asLiability.setAccountType(AccountType.LIABILITY);
+        asLiability.setNormalBalance(NormalBalance.CREDIT);
+
+        assertThatThrownBy(() -> chartOfAccountService.update(explicit.getId(), asLiability))
+                .isInstanceOf(InvalidCashBankAccountException.class)
+                .hasMessageContaining("harus bertipe ASSET");
+    }
+
+    @Test
+    @DisplayName("a child cannot be created under an account flagged as cash/bank")
+    void childUnderFlaggedAccountIsRefused() {
+        ChartOfAccount flagged = createAssetLeaf("1.1.94", "Kas Induk", true);
+
+        ChartOfAccount child = new ChartOfAccount();
+        child.setAccountCode("1.1.94.01");
+        child.setAccountName("Kas Induk Anak");
+        child.setAccountType(AccountType.ASSET);
+        child.setNormalBalance(NormalBalance.DEBIT);
+        child.setIsHeader(false);
+        child.setActive(true);
+        child.setParent(flagged);
+
+        assertThatThrownBy(() -> chartOfAccountService.create(child))
+                .isInstanceOf(InvalidCashBankAccountException.class)
+                .hasMessageContaining("tidak boleh memiliki akun anak");
+
+        assertThat(chartOfAccountRepository.findByAccountCode("1.1.94").orElseThrow().getIsCashBank()).isTrue();
     }
 
     @Test
@@ -247,8 +293,8 @@ class CashBankFlagMaintenanceTest {
     }
 
     @Test
-    @DisplayName("legacy seven-column seed import still flags the three canonical cash accounts")
-    void legacySeedStillFlagsCanonicalCashAccounts() throws IOException {
+    @DisplayName("a CSV without the is_cash_bank column imports as not cash, with no code guessing")
+    void importWithoutCashColumnDoesNotInferCash() throws IOException {
         String csv = "account_code,account_name,account_type,parent_code,normal_balance,active,is_permanent\n"
                 + "1.1,Aset Lancar,ASSET,,DEBIT,true,true\n"
                 + "1.1.01,Kas,ASSET,1.1,DEBIT,true,false\n"
@@ -257,12 +303,11 @@ class CashBankFlagMaintenanceTest {
 
         dataImportService.importAllData(buildZipWithFiles("02_chart_of_accounts.csv", csv));
 
-        assertThat(chartOfAccountRepository.findByAccountCode("1.1.01").orElseThrow().getIsCashBank()).isTrue();
-        assertThat(chartOfAccountRepository.findByAccountCode("1.1.02").orElseThrow().getIsCashBank()).isTrue();
-        assertThat(chartOfAccountRepository.findByAccountCode("1.1.04").orElseThrow().getIsCashBank()).isFalse();
+        assertThat(chartOfAccountRepository.findByAccountCode("1.1.01").orElseThrow().getIsCashBank()).isFalse();
+        assertThat(chartOfAccountRepository.findByAccountCode("1.1.02").orElseThrow().getIsCashBank()).isFalse();
         assertThat(chartOfAccountRepository.findCashBankAccounts())
                 .extracting(ChartOfAccount::getAccountCode)
-                .containsExactly("1.1.01", "1.1.02");
+                .doesNotContain("1.1.01", "1.1.02");
     }
 
     @Test

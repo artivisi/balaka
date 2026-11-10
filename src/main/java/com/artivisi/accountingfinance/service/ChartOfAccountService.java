@@ -105,6 +105,11 @@ public class ChartOfAccountService {
 
         if (account.getParent() != null) {
             ChartOfAccount parent = findById(account.getParent().getId());
+            if (Boolean.TRUE.equals(parent.getIsCashBank())) {
+                throw new InvalidCashBankAccountException(
+                        "Akun kas/bank " + parent.getAccountCode()
+                                + " tidak boleh memiliki akun anak; hapus tanda kas/bank pada akun induk terlebih dahulu");
+            }
             account.setLevel(parent.getLevel() + 1);
             account.setAccountType(parent.getAccountType());
             account.setNormalBalance(parent.getNormalBalance());
@@ -161,6 +166,11 @@ public class ChartOfAccountService {
     @Transactional
     public ChartOfAccount update(UUID id, @Valid ChartOfAccount accountData) {
         ChartOfAccount existing = findById(id);
+        // Read the relationships before mutating the managed entity: a query afterwards
+        // auto-flushes the half-built row and the database constraint fires before the
+        // validation below can report a readable error.
+        boolean hasChildAccounts = hasChildren(existing.getId());
+        boolean linkedToBankAccount = isLinkedToBankAccount(existing.getId());
 
         if (!existing.getAccountCode().equals(accountData.getAccountCode()) &&
             chartOfAccountRepository.existsByAccountCode(accountData.getAccountCode())) {
@@ -191,11 +201,18 @@ public class ChartOfAccountService {
         validateSelfTestRole(accountData.getSelfTestRole(), existing.getAccountType(), existing.getIsHeader());
         existing.setSelfTestRole(accountData.getSelfTestRole());
 
-        // null means "not supplied" and must not clear an existing cash flag
-        // (the REST API allows clients to omit isCashBank). A supplied value is
-        // an explicit operator decision handled by applyExplicitCashBankFlag.
-        if (accountData.getIsCashBank() != null) {
-            applyExplicitCashBankFlag(existing, accountData.getIsCashBank());
+        // isCashBank is part of the full-replace contract, like every other field of a
+        // PUT: an omitted value means "not cash". Clearing a flag that a company bank
+        // account depends on is still refused, so a link and its flag cannot diverge.
+        applyExplicitCashBankFlag(existing, Boolean.TRUE.equals(accountData.getIsCashBank()),
+                hasChildAccounts, linkedToBankAccount);
+
+        // The caller may have changed type, header or children in the same request.
+        // Validate the resulting state, not the pre-update one, so an account cannot be
+        // saved into a state the chk_coa_cash_bank_asset constraint rejects at flush.
+        if (Boolean.TRUE.equals(existing.getIsCashBank())) {
+            validateCashBankEligibility(existing.getAccountType(), Boolean.TRUE.equals(existing.getIsHeader()),
+                    true, hasChildAccounts, existing.getAccountCode());
         }
 
         return chartOfAccountRepository.save(existing);
@@ -247,10 +264,11 @@ public class ChartOfAccountService {
         return companyBankAccountRepository.existsByGlAccount_Id(id);
     }
 
-    private void applyExplicitCashBankFlag(ChartOfAccount existing, boolean desired) {
+    private void applyExplicitCashBankFlag(ChartOfAccount existing, boolean desired,
+                                           boolean hasChildAccounts, boolean linkedToBankAccount) {
         if (desired) {
             validateCashBankEligibility(existing.getAccountType(), Boolean.TRUE.equals(existing.getIsHeader()),
-                    true, hasChildren(existing.getId()), existing.getAccountCode());
+                    true, hasChildAccounts, existing.getAccountCode());
             if (!Boolean.TRUE.equals(existing.getIsCashBank())) {
                 existing.setCashBankSource(CashBankSource.EXPLICIT);
             } else if (existing.getCashBankSource() == null) {
@@ -261,7 +279,7 @@ public class ChartOfAccountService {
         }
 
         if (Boolean.TRUE.equals(existing.getIsCashBank())) {
-            if (isLinkedToBankAccount(existing.getId())) {
+            if (linkedToBankAccount) {
                 throw new InvalidCashBankAccountException(
                         "Akun " + existing.getAccountCode()
                                 + " masih terhubung ke rekening bank; lepaskan tautan rekening terlebih dahulu");

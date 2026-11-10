@@ -31,13 +31,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
 /**
- * FAS-93: the chart-of-accounts form must audit the cash/bank flag on the edit
- * path as well as the create path. The service mutates the same managed entity
- * the controller loaded, so the previous value has to be captured before the
- * update call.
+ * The chart-of-accounts form must audit the cash/bank flag on the edit path as well
+ * as the create path. The service mutates the same managed entity the controller
+ * loaded, so the previous value has to be captured before the update call.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Import(TestcontainersConfiguration.class)
@@ -80,7 +81,7 @@ class ChartOfAccountsControllerTest {
 
         mockMvc.perform(post("/accounts/new").with(csrf())
                         .param("accountCode", code)
-                        .param("accountName", "Kas Uji FAS-93")
+                        .param("accountName", "Kas Uji Audit")
                         .param("accountType", "ASSET")
                         .param("normalBalance", "DEBIT")
                         .param("permanent", "true")
@@ -95,7 +96,7 @@ class ChartOfAccountsControllerTest {
         assertThat(events).hasSize(1);
         assertThat(events.getFirst().getDetails())
                 .contains(code)
-                .contains("Kas Uji FAS-93")
+                .contains("Kas Uji Audit")
                 .contains("marked as cash/bank");
     }
 
@@ -180,7 +181,7 @@ class ChartOfAccountsControllerTest {
     private ChartOfAccount createAssetLeaf(boolean cashBank) {
         ChartOfAccount account = new ChartOfAccount();
         account.setAccountCode(uniqueCode());
-        account.setAccountName("Akun Uji FAS-93");
+        account.setAccountName("Akun Uji Audit");
         account.setAccountType(AccountType.ASSET);
         account.setNormalBalance(NormalBalance.DEBIT);
         account.setIsHeader(false);
@@ -195,6 +196,22 @@ class ChartOfAccountsControllerTest {
                 .filter(event -> event.getEventType() == AuditEventType.SETTINGS_CHANGE)
                 .filter(event -> event.getDetails() != null && event.getDetails().contains(accountCode))
                 .toList();
+    }
+
+    @Test
+    @DisplayName("a refused cash/bank save re-renders the form with every select still populated")
+    void refusedCashFlagSaveKeepsFormSelects() throws Exception {
+        mockMvc.perform(post("/accounts/new").with(csrf())
+                        .param("accountCode", uniqueCode())
+                        .param("accountName", "Header Uji Kas")
+                        .param("accountType", "ASSET")
+                        .param("normalBalance", "DEBIT")
+                        .param("isHeader", "true")
+                        .param("isCashBank", "true"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("accounts/form"))
+                .andExpect(model().attributeExists("accountTypes", "parentAccounts",
+                        "fiscalTreatments", "closeCheckRoles", "selfTestRoles"));
     }
 
     private void flushAndClear() {

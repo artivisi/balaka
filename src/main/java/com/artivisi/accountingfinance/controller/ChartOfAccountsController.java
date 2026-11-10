@@ -198,6 +198,9 @@ public class ChartOfAccountsController {
             bindingResult.rejectValue("isCashBank", "invalid", e.getMessage());
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_ACCOUNTS);
             model.addAttribute(ATTR_ACCOUNT_TYPES, AccountType.values());
+            model.addAttribute("fiscalTreatments", FiscalTreatment.values());
+            model.addAttribute("closeCheckRoles", CloseCheckRole.values());
+            model.addAttribute("selfTestRoles", SelfTestRole.values());
             model.addAttribute(ATTR_PARENT_ACCOUNTS, chartOfAccountService.findAll());
             model.addAttribute(ATTR_HAS_CHILDREN, false);
             model.addAttribute(ATTR_HAS_PARENT, parentId != null);
@@ -291,6 +294,9 @@ public class ChartOfAccountsController {
             form.setId(id);
             model.addAttribute(ATTR_CURRENT_PAGE, PAGE_ACCOUNTS);
             model.addAttribute(ATTR_ACCOUNT_TYPES, AccountType.values());
+            model.addAttribute("fiscalTreatments", FiscalTreatment.values());
+            model.addAttribute("closeCheckRoles", CloseCheckRole.values());
+            model.addAttribute("selfTestRoles", SelfTestRole.values());
             model.addAttribute(ATTR_PARENT_ACCOUNTS, chartOfAccountService.findAll());
             model.addAttribute(ATTR_HAS_CHILDREN, hasChildren);
             model.addAttribute(ATTR_HAS_PARENT, hasParent);
