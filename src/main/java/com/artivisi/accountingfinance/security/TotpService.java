@@ -18,6 +18,11 @@ import java.time.Instant;
  * and every authenticator app supports it.
  */
 @Service
+// HMAC-SHA1 is the algorithm the authenticator ecosystem expects (RFC 6238 uses it
+// for its reference vectors and Google Authenticator does not implement SHA-256).
+// HMAC is not affected by the collision attacks that retired SHA-1 for signatures:
+// this secret is 160 random bits, not an attacker-influenced message.
+@SuppressWarnings("java:S4790")
 public class TotpService {
 
     /** 160 bits, the size RFC 4226 recommends for a shared secret. */
@@ -58,7 +63,7 @@ public class TotpService {
         byte[] key;
         try {
             key = base32Decode(secret);
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException _) {
             return -1L;
         }
 

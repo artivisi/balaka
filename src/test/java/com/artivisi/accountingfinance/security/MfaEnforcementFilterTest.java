@@ -55,7 +55,7 @@ class MfaEnforcementFilterTest {
         when(mfaService.isEnabled()).thenReturn(true);
         when(mfaService.mustVerify(user)).thenReturn(true);
 
-        MockHttpServletResponse response = doFilter("/dashboard", new MockHttpServletRequest());
+        MockHttpServletResponse response = doFilter("/dashboard");
 
         assertThat(response.getRedirectedUrl()).isEqualTo("/mfa-verify");
     }
@@ -84,7 +84,7 @@ class MfaEnforcementFilterTest {
         when(mfaService.mustVerify(user)).thenReturn(false);
         when(mfaService.mustEnroll(user)).thenReturn(true);
 
-        MockHttpServletResponse response = doFilter("/dashboard", new MockHttpServletRequest());
+        MockHttpServletResponse response = doFilter("/dashboard");
 
         assertThat(response.getRedirectedUrl()).isEqualTo("/settings/mfa?required=true");
     }
@@ -116,7 +116,7 @@ class MfaEnforcementFilterTest {
         assertThat(response.getRedirectedUrl()).isNull();
     }
 
-    private MockHttpServletResponse doFilter(String path, MockHttpServletRequest ignored) throws Exception {
+    private MockHttpServletResponse doFilter(String path) throws Exception {
         MockHttpServletResponse response = new MockHttpServletResponse();
         filter.doFilter(new MockHttpServletRequest("GET", path), response, new MockFilterChain());
         return response;
