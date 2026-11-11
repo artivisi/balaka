@@ -124,15 +124,6 @@ limiter dan audit log, serta skema URL. Template Ansible
 (`deploy/ansible/roles/app/templates/application.properties.j2`) memakai nilai
 yang sama.
 
-## Remember Me
-
-| Property | Default | Keterangan |
-|----------|---------|------------|
-| `app.remember-me.key` | `dev-remember-me-key` | Key untuk hash-based remember-me token |
-
-**Perhatian:** Ganti default key di production. Gunakan string random yang panjang.
-
->>>>>>> 86c2de8c (feat(config): document storage path and forwarded headers from the environment)
 ## OpenAPI / Swagger
 
 | Property | Default | Keterangan |
