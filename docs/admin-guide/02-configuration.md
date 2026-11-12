@@ -98,12 +98,13 @@ Saat `true`, setiap halaman menampilkan banner peringatan bahwa ini adalah insta
 
 | Property | Default | Keterangan |
 |----------|---------|------------|
-| `app.storage.documents.path` | `data/documents` (`APP_DOCUMENT_STORAGE_PATH`) | Direktori penyimpanan dokumen upload; bisa dioverride lewat environment variable |
+| `app.storage.documents.path` | wajib, tanpa default (`APP_DOCUMENT_STORAGE_PATH`) | Direktori penyimpanan dokumen upload. Aplikasi menolak start bila tidak diisi |
 | `app.storage.documents.max-file-size` | `10485760` | Ukuran maksimal file (10 MB) |
 | `app.storage.documents.allowed-types` | `image/jpeg,image/png,image/gif,application/pdf` | MIME type yang diizinkan |
 
-Kontainer dan deployment non-Ansible mengarahkan penyimpanan dokumen tanpa
-mengubah file konfigurasi:
+Deployment Ansible mengisi nilai ini di `application.properties` miliknya. Image Docker
+mengisi `APP_DOCUMENT_STORAGE_PATH=/opt/app/documents`. Deployment lain dan instance
+lokal wajib mengisi environment variable ini:
 
 ```bash
 APP_DOCUMENT_STORAGE_PATH=/var/lib/balaka/documents
