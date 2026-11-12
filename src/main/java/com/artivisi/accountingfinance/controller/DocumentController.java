@@ -359,23 +359,6 @@ public class DocumentController {
         return ResponseEntity.ok(documentService.findByTransactionId(transactionId));
     }
 
-    /**
-     * A single upload keeps the established wording; several files are reported by
-     * count so the operator sees how many landed.
-     */
-    private static String storedCountMessage(int storedCount) {
-        return storedCount == 1 ? MSG_UPLOAD_SUCCESS : storedCount + " dokumen berhasil diunggah";
-    }
-
-    /** Names the rejected file only when the message has to cover more than one. */
-    private static String describe(List<UploadFailure> failures) {
-        return failures.stream().map(UploadFailure::describe).collect(Collectors.joining("; "));
-    }
-
-    private static String singleFailureMessage(UploadFailure failure) {
-        return failure.ioError() ? MSG_UPLOAD_FAILED + failure.reason() : failure.reason();
-    }
-
     /** The empty part the browser posts for a file input with nothing selected. */
     private static boolean isPlaceholderPart(MultipartFile file) {
         if (file == null) {
@@ -414,6 +397,23 @@ public class DocumentController {
             return failures.size() == 1
                     ? singleFailureMessage(failures.get(0))
                     : MSG_UPLOAD_FAILED + describe(failures);
+        }
+
+        /**
+         * A single upload keeps the established wording; several files are reported by
+         * count so the operator sees how many landed.
+         */
+        private static String storedCountMessage(int storedCount) {
+            return storedCount == 1 ? MSG_UPLOAD_SUCCESS : storedCount + " dokumen berhasil diunggah";
+        }
+
+        /** Names the rejected file only when the message has to cover more than one. */
+        private static String describe(List<UploadFailure> failures) {
+            return failures.stream().map(UploadFailure::describe).collect(Collectors.joining("; "));
+        }
+
+        private static String singleFailureMessage(UploadFailure failure) {
+            return failure.ioError() ? MSG_UPLOAD_FAILED + failure.reason() : failure.reason();
         }
     }
 }
