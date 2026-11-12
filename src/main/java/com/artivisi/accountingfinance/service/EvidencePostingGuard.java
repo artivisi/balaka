@@ -8,7 +8,6 @@ import com.artivisi.accountingfinance.service.EvidenceQueryService.TransactionEv
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.stream.Collectors;
@@ -27,7 +26,6 @@ public class EvidencePostingGuard {
     private final EntityManager entityManager;
 
     /** The configured start date, or null when posting does not check evidence. */
-    @Transactional(readOnly = true)
     public LocalDate requiredFrom() {
         return companyConfigRepository.findFirst().map(CompanyConfig::getEvidenceRequiredFrom).orElse(null);
     }

@@ -119,7 +119,7 @@ Konfigurasi di `SecurityConfig.java`:
 | Session Timeout | 15 menit | Configurable via `server.servlet.session.timeout` |
 | Cookie HttpOnly | `true` | Cookie tidak bisa diakses JavaScript |
 | Cookie SameSite | `strict` | Cookie hanya dikirim untuk same-site request |
-| Remember Me | 7 hari | Hash-based token |
+| Remember Me | Tidak tersedia | Setiap login baru wajib memasukkan password; sesi berakhir setelah 15 menit tidak aktif |
 
 ## Password Security
 

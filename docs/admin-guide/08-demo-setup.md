@@ -107,7 +107,6 @@ spring.datasource.url=jdbc:postgresql://localhost:5432/demodb_it?sslmode=require
 spring.datasource.username=demo
 spring.datasource.password=<password>
 app.encryption.key=<key>
-app.remember-me.key=<key>
 app.demo-mode=true
 app.theme.name=balaka
 app.theme.footer-text=Balaka Demo - IT Service

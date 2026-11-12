@@ -98,17 +98,32 @@ Saat `true`, setiap halaman menampilkan banner peringatan bahwa ini adalah insta
 
 | Property | Default | Keterangan |
 |----------|---------|------------|
-| `app.storage.documents.path` | `data/documents` | Direktori penyimpanan dokumen upload |
+| `app.storage.documents.path` | wajib, tanpa default (`APP_DOCUMENT_STORAGE_PATH`) | Direktori penyimpanan dokumen upload. Aplikasi menolak start bila tidak diisi |
 | `app.storage.documents.max-file-size` | `10485760` | Ukuran maksimal file (10 MB) |
 | `app.storage.documents.allowed-types` | `image/jpeg,image/png,image/gif,application/pdf` | MIME type yang diizinkan |
 
-## Remember Me
+Deployment Ansible mengisi nilai ini di `application.properties` miliknya. Image Docker
+mengisi `APP_DOCUMENT_STORAGE_PATH=/opt/app/documents`. Deployment lain dan instance
+lokal wajib mengisi environment variable ini:
 
-| Property | Default | Keterangan |
-|----------|---------|------------|
-| `app.remember-me.key` | `dev-remember-me-key` | Key untuk hash-based remember-me token |
+```bash
+APP_DOCUMENT_STORAGE_PATH=/var/lib/balaka/documents
+```
 
-**Perhatian:** Ganti default key di production. Gunakan string random yang panjang.
+## Reverse Proxy
+
+`server.forward-headers-strategy=native` aktif secara default, sehingga redirect
+HTTPS dan URL absolut mengikuti header `X-Forwarded-*` dari reverse proxy atau
+Cloudflare tunnel. Tanpa ini aplikasi membangun URL `http://` dan redirect ke
+halaman login berakhir di skema yang salah.
+
+`native` memakai `RemoteIpValve` milik Tomcat yang hanya memercayai
+`X-Forwarded-*` dari peer internal atau loopback. Jangan diganti ke `framework`:
+`ForwardedHeaderFilter` memercayai header dari peer mana pun, sehingga klien yang
+bisa menjangkau port aplikasi (10000) langsung dapat memalsukan IP untuk rate
+limiter dan audit log, serta skema URL. Template Ansible
+(`deploy/ansible/roles/app/templates/application.properties.j2`) memakai nilai
+yang sama.
 
 ## OpenAPI / Swagger
 
@@ -186,9 +201,6 @@ spring.thymeleaf.cache=true
 
 # Encryption
 app.encryption.key=<base64-encoded-32-byte-key>
-
-# Remember Me
-app.remember-me.key=<random-long-string>
 
 # Session
 server.servlet.session.timeout=15m

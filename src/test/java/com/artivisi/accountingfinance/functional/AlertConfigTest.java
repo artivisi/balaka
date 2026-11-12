@@ -14,6 +14,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
 
+import java.math.BigDecimal;
+
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 
 @DisplayName("Alert Config Tests")
@@ -72,36 +74,60 @@ class AlertConfigTest extends PlaywrightTestBase {
     @Test
     @DisplayName("Should update alert threshold")
     void shouldUpdateAlertThreshold() {
-        navigateTo("/alerts/config");
-        waitForPageLoad();
+        // Rules are ordered by alert type, so target CASH_LOW by id: editing "the first rule" changed
+        // BANK_STATEMENT_MISSING's grace days and broke the bank statement archive grid for later tests.
+        AlertRule rule = alertRuleRepository.findByAlertType(AlertType.CASH_LOW).orElseThrow();
+        BigDecimal originalThreshold = rule.getThreshold();
+        try {
+            navigateTo("/alerts/config");
+            waitForPageLoad();
 
-        // Find the first threshold input (CASH_LOW) and change value
-        var thresholdInputs = page.locator("input[name='threshold']");
-        thresholdInputs.first().fill("20000000");
+            page.locator("#threshold-" + rule.getId()).fill("20000000");
+            ruleForm(rule).locator("button:has-text('Simpan')").click();
+            waitForPageLoad();
 
-        // Click first save button
-        page.locator("button:has-text('Simpan')").first().click();
-        waitForPageLoad();
-
-        // Verify success message
-        assertThat(page.locator("body")).containsText("berhasil diperbarui");
+            assertThat(page.locator("body")).containsText("berhasil diperbarui");
+            assertThat(page.locator("#threshold-" + rule.getId())).hasValue("20000000.00");
+            org.assertj.core.api.Assertions.assertThat(
+                    alertRuleRepository.findByAlertType(AlertType.CASH_LOW).orElseThrow().getThreshold())
+                    .isEqualByComparingTo("20000000");
+        } finally {
+            AlertRule stored = alertRuleRepository.findByAlertType(AlertType.CASH_LOW).orElseThrow();
+            stored.setThreshold(originalThreshold);
+            alertRuleRepository.saveAndFlush(stored);
+        }
     }
 
     @Test
     @DisplayName("Should toggle alert disabled")
     void shouldToggleAlertDisabled() {
-        navigateTo("/alerts/config");
-        waitForPageLoad();
+        AlertRule rule = alertRuleRepository.findByAlertType(AlertType.CASH_LOW).orElseThrow();
+        boolean originalEnabled = rule.isEnabled();
+        try {
+            if (!originalEnabled) {
+                rule.setEnabled(true);
+                alertRuleRepository.saveAndFlush(rule);
+            }
+            navigateTo("/alerts/config");
+            waitForPageLoad();
 
-        // Uncheck the first enabled checkbox
-        var checkboxes = page.locator("input[name='enabled']");
-        checkboxes.first().uncheck();
+            page.locator("#enabled-" + rule.getId()).uncheck();
+            ruleForm(rule).locator("button:has-text('Simpan')").click();
+            waitForPageLoad();
 
-        // Save
-        page.locator("button:has-text('Simpan')").first().click();
-        waitForPageLoad();
+            assertThat(page.locator("body")).containsText("berhasil diperbarui");
+            assertThat(page.locator("#enabled-" + rule.getId())).not().isChecked();
+            org.assertj.core.api.Assertions.assertThat(
+                    alertRuleRepository.findByAlertType(AlertType.CASH_LOW).orElseThrow().isEnabled()).isFalse();
+        } finally {
+            AlertRule stored = alertRuleRepository.findByAlertType(AlertType.CASH_LOW).orElseThrow();
+            stored.setEnabled(originalEnabled);
+            alertRuleRepository.saveAndFlush(stored);
+        }
+    }
 
-        assertThat(page.locator("body")).containsText("berhasil diperbarui");
+    private com.microsoft.playwright.Locator ruleForm(AlertRule rule) {
+        return page.locator("form[action$='/alerts/config/" + rule.getId() + "']");
     }
 
     @Test

@@ -35,9 +35,6 @@ public class SecurityConfig {
     @Value("${transaction.api.require-auth:true}")
     private boolean requireApiAuth;
 
-    @Value("${app.remember-me.key}")
-    private String rememberMeKey;
-
     @Bean
     @SuppressWarnings({"java:S112", "java:S1130"}) // Spring Security API requires throws Exception
     public SecurityFilterChain securityFilterChain(
@@ -92,14 +89,8 @@ public class SecurityConfig {
                 .failureHandler(loginFailureHandler(securityAuditService))
                 .permitAll()
             )
-            .rememberMe(remember -> remember
-                .key(rememberMeKey)
-                .tokenValiditySeconds(604800) // 7 days
-                .rememberMeParameter("remember-me")
-            )
             .logout(logout -> logout
                 .logoutSuccessUrl("/login?logout")
-                .deleteCookies("remember-me")
                 .permitAll()
             )
             // Return 401 for unauthenticated API requests instead of redirecting to login

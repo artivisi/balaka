@@ -449,6 +449,30 @@ class SecurityRegressionTest extends PlaywrightTestBase {
 
             assertNotEquals(before, sessionCookie().value, "Session ID must be regenerated after login");
         }
+
+        @Test
+        @DisplayName("Should not offer or honour remember-me: losing the session requires a new login")
+        void shouldNotPersistLoginBeyondSession() {
+            navigateTo("/login");
+            waitForPageLoad();
+            assertThat(page.locator("input[name='remember-me']")).hasCount(0);
+
+            // A client that still posts the old parameter gets no persistent login cookie
+            page.evaluate("() => { const i = document.createElement('input'); i.type = 'hidden';"
+                    + " i.name = 'remember-me'; i.value = 'on'; document.querySelector('form').appendChild(i); }");
+            page.fill("input[name='username']", "admin");
+            page.fill("input[name='password']", "admin");
+            page.click("button[type='submit']");
+            waitForPageLoad();
+            assertThat(page).hasURL(java.util.regex.Pattern.compile(".*/dashboard.*"));
+            assertTrue(context.cookies().stream().noneMatch(c -> c.name.equals("remember-me")),
+                    "No remember-me cookie may be issued, cookies: " + context.cookies());
+
+            context.clearCookies();
+            navigateTo("/dashboard");
+            waitForPageLoad();
+            assertThat(page).hasURL(java.util.regex.Pattern.compile(".*/login.*"));
+        }
     }
 
     @Nested

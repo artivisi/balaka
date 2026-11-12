@@ -82,7 +82,6 @@ spring.datasource.url=jdbc:postgresql://localhost:5432/accountingdb_client_a?ssl
 spring.datasource.username=client_a
 spring.datasource.password=<password_a>
 app.encryption.key=<key_a>
-app.remember-me.key=<remember_me_key_a>
 app.theme.name=client-a
 app.theme.footer-text=Client A
 app.theme.dir=/opt/aplikasi-akunting-client-a/themes

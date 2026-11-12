@@ -53,6 +53,7 @@ public class CloseCheckApiController {
     @GetMapping("/tax-credits")
     @Operation(summary = "TAX_CREDIT balances not offset after the PPh Badan return of returnYear",
             description = "filedDate null: no reported return of returnYear on or before asOf.")
+    @ApiResponse(responseCode = "400", description = "returnYear not before the year of asOf")
     public ResponseEntity<TaxCreditCheck> taxCredits(
             @RequestParam int returnYear,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate asOf) {
