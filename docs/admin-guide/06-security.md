@@ -99,6 +99,14 @@ Detail implementasi:
   SHA-256 yang disimpan dan setiap kode berlaku sekali.
 - Administrator dapat mereset MFA pengguna (tombol **Reset MFA** di halaman
   pengguna) ketika authenticator hilang.
+- Penghitung percobaan disimpan di memori proses. Restart aplikasi mengosongkan
+  kuncian, dan pada deployment multi-instance hitungan tidak dibagi antar
+  instance; kalau itu penting, pakai penyimpanan bersama sebelum menaikkan
+  jumlah instance.
+- Reset administrator dan penonaktifan oleh pengguna tidak memutus sesi yang
+  sudah lolos verifikasi: sesi itu tetap berlaku sampai berakhir sendiri.
+  Setelah reset, minta pengguna keluar dari semua perangkat bila itu penting;
+  daftar sesi per pengguna belum disediakan.
 - Semua peristiwa (`MFA_ENABLED`, `MFA_DISABLED`, `MFA_VERIFY_SUCCESS`,
   `MFA_VERIFY_FAILED`, `MFA_LOCKED`, `MFA_RECOVERY_USED`, `MFA_ADMIN_RESET`)
   tercatat di audit log keamanan.
