@@ -8,6 +8,8 @@ import com.artivisi.accountingfinance.security.MfaAttemptService;
 import com.artivisi.accountingfinance.security.MfaService;
 import com.artivisi.accountingfinance.security.TotpService;
 import com.artivisi.accountingfinance.ui.PlaywrightTestBase;
+import com.microsoft.playwright.APIResponse;
+import com.microsoft.playwright.options.RequestOptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -16,11 +18,14 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.TestPropertySource;
 
 import java.util.List;
 import java.util.UUID;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * The real filter chain with MFA enabled: the login form leads to the second
@@ -31,11 +36,16 @@ import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertTha
  * <p>The class disables nothing: the functional profile sets
  * {@code app.mfa.enabled=false} for every other test, and the properties here
  * turn it back on for a dedicated Spring context.
+ *
+ * <p>Enrolment refuses to run without {@code app.encryption.key}, since the secret
+ * is stored through {@code EncryptedStringConverter}, so this context carries the
+ * same test key the other encryption-aware functional classes use.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
         "app.mfa.enabled=true",
         "app.mfa.required-roles=ADMIN,OWNER"
 })
+@TestPropertySource(properties = "app.encryption.key=Kea3OzaaPR89QOebS1b427C8xxRoztOft8rlSEL3W7k=")
 @Import(TestcontainersConfiguration.class)
 @ActiveProfiles("functional")
 @DisplayName("MFA login flow")
@@ -91,6 +101,33 @@ class MfaLoginFunctionalTest extends PlaywrightTestBase {
 
         assertThat(page.locator("[data-testid='mfa-error']")).isVisible();
         assertThat(page).hasURL(java.util.regex.Pattern.compile(".*/mfa-verify"));
+
+        // The session still holds only the password, so the rest of the application must
+        // stay behind the second factor, not just the page that happens to be rendered.
+        APIResponse dashboard = page.request().get(baseUrl() + "/dashboard",
+                RequestOptions.create().setMaxRedirects(0));
+        assertEquals(302, dashboard.status(), "An unverified session reached /dashboard");
+        assertTrue(dashboard.headers().get("location").endsWith("/mfa-verify"),
+                "Expected /mfa-verify, got " + dashboard.headers().get("location"));
+    }
+
+    @Test
+    @DisplayName("Keluar on the verification page ends the session")
+    void logoutFromVerificationPageEndsTheSession() {
+        User user = mfaUser(Role.STAFF);
+        enableMfa(user);
+
+        loginExpectingSecondFactor(user.getUsername());
+
+        page.click("[data-testid='mfa-logout']");
+        page.waitForURL(java.util.regex.Pattern.compile(".*/login\\?logout"),
+                new com.microsoft.playwright.Page.WaitForURLOptions().setTimeout(30000));
+
+        // The session is gone: the dashboard now lands on the login page, not on the
+        // second factor, which is what a surviving half-authenticated session would show.
+        navigateTo("/dashboard");
+        waitForPageLoad();
+        assertThat(page).hasURL(java.util.regex.Pattern.compile(".*/login.*"));
     }
 
     @Test
