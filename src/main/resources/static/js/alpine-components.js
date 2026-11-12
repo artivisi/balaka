@@ -732,6 +732,23 @@ function registerFormComponents() {
             }
         }
     }))
+
+    // Selected-file list for the multi-file document upload form. Registered here
+    // rather than in an inline <script> because the document-list fragment is swapped
+    // into both transactions/detail.html and transactions/form.html: a page-local
+    // listener only existed on the detail page, so the list stayed empty while
+    // editing. The label is rendered here because the CSP build cannot evaluate
+    // operators such as string concatenation inside x-text.
+    Alpine.data('documentFilePicker', () => ({
+        files: [],
+        onFilesChanged(event) {
+            const selected = (event.target && event.target.files) || []
+            this.files = Array.from(selected).map((file, index) => ({
+                key: index + ':' + file.name + ':' + file.size + ':' + file.lastModified,
+                label: (index + 1) + '. ' + file.name + ' (' + Math.round(file.size / 1024) + ' KB)'
+            }))
+        }
+    }))
 }
 
 // Hybrid approach: register immediately if Alpine exists,
