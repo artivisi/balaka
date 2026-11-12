@@ -57,6 +57,8 @@ function searchPicker(endpoint) {
             fetch(endpoint + '?q=' + q, { headers: { 'Accept': 'application/json' } })
                 .then(r => r.ok ? r.json() : [])
                 .then(data => { if (seq === this.searchSeq) this.results = data })
+                // A rejected fetch leaves the picker empty instead of an unhandled rejection.
+                .catch(() => { if (seq === this.searchSeq) this.results = [] })
         },
         select(item) {
             this.searchSeq++
@@ -514,6 +516,8 @@ function registerFormComponents() {
             fetch('/accounts/search?q=' + q, { headers: { 'Accept': 'application/json' } })
                 .then(r => r.ok ? r.json() : [])
                 .then(data => { if (seq === line.searchSeq) line.results = data })
+                // A rejected fetch leaves the picker empty instead of an unhandled rejection.
+                .catch(() => { if (seq === line.searchSeq) line.results = [] })
         },
         focusLine(line) {
             line.pickerOpen = true
@@ -742,7 +746,7 @@ function registerFormComponents() {
     Alpine.data('documentFilePicker', () => ({
         files: [],
         onFilesChanged(event) {
-            const selected = (event.target && event.target.files) || []
+            const selected = event.target?.files || []
             this.files = Array.from(selected).map((file, index) => ({
                 key: index + ':' + file.name + ':' + file.size + ':' + file.lastModified,
                 label: (index + 1) + '. ' + file.name + ' (' + Math.round(file.size / 1024) + ' KB)'
