@@ -163,6 +163,9 @@ public class CloseCheckService {
      */
     public TaxCreditCheck taxCredits(int returnYear, LocalDate asOf) {
         Objects.requireNonNull(asOf, "asOf wajib diisi");
+        if (returnYear >= asOf.getYear()) {
+            throw new IllegalArgumentException("Tahun SPT " + returnYear + " harus sebelum tahun asOf " + asOf.getYear());
+        }
         Optional<LocalDate> filed = taxFilingRepository.findByFilters(TaxFilingType.PPH_BADAN, returnYear).stream()
                 .filter(f -> REPORTED.contains(f.getStatus()) && f.getFiledDate() != null)
                 .map(TaxFiling::getFiledDate)

@@ -150,6 +150,16 @@ class CloseCheckServiceTest {
         assertThat(result.message()).isEqualTo("SPT Tahunan PPh Badan 2018 belum tercatat dilaporkan per 2019-12-31.");
     }
 
+    @Test
+    @DisplayName("Tax credits: a return year not before the asOf year is rejected")
+    void taxCreditsRejectReturnYearNotBeforeAsOf() {
+        assertThatThrownBy(() -> closeCheckService.taxCredits(2019, LocalDate.of(2019, 12, 31)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Tahun SPT 2019 harus sebelum tahun asOf 2019");
+        assertThatThrownBy(() -> closeCheckService.taxCredits(Integer.MAX_VALUE, LocalDate.of(2019, 12, 31)))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
     // ==================== clearing ====================
 
     @Test

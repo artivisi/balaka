@@ -55,8 +55,12 @@ function searchPicker(endpoint) {
             const seq = ++this.searchSeq
             const q = encodeURIComponent(this.label || '')
             fetch(endpoint + '?q=' + q, { headers: { 'Accept': 'application/json' } })
-                .then(r => r.ok ? r.json() : [])
+                .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json() })
                 .then(data => { if (seq === this.searchSeq) this.results = data })
+                .catch(err => {
+                    if (seq === this.searchSeq) this.results = []
+                    console.error('Search ' + endpoint + ' failed:', err)
+                })
         },
         select(item) {
             this.searchSeq++
@@ -512,8 +516,12 @@ function registerFormComponents() {
             const seq = ++line.searchSeq
             const q = encodeURIComponent(line.label || '')
             fetch('/accounts/search?q=' + q, { headers: { 'Accept': 'application/json' } })
-                .then(r => r.ok ? r.json() : [])
+                .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json() })
                 .then(data => { if (seq === line.searchSeq) line.results = data })
+                .catch(err => {
+                    if (seq === line.searchSeq) line.results = []
+                    console.error('Search /accounts/search failed:', err)
+                })
         },
         focusLine(line) {
             line.pickerOpen = true

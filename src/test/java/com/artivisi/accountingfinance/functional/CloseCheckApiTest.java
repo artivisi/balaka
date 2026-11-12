@@ -152,6 +152,8 @@ class CloseCheckApiTest extends PlaywrightTestBase {
         assertThat(unmoved.get("asOf").asText()).isEqualTo("2017-12-31");
         JsonNode taxCredits = read(get(PATH + "/tax-credits?returnYear=2016&asOf=2017-12-31"), 200);
         assertThat(taxCredits.get("filedDate").isNull()).isTrue();
+        assertThat(read(get(PATH + "/tax-credits?returnYear=2147483647&asOf=2017-12-31"), 400).get("message").asText())
+                .isEqualTo("Tahun SPT 2147483647 harus sebelum tahun asOf 2017");
         assertThat(read(get(PATH + "/clearing?from=2017-01-01&to=2017-12-31"), 200).isArray()).isTrue();
         assertThat(read(get(PATH + "/invoices-outside-receivables?from=2017-01-01&to=2017-12-31"), 200).isArray()).isTrue();
         assertThat(read(get(PATH + "/asset-proceeds?from=2017-01-01&to=2017-12-31"), 200).isArray()).isTrue();
