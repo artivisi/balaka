@@ -98,9 +98,31 @@ Saat `true`, setiap halaman menampilkan banner peringatan bahwa ini adalah insta
 
 | Property | Default | Keterangan |
 |----------|---------|------------|
-| `app.storage.documents.path` | `data/documents` | Direktori penyimpanan dokumen upload |
+| `app.storage.documents.path` | `data/documents` (`APP_DOCUMENT_STORAGE_PATH`) | Direktori penyimpanan dokumen upload; bisa dioverride lewat environment variable |
 | `app.storage.documents.max-file-size` | `10485760` | Ukuran maksimal file (10 MB) |
 | `app.storage.documents.allowed-types` | `image/jpeg,image/png,image/gif,application/pdf` | MIME type yang diizinkan |
+
+Kontainer dan deployment non-Ansible mengarahkan penyimpanan dokumen tanpa
+mengubah file konfigurasi:
+
+```bash
+APP_DOCUMENT_STORAGE_PATH=/var/lib/balaka/documents
+```
+
+## Reverse Proxy
+
+`server.forward-headers-strategy=native` aktif secara default, sehingga redirect
+HTTPS dan URL absolut mengikuti header `X-Forwarded-*` dari reverse proxy atau
+Cloudflare tunnel. Tanpa ini aplikasi membangun URL `http://` dan redirect ke
+halaman login berakhir di skema yang salah.
+
+`native` memakai `RemoteIpValve` milik Tomcat yang hanya memercayai
+`X-Forwarded-*` dari peer internal atau loopback. Jangan diganti ke `framework`:
+`ForwardedHeaderFilter` memercayai header dari peer mana pun, sehingga klien yang
+bisa menjangkau port aplikasi (10000) langsung dapat memalsukan IP untuk rate
+limiter dan audit log, serta skema URL. Template Ansible
+(`deploy/ansible/roles/app/templates/application.properties.j2`) memakai nilai
+yang sama.
 
 ## OpenAPI / Swagger
 
