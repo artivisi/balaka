@@ -120,6 +120,23 @@ class MfaEnforcementFilterTest {
     }
 
     @Test
+    @DisplayName("the company logo can be read but not replaced before verification")
+    void logoUploadIsNotAllowedBeforeVerification() throws Exception {
+        when(mfaService.isEnabled()).thenReturn(true);
+        when(mfaService.mustVerify(user)).thenReturn(true);
+
+        MockFilterChain readChain = new MockFilterChain();
+        filter.doFilter(new MockHttpServletRequest("GET", "/settings/company/logo"),
+                new MockHttpServletResponse(), readChain);
+        assertThat(readChain.getRequest()).as("the waiting page renders the logo").isNotNull();
+
+        MockHttpServletResponse uploadResponse = new MockHttpServletResponse();
+        filter.doFilter(new MockHttpServletRequest("POST", "/settings/company/logo"),
+                uploadResponse, new MockFilterChain());
+        assertThat(uploadResponse.getRedirectedUrl()).isEqualTo("/mfa-verify");
+    }
+
+    @Test
     @DisplayName("nothing is enforced when MFA is switched off for the deployment")
     void doesNothingWhenDisabled() throws Exception {
         when(mfaService.isEnabled()).thenReturn(false);

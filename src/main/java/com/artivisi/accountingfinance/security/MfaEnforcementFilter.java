@@ -22,14 +22,15 @@ import java.util.List;
  * Enforces the second factor for an authenticated session.
  *
  * <p>It reads the {@link Authentication} that the Spring Security chain already
- * established, whichever mechanism produced it, so a session restored by
- * remember-me is challenged as well: an MFA decision taken only inside the login
- * success handler is skipped when the cookie authenticates the request.
+ * established, whichever mechanism produced it, so a session restored from the
+ * server-side session is challenged as well: an MFA decision taken only inside the
+ * login success handler is skipped when an existing session authenticates the request.
  *
  * <p>Paths that must stay reachable while a verification is pending are
  * allowlisted and tested before any database read; {@code /api/**} is excluded
  * because those endpoints authenticate with bearer tokens, which this factor does
- * not apply to.
+ * not apply to. A path that is only needed to render the waiting pages is
+ * allowlisted for {@code GET} alone, so its write handler stays behind the factor.
  */
 @Component
 @Order(2)
@@ -47,7 +48,14 @@ public class MfaEnforcementFilter extends OncePerRequestFilter {
 
     private static final List<String> ALWAYS_ALLOWED_PATHS = List.of(
             "/login", "/logout", "/error", "/mfa-verify", "/settings/mfa", "/settings/mfa/enable",
-            "/settings/mfa/disable", "/settings/mfa/recovery-codes", "/settings/company/logo");
+            "/settings/mfa/disable", "/settings/mfa/recovery-codes");
+
+    /**
+     * Only the read side of these paths is allowed while a verification is pending: the
+     * waiting pages render the company logo, but an upload to the same path changes data
+     * and has to pass the second factor.
+     */
+    private static final List<String> ALLOWED_GET_PATHS = List.of("/settings/company/logo");
 
     private final UserRepository userRepository;
     private final MfaService mfaService;
@@ -62,7 +70,7 @@ public class MfaEnforcementFilter extends OncePerRequestFilter {
         }
 
         String path = request.getRequestURI().substring(request.getContextPath().length());
-        if (isAllowed(path)) {
+        if (isAllowed(path, request.getMethod())) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -112,8 +120,9 @@ public class MfaEnforcementFilter extends OncePerRequestFilter {
         return session != null && user.getUsername().equals(session.getAttribute(VERIFIED_USER_SESSION_ATTRIBUTE));
     }
 
-    private boolean isAllowed(String path) {
+    private boolean isAllowed(String path, String method) {
         return ALWAYS_ALLOWED_PATHS.contains(path)
-                || ALWAYS_ALLOWED_PREFIXES.stream().anyMatch(path::startsWith);
+                || ALWAYS_ALLOWED_PREFIXES.stream().anyMatch(path::startsWith)
+                || ("GET".equals(method) && ALLOWED_GET_PATHS.contains(path));
     }
 }
