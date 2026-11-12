@@ -416,8 +416,7 @@ class DocumentControllerFunctionalTest extends PlaywrightTestBase {
         String second = uniqueName("multi-second", "pdf");
         String rejected = uniqueName("multi-rejected", "sh");
 
-        navigateTo("/transactions/" + transactionId + "/edit");
-        waitForPageLoad();
+        openDocumentSectionOnEditForm(transactionId);
         assertThat(page.locator("[data-testid='document-upload-form']"))
                 .hasAttribute("hx-post", "/documents/transaction/" + transactionId);
 
@@ -426,6 +425,11 @@ class DocumentControllerFunctionalTest extends PlaywrightTestBase {
                 new FilePayload(second, "application/pdf", pdfContent(second)),
                 new FilePayload(rejected, "application/x-sh",
                         "#!/bin/sh\necho nope\n".getBytes(StandardCharsets.UTF_8))});
+
+        // The selected-file list is rendered by the shared Alpine component, so it is
+        // filled on the edit form too, not only on the transaction detail page.
+        assertThat(page.locator("[data-testid='selected-file-item']")).hasCount(3);
+
         page.locator("[data-testid='btn-upload-document']").click();
 
         // Both accepted files are listed...
@@ -447,7 +451,96 @@ class DocumentControllerFunctionalTest extends PlaywrightTestBase {
         assertTrue(documents.stream().noneMatch(d -> rejected.equals(d.getOriginalFilename())));
     }
 
+    @Test
+    @DisplayName("Should say that no file was selected when the form is submitted empty")
+    void shouldReportMissingFileSelection() {
+        UUID transactionId = createDraftTransaction();
+        openDocumentSectionOnEditForm(transactionId);
+
+        page.locator("[data-testid='btn-upload-document']").click();
+
+        assertThat(page.locator("[data-testid='document-upload-error']"))
+                .hasText("Tidak ada file yang dipilih");
+        assertThat(page.locator("[data-testid='document-upload-success']")).hasCount(0);
+        assertTrue(documentRepository.findByTransactionIdOrderByCreatedAtDesc(transactionId).isEmpty(),
+                "An upload without files stored something");
+    }
+
+    @Test
+    @DisplayName("Should report a single rejected file with the validation message alone")
+    void shouldReportSingleRejectedFileOnItsOwn() {
+        UUID transactionId = createDraftTransaction();
+        String rejected = uniqueName("single-rejected", "sh");
+        openDocumentSectionOnEditForm(transactionId);
+
+        page.locator("[data-testid='document-file-input']").setInputFiles(
+                new FilePayload(rejected, "application/x-sh", "#!/bin/sh\n".getBytes(StandardCharsets.UTF_8)));
+        page.locator("[data-testid='btn-upload-document']").click();
+
+        Locator panel = page.locator("[data-testid='document-upload-error']");
+        assertThat(panel).hasCount(1);
+        String message = panel.innerText();
+        // Single-file wording is unchanged by multi-upload: the validation message, no prefix.
+        assertTrue(message.startsWith("File type 'application/x-sh' is not allowed"),
+                "Single rejection wording changed: " + message);
+        assertFalse(message.contains("Gagal mengunggah dokumen"), "Unexpected prefix: " + message);
+        assertThat(itemByFilename(rejected)).hasCount(0);
+        assertTrue(documentRepository.findByTransactionIdOrderByCreatedAtDesc(transactionId).isEmpty(),
+                "Rejected file was stored");
+    }
+
+    @Test
+    @DisplayName("Should name every rejected file when nothing was stored")
+    void shouldReportEveryRejectedFile() {
+        UUID transactionId = createDraftTransaction();
+        String wrongType = uniqueName("all-rejected-type", "sh");
+        String spoofed = uniqueName("all-rejected-spoofed", "pdf");
+        openDocumentSectionOnEditForm(transactionId);
+
+        page.locator("[data-testid='document-file-input']").setInputFiles(new FilePayload[]{
+                new FilePayload(wrongType, "application/x-sh", "#!/bin/sh\n".getBytes(StandardCharsets.UTF_8)),
+                new FilePayload(spoofed, "application/pdf", "not a pdf".getBytes(StandardCharsets.UTF_8))});
+        page.locator("[data-testid='btn-upload-document']").click();
+
+        Locator panel = page.locator("[data-testid='document-upload-error']");
+        assertThat(panel).hasCount(1);
+        assertThat(panel).containsText("Gagal mengunggah dokumen");
+        assertThat(panel).containsText(wrongType);
+        assertThat(panel).containsText(spoofed);
+        assertThat(page.locator("[data-testid='document-upload-success']")).hasCount(0);
+        assertTrue(documentRepository.findByTransactionIdOrderByCreatedAtDesc(transactionId).isEmpty(),
+                "Rejected files were stored");
+    }
+
+    @Test
+    @DisplayName("Should reject a zero-byte file instead of dropping it")
+    void shouldRejectZeroByteFile() {
+        UUID transactionId = createDraftTransaction();
+        String empty = uniqueName("zero-byte", "pdf");
+        openDocumentSectionOnEditForm(transactionId);
+
+        // Playwright sends the selected file with its name and no bytes, the shape a
+        // browser produces for a file the operator picked that happens to be empty.
+        page.locator("[data-testid='document-file-input']").setInputFiles(
+                new FilePayload(empty, "application/pdf", new byte[0]));
+        page.locator("[data-testid='btn-upload-document']").click();
+
+        Locator panel = page.locator("[data-testid='document-upload-error']");
+        assertThat(panel).hasCount(1);
+        assertThat(panel).containsText("File is empty");
+        assertThat(page.locator("[data-testid='document-upload-success']")).hasCount(0);
+        assertTrue(documentRepository.findByTransactionIdOrderByCreatedAtDesc(transactionId).isEmpty(),
+                "Zero-byte upload was stored");
+    }
+
     // ==================== helpers ====================
+
+    /** The edit form loads the document fragment with hx-trigger="load"; wait for the form. */
+    private void openDocumentSectionOnEditForm(UUID transactionId) {
+        navigateTo("/transactions/" + transactionId + "/edit");
+        waitForPageLoad();
+        assertThat(page.locator("[data-testid='document-upload-form']")).isVisible();
+    }
 
     private UUID createDraftTransaction() {
         var template = journalTemplateRepository.findByTemplateNameAndIsCurrentVersionTrue(DRAFT_TEMPLATE)
