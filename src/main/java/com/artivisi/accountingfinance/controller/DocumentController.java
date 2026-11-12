@@ -77,60 +77,46 @@ public class DocumentController {
         response.setHeader(HX_TRIGGER, EVENT_EVIDENCE_CHANGED);
         String username = authentication != null ? authentication.getName() : USER_SYSTEM;
 
-        int successCount = 0;
-        List<UploadFailure> failures = new ArrayList<>();
-
-        if (files != null) {
-            for (MultipartFile file : files) {
-                // Only the browser's placeholder part can be skipped: when nothing is
-                // selected it posts one part with no name and no bytes. A file the operator
-                // did select keeps its name even at zero bytes, so it goes through
-                // validateFile() and is reported as rejected instead of being dropped.
-                if (isPlaceholderPart(file)) {
-                    continue;
-                }
-                try {
-                    Document document = documentService.uploadForTransaction(transactionId, file, username, evidenceType);
-                    securityAuditService.log(AuditEventType.DOCUMENT_UPLOAD,
-                            AUDIT_UPLOADED_DOC + document.getOriginalFilename() + " for transaction: " + transactionId);
-                    successCount++;
-                } catch (IOException e) {
-                    log.error("Failed to upload document for transaction {}: {}", transactionId, e.getMessage());
-                    failures.add(new UploadFailure(file.getOriginalFilename(), e.getMessage(), true));
-                } catch (IllegalArgumentException e) {
-                    failures.add(new UploadFailure(file.getOriginalFilename(), e.getMessage(), false));
-                }
-            }
-        }
-
-        // Partial failure is still a failure: the panel must not turn green while the
-        // message names files that were rejected.
-        if (successCount > 0 && failures.isEmpty()) {
-            model.addAttribute(ATTR_SUCCESS, true);
-            model.addAttribute(ATTR_MESSAGE, storedCountMessage(successCount));
-        } else if (successCount > 0) {
-            model.addAttribute(ATTR_SUCCESS, false);
-            // nosemgrep: semgrep.missing-html-escape-in-model - rendered only via th:text in fragments/document-list.html, which escapes
-            model.addAttribute(ATTR_MESSAGE,
-                    storedCountMessage(successCount) + "; " + failures.size() + " gagal: " + describe(failures));
-        } else if (!failures.isEmpty()) {
-            model.addAttribute(ATTR_SUCCESS, false);
-            // nosemgrep: semgrep.missing-html-escape-in-model - rendered only via th:text in fragments/document-list.html, which escapes
-            // A single rejected file keeps the wording it had before multi-upload: the
-            // validation message alone, or MSG_UPLOAD_FAILED prefixed to an I/O failure.
-            model.addAttribute(ATTR_MESSAGE, failures.size() == 1
-                    ? singleFailureMessage(failures.get(0))
-                    : MSG_UPLOAD_FAILED + describe(failures));
-        } else {
-            model.addAttribute(ATTR_SUCCESS, false);
-            model.addAttribute(ATTR_MESSAGE, "Tidak ada file yang dipilih");
-        }
+        UploadOutcome outcome = storeFiles(transactionId, files, username, evidenceType);
+        model.addAttribute(ATTR_SUCCESS, outcome.cleanSuccess());
+        // nosemgrep: semgrep.missing-html-escape-in-model - rendered only via th:text in fragments/document-list.html, which escapes
+        model.addAttribute(ATTR_MESSAGE, outcome.message());
 
         // Return updated document list fragment
         List<Document> documents = documentService.findByTransactionId(transactionId);
         model.addAttribute(ATTR_DOCUMENTS, documents);
         model.addAttribute(ATTR_TRANSACTION_ID, transactionId);
         return VIEW_DOCUMENT_LIST;
+    }
+
+    /** Stores every selected file on its own, so one rejection does not undo the others. */
+    private UploadOutcome storeFiles(UUID transactionId, MultipartFile[] files, String username,
+                                     EvidenceType evidenceType) {
+        int storedCount = 0;
+        List<UploadFailure> failures = new ArrayList<>();
+        MultipartFile[] selected = files == null ? new MultipartFile[0] : files;
+
+        for (MultipartFile file : selected) {
+            // Only the browser's placeholder part can be skipped: when nothing is selected it
+            // posts one part with no name and no bytes. A file the operator did select keeps its
+            // name even at zero bytes, so it goes through validateFile() and is reported as
+            // rejected instead of being dropped.
+            if (isPlaceholderPart(file)) {
+                continue;
+            }
+            try {
+                Document document = documentService.uploadForTransaction(transactionId, file, username, evidenceType);
+                securityAuditService.log(AuditEventType.DOCUMENT_UPLOAD,
+                        AUDIT_UPLOADED_DOC + document.getOriginalFilename() + " for transaction: " + transactionId);
+                storedCount++;
+            } catch (IOException e) {
+                log.error("Failed to upload document for transaction {}: {}", transactionId, e.getMessage());
+                failures.add(new UploadFailure(file.getOriginalFilename(), e.getMessage(), true));
+            } catch (IllegalArgumentException e) {
+                failures.add(new UploadFailure(file.getOriginalFilename(), e.getMessage(), false));
+            }
+        }
+        return new UploadOutcome(storedCount, failures);
     }
 
     /**
@@ -402,6 +388,32 @@ public class DocumentController {
     private record UploadFailure(String filename, String reason, boolean ioError) {
         String describe() {
             return filename + ": " + reason;
+        }
+    }
+
+    /** One upload request: what landed, what was rejected, and how the panel words it. */
+    private record UploadOutcome(int storedCount, List<UploadFailure> failures) {
+
+        /** Partial failure is still a failure: the panel must not turn green while files were rejected. */
+        boolean cleanSuccess() {
+            return storedCount > 0 && failures.isEmpty();
+        }
+
+        String message() {
+            if (cleanSuccess()) {
+                return storedCountMessage(storedCount);
+            }
+            if (storedCount > 0) {
+                return storedCountMessage(storedCount) + "; " + failures.size() + " gagal: " + describe(failures);
+            }
+            if (failures.isEmpty()) {
+                return "Tidak ada file yang dipilih";
+            }
+            // A single rejected file keeps the wording it had before multi-upload: the
+            // validation message alone, or MSG_UPLOAD_FAILED prefixed to an I/O failure.
+            return failures.size() == 1
+                    ? singleFailureMessage(failures.get(0))
+                    : MSG_UPLOAD_FAILED + describe(failures);
         }
     }
 }
