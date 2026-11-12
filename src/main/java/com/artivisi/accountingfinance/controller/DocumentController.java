@@ -69,7 +69,7 @@ public class DocumentController {
     @PreAuthorize("hasAnyAuthority('" + Permission.TRANSACTION_CREATE + "', '" + Permission.TRANSACTION_EDIT + "')")
     public String uploadForTransaction(
             @PathVariable UUID transactionId,
-            @RequestParam("file") MultipartFile[] files,
+            @RequestParam(value = "file", required = false) MultipartFile[] files,
             @RequestParam(required = false) EvidenceType evidenceType,
             Authentication authentication,
             HttpServletResponse response,
@@ -82,7 +82,11 @@ public class DocumentController {
 
         if (files != null) {
             for (MultipartFile file : files) {
-                if (file == null || file.isEmpty()) {
+                // Only the browser's placeholder part can be skipped: when nothing is
+                // selected it posts one part with no name and no bytes. A file the operator
+                // did select keeps its name even at zero bytes, so it goes through
+                // validateFile() and is reported as rejected instead of being dropped.
+                if (isPlaceholderPart(file)) {
                     continue;
                 }
                 try {
@@ -384,6 +388,15 @@ public class DocumentController {
 
     private static String singleFailureMessage(UploadFailure failure) {
         return failure.ioError() ? MSG_UPLOAD_FAILED + failure.reason() : failure.reason();
+    }
+
+    /** The empty part the browser posts for a file input with nothing selected. */
+    private static boolean isPlaceholderPart(MultipartFile file) {
+        if (file == null) {
+            return true;
+        }
+        String filename = file.getOriginalFilename();
+        return file.isEmpty() && (filename == null || filename.isBlank());
     }
 
     private record UploadFailure(String filename, String reason, boolean ioError) {
