@@ -67,6 +67,50 @@ Field yang dienkripsi termasuk data sensitif karyawan (NIK, NPWP, nomor rekening
 - Jika key hilang, data PII yang terenkripsi tidak bisa dipulihkan
 - Jangan pernah mengubah key setelah ada data terenkripsi (data lama tidak akan bisa didekripsi dengan key baru)
 
+## Verifikasi Dua Langkah (TOTP)
+
+Setiap pengguna bisa mengaktifkan TOTP dari menu **Verifikasi Dua Langkah**.
+Aktivasi bersifat opsional per pengguna, tetapi peran yang tercantum di
+`app.mfa.required-roles` wajib memakainya sebelum bisa memakai aplikasi.
+
+| Property | Default | Keterangan |
+|----------|---------|------------|
+| `app.mfa.enabled` | `true` | Saklar seluruh fitur; `false` untuk suite uji fungsional |
+| `app.mfa.required-roles` | `ADMIN,OWNER` | Peran yang wajib MFA; nama peran yang salah menggagalkan startup |
+| `app.mfa.max-attempts` | `5` | Percobaan `/mfa-verify` sebelum dikunci |
+| `app.mfa.attempt-window-seconds` | `900` | Jendela hitung percobaan |
+
+Detail implementasi:
+
+- Algoritma HMAC-SHA1, 6 digit, periode 30 detik, toleransi satu langkah untuk
+  selisih jam. Google Authenticator dan aplikasi lain kompatibel.
+- Nilai di atas bisa dioverride deployment lewat
+  `--app.mfa.required-roles=ADMIN,OWNER,ACCOUNTANT` atau
+  `SPRING_APPLICATION_JSON`; tidak ada nilai cadangan di kode.
+- Rahasia dibuat di server saat halaman setup dibuka dan disimpan di sesi sampai
+  kode konfirmasi diterima; parameter `secret` dari form tidak pernah dipakai.
+  Rahasia disimpan terenkripsi memakai `EncryptedStringConverter` (AES-256-GCM
+  dengan `APP_ENCRYPTION_KEY`); tanpa kunci itu aktivasi MFA ditolak.
+- Pengguna yang sudah aktif tidak bisa mendaftarkan ulang authenticator dari sesi
+  lain: harus menonaktifkan dengan kode OTP atau minta administrator mereset.
+- Setiap kode hanya diterima sekali: langkah waktu terakhir disimpan dan kode
+  pada langkah yang sama atau sebelumnya ditolak.
+- Sepuluh kode pemulihan dibuat saat aktivasi dan saat regenerasi; hanya hash
+  SHA-256 yang disimpan dan setiap kode berlaku sekali.
+- Administrator dapat mereset MFA pengguna (tombol **Reset MFA** di halaman
+  pengguna) ketika authenticator hilang.
+- Penghitung percobaan disimpan di memori proses. Restart aplikasi mengosongkan
+  kuncian, dan pada deployment multi-instance hitungan tidak dibagi antar
+  instance; kalau itu penting, pakai penyimpanan bersama sebelum menaikkan
+  jumlah instance.
+- Reset administrator dan penonaktifan oleh pengguna tidak memutus sesi yang
+  sudah lolos verifikasi: sesi itu tetap berlaku sampai berakhir sendiri.
+  Setelah reset, minta pengguna keluar dari semua perangkat bila itu penting;
+  daftar sesi per pengguna belum disediakan.
+- Semua peristiwa (`MFA_ENABLED`, `MFA_DISABLED`, `MFA_VERIFY_SUCCESS`,
+  `MFA_VERIFY_FAILED`, `MFA_LOCKED`, `MFA_RECOVERY_USED`, `MFA_ADMIN_RESET`)
+  tercatat di audit log keamanan.
+
 ## Content Security Policy (CSP)
 
 Balaka mengimplementasikan CSP strict dengan dynamic nonce:

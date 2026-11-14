@@ -71,7 +71,7 @@ class LegacySeedPackMigrationTest {
         flyway(url, null).migrate();
 
         try (Connection c = connect(url)) {
-            assertThat(single(c, "SELECT max(version::INT)::TEXT FROM flyway_schema_history WHERE success")).isEqualTo("17");
+            assertThat(single(c, "SELECT max(version::INT)::TEXT FROM flyway_schema_history WHERE success")).isEqualTo("18");
             assertThat(single(c, "SELECT account_code FROM chart_of_accounts WHERE account_name = 'Laba Penjualan Aset'")).isEqualTo(gainCode);
             assertThat(single(c, "SELECT account_code FROM chart_of_accounts WHERE account_name = 'Rugi Penjualan Aset'")).isEqualTo(lossCode);
             assertThat(single(c, "SELECT account_code FROM chart_of_accounts WHERE account_name = 'Kredit Pajak PPh 23'")).isEqualTo("1.1.26");

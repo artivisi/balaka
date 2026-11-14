@@ -157,6 +157,13 @@
 
             <!-- Actions -->
             <div class="px-6 py-4 border-t bg-gray-50 flex justify-end gap-3">
+                <form sec:authorize="hasAuthority('USER_EDIT')" th:if="${user.mfaEnabled}"
+                      th:action="@{/users/{id}/mfa-reset(id=${user.id})}" method="post" class="inline">
+                    <button type="submit" id="btn-mfa-reset"
+                            class="px-4 py-2 border border-amber-500 text-amber-700 rounded-lg hover:bg-amber-50 transition-colors">
+                        Reset MFA
+                    </button>
+                </form>
                 <a id="link-change-password" sec:authorize="hasAuthority('USER_EDIT')"
                    th:href="@{/users/{id}/change-password(id=${user.id})}"
                    class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors">
