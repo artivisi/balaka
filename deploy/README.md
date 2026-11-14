@@ -88,6 +88,13 @@ db_password: "your-secure-db-password"
 admin_password_plain: "your-secure-admin-password"
 app_domain: "your-domain.com"  # or IP address
 
+# REQUIRED: production secrets. Generate each one with:
+#   openssl rand -base64 32
+# Both site.yml and deploy.yml stop in pre_tasks if the key is missing or
+# malformed. Set it BEFORE the first boot. Never commit the real value;
+# group_vars/all.yml is gitignored.
+document_encryption_key: "<output of: openssl rand -base64 32>"
+
 # Optional: Enable SSL
 ssl_enabled: true
 ssl_email: "your-email@example.com"
@@ -157,12 +164,69 @@ To enable receipt OCR with Google Cloud Vision:
 
 6. **Deploy**: Ansible will automatically upload the credentials to the server
 
+### Production secret requirements
+
+`site.yml` and `deploy.yml` both validate `document_encryption_key` in
+`pre_tasks`, before any package installation, migration, file upload, or
+service restart. A missing or malformed key aborts the run with a message
+naming the variable and the generation command, instead of failing later inside
+the application startup guard.
+
+| Variable | Requirement | Generate with |
+|----------|-------------|---------------|
+| `document_encryption_key` | Non-empty, Base64-encoded 32 bytes (AES-256) | `openssl rand -base64 32` |
+
+The value must be set in `group_vars/all.yml` (gitignored) before the first
+boot. Do not put it in the repository or in the inventory file.
+
+Rotation has consequences:
+
+- **`document_encryption_key`**: this key encrypts PII fields and uploaded
+  documents. Rotating it makes previously encrypted data unreadable unless a
+  re-encryption migration is performed first. Losing it means the encrypted
+  data cannot be recovered. Back it up separately from the database.
+
+`PiiEncryptionProductionGuard` remains in place and fails closed at startup.
+The playbook checks are an earlier, actionable layer, not a replacement.
+
 ### 3. Run Initial Setup
 
 ```bash
 # Full server setup (first time only)
 ansible-playbook site.yml
 ```
+
+### 4. Deployment Output and Secrets
+
+Ansible `debug` output is written to stdout, CI logs, and any saved playbook
+log. Treat it as a public sink: never print a credential there.
+
+- The `site.yml` deployment summary prints the admin username and tells you to
+  use the `admin_password_plain` value from `group_vars/all.yml`. It never
+  prints the password itself; it is not a generated value.
+- When remote backup is enabled, the summary prints the path of the backup
+  encryption key, not the key. Retrieve it once over an authenticated SSH
+  session and store it in at least two safe places:
+
+  ```bash
+  sudo cat /opt/accounting-finance/.backup-key
+  ```
+
+Before running a playbook, check that no `debug` task re-introduces a leak:
+
+```bash
+cd deploy/ansible
+./tests/check-secret-debug.py
+```
+
+The check exits 1 when a `debug` task interpolates a credential name such as
+`admin_password_plain`, `db_password`, `document_encryption_key`, `*_secret`,
+`*_token`, or a backup key. Both `msg` and
+`var` are scanned, including Jinja references such as
+`var: "{{ admin_password_plain }}"`. It is a static check for direct `{{ ... }}`
+references; indirect flows (loops, `set_fact`, `slurp`, command output) still
+require manual review during code review. CI runs the same guard in the
+`deploy-lint` job, and its fixtures cover the `debug.var` regression.
 
 ## SSL Setup
 

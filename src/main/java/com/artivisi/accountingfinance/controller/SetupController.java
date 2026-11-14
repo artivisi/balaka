@@ -7,6 +7,7 @@ import com.artivisi.accountingfinance.security.LogSanitizer;
 import com.artivisi.accountingfinance.service.DataImportService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -33,6 +34,7 @@ import java.util.zip.ZipOutputStream;
  */
 @Controller
 @RequestMapping("/setup")
+@ConditionalOnProperty(name = "app.setup.enabled", havingValue = "true")
 @RequiredArgsConstructor
 @Slf4j
 public class SetupController {

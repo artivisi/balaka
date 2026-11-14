@@ -51,8 +51,12 @@ Migrasi V001 membuat admin default yang di-replace oleh Ansible saat deployment 
 Data PII (Personally Identifiable Information) dienkripsi di level field menggunakan AES-256-GCM:
 
 ```properties
-app.encryption.key=${APP_ENCRYPTION_KEY:}
+app.encryption.key=${APP_ENCRYPTION_KEY}
 ```
+
+Tidak ada default: instance tanpa `APP_ENCRYPTION_KEY` menolak start
+(`PiiEncryptionProductionGuard`, sebuah `EnvironmentPostProcessor`), jadi web
+server tidak pernah sempat melayani request.
 
 Generate key:
 
@@ -66,6 +70,11 @@ Field yang dienkripsi termasuk data sensitif karyawan (NIK, NPWP, nomor rekening
 - Simpan encryption key di tempat terpisah dari database
 - Jika key hilang, data PII yang terenkripsi tidak bisa dipulihkan
 - Jangan pernah mengubah key setelah ada data terenkripsi (data lama tidak akan bisa didekripsi dengan key baru)
+- Deployment (`site.yml`/`deploy.yml`) menolak berjalan jika
+  `document_encryption_key` tidak diset atau bukan Base64 32 byte
+- Aplikasi menolak start bila database masih memakai admin bawaan
+  `admin/admin` atau bila tabel user kosong sementara wizard `/setup` mati
+  (`DefaultAdminProductionGuard`, berjalan sebelum filter chain web dibuat)
 
 ## Content Security Policy (CSP)
 

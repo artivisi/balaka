@@ -53,6 +53,10 @@ pg_log_disconnections: "on"
 pg_log_lock_waits: "on"
 pg_log_temp_files: 0
 
+# First-run setup wizard. Leave disabled in production: the playbook creates
+# the configured admin before the application starts.
+app_setup_enabled: false
+
 # Admin User Configuration
 # SECURITY: Do NOT use common usernames like 'admin', 'administrator', 'root'
 # Use a unique username to prevent enumeration attacks

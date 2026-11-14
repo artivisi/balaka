@@ -48,7 +48,7 @@ public class EncryptedStringConverter implements AttributeConverter<String, Stri
      * Initialize encryption key from environment variable.
      * If no key is configured, encryption is disabled (passthrough mode).
      */
-    @Value("${app.encryption.key:}")
+    @Value("${app.encryption.key}")
     public void setEncryptionKey(String keyBase64) {
         if (keyBase64 == null || keyBase64.isBlank()) {
             log.warn("Encryption key not configured - PII fields will NOT be encrypted. " +

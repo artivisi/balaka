@@ -44,6 +44,85 @@ Perhatikan bagian:
 
 ## Metode Deployment
 
+> **Sejak guard startup aktif, jalur deploy harus memakai playbook Ansible.**
+> `deploy.yml` menulis ulang unit systemd dari `roles/app/templates/app.service.j2`
+> (termasuk `--spring.profiles.active=production`) lalu `daemon-reload`, dan
+> menjalankan migrasi dalam profile `bootstrap` sebelum menukar admin bawaan.
+> Skrip yang hanya me-restart service (`deploy-remote-build.sh`, `deploy.sh`)
+> memakai unit lama; kalau unit itu belum membawa profile `production`, aplikasi
+> sekarang **menolak start**. Guard aktif untuk semua profile kecuali `dev`,
+> `test`, `functional`, dan `bootstrap` yang dijalankan dengan
+> `--app.bootstrap.exit-after-migrate=true`; profile `bootstrap` tanpa flag itu
+> diperlakukan seperti deployment biasa. Jadi restart manual saja tidak cukup.
+
+### Upgrade ke rilis dengan startup guard
+
+Rilis ini mengubah syarat start, jadi server yang sudah berjalan tidak akan hidup
+kembali dengan cara lama. Tiga hal yang harus ada sebelum service dinyalakan:
+
+1. **`APP_ENCRYPTION_KEY` wajib.** Nilai Base64 dari 32 byte acak
+   (`openssl rand -base64 32`). Tanpa nilai yang valid, aplikasi berhenti sebelum
+   context dibuat dan tidak pernah membuka port. Kunci ini mengenkripsi PII di
+   database, jadi simpan di vault atau file ber-mode 600, bukan di repo.
+2. **`APP_SETUP_ENABLED` wajib eksplisit.** `app.setup.enabled` tidak punya
+   default lagi, sehingga instalasi baru tidak bisa diklaim anonim lewat wizard.
+   Set `false` untuk server yang sudah punya user, `true` hanya untuk bootstrap
+   pertama di instance yang belum publik, lalu kembalikan ke `false`.
+3. **Deploy pertama harus menjalankan playbook penuh, bukan `--tags app`.**
+   Playbook menulis unit systemd baru, menjalankan migrasi dalam profile
+   `bootstrap`, dan mengganti admin bawaan. Tanpa langkah itu
+   `DefaultAdminProductionGuard` menolak start karena kredensial admin/admin masih
+   ada di database.
+
+Urutan untuk server Ansible:
+
+```bash
+ansible-playbook -i inventory deploy/ansible/site.yml
+```
+
+Untuk server yang dikelola tanpa Ansible (container murni), lihat bagian
+"Menjalankan container tanpa Ansible" di bawah.
+
+### Menjalankan container tanpa Ansible
+
+Image tidak punya jalur kedua untuk membuat admin: satu-satunya cara yang didukung
+adalah menjalankan container dua kali, pertama dalam mode bootstrap. Mode itu
+menjalankan Flyway, mengganti admin bawaan dengan akun dari environment, lalu
+keluar dengan kode 0.
+
+```bash
+# 1. Bootstrap: migrasi + ganti admin, lalu keluar
+docker run --rm --env-file /etc/balaka/production.env \
+  -e APP_BOOTSTRAP_ADMIN_USERNAME=ops \
+  -e APP_BOOTSTRAP_ADMIN_PASSWORD='<minimal 12 karakter>' \
+  balaka:latest \
+  --spring.profiles.active=bootstrap \
+  --app.bootstrap.exit-after-migrate=true
+
+# 2. Jalankan normal
+docker run -d --name balaka --env-file /etc/balaka/production.env \
+  -p 8080:8080 balaka:latest
+```
+
+`APP_BOOTSTRAP_ADMIN_USERNAME`/`APP_BOOTSTRAP_ADMIN_PASSWORD` hanya dihormati di
+profile `bootstrap`. Kalau variabel itu ikut terbawa ke container produksi,
+aplikasi menolak start alih-alih diam-diam menimpa admin. Username `admin` juga
+ditolak: tujuannya justru menghapus kredensial bawaan, bukan menamai ulang.
+Menjalankan ulang langkah 1 dengan username yang sama akan menyetel ulang password
+akun itu, jadi aman diulang.
+
+Contoh `production.env` minimal:
+
+```
+APP_ENCRYPTION_KEY=<base64 32 byte>
+APP_SETUP_ENABLED=false
+APP_STORAGE_DOCUMENTS_PATH=/data/documents
+SPRING_PROFILES_ACTIVE=production
+SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/balaka
+SPRING_DATASOURCE_USERNAME=balaka
+SPRING_DATASOURCE_PASSWORD=<rahasia>
+```
+
 ### Metode 1: `deploy-remote-build.sh` (Rekomendasi)
 
 Build di server, tanpa upload JAR. Lebih cepat untuk koneksi internet lambat:

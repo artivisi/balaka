@@ -52,9 +52,41 @@ Edit `clients/<client>/group_vars/all.yml` untuk mengisi:
 - Database credentials
 - Domain name
 - Admin user credentials
-- Encryption key
+- **Encryption keys (WAJIB, lihat di bawah)**
 - Telegram bot token (opsional)
 - Theme settings
+
+## Kunci Enkripsi Wajib (Production Profile)
+
+Ada satu kunci yang **wajib** diisi di `group_vars/all.yml` sebelum boot
+pertama. Jangan menyimpan nilai aslinya di repository, inventory, atau
+dokumentasi; `group_vars/all.yml` sudah masuk `.gitignore`.
+
+| Variabel | Aturan | Cara membuat |
+|----------|--------|--------------|
+| `document_encryption_key` | Tidak kosong, Base64 32 byte (AES-256) | `openssl rand -base64 32` |
+
+Contoh:
+
+```yaml
+# group_vars/all.yml (JANGAN commit nilai asli)
+document_encryption_key: "hasil openssl rand -base64 32"
+```
+
+`site.yml` dan `deploy.yml` memeriksa variabel ini di `pre_tasks`, sebelum
+instalasi paket, migrasi, upload file, atau restart service. Jika hilang atau
+tidak valid, playbook berhenti lebih awal dengan pesan yang menyebut nama
+variabel dan perintah pembuatannya. Pemeriksaan ini melengkapi guard aplikasi
+(`PiiEncryptionProductionGuard`) yang tetap fail-closed saat startup; tidak ada
+bypass.
+
+### Konsekuensi rotasi kunci
+
+- **`document_encryption_key`** — kunci ini mengenkripsi field PII dan dokumen
+  yang diunggah. Jika dirotasi, data yang sudah terenkripsi tidak dapat dibaca
+  lagi kecuali dilakukan migrasi re-enkripsi terlebih dahulu. Jika kunci
+  hilang, data tersebut tidak dapat dipulihkan. Simpan salinan kunci terpisah
+  dari backup database.
 
 ## Proses Deployment
 
@@ -85,12 +117,15 @@ Build JAR di mesin lokal, upload ke server:
 ./deploy.sh <client>
 ```
 
-Proses yang dilakukan:
-1. Build JAR lokal (`./mvnw clean package -DskipTests`)
-2. Upload JAR ke server via SCP
-3. Konfigurasi admin user
-4. Restart service
-5. Health check
+Proses yang dilakukan (`deploy/ansible/deploy.yml`):
+1. Validasi `document_encryption_key` di `pre_tasks` (sebelum menyentuh server)
+2. Build JAR lokal (`./mvnw clean package -DskipTests`)
+3. Upload JAR + `application.properties` ke server
+4. Tulis ulang unit systemd dari template (memuat
+   `--spring.profiles.active=production`) dan `daemon-reload`
+5. Jalankan migrasi Flyway dalam profile `bootstrap` (tanpa web server, timeout
+   600 detik) lalu tukar admin bawaan
+6. Start service production + health check
 
 #### Metode 2: `deploy-remote-build.sh` (Build di Server)
 
@@ -106,6 +141,13 @@ Proses yang dilakukan:
 3. Build JAR di server
 4. Restart service
 5. Health check
+
+**Perhatian:** jalur ini hanya me-restart service, jadi unit systemd di server
+tidak ikut diperbarui. Guard startup aktif untuk semua profile kecuali `dev`,
+`test`, `functional` dan `bootstrap`; unit lama tanpa
+`--spring.profiles.active=production` tetap diperiksa, dan deployment yang belum
+menukar admin bawaan akan menolak start. Jalankan `deploy.yml` (Metode 1) minimal
+sekali setelah perubahan ini.
 
 **Perhatian:** Jika `git pull` gagal karena history divergence (misalnya setelah force push), perbaiki dulu:
 

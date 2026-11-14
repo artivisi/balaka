@@ -33,15 +33,54 @@ SSL mode `require` memastikan koneksi database terenkripsi. Tidak ada fallback k
 
 | Property | Environment Variable | Keterangan |
 |----------|---------------------|------------|
-| `app.encryption.key` | `APP_ENCRYPTION_KEY` | Kunci enkripsi AES-256-GCM untuk field PII |
+| `app.encryption.key` | `APP_ENCRYPTION_KEY` | Kunci enkripsi AES-256-GCM untuk field PII dan dokumen. Tidak ada nilai default: aplikasi menolak start tanpa key yang valid |
 
-Generate encryption key:
+Generate key:
 
 ```bash
 openssl rand -base64 32
 ```
 
-**Kritis:** Simpan key ini di tempat aman. Jika hilang, data PII yang terenkripsi tidak bisa didekripsi.
+`site.yml` dan `deploy.yml` menolak berjalan jika `document_encryption_key`
+kosong/tidak valid. Aplikasi sendiri memeriksa key sebelum application context
+dibuat, jadi instance tanpa key yang layak tidak pernah membuka port. Guard aktif
+untuk semua profile kecuali profile pengembangan eksplisit (`dev`, `test`,
+`functional`), dan `bootstrap` yang menyertakan
+`--app.bootstrap.exit-after-migrate=true`: lupa mengirim `--spring.profiles.active`
+tidak mematikan pemeriksaan, dan profile `bootstrap` tanpa flag itu tetap diperiksa
+seperti deployment biasa.
+
+**Kritis:** Simpan key ini di tempat aman. Jika `APP_ENCRYPTION_KEY` hilang,
+data PII yang terenkripsi tidak bisa didekripsi. Rotasi
+`APP_ENCRYPTION_KEY` membuat data lama tidak terbaca kecuali dilakukan
+re-enkripsi.
+
+## Setup Awal (First-Run)
+
+| Property | Environment Variable | Keterangan |
+|----------|---------------------|------------|
+| `app.setup.enabled` | `APP_SETUP_ENABLED` | Mengaktifkan wizard `/setup`. Tidak ada default: setiap profile menyebutkannya eksplisit |
+
+Deployment Ansible membuat administrator pertama sendiri, jadi nilai ini
+`false` di production dan `/setup` tidak punya route sama sekali (404). Aktifkan
+hanya untuk instance baru yang tidak publik, misalnya dengan
+`--spring.profiles.active=dev` di mesin pengembang.
+
+## Bootstrap Admin (tanpa Ansible)
+
+Dipakai hanya oleh container yang tidak dikelola Ansible. Hanya dihormati saat
+profile `bootstrap` aktif bersama `--app.bootstrap.exit-after-migrate=true`; kalau
+variabelnya ikut ke profile produksi, aplikasi menolak start.
+
+| Property | Environment Variable | Keterangan |
+|----------|---------------------|------------|
+| `app.bootstrap.admin.username` | `APP_BOOTSTRAP_ADMIN_USERNAME` | Username admin pengganti; `admin` ditolak |
+| `app.bootstrap.admin.password` | `APP_BOOTSTRAP_ADMIN_PASSWORD` | Minimal 12 karakter, disimpan sebagai hash BCrypt |
+| `app.bootstrap.admin.full-name` | `APP_BOOTSTRAP_ADMIN_FULL_NAME` | Opsional, default `Administrator` |
+| `app.bootstrap.admin.email` | `APP_BOOTSTRAP_ADMIN_EMAIL` | Opsional |
+
+Langkah lengkapnya ada di `05-updates.md`, bagian Menjalankan container tanpa
+Ansible.
 
 ## Telegram Bot
 
