@@ -647,7 +647,8 @@ public class SptTahunanExportService {
         return new ArrayList<>(groups.values());
     }
 
-    private String mapAssetCodeToField(ChartOfAccount account) {
+    /** Package-private so the Transkrip 8A slot decision can be asserted without a full report. */
+    String mapAssetCodeToField(ChartOfAccount account) {
         String code = account.getAccountCode();
         NormalBalance normalBalance = account.getNormalBalance();
         // Cash & equivalents: the explicit cash/bank flag, so Transkrip 8A.I.1 agrees
