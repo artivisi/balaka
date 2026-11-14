@@ -198,8 +198,8 @@ class CashBankFlagMaintenanceTest {
     }
 
     @Test
-    @DisplayName("an update replaces the cash flag like every other field, so omitting it clears it")
-    void omittedCashFlagOnUpdateClearsTheFlag() {
+    @DisplayName("an update that omits the cash flag keeps the stored one, so an old client cannot unflag a cash account")
+    void omittedCashFlagOnUpdateKeepsTheStoredFlag() {
         ChartOfAccount explicit = createAssetLeaf("1.1.98", "Kas API", true);
 
         ChartOfAccount withoutFlag = detachedCopy(explicit, false);
@@ -207,21 +207,26 @@ class CashBankFlagMaintenanceTest {
         chartOfAccountService.update(explicit.getId(), withoutFlag);
 
         ChartOfAccount reloaded = chartOfAccountRepository.findByAccountCode("1.1.98").orElseThrow();
-        assertThat(reloaded.getIsCashBank()).isFalse();
-        assertThat(reloaded.getCashBankSource()).isNull();
+        assertThat(reloaded.getIsCashBank()).isTrue();
+        assertThat(reloaded.getCashBankSource()).isEqualTo(CashBankSource.EXPLICIT);
     }
 
     @Test
-    @DisplayName("an update cannot clear the flag a company bank account depends on")
-    void omittedCashFlagOnBankLinkedAccountIsRefused() {
+    @DisplayName("omitting the flag keeps a bank-linked account flagged, while false is refused")
+    void bankLinkedAccountKeepsItsFlagWhenTheFieldIsOmitted() {
         ChartOfAccount leaf = createAssetLeaf("1.1.99", "Bank API");
         createBankAccount("9000000099", leaf);
 
         ChartOfAccount linked = chartOfAccountRepository.findByAccountCode("1.1.99").orElseThrow();
+
         ChartOfAccount withoutFlag = detachedCopy(linked, false);
         withoutFlag.setIsCashBank(null);
+        chartOfAccountService.update(linked.getId(), withoutFlag);
+        assertThat(chartOfAccountRepository.findByAccountCode("1.1.99").orElseThrow().getIsCashBank()).isTrue();
 
-        assertThatThrownBy(() -> chartOfAccountService.update(linked.getId(), withoutFlag))
+        ChartOfAccount cleared = detachedCopy(linked, false);
+        cleared.setIsCashBank(false);
+        assertThatThrownBy(() -> chartOfAccountService.update(linked.getId(), cleared))
                 .isInstanceOf(InvalidCashBankAccountException.class)
                 .hasMessageContaining("masih terhubung ke rekening bank");
     }
@@ -293,21 +298,17 @@ class CashBankFlagMaintenanceTest {
     }
 
     @Test
-    @DisplayName("a CSV without the is_cash_bank column imports as not cash, with no code guessing")
-    void importWithoutCashColumnDoesNotInferCash() throws IOException {
+    @DisplayName("a CSV without the is_cash_bank column is refused, not imported with zero cash")
+    void importWithoutCashColumnIsRefused() throws IOException {
         String csv = "account_code,account_name,account_type,parent_code,normal_balance,active,is_permanent\n"
                 + "1.1,Aset Lancar,ASSET,,DEBIT,true,true\n"
                 + "1.1.01,Kas,ASSET,1.1,DEBIT,true,false\n"
                 + "1.1.02,Bank BCA,ASSET,1.1,DEBIT,true,false\n"
                 + "1.1.04,Piutang Usaha,ASSET,1.1,DEBIT,true,false\n";
 
-        dataImportService.importAllData(buildZipWithFiles("02_chart_of_accounts.csv", csv));
-
-        assertThat(chartOfAccountRepository.findByAccountCode("1.1.01").orElseThrow().getIsCashBank()).isFalse();
-        assertThat(chartOfAccountRepository.findByAccountCode("1.1.02").orElseThrow().getIsCashBank()).isFalse();
-        assertThat(chartOfAccountRepository.findCashBankAccounts())
-                .extracting(ChartOfAccount::getAccountCode)
-                .doesNotContain("1.1.01", "1.1.02");
+        assertThatThrownBy(() -> dataImportService.importAllData(buildZipWithFiles("02_chart_of_accounts.csv", csv)))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("is_cash_bank");
     }
 
     @Test

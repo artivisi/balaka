@@ -201,11 +201,14 @@ public class ChartOfAccountService {
         validateSelfTestRole(accountData.getSelfTestRole(), existing.getAccountType(), existing.getIsHeader());
         existing.setSelfTestRole(accountData.getSelfTestRole());
 
-        // isCashBank is part of the full-replace contract, like every other field of a
-        // PUT: an omitted value means "not cash". Clearing a flag that a company bank
-        // account depends on is still refused, so a link and its flag cannot diverge.
-        applyExplicitCashBankFlag(existing, Boolean.TRUE.equals(accountData.getIsCashBank()),
-                hasChildAccounts, linkedToBankAccount);
+        // isCashBank is deliberately the one partial field of an otherwise full-replace
+        // PUT: an omitted value (null) keeps the stored flag, so a client that predates
+        // this column cannot unflag a cash account by renaming it. Sending false clears
+        // it explicitly, and clearing a flag a bank link depends on is still refused,
+        // so a link and its flag cannot diverge.
+        if (accountData.getIsCashBank() != null) {
+            applyExplicitCashBankFlag(existing, accountData.getIsCashBank(), hasChildAccounts, linkedToBankAccount);
+        }
 
         // The caller may have changed type, header or children in the same request.
         // Validate the resulting state, not the pre-update one, so an account cannot be

@@ -825,9 +825,18 @@ public class DataImportService {
         Map<String, String> parentCodes = new HashMap<>();
         Map<String, Boolean> requestedCashBank = new HashMap<>();
 
+        // The column is required: this project does not infer cash from an account code,
+        // and a fallback would quietly import an older chart with zero cash accounts.
+        if (rows.isEmpty() || rows.get(0).length <= 11) {
+            throw new IllegalArgumentException(
+                    "chart_of_accounts.csv is missing the is_cash_bank column (twelfth column). "
+                            + "This export predates the explicit cash/bank flag; re-export the chart of "
+                            + "accounts from this version, or add is_cash_bank to every row.");
+        }
+
         // First pass: create all accounts without parents.
         // CSV columns: account_code,account_name,account_type,parent_code,normal_balance,active,
-        // is_permanent,fiscal_treatment,service_expense,close_check_role,self_test_role[,is_cash_bank]
+        // is_permanent,fiscal_treatment,service_expense,close_check_role,self_test_role,is_cash_bank
         for (String[] row : rows) {
             ChartOfAccount account = new ChartOfAccount();
             account.setAccountCode(getField(row, 0));
@@ -859,11 +868,9 @@ public class DataImportService {
             if (!selfTestRole.isBlank()) {
                 account.setSelfTestRole(SelfTestRole.valueOf(selfTestRole));
             }
-            // column 11 = is_cash_bank. Exports without the column import as "not cash":
-            // the flag is never inferred from the account code.
-            if (row.length > 11) {
-                requestedCashBank.put(account.getAccountCode(), parseBoolean(getField(row, 11)));
-            }
+            // column 11 = is_cash_bank, required by the guard above. The flag is never
+            // inferred from the account code.
+            requestedCashBank.put(account.getAccountCode(), parseBoolean(getField(row, 11)));
             accounts.add(account);
         }
 

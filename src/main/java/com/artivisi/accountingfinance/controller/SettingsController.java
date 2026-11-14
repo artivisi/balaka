@@ -61,6 +61,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -355,11 +356,24 @@ public class SettingsController {
         return "application/octet-stream";
     }
 
-    /** Records which GL account a bank link flags as cash/bank, for the audit trail. */
-    private String glAuditSuffix(CompanyBankAccount bankAccount) {
-        return bankAccount.getGlAccount() == null
-                ? ""
-                : ", GL account " + bankAccount.getGlAccount().getAccountCode() + " marked cash/bank";
+    /**
+     * Records a change of GL link in the audit trail, and only a change: an edit that
+     * keeps the same GL account, or re-saves one that was already flagged, says nothing
+     * about cash/bank. Release is audited too, otherwise a link that stops making an
+     * account cash leaves no trace.
+     */
+    private String glAuditSuffix(CompanyBankAccount previous, CompanyBankAccount current) {
+        String from = previous == null || previous.getGlAccount() == null
+                ? null : previous.getGlAccount().getAccountCode();
+        String to = current == null || current.getGlAccount() == null
+                ? null : current.getGlAccount().getAccountCode();
+        if (Objects.equals(from, to)) {
+            return "";
+        }
+        if (to == null) {
+            return ", GL account " + from + " no longer cash/bank";
+        }
+        return ", GL account " + to + " marked cash/bank";
     }
 
     /**
@@ -425,7 +439,7 @@ public class SettingsController {
             securityAuditService.log(AuditEventType.SETTINGS_CHANGE,
                     "Bank account created: " + bankAccount.getBankName() + " - "
                             + maskAccountNumber(bankAccount.getAccountNumber())
-                            + glAuditSuffix(bankAccount));
+                            + glAuditSuffix(null, bankAccount));
             redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Rekening bank berhasil ditambahkan");
             return REDIRECT_SETTINGS;
         } catch (InvalidCashBankAccountException e) {
@@ -480,11 +494,12 @@ public class SettingsController {
             } else {
                 bankAccount.setGlAccount(null);
             }
+            CompanyBankAccount before = bankAccountService.findById(id);
             bankAccountService.update(id, bankAccount);
             securityAuditService.log(AuditEventType.SETTINGS_CHANGE,
                     "Bank account updated: " + bankAccount.getBankName() + " - "
                             + maskAccountNumber(bankAccount.getAccountNumber())
-                            + glAuditSuffix(bankAccount));
+                            + glAuditSuffix(before, bankAccount));
             redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Rekening bank berhasil diperbarui");
             return REDIRECT_SETTINGS;
         } catch (InvalidCashBankAccountException e) {

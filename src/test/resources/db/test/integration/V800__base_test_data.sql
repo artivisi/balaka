@@ -35,7 +35,7 @@ INSERT INTO chart_of_accounts (id, account_code, account_name, account_type, nor
 -- (prepaid) and 1.1.08 (receivable) rows stay false, which the old 1.1.0% prefix
 -- rule got wrong.
 UPDATE chart_of_accounts
-SET is_cash_bank = TRUE
+SET is_cash_bank = TRUE, cash_bank_source = 'MIGRATED'
 WHERE account_code IN ('1.1.01', '1.1.02', '1.1.03');
 
 -- LIABILITAS (2.x.xx) - Permanent accounts
