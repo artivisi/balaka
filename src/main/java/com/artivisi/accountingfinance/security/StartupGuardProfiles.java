@@ -25,17 +25,26 @@ final class StartupGuardProfiles {
 
     static final String PRODUCTION = "production";
     static final String BOOTSTRAP = "bootstrap";
+    static final String BOOTSTRAP_EXIT_FLAG = "app.bootstrap.exit-after-migrate";
 
-    private static final Set<String> EXEMPT = Set.of("dev", "test", "functional", BOOTSTRAP);
+    private static final Set<String> EXEMPT = Set.of("dev", "test", "functional");
 
     private StartupGuardProfiles() {
     }
 
     static boolean enforced(Environment environment) {
-        for (String profile : environment.getActiveProfiles()) {
+        Set<String> active = Set.of(environment.getActiveProfiles());
+        for (String profile : active) {
             if (EXEMPT.contains(profile)) {
                 return false;
             }
+        }
+        if (active.contains(BOOTSTRAP)) {
+            // The bootstrap exemption belongs to the one-shot run that replaces the
+            // seeded admin, and that run is identified by its exit flag. A bootstrap
+            // profile without the flag would serve requests with the guards off, so
+            // it is treated as a deployment instead of being trusted by name.
+            return !environment.getProperty(BOOTSTRAP_EXIT_FLAG, Boolean.class, false);
         }
         return true;
     }

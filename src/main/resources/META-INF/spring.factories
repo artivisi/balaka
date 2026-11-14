@@ -1,4 +1,7 @@
 # Fails the boot before the application context exists when a deployment has no
 # usable PII encryption key. See PiiEncryptionProductionGuard.
-org.springframework.boot.env.EnvironmentPostProcessor=\
+#
+# org.springframework.boot.env.EnvironmentPostProcessor is deprecated for removal in
+# Boot 4.1 and is no longer consulted, so the entry uses the new key.
+org.springframework.boot.EnvironmentPostProcessor=\
 com.artivisi.accountingfinance.security.PiiEncryptionProductionGuard
