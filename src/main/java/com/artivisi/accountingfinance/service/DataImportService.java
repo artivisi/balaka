@@ -38,6 +38,7 @@ public class DataImportService {
 
     private final EntityManager entityManager;
     private final DocumentStorageService documentStorageService;
+    private final ChartOfAccountService chartOfAccountService;
     private final PasswordEncoder passwordEncoder;
 
     // Core repositories
@@ -822,14 +823,27 @@ public class DataImportService {
         List<String[]> rows = parseCsv(content);
         List<ChartOfAccount> accounts = new ArrayList<>();
         Map<String, String> parentCodes = new HashMap<>();
+        Map<String, Boolean> requestedCashBank = new HashMap<>();
 
-        // First pass: create all accounts without parents
-        // CSV columns: account_code,account_name,account_type,parent_code,normal_balance,active,is_permanent,fiscal_treatment,service_expense,close_check_role,self_test_role
+        // The column is required: this project does not infer cash from an account code,
+        // and a fallback would quietly import an older chart with zero cash accounts.
+        if (rows.isEmpty() || rows.get(0).length <= 11) {
+            throw new IllegalArgumentException(
+                    "chart_of_accounts.csv is missing the is_cash_bank column (twelfth column). "
+                            + "This export predates the explicit cash/bank flag; re-export the chart of "
+                            + "accounts from this version, or add is_cash_bank to every row.");
+        }
+
+        // First pass: create all accounts without parents.
+        // CSV columns: account_code,account_name,account_type,parent_code,normal_balance,active,
+        // is_permanent,fiscal_treatment,service_expense,close_check_role,self_test_role,is_cash_bank
         for (String[] row : rows) {
             ChartOfAccount account = new ChartOfAccount();
             account.setAccountCode(getField(row, 0));
             account.setAccountName(getField(row, 1));
             account.setAccountType(AccountType.valueOf(getField(row, 2)));
+            account.setIsCashBank(false);
+            account.setCashBankSource(null);
             parentCodes.put(getField(row, 0), getField(row, 3));
             account.setNormalBalance(NormalBalance.valueOf(getField(row, 4)));
             account.setActive(parseBoolean(getField(row, 5)));
@@ -854,6 +868,9 @@ public class DataImportService {
             if (!selfTestRole.isBlank()) {
                 account.setSelfTestRole(SelfTestRole.valueOf(selfTestRole));
             }
+            // column 11 = is_cash_bank, required by the guard above. The flag is never
+            // inferred from the account code.
+            requestedCashBank.put(account.getAccountCode(), parseBoolean(getField(row, 11)));
             accounts.add(account);
         }
 
@@ -866,7 +883,9 @@ public class DataImportService {
             accountMap.put(a.getAccountCode(), a);
         }
 
-        // Second pass: set parents and mark header accounts
+        // Second pass: set parents, mark header accounts, then apply the cash flag.
+        // The flag must be applied after header detection so a header can never be
+        // persisted as cash (the database check constraint also enforces this).
         Set<String> parentCodeValues = new HashSet<>(parentCodes.values());
         for (ChartOfAccount account : accounts) {
             String parentCode = parentCodes.get(account.getAccountCode());
@@ -878,6 +897,19 @@ public class DataImportService {
             }
             // Accounts referenced as parent by other accounts are headers
             account.setIsHeader(parentCodeValues.contains(account.getAccountCode()));
+
+            boolean cashBank = Boolean.TRUE.equals(requestedCashBank.get(account.getAccountCode()));
+            if (cashBank) {
+                if (account.getAccountType() != AccountType.ASSET || Boolean.TRUE.equals(account.getIsHeader())) {
+                    throw new IllegalArgumentException("chart_of_accounts row " + account.getAccountCode()
+                            + ": is_cash_bank requires a non-header ASSET account");
+                }
+                account.setIsCashBank(true);
+                account.setCashBankSource(CashBankSource.EXPLICIT);
+            } else {
+                account.setIsCashBank(false);
+                account.setCashBankSource(null);
+            }
         }
         accountRepository.saveAll(accounts);
 
@@ -1180,7 +1212,19 @@ public class DataImportService {
             ba.setIsDefault(parseBoolean(getField(row, 4)));
             ba.setActive(parseBoolean(getField(row, 5)));
 
-            bankAccountRepository.save(ba);
+            // column 6 = gl_account_code (optional)
+            String glAccountCode = getField(row, 6);
+            if (!glAccountCode.isEmpty()) {
+                ChartOfAccount glAccount = accountMap.get(glAccountCode);
+                if (glAccount == null) {
+                    throw new IllegalArgumentException("company_bank_accounts row " + getField(row, 1)
+                            + ": GL account " + glAccountCode + " not found in chart of accounts");
+                }
+                ba.setGlAccount(glAccount);
+            }
+
+            CompanyBankAccount saved = bankAccountRepository.save(ba);
+            chartOfAccountService.applyBankLink(saved.getGlAccount());
         }
         return rows.size();
     }

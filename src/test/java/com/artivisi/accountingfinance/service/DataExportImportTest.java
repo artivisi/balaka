@@ -310,9 +310,10 @@ class DataExportImportTest {
         @DisplayName("Should import chart of accounts with parent references")
         @Transactional
         void shouldImportChartOfAccountsWithParentReferences() throws IOException {
-            String csv = "account_code,account_name,account_type,parent_code,normal_balance,active,is_permanent\n"
-                    + "9000,Test Asset Parent,ASSET,,DEBIT,true,false\n"
-                    + "9001,Test Asset Child,ASSET,9000,DEBIT,true,false\n";
+            String csv = "account_code,account_name,account_type,parent_code,normal_balance,active,is_permanent,"
+                    + "fiscal_treatment,service_expense,close_check_role,self_test_role,is_cash_bank\n"
+                    + "9000,Test Asset Parent,ASSET,,DEBIT,true,false,,,,,false\n"
+                    + "9001,Test Asset Child,ASSET,9000,DEBIT,true,false,,,,,false\n";
 
             byte[] zipData = buildZipWithFiles("02_chart_of_accounts.csv", csv);
             DataImportService.ImportResult result = dataImportService.importAllData(zipData);
@@ -335,11 +336,23 @@ class DataExportImportTest {
         }
 
         @Test
+        @DisplayName("Should refuse a chart export that predates the is_cash_bank column")
+        @Transactional
+        void shouldRefuseChartCsvWithoutCashBankColumn() throws IOException {
+            String csv = "account_code,account_name,account_type,parent_code,normal_balance,active,is_permanent\n"
+                    + "9000,Test Asset,ASSET,,DEBIT,true,false\n";
+            byte[] zipData = buildZipWithFiles("02_chart_of_accounts.csv", csv);
+
+            assertThatThrownBy(() -> dataImportService.importAllData(zipData))
+                    .hasMessageContaining("is_cash_bank");
+        }
+
+        @Test
         @DisplayName("Should import account with is_permanent field")
         @Transactional
         void shouldImportAccountWithIsPermanentField() throws IOException {
-            String csv = "account_code,account_name,account_type,parent_code,normal_balance,active,is_permanent\n"
-                    + "9100,Retained Earnings,EQUITY,,CREDIT,true,true\n";
+            String csv = "account_code,account_name,account_type,parent_code,normal_balance,active,is_permanent,fiscal_treatment,service_expense,close_check_role,self_test_role,is_cash_bank\n"
+                    + "9100,Retained Earnings,EQUITY,,CREDIT,true,true,,,,,false\n";
 
             byte[] zipData = buildZipWithFiles("02_chart_of_accounts.csv", csv);
             dataImportService.importAllData(zipData);
@@ -576,10 +589,10 @@ class DataExportImportTest {
         @Transactional
         void shouldImportAssetCategoriesWithAccountReferences() throws IOException {
             // Need accounts first
-            String coaCsv = "account_code,account_name,account_type,parent_code,normal_balance,active,is_permanent\n"
-                    + "9200,Asset Account,ASSET,,DEBIT,true,false\n"
-                    + "9201,Accumulated Depr,ASSET,,CREDIT,true,false\n"
-                    + "9202,Depr Expense,EXPENSE,,DEBIT,true,false\n";
+            String coaCsv = "account_code,account_name,account_type,parent_code,normal_balance,active,is_permanent,fiscal_treatment,service_expense,close_check_role,self_test_role,is_cash_bank\n"
+                    + "9200,Asset Account,ASSET,,DEBIT,true,false,,,,,false\n"
+                    + "9201,Accumulated Depr,ASSET,,CREDIT,true,false,,,,,false\n"
+                    + "9202,Depr Expense,EXPENSE,,DEBIT,true,false,,,,,false\n";
             String assetCsv = "code,name,description,depreciation_method,useful_life_months,depreciation_rate,asset_account_code,accumulated_depreciation_account_code,depreciation_expense_account_code,active\n"
                     + "AC-TEST,Test Category,Test asset category,STRAIGHT_LINE,60,20.00,9200,9201,9202,true\n";
 
@@ -635,10 +648,10 @@ class DataExportImportTest {
         @DisplayName("Should import products with category and account references")
         @Transactional
         void shouldImportProductsWithCategoryAndAccountReferences() throws IOException {
-            String coaCsv = "account_code,account_name,account_type,parent_code,normal_balance,active,is_permanent\n"
-                    + "9300,Inventory,ASSET,,DEBIT,true,false\n"
-                    + "9301,COGS,EXPENSE,,DEBIT,true,false\n"
-                    + "9302,Sales,REVENUE,,CREDIT,true,false\n";
+            String coaCsv = "account_code,account_name,account_type,parent_code,normal_balance,active,is_permanent,fiscal_treatment,service_expense,close_check_role,self_test_role,is_cash_bank\n"
+                    + "9300,Inventory,ASSET,,DEBIT,true,false,,,,,false\n"
+                    + "9301,COGS,EXPENSE,,DEBIT,true,false,,,,,false\n"
+                    + "9302,Sales,REVENUE,,CREDIT,true,false,,,,,false\n";
             String catCsv = "code,name,description,parent_code,active\n"
                     + "PCAT-PROD,Product Category,,,true\n";
             String prodCsv = "code,name,description,unit,category_code,costing_method,track_inventory,minimum_stock,selling_price,inventory_account_code,cogs_account_code,sales_account_code,active\n"
@@ -892,8 +905,8 @@ class DataExportImportTest {
         @DisplayName("Should throw on invalid enum value in CSV")
         @Transactional
         void shouldThrowOnInvalidEnumValue() throws IOException {
-            String csv = "account_code,account_name,account_type,parent_code,normal_balance,active,is_permanent\n"
-                    + "9999,Bad Account,INVALID_TYPE,,DEBIT,true,false\n";
+            String csv = "account_code,account_name,account_type,parent_code,normal_balance,active,is_permanent,fiscal_treatment,service_expense,close_check_role,self_test_role,is_cash_bank\n"
+                    + "9999,Bad Account,INVALID_TYPE,,DEBIT,true,false,,,,,false\n";
 
             byte[] zipData = buildZipWithFiles("02_chart_of_accounts.csv", csv);
             assertThatThrownBy(() -> dataImportService.importAllData(zipData))
@@ -925,9 +938,9 @@ class DataExportImportTest {
         void shouldImportMultipleEntityTypesInCorrectOrder() throws IOException {
             String companyCsv = "company_name,company_address,company_phone,company_email,tax_id,npwp,nitku,fiscal_year_start_month,currency_code,signing_officer_name,signing_officer_title,company_logo_path,established_date,is_pkp,pkp_since,industry\n"
                     + "PT Multi Import,,,,,,,1,IDR,,,,,,\n";
-            String coaCsv = "account_code,account_name,account_type,parent_code,normal_balance,active,is_permanent\n"
-                    + "9400,Cash,ASSET,,DEBIT,true,false\n"
-                    + "9401,Revenue,REVENUE,,CREDIT,true,false\n";
+            String coaCsv = "account_code,account_name,account_type,parent_code,normal_balance,active,is_permanent,fiscal_treatment,service_expense,close_check_role,self_test_role,is_cash_bank\n"
+                    + "9400,Cash,ASSET,,DEBIT,true,false,,,,,true\n"
+                    + "9401,Revenue,REVENUE,,CREDIT,true,false,,,,,false\n";
             String clientCsv = "code,name,contact_person,email,phone,address,npwp,nik,nitku,active,created_at\n"
                     + "CLI-MULTI,Multi Client,,,,,,,,true,\n";
             String empCsv = "employee_id,name,email,nik_ktp,npwp,ptkp_status,job_title,department,employment_type,hire_date,resign_date,bank_name,bank_account_number,bpjs_kesehatan_number,bpjs_ketenagakerjaan_number,employment_status,username\n"

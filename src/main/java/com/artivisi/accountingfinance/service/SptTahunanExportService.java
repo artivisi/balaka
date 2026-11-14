@@ -1,5 +1,6 @@
 package com.artivisi.accountingfinance.service;
 
+import com.artivisi.accountingfinance.entity.ChartOfAccount;
 import com.artivisi.accountingfinance.entity.CompanyConfig;
 import com.artivisi.accountingfinance.entity.Employee;
 import com.artivisi.accountingfinance.entity.FiscalAdjustment;
@@ -637,19 +638,22 @@ public class SptTahunanExportService {
         groups.put(SLOT_8A_I_10, new SptFieldItem(SLOT_8A_I_10, "Aset Lainnya", BigDecimal.ZERO));
 
         for (BalanceSheetItem item : bs.assetItems()) {
-            String code = item.account().getAccountCode();
             BigDecimal amount = item.account().getNormalBalance() == NormalBalance.CREDIT
                     ? item.balance().negate() : item.balance();
-            String field = mapAssetCodeToField(code, item.account().getNormalBalance());
+            String field = mapAssetCodeToField(item.account());
             groups.computeIfPresent(field, (k, v) -> new SptFieldItem(k, v.label(), v.amount().add(amount)));
         }
 
         return new ArrayList<>(groups.values());
     }
 
-    private String mapAssetCodeToField(String code, NormalBalance normalBalance) {
-        // Cash & equivalents: 1.1.01-1.1.09
-        if (code.startsWith("1.1.0")) return SLOT_8A_I_1;
+    /** Package-private so the Transkrip 8A slot decision can be asserted without a full report. */
+    String mapAssetCodeToField(ChartOfAccount account) {
+        String code = account.getAccountCode();
+        NormalBalance normalBalance = account.getNormalBalance();
+        // Cash & equivalents: the explicit cash/bank flag, so Transkrip 8A.I.1 agrees
+        // with the cash flow statement and the dashboard total.
+        if (Boolean.TRUE.equals(account.getIsCashBank())) return SLOT_8A_I_1;
         // Trade receivables: 1.1.10
         if (code.equals("1.1.10")) return SLOT_8A_I_2;
         // Other receivables: 1.1.11-1.1.14

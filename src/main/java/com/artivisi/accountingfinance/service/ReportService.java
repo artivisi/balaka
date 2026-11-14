@@ -322,7 +322,7 @@ public class ReportService {
     // ==================== CASH FLOW STATEMENT ====================
 
     public CashFlowReport generateCashFlowStatement(LocalDate startDate, LocalDate endDate) {
-        // Get cash/bank accounts dynamically (all active leaf accounts matching 1.1.0x pattern)
+        // Get cash/bank accounts explicitly flagged in the chart of accounts
         List<ChartOfAccount> cashAccounts = chartOfAccountRepository.findCashBankAccounts();
 
         // Calculate beginning cash balance (before startDate)

@@ -82,7 +82,12 @@
                                 th:text="${account.accountCode + ' - ' + account.accountName}"
                                 th:selected="${selectedGlAccountId == account.id}">Account</option>
                     </select>
-                    <p class="mt-1 text-xs text-gray-500">Hubungkan dengan akun GL untuk rekonsiliasi bank</p>
+                    <p class="mt-1 text-xs text-gray-500">Hubungkan dengan akun ASSET untuk rekonsiliasi bank</p>
+                    <p class="mt-1 text-xs text-amber-700">
+                        Menghubungkan akun GL akan menandainya sebagai akun kas/bank sehingga masuk ke total kas
+                        dan laporan arus kas. Tautan ini dapat dilepas kembali; akun yang hanya ditandai otomatis
+                        akan berhenti menjadi kas setelah tidak ada rekening bank yang memakainya.
+                    </p>
                 </div>
 
                 <!-- Default Account -->

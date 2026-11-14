@@ -20,4 +20,6 @@ public interface CompanyBankAccountRepository extends JpaRepository<CompanyBankA
     Optional<CompanyBankAccount> findByAccountNumber(String accountNumber);
 
     boolean existsByAccountNumber(String accountNumber);
+
+    boolean existsByGlAccount_Id(UUID glAccountId);
 }

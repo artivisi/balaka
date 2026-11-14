@@ -30,6 +30,14 @@ INSERT INTO chart_of_accounts (id, account_code, account_name, account_type, nor
 ('10000000-0000-0000-0000-000000000131', '1.3.01', 'Website & Software', 'ASSET', 'DEBIT', '10000000-0000-0000-0000-000000000013', 3, FALSE, TRUE, TRUE),
 ('10000000-0000-0000-0000-000000000132', '1.3.02', 'Akum. Amortisasi Aset Tak Berwujud', 'ASSET', 'CREDIT', '10000000-0000-0000-0000-000000000013', 3, FALSE, TRUE, TRUE);
 
+-- Cash/bank membership is explicit. These fixture rows are inserted after V018 has
+-- run, so the fixture sets the flag for its own Kas/Bank accounts here. Its 1.1.07
+-- (prepaid) and 1.1.08 (receivable) rows stay false, which the old 1.1.0% prefix
+-- rule got wrong.
+UPDATE chart_of_accounts
+SET is_cash_bank = TRUE, cash_bank_source = 'MIGRATED'
+WHERE account_code IN ('1.1.01', '1.1.02', '1.1.03');
+
 -- LIABILITAS (2.x.xx) - Permanent accounts
 INSERT INTO chart_of_accounts (id, account_code, account_name, account_type, normal_balance, level, is_header, active, is_permanent) VALUES
 ('20000000-0000-0000-0000-000000000001', '2', 'LIABILITAS', 'LIABILITY', 'CREDIT', 1, TRUE, TRUE, TRUE);
