@@ -487,6 +487,15 @@ public class PayrollService {
     }
 
     /**
+     * Find payroll runs whose period falls in the given year, optionally by status, newest first.
+     * The year is applied in the query so paging and totals count only that year.
+     */
+    @Transactional(readOnly = true)
+    public Page<PayrollRun> findByYear(int year, PayrollStatus status, Pageable pageable) {
+        return payrollRunRepository.findByYearAndStatusOptional(String.valueOf(year), status, pageable);
+    }
+
+    /**
      * Get payroll details for a run.
      */
     @Transactional(readOnly = true)

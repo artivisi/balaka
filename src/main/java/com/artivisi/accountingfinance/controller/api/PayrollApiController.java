@@ -77,23 +77,12 @@ public class PayrollApiController {
             @RequestParam(required = false) PayrollStatus status,
             Pageable pageable) {
         Page<PayrollRun> page;
-        if (status != null) {
+        if (year != null) {
+            page = payrollService.findByYear(year, status, pageable);
+        } else if (status != null) {
             page = payrollService.findByStatus(status, pageable);
         } else {
             page = payrollService.findAll(pageable);
-        }
-
-        // Filter by year if provided
-        if (year != null) {
-            String yearPrefix = String.valueOf(year);
-            page = page.map(run -> run); // Keep pagination but filter below
-            Page<PayrollRun> finalPage = page;
-            List<PayrollRunResponse> filtered = finalPage.getContent().stream()
-                    .filter(r -> r.getPayrollPeriod().startsWith(yearPrefix))
-                    .map(PayrollRunResponse::from)
-                    .toList();
-            return ResponseEntity.ok(new org.springframework.data.domain.PageImpl<>(
-                    filtered, pageable, filtered.size()));
         }
 
         return ResponseEntity.ok(page.map(PayrollRunResponse::from));

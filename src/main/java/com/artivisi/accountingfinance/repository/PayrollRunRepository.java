@@ -29,6 +29,13 @@ public interface PayrollRunRepository extends JpaRepository<PayrollRun, UUID> {
            "ORDER BY p.payrollPeriod DESC")
     Page<PayrollRun> findByStatusOptional(@Param("status") PayrollStatus status, Pageable pageable);
 
+    @Query("SELECT p FROM PayrollRun p WHERE p.payrollPeriod LIKE CONCAT(:year, '-%') " +
+           "AND (:status IS NULL OR p.status = :status) " +
+           "ORDER BY p.payrollPeriod DESC")
+    Page<PayrollRun> findByYearAndStatusOptional(@Param("year") String year,
+                                                 @Param("status") PayrollStatus status,
+                                                 Pageable pageable);
+
     @Query("SELECT p FROM PayrollRun p ORDER BY p.payrollPeriod DESC")
     Page<PayrollRun> findAllOrderByPeriodDesc(Pageable pageable);
 }

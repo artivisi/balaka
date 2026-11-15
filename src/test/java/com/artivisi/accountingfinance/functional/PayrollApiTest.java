@@ -309,10 +309,37 @@ class PayrollApiTest extends PlaywrightTestBase {
     }
 
     @Test
-    @DisplayName("Payroll list with filters")
-    void payrollListWithFilters() {
-        APIResponse listResponse = get("/api/payroll");
-        assertThat(listResponse.status()).isEqualTo(200);
+    @DisplayName("Year filter pages and counts only that year's runs, even when newer runs exist")
+    void payrollListWithFilters() throws Exception {
+        // 2027-01/02 are the target year; 2028-11 is newer, so it sorts first in the unfiltered list.
+        // Filtering after paging returned an empty page 0 for year=2027&size=1.
+        java.util.List<String> created = new java.util.ArrayList<>();
+        try {
+            for (String period : java.util.List.of("2027-01", "2027-02", "2028-11")) {
+                APIResponse response = post("/api/payroll", Map.of("payrollPeriod", period));
+                assertThat(response.status()).as(period + ": " + response.text()).isEqualTo(201);
+                created.add(parse(response).get("id").asText());
+            }
+
+            JsonNode first = parse(get("/api/payroll?year=2027&size=1&page=0"));
+            assertThat(first.get("page").get("totalElements").asInt()).isEqualTo(2);
+            assertThat(first.get("page").get("totalPages").asInt()).isEqualTo(2);
+            assertThat(first.get("content")).hasSize(1);
+            assertThat(first.get("content").get(0).get("payrollPeriod").asText()).isEqualTo("2027-02");
+
+            JsonNode second = parse(get("/api/payroll?year=2027&size=1&page=1"));
+            assertThat(second.get("content")).hasSize(1);
+            assertThat(second.get("content").get(0).get("payrollPeriod").asText()).isEqualTo("2027-01");
+
+            JsonNode drafts = parse(get("/api/payroll?year=2027&status=DRAFT&size=20"));
+            assertThat(drafts.get("page").get("totalElements").asInt()).isEqualTo(2);
+            JsonNode approved = parse(get("/api/payroll?year=2027&status=APPROVED&size=20"));
+            assertThat(approved.get("page").get("totalElements").asInt()).isZero();
+        } finally {
+            for (String id : created) {
+                assertThat(delete("/api/payroll/" + id).status()).isEqualTo(204);
+            }
+        }
     }
 
     @Test

@@ -137,7 +137,7 @@ Period-scoped data (transactions, payroll runs, fiscal periods, schedules) goes 
 | 2004 / 2005 / 2006 | TaxDetailApiTest / TaxExportApiTest / TaxDetailAutoPopulateTest (API rejects future dates) |
 | 2007 | DraftAndTransactionCorrectionApiTest |
 | 2024-01 (seller, coffee-shop ctx), 2024-07 (campus ctx) | Seed data asserted exactly — never post into these months in those contexts |
-| 2028 | PayrollApiTest |
+| 2027 (payroll periods), 2028 | PayrollApiTest |
 | 2029 | PayrollSchedulerTest |
 | 2113-2121 (integration DB) | BenefitInKindPayrollTest |
 | 2122-2129 (integration DB) | FiscalAdjustmentDraftServiceTest |
