@@ -8,6 +8,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 import java.io.IOException;
@@ -20,6 +22,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -68,10 +71,13 @@ class LegacySeedPackMigrationTest {
         String url = freshDatabaseAtV007();
         loadPack(url, pack, rows -> rows);
 
-        flyway(url, null).migrate();
+        Flyway flyway = flyway(url, null);
+        flyway.migrate();
 
+        assertThat(flyway.info().pending()).as("pending migrations").isEmpty();
         try (Connection c = connect(url)) {
-            assertThat(single(c, "SELECT max(version::INT)::TEXT FROM flyway_schema_history WHERE success")).isEqualTo("17");
+            assertThat(single(c, "SELECT max(version::INT)::TEXT FROM flyway_schema_history WHERE success"))
+                    .isEqualTo(latestMigrationVersion());
             assertThat(single(c, "SELECT account_code FROM chart_of_accounts WHERE account_name = 'Laba Penjualan Aset'")).isEqualTo(gainCode);
             assertThat(single(c, "SELECT account_code FROM chart_of_accounts WHERE account_name = 'Rugi Penjualan Aset'")).isEqualTo(lossCode);
             assertThat(single(c, "SELECT account_code FROM chart_of_accounts WHERE account_name = 'Kredit Pajak PPh 23'")).isEqualTo("1.1.26");
@@ -177,6 +183,18 @@ class LegacySeedPackMigrationTest {
             config.target(target);
         }
         return config.load();
+    }
+
+    /** Highest V-number among the production migration files, so a new migration does not break this test. */
+    private static String latestMigrationVersion() throws IOException {
+        Resource[] files = new PathMatchingResourcePatternResolver().getResources("classpath:db/migration/V*__*.sql");
+        assertThat(files).as("production migrations on the classpath").isNotEmpty();
+        return Arrays.stream(files)
+                .map(Resource::getFilename)
+                .map(name -> Integer.parseInt(name.substring(1, name.indexOf("__"))))
+                .max(Integer::compare)
+                .map(String::valueOf)
+                .orElseThrow();
     }
 
     private static Connection connect(String url) throws SQLException {
