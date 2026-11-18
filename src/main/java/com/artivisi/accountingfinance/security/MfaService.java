@@ -16,8 +16,8 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
-import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
@@ -55,6 +55,8 @@ public class MfaService {
     }
 
     private static final int RECOVERY_CODE_COUNT = 10;
+    /** Same zone the deployment runs in (-Duser.timezone=Asia/Jakarta). */
+    private static final ZoneId APP_ZONE = ZoneId.of("Asia/Jakarta");
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private final TotpService totpService;
@@ -200,7 +202,7 @@ public class MfaService {
         }
 
         UserMfaRecoveryCode recoveryCode = match.get();
-        recoveryCode.setUsedAt(LocalDateTime.now());
+        recoveryCode.setUsedAt(LocalDateTime.now(APP_ZONE));
         recoveryCodeRepository.save(recoveryCode);
         attemptService.succeeded(user.getUsername());
         securityAuditService.log(AuditEventType.MFA_RECOVERY_USED,
@@ -323,15 +325,10 @@ public class MfaService {
                 .forEach(name -> {
                     try {
                         roles.add(Role.valueOf(name.toUpperCase(Locale.ROOT)));
-                    } catch (IllegalArgumentException e) {
+                    } catch (IllegalArgumentException _) {
                         log.warn("Ignoring unknown role '{}' in app.mfa.required-roles", name);
                     }
                 });
         return roles;
-    }
-
-    /** Visible for tests: the epoch second the service considers "now". */
-    long nowEpochSecond() {
-        return Instant.now().getEpochSecond();
     }
 }

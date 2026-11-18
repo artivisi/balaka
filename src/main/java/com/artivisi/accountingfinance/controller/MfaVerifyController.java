@@ -21,6 +21,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 @Controller
 public class MfaVerifyController {
 
+    private static final String DASHBOARD_REDIRECT = "redirect:/dashboard";
+    private static final String VIEW_VERIFY = "mfa-verify";
+    private static final String ATTR_ERROR = "errorMessage";
+    private static final String ATTR_USERNAME = "username";
+
     private final MfaService mfaService;
     private final MfaAttemptService attemptService;
     private final UserRepository userRepository;
@@ -37,13 +42,13 @@ public class MfaVerifyController {
     public String form(HttpServletRequest request, Model model) {
         User user = currentUser();
         if (user == null || !mfaService.mustVerify(user)) {
-            return "redirect:/dashboard";
+            return DASHBOARD_REDIRECT;
         }
         if (isVerified(request, user)) {
-            return "redirect:/dashboard";
+            return DASHBOARD_REDIRECT;
         }
-        model.addAttribute("username", user.getUsername());
-        return "mfa-verify";
+        model.addAttribute(ATTR_USERNAME, user.getUsername());
+        return VIEW_VERIFY;
     }
 
     @PostMapping("/mfa-verify")
@@ -53,36 +58,36 @@ public class MfaVerifyController {
                          Model model) {
         User user = currentUser();
         if (user == null || !mfaService.mustVerify(user)) {
-            return "redirect:/dashboard";
+            return DASHBOARD_REDIRECT;
         }
 
-        model.addAttribute("username", user.getUsername());
+        model.addAttribute(ATTR_USERNAME, user.getUsername());
 
         if (attemptService.isBlocked(user.getUsername())) {
-            model.addAttribute("errorMessage",
+            model.addAttribute(ATTR_ERROR,
                     "Terlalu banyak percobaan. Coba lagi dalam " + attemptService.windowMinutes() + " menit.");
-            return "mfa-verify";
+            return VIEW_VERIFY;
         }
 
         boolean accepted;
         if (recoveryCode != null && !recoveryCode.isBlank()) {
             accepted = mfaService.verifyRecoveryCode(user, recoveryCode);
             if (!accepted) {
-                model.addAttribute("errorMessage", "Kode pemulihan tidak valid atau sudah dipakai.");
+                model.addAttribute(ATTR_ERROR, "Kode pemulihan tidak valid atau sudah dipakai.");
             }
         } else {
             MfaService.VerifyOutcome outcome = mfaService.verify(user, code);
             accepted = outcome == MfaService.VerifyOutcome.OK;
-            model.addAttribute("errorMessage", messageFor(outcome));
+            model.addAttribute(ATTR_ERROR, messageFor(outcome));
         }
 
         if (!accepted) {
-            return "mfa-verify";
+            return VIEW_VERIFY;
         }
 
         HttpSession session = request.getSession(true);
         session.setAttribute(MfaEnforcementFilter.VERIFIED_USER_SESSION_ATTRIBUTE, user.getUsername());
-        return "redirect:/dashboard";
+        return DASHBOARD_REDIRECT;
     }
 
     private String messageFor(MfaService.VerifyOutcome outcome) {
