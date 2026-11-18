@@ -79,6 +79,15 @@ public class BearerTokenAuthenticationFilter extends OncePerRequestFilter {
             reject(response, "User is inactive");
             return;
         }
+        if (Boolean.TRUE.equals(user.getPasswordChangeRequired())) {
+            log.warn("Rejected API token {}: user {} must change the password first", dt.getId(),
+                    LogSanitizer.username(user.getUsername()));
+            SecurityContextHolder.clearContext();
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            response.setContentType("application/json");
+            response.getWriter().write(PasswordChangeRequiredFilter.API_REJECTION);
+            return;
+        }
 
         dt.updateLastUsed(getClientIpAddress(request));
         deviceTokenRepository.save(dt);

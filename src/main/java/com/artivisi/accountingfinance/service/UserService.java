@@ -13,6 +13,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -52,18 +54,25 @@ public class UserService {
         return userRepository.findByUsername(username);
     }
 
+    /**
+     * Creates a user with a password chosen by an administrator. The user must change it at the first
+     * login (issue #61).
+     */
     @Transactional
     public User create(User user, Set<Role> roles) {
+        user.setEmail(normalizeEmail(user.getEmail()));
         // Validate unique constraints
         if (userRepository.existsByUsername(user.getUsername())) {
             throw new IllegalArgumentException("Username already exists: " + user.getUsername());
         }
-        if (user.getEmail() != null && !user.getEmail().isBlank() && userRepository.existsByEmail(user.getEmail())) {
+        if (user.getEmail() != null && userRepository.existsByEmailIgnoreCase(user.getEmail())) {
             throw new IllegalArgumentException("Email already exists: " + user.getEmail());
         }
 
         // Encode password
         user.setPassword(passwordEncoder.encode(user.getPassword()));
+        user.setPasswordChangeRequired(true);
+        user.setCredentialsChangedAt(LocalDateTime.now().truncatedTo(ChronoUnit.MICROS));
 
         // Set roles
         String currentUser = getCurrentUsername();
@@ -86,9 +95,10 @@ public class UserService {
         }
 
         // Check email uniqueness if changed
-        if (updated.getEmail() != null && !updated.getEmail().isBlank() &&
-            !updated.getEmail().equals(user.getEmail()) &&
-            userRepository.existsByEmail(updated.getEmail())) {
+        updated.setEmail(normalizeEmail(updated.getEmail()));
+        if (updated.getEmail() != null &&
+            !updated.getEmail().equalsIgnoreCase(user.getEmail()) &&
+            userRepository.existsByEmailIgnoreCase(updated.getEmail())) {
             throw new IllegalArgumentException("Email already exists: " + updated.getEmail());
         }
 
@@ -105,16 +115,6 @@ public class UserService {
         User savedUser = userRepository.save(user);
         log.info("Updated user: {} with roles: {}", LogSanitizer.username(savedUser.getUsername()), roles);
         return savedUser;
-    }
-
-    @Transactional
-    public void changePassword(UUID id, String newPassword) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException(USER_NOT_FOUND + id));
-
-        user.setPassword(passwordEncoder.encode(newPassword));
-        userRepository.save(user);
-        log.info("Changed password for user: {}", LogSanitizer.username(user.getUsername()));
     }
 
     @Transactional
@@ -150,6 +150,11 @@ public class UserService {
     @Transactional(readOnly = true)
     public long count() {
         return userRepository.count();
+    }
+
+    /** Blank means no address; addresses are unique case-insensitively (V022). */
+    private static String normalizeEmail(String email) {
+        return email == null || email.isBlank() ? null : email.trim();
     }
 
     private String getCurrentUsername() {

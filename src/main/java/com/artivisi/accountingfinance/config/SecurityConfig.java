@@ -1,7 +1,10 @@
 package com.artivisi.accountingfinance.config;
 
 import com.artivisi.accountingfinance.security.BearerTokenAuthenticationFilter;
+import com.artivisi.accountingfinance.repository.UserRepository;
 import com.artivisi.accountingfinance.security.CspNonceHeaderWriter;
+import com.artivisi.accountingfinance.security.StaleSessionFilter;
+import com.artivisi.accountingfinance.service.PasswordChangeService;
 import com.artivisi.accountingfinance.service.SecurityAuditService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -21,7 +24,10 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
@@ -41,14 +47,18 @@ public class SecurityConfig {
             HttpSecurity http,
             UserDetailsService userDetailsService,
             BearerTokenAuthenticationFilter bearerTokenAuthenticationFilter,
-            SecurityAuditService securityAuditService) throws Exception {
+            SecurityAuditService securityAuditService,
+            UserRepository userRepository) throws Exception {
         http
             .userDetailsService(userDetailsService)
             // Add Bearer token authentication filter before username/password filter
             .addFilterBefore(bearerTokenAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+            // Ends a session authenticated before the user's password last changed (issue #61)
+            .addFilterAfter(new StaleSessionFilter(userRepository), AnonymousAuthenticationFilter.class)
             .authorizeHttpRequests(auth -> {
                 auth.requestMatchers("/css/**", "/js/**", "/img/**", "/themes/**", "/webjars/**").permitAll()
                     .requestMatchers("/login", "/error").permitAll()
+                    .requestMatchers("/forgot-password", "/reset-password").permitAll()
                     .requestMatchers("/setup", "/setup/**").permitAll()
                     .requestMatchers("/api/telegram/webhook").permitAll()
                     // OpenAPI spec and Swagger UI (unauthenticated)
@@ -85,7 +95,7 @@ public class SecurityConfig {
             .cors(cors -> cors.disable())
             .formLogin(form -> form
                 .loginPage("/login")
-                .defaultSuccessUrl("/dashboard", false)
+                .successHandler(loginSuccessHandler())
                 .failureHandler(loginFailureHandler(securityAuditService))
                 .permitAll()
             )
@@ -158,6 +168,20 @@ public class SecurityConfig {
                 securityAuditService.logLogin(request.getParameter("username"), false, "Account locked - login blocked");
             }
             delegate.onAuthenticationFailure(request, response, exception);
+        };
+    }
+
+    /**
+     * Records on the session when it was authenticated; StaleSessionFilter compares it with the user's
+     * credentials_changed_at. Otherwise the default: back to the saved request, or /dashboard.
+     */
+    private static AuthenticationSuccessHandler loginSuccessHandler() {
+        SavedRequestAwareAuthenticationSuccessHandler delegate = new SavedRequestAwareAuthenticationSuccessHandler();
+        delegate.setDefaultTargetUrl("/dashboard");
+        return (request, response, authentication) -> {
+            request.getSession().setAttribute(PasswordChangeService.SESSION_AUTHENTICATED_AT,
+                    java.time.LocalDateTime.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS));
+            delegate.onAuthenticationSuccess(request, response, authentication);
         };
     }
 

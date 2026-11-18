@@ -43,6 +43,13 @@
                 </div>
             </div>
 
+            <div th:if="${param.reset}" id="message-reset" class="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
+                Password berhasil diubah. Silakan masuk dengan password baru.
+            </div>
+            <div th:if="${param.expired}" id="message-expired" class="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+                Sesi diakhiri karena password akun ini diubah. Silakan masuk kembali.
+            </div>
+
             <!-- Login Form -->
             <form th:action="@{/login}" method="post" class="space-y-6">
                 <div>
@@ -71,6 +78,9 @@
                     Masuk
                 </button>
             </form>
+            <div th:if="${passwordResetEnabled}" class="mt-6 text-center">
+                <a th:href="@{/forgot-password}" id="link-forgot-password" class="text-sm text-primary-700 hover:underline">Lupa password?</a>
+            </div>
         </div>
 
         <!-- Footer -->

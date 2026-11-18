@@ -69,6 +69,24 @@ telegram.bot.webhook.url={{ telegram_webhook_url }}
 telegram.bot.webhook.secret-token={{ telegram_webhook_secret }}
 {% endif %}
 
+# Password reset by email (issue #61). Off unless password_reset_enabled is true; then every value
+# below must be set, or the application refuses to start.
+app.password-reset.enabled={{ password_reset_enabled | default(false) | lower }}
+{% if password_reset_enabled | default(false) %}
+app.password-reset.base-url=https://{{ app_domain }}
+app.password-reset.from={{ password_reset_from }}
+spring.mail.host={{ smtp_host }}
+spring.mail.port={{ smtp_port }}
+spring.mail.properties.mail.smtp.auth={{ smtp_auth | lower }}
+# EHLO name. JavaMail defaults to the machine hostname, which on a VPS is often an internal name that the
+# Google relay rejects or throttles.
+spring.mail.properties.mail.smtp.localhost={{ app_domain }}
+{% if smtp_auth %}
+spring.mail.username={{ smtp_username }}
+spring.mail.password={{ smtp_password }}
+{% endif %}
+{% endif %}
+
 # Google Cloud Vision configuration
 google.cloud.vision.enabled={{ google_cloud_vision_enabled | default(false) | lower }}
 {% if google_cloud_vision_enabled | default(false) %}

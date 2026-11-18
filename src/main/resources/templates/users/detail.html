@@ -40,10 +40,14 @@
                         <p class="text-sm text-gray-500" th:text="'@' + ${user.username}">@admin</p>
                     </div>
                 </div>
-                <span th:if="${user.active}"
-                      class="px-3 py-1 text-sm rounded-full bg-green-100 text-green-700">Aktif</span>
-                <span th:unless="${user.active}"
-                      class="px-3 py-1 text-sm rounded-full bg-gray-100 text-gray-500">Nonaktif</span>
+                <div class="flex items-center gap-2">
+                    <span th:if="${user.passwordChangeRequired}" id="badge-password-change-required"
+                          class="px-3 py-1 text-sm rounded-full bg-amber-100 text-amber-800">Wajib ganti password</span>
+                    <span th:if="${user.active}"
+                          class="px-3 py-1 text-sm rounded-full bg-green-100 text-green-700">Aktif</span>
+                    <span th:unless="${user.active}"
+                          class="px-3 py-1 text-sm rounded-full bg-gray-100 text-gray-500">Nonaktif</span>
+                </div>
             </div>
 
             <!-- Details -->
@@ -169,6 +173,14 @@
                    class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors">
                     Ubah Password
                 </a>
+                <form sec:authorize="hasAuthority('USER_EDIT')" id="form-send-password-reset"
+                      th:if="${passwordResetEnabled and user.email != null and user.active}"
+                      th:action="@{/users/{id}/send-password-reset(id=${user.id})}" method="post" class="inline">
+                    <button type="submit" id="btn-send-password-reset"
+                            class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors">
+                        Kirim Email Reset Password
+                    </button>
+                </form>
                 <form sec:authorize="hasAuthority('USER_EDIT')"
                       th:action="@{/users/{id}/toggle-active(id=${user.id})}" method="post" class="inline">
                     <button type="submit"

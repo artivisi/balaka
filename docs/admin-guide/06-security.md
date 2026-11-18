@@ -169,7 +169,13 @@ Konfigurasi di `SecurityConfig.java`:
 
 - Hashing: BCrypt (10 rounds)
 - Account lockout: Ditangani oleh `AuthenticationEventListener`
-- Password strength: Enforced di UI
+- Kebijakan password (`PasswordValidator`, minimal 12 karakter dengan huruf besar, huruf kecil, angka dan karakter khusus) berlaku sama pada tiga jalur: administrator menetapkan password, pengguna mengganti sendiri, dan reset melalui email.
+- Ganti password sendiri: setiap pengguna, apa pun role-nya, melalui ikon kunci di bawah sidebar (`/account/password`). Wajib memasukkan password saat ini; password baru harus berbeda.
+- Wajib ganti saat login pertama: password yang ditetapkan administrator (pengguna baru atau Ubah Password di halaman pengguna) menandai akun `password_change_required`. Selama tanda aktif, sesi web hanya bisa membuka halaman ganti password dan logout; request API dengan token perangkat ditolak `403 {"error":"password_change_required"}`. Tanda hilang hanya setelah pengguna mengganti sendiri. Daftar dan detail pengguna menampilkan label "Wajib ganti password". Administrator yang ingin mengganti password sendiri diarahkan ke `/account/password`.
+- Setelah password berubah melalui jalur mana pun, semua token perangkat pengguna dicabut dan sesi web lain yang login sebelum perubahan diakhiri pada request berikutnya (diarahkan ke `/login?expired`). Pada ganti password sendiri, sesi yang dipakai untuk mengganti tetap berlaku.
+- Reset melalui email: tautan sekali pakai, berlaku 30 menit, hanya SHA-256-nya yang disimpan (`password_reset_tokens`). Permintaan baru membatalkan tautan sebelumnya. Halaman "Lupa password?" memberi jawaban yang sama untuk alamat terdaftar maupun tidak; email dikirim di thread terpisah setelah transaksi selesai. Reset yang berhasil juga menghapus lockout login akun tersebut. Administrator dapat mengirim email reset dari halaman detail pengguna. Konfigurasi: [Konfigurasi → Reset Password melalui Email](02-configuration.md#reset-password-melalui-email).
+- Alamat email pengguna unik tanpa membedakan huruf besar/kecil (indeks `uk_users_email_lower`, migrasi V022). Migrasi V022 berhenti dengan pesan jika ada dua pengguna aktif dengan alamat yang sama; perbaiki datanya lalu jalankan ulang.
+- Event audit: `PASSWORD_CHANGED`, `PASSWORD_CHANGE_REQUIRED_SET`, `PASSWORD_CHANGE_REQUIRED_CLEARED`, `PASSWORD_RESET_REQUESTED`, `PASSWORD_RESET_COMPLETED`. Nilai password dan token tidak pernah dicatat.
 
 ## API Security
 

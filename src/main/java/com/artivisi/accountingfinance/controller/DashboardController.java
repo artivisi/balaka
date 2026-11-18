@@ -3,6 +3,7 @@ package com.artivisi.accountingfinance.controller;
 import com.artivisi.accountingfinance.exception.MissingConfigurationException;
 import com.artivisi.accountingfinance.security.Permission;
 import com.artivisi.accountingfinance.service.DashboardService;
+import com.artivisi.accountingfinance.service.PasswordResetService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -24,6 +25,7 @@ import static com.artivisi.accountingfinance.controller.ViewConstants.*;
 public class DashboardController {
 
     private final DashboardService dashboardService;
+    private final PasswordResetService passwordResetService;
 
     @GetMapping("/")
     public String home() {
@@ -80,7 +82,8 @@ public class DashboardController {
 
     @GetMapping("/login")
     @PreAuthorize("permitAll()")
-    public String login() {
+    public String login(Model model) {
+        model.addAttribute("passwordResetEnabled", passwordResetService.isEnabled());
         return "login";
     }
 }

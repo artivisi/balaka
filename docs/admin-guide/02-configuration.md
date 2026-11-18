@@ -43,6 +43,31 @@ openssl rand -base64 32
 
 **Kritis:** Simpan key ini di tempat aman. Jika hilang, data PII yang terenkripsi tidak bisa didekripsi.
 
+## Reset Password melalui Email
+
+Mati secara default. Selama mati, halaman login tidak menampilkan tautan "Lupa password?" dan halaman reset menjawab HTTP 503 dengan pesan bahwa fitur belum dikonfigurasi. Jika `app.password-reset.enabled=true` tetapi salah satu nilai di bawah kosong, aplikasi gagal start.
+
+| Property | Env Variable | Keterangan |
+|----------|-------------|------------|
+| `app.password-reset.enabled` | `APP_PASSWORD_RESET_ENABLED` | `true` untuk mengaktifkan |
+| `app.password-reset.base-url` | `APP_BASE_URL` | URL publik aplikasi, misalnya `https://balaka.example.com`. Tautan di email dibangun dari nilai ini, bukan dari header `Host` request |
+| `app.password-reset.from` | `APP_PASSWORD_RESET_FROM` | Alamat pengirim |
+| `spring.mail.host` | `SPRING_MAIL_HOST` | Server SMTP |
+| `spring.mail.port` | `SPRING_MAIL_PORT` | Port SMTP (STARTTLS wajib) |
+| `spring.mail.properties.mail.smtp.auth` | `APP_SMTP_AUTH` | `true`: login SMTP dengan username dan password (wajib diisi). `false`: tanpa login, untuk relay yang mengenali alamat IP server; username dan password harus kosong |
+| `spring.mail.username` | `SPRING_MAIL_USERNAME` | Akun SMTP, hanya jika `APP_SMTP_AUTH=true` |
+| `spring.mail.password` | `SPRING_MAIL_PASSWORD` | Password SMTP, hanya jika `APP_SMTP_AUTH=true` |
+| `app.password-reset.token-validity` | — | Masa berlaku tautan, `30m` |
+| `app.password-reset.max-requests-per-ip` | — | Permintaan per alamat IP per jendela, `10` |
+| `app.password-reset.max-requests-per-account` | — | Email per akun per jendela, `3` |
+| `app.password-reset.rate-window` | — | Jendela pembatasan, `1h` |
+
+Google Workspace SMTP relay (pengirim seperti `noreply@domain` tidak perlu mailbox atau lisensi): di Admin console buka Apps → Google Workspace → Gmail → Routing → SMTP relay service, lalu buat aturan dengan pengirim "Only addresses in my domains", autentikasi "Only accept mail from the specified IP addresses" berisi IP publik server, dan wajib TLS. Konfigurasi aplikasi: host `smtp-relay.gmail.com`, port `587`, `APP_SMTP_AUTH=false`. Nama EHLO harus nama domain publik, bukan hostname internal VPS; template Ansible mengisi `spring.mail.properties.mail.smtp.localhost` dengan `app_domain`, untuk instalasi tanpa Ansible isi property itu sendiri. Uji dari server sebelum deploy, misalnya dengan `smtplib` Python ke `smtp-relay.gmail.com:587` memakai STARTTLS dan `local_hostname` domain aplikasi. Aktifkan juga DKIM untuk domain (Apps → Gmail → Authenticate email) agar email reset tidak masuk spam.
+
+Akun Gmail dengan App Password: host `smtp.gmail.com`, port `587`, `APP_SMTP_AUTH=true`, username alamat akun, password berupa App Password (akun harus memakai 2-Step Verification). Alamat pengirim harus akun itu sendiri atau alias yang sudah diverifikasi.
+
+Ansible: isi `password_reset_enabled`, `password_reset_from`, `smtp_host`, `smtp_port`, `smtp_auth`, dan untuk `smtp_auth: true` juga `smtp_username`, `smtp_password` di `group_vars`; base URL diambil dari `app_domain`.
+
 ## Telegram Bot
 
 | Property | Environment Variable | Keterangan |

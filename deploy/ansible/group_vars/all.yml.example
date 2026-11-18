@@ -168,3 +168,22 @@ backup_gdrive_enabled: false
 # Backup Notification (optional - webhook URL)
 backup_notification_enabled: false
 # backup_notification_url: "https://hooks.example.com/backup"
+
+# Password reset by email (issue #61). Leave disabled unless SMTP is available. STARTTLS is required.
+# The reset link is built from https://{{ app_domain }}.
+#
+# Google Workspace SMTP relay (no mailbox or password needed for the sender): Admin console > Apps >
+# Google Workspace > Gmail > Routing > SMTP relay service, allowed senders "Only addresses in my domains",
+# authentication "Only accept mail from the specified IP addresses" = this server's public IP, require TLS.
+# password_reset_enabled: true
+# password_reset_from: "noreply@example.com"
+# smtp_host: "smtp-relay.gmail.com"
+# smtp_port: 587
+# smtp_auth: false
+#
+# Gmail account with an App Password instead (needs 2-Step Verification; the sender must be that
+# account or a verified alias):
+# smtp_host: "smtp.gmail.com"
+# smtp_auth: true
+# smtp_username: "account@example.com"
+# smtp_password: "app-password"

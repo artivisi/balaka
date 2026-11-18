@@ -8,6 +8,10 @@ import com.artivisi.accountingfinance.security.PasswordValidator;
 import com.artivisi.accountingfinance.security.Permission;
 import com.artivisi.accountingfinance.security.MfaService;
 import com.artivisi.accountingfinance.service.DeviceAuthService;
+import com.artivisi.accountingfinance.service.PasswordChangeException;
+import com.artivisi.accountingfinance.service.PasswordChangeService;
+import com.artivisi.accountingfinance.service.PasswordResetService;
+import com.artivisi.accountingfinance.service.PasswordResetUnavailableException;
 import com.artivisi.accountingfinance.service.SecurityAuditService;
 import com.artivisi.accountingfinance.service.UserService;
 import jakarta.validation.Valid;
@@ -51,6 +55,7 @@ public class UserController {
     private static final String VIEW_CHANGE_PASSWORD = "users/change-password";
     private static final String REDIRECT_USERS = "redirect:/users";
     private static final String REDIRECT_USERS_PREFIX = "redirect:/users/";
+    private static final String REDIRECT_OWN_PASSWORD = "redirect:/account/password";
     private static final String USER_NOT_FOUND = "User not found: ";
     private static final String STATUS_ACTIVE = "active";
     private static final String STATUS_INACTIVE = "inactive";
@@ -61,6 +66,8 @@ public class UserController {
     private final SecurityAuditService securityAuditService;
     private final DeviceAuthService deviceAuthService;
     private final MfaService mfaService;
+    private final PasswordChangeService passwordChangeService;
+    private final PasswordResetService passwordResetService;
 
     @Getter
     @Setter
@@ -165,6 +172,8 @@ public class UserController {
             userService.create(user, roles);
             securityAuditService.log(AuditEventType.USER_CREATED,
                     "Created user: " + user.getUsername() + " with roles: " + roles);
+            securityAuditService.log(AuditEventType.PASSWORD_CHANGE_REQUIRED_SET,
+                    "Change at next login required for user: " + user.getUsername());
             redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Pengguna berhasil dibuat: " + user.getUsername());
             return REDIRECT_USERS;
         } catch (IllegalArgumentException e) {
@@ -184,6 +193,7 @@ public class UserController {
 
         model.addAttribute("user", user);
         model.addAttribute("deviceTokens", deviceAuthService.getActiveTokens(user));
+        model.addAttribute("passwordResetEnabled", passwordResetService.isEnabled());
         return "users/detail";
     }
 
@@ -247,9 +257,12 @@ public class UserController {
 
     @GetMapping("/{id}/change-password")
     @PreAuthorize("hasAuthority('" + Permission.USER_EDIT + "')")
-    public String changePasswordForm(@PathVariable UUID id, Model model) {
+    public String changePasswordForm(@PathVariable UUID id, Authentication authentication, Model model) {
         User user = userService.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException(USER_NOT_FOUND + id));
+        if (user.getUsername().equals(authentication.getName())) {
+            return REDIRECT_OWN_PASSWORD;
+        }
 
         model.addAttribute("user", user);
         return VIEW_CHANGE_PASSWORD;
@@ -261,29 +274,41 @@ public class UserController {
             @PathVariable UUID id,
             @RequestParam String newPassword,
             @RequestParam String confirmPassword,
+            Authentication authentication,
             RedirectAttributes redirectAttributes,
             Model model) {
 
         User user = userService.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException(USER_NOT_FOUND + id));
-
-        if (!newPassword.equals(confirmPassword)) {
-            model.addAttribute("user", user);
-            model.addAttribute(ATTR_ERROR_MESSAGE, "Password tidak cocok");
-            return VIEW_CHANGE_PASSWORD;
+        if (user.getUsername().equals(authentication.getName())) {
+            return REDIRECT_OWN_PASSWORD;
         }
 
-        var validationResult = passwordValidator.validate(newPassword);
-        if (!validationResult.isValid()) {
+        try {
+            passwordChangeService.setByAdministrator(id, newPassword, confirmPassword, authentication.getName());
+        } catch (PasswordChangeException e) {
             model.addAttribute("user", user);
-            model.addAttribute(ATTR_ERROR_MESSAGE, validationResult.getErrorMessage());
+            model.addAttribute(ATTR_ERROR_MESSAGE, e.getMessage());
             return VIEW_CHANGE_PASSWORD;
         }
+        redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE,
+                "Password berhasil diubah. Pengguna wajib menggantinya saat login berikutnya.");
+        return REDIRECT_USERS_PREFIX + id;
+    }
 
-        userService.changePassword(id, newPassword);
-        securityAuditService.log(AuditEventType.PASSWORD_CHANGED,
-                "Password changed for user: " + user.getUsername() + AUDIT_ID_SUFFIX + id + ")");
-        redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Password berhasil diubah");
+    @PostMapping("/{id}/send-password-reset")
+    @PreAuthorize("hasAuthority('" + Permission.USER_EDIT + "')")
+    public String sendPasswordReset(@PathVariable UUID id, Authentication authentication,
+                                    RedirectAttributes redirectAttributes) {
+        User user = userService.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException(USER_NOT_FOUND + id));
+        try {
+            passwordResetService.sendByAdministrator(id, authentication.getName());
+            redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE,
+                    "Email reset password dikirim ke " + user.getEmail());
+        } catch (PasswordResetUnavailableException | IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute(ATTR_ERROR_MESSAGE, e.getMessage());
+        }
         return REDIRECT_USERS_PREFIX + id;
     }
 

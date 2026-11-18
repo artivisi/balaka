@@ -10,6 +10,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -58,6 +59,20 @@ public class User extends BaseEntity {
      */
     @Column(name = "mfa_last_used_step")
     private Long mfaLastUsedStep;
+
+    /**
+     * Set when an administrator creates the user or sets their password; cleared only by the user's
+     * own change. While set, the web application admits only the password-change page and logout, and
+     * API tokens of this user are refused.
+     */
+    @Column(name = "password_change_required", nullable = false)
+    private Boolean passwordChangeRequired = false;
+
+    /**
+     * Last time the password was set. Web sessions authenticated before this instant are invalidated.
+     */
+    @Column(name = "credentials_changed_at")
+    private LocalDateTime credentialsChangedAt;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private Set<UserRole> userRoles = new HashSet<>();

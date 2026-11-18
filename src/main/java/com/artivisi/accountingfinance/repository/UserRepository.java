@@ -15,11 +15,12 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     Optional<User> findByUsername(String username);
 
-    Optional<User> findByEmail(String email);
+    /** Email addresses are unique case-insensitively among non-deleted users (V022). */
+    Optional<User> findByEmailIgnoreCase(String email);
 
     boolean existsByUsername(String username);
 
-    boolean existsByEmail(String email);
+    boolean existsByEmailIgnoreCase(String email);
 
     List<User> findByActiveTrue();
 

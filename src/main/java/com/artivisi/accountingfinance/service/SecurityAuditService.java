@@ -93,6 +93,22 @@ public class SecurityAuditService {
     }
 
     /**
+     * Log a security event for a named user when no authenticated user is the actor, such as a password
+     * reset requested from the login page.
+     */
+    @Transactional
+    public void logFor(AuditEventType eventType, String username, String details, boolean success) {
+        SecurityAuditLog auditLog = SecurityAuditLog.of(eventType, username)
+                .withIpAddress(getClientIpAddress())
+                .withUserAgent(getUserAgent())
+                .withDetails(maskSensitiveData(details))
+                .withSuccess(success);
+        auditLogRepository.save(auditLog);
+        log.info("AUDIT: {} for {} - {} - {}", eventType, LogSanitizer.username(username),
+                success ? "OK" : "FAILED", LogSanitizer.sanitize(details));
+    }
+
+    /**
      * Log a login event (success or failure).
      */
     @Transactional

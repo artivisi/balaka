@@ -1693,7 +1693,7 @@ public class DataImportService {
             String tempPassword = UUID.randomUUID().toString();
             u.setPassword(passwordEncoder.encode(tempPassword));
             u.setFullName(getField(row, 1));
-            u.setEmail(getField(row, 2));
+            u.setEmail(getFieldOrNull(row, 2)); // blank means no address; addresses are unique (V022)
             u.setActive(parseBoolean(getField(row, 3)));
             // column 4 = created_at (ignored, auto-generated)
 

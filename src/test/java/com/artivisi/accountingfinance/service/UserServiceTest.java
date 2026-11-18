@@ -3,6 +3,7 @@ package com.artivisi.accountingfinance.service;
 import com.artivisi.accountingfinance.TestcontainersConfiguration;
 import com.artivisi.accountingfinance.entity.User;
 import com.artivisi.accountingfinance.enums.Role;
+import com.artivisi.accountingfinance.repository.DeviceTokenRepository;
 import com.artivisi.accountingfinance.repository.UserRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -45,6 +46,15 @@ class UserServiceTest {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private PasswordChangeService passwordChangeService;
+
+    @Autowired
+    private DeviceAuthService deviceAuthService;
+
+    @Autowired
+    private DeviceTokenRepository deviceTokenRepository;
 
     @Nested
     @DisplayName("Find Operations")
@@ -194,6 +204,23 @@ class UserServiceTest {
             assertThat(saved.getId()).isNotNull();
             assertThat(saved.getPassword()).isNotEqualTo(rawPassword);
             assertThat(passwordEncoder.matches(rawPassword, saved.getPassword())).isTrue();
+            assertThat(saved.getPasswordChangeRequired()).as("administrator-chosen password").isTrue();
+            assertThat(saved.getCredentialsChangedAt()).isNotNull();
+        }
+
+        @Test
+        @DisplayName("create should reject an email that differs from an existing one only in case")
+        void createShouldThrowForDuplicateEmailInAnotherCase() {
+            User first = buildTestUser();
+            first.setEmail("Kasir.Satu@Test.com");
+            userService.create(first, Set.of(Role.STAFF));
+
+            User second = buildTestUser();
+            second.setEmail("  kasir.satu@test.COM ");
+
+            assertThatThrownBy(() -> userService.create(second, Set.of(Role.STAFF)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Email already exists");
         }
 
         @Test
@@ -258,6 +285,7 @@ class UserServiceTest {
             User saved = userService.create(user, Set.of(Role.STAFF));
 
             assertThat(saved.getId()).isNotNull();
+            assertThat(saved.getEmail()).as("blank stored as no address").isNull();
         }
     }
 
@@ -400,26 +428,90 @@ class UserServiceTest {
     @DisplayName("Password Operations")
     class PasswordOperationsTests {
 
-        @Test
-        @DisplayName("changePassword should encode new password")
-        void changePasswordShouldEncodeNewPassword() {
-            User user = createTestUser();
-            String newPassword = "newpassword123";
+        private static final String STRONG = "Kuat#Sekali2026";
 
-            userService.changePassword(user.getId(), newPassword);
+        @Test
+        @DisplayName("Administrator-set password is encoded, flags a forced change, stamps the change and revokes device tokens")
+        void setByAdministratorFlagsAndRevokes() {
+            User user = userRepository.saveAndFlush(userWithPassword("Lama#Sekali2025", false));
+            deviceAuthService.createAccessToken(user, "test-cli", "Laptop");
+            assertThat(deviceTokenRepository.findActiveByUser(user)).hasSize(1);
+
+            passwordChangeService.setByAdministrator(user.getId(), STRONG, STRONG, "testadmin");
 
             User updated = userRepository.findById(user.getId()).orElseThrow();
-            assertThat(passwordEncoder.matches(newPassword, updated.getPassword())).isTrue();
+            assertThat(passwordEncoder.matches(STRONG, updated.getPassword())).isTrue();
+            assertThat(updated.getPasswordChangeRequired()).isTrue();
+            assertThat(updated.getCredentialsChangedAt()).isNotNull();
+            assertThat(deviceTokenRepository.findActiveByUser(user)).isEmpty();
         }
 
         @Test
-        @DisplayName("changePassword should throw for non-existent user")
-        void changePasswordShouldThrowForNonExistentUser() {
+        @DisplayName("Administrator path enforces the policy and the confirmation, changing nothing on refusal")
+        void setByAdministratorEnforcesPolicy() {
+            User user = userRepository.saveAndFlush(userWithPassword("Lama#Sekali2025", false));
+            String before = user.getPassword();
+
+            assertThatThrownBy(() -> passwordChangeService.setByAdministrator(user.getId(), STRONG, STRONG + "x", "testadmin"))
+                .isInstanceOf(PasswordChangeException.class)
+                .hasMessage("Password tidak cocok");
+            assertThatThrownBy(() -> passwordChangeService.setByAdministrator(user.getId(), "pendek", "pendek", "testadmin"))
+                .isInstanceOf(PasswordChangeException.class)
+                .hasMessageContaining("Password minimal 12 karakter");
+
+            User unchanged = userRepository.findById(user.getId()).orElseThrow();
+            assertThat(unchanged.getPassword()).isEqualTo(before);
+            assertThat(unchanged.getPasswordChangeRequired()).isFalse();
+        }
+
+        @Test
+        @DisplayName("An administrator cannot set their own password through the administrator path")
+        void setByAdministratorRefusesOwnAccount() {
+            User self = userRepository.saveAndFlush(userWithPassword("Lama#Sekali2025", false));
+
+            assertThatThrownBy(() -> passwordChangeService.setByAdministrator(self.getId(), STRONG, STRONG, self.getUsername()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("/account/password");
+        }
+
+        @Test
+        @DisplayName("Administrator path throws for a non-existent user")
+        void setByAdministratorThrowsForNonExistentUser() {
             UUID invalidId = UUID.randomUUID();
 
-            assertThatThrownBy(() -> userService.changePassword(invalidId, "newpassword"))
+            assertThatThrownBy(() -> passwordChangeService.setByAdministrator(invalidId, STRONG, STRONG, "testadmin"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("User not found");
+        }
+
+        @Test
+        @DisplayName("Own change requires the current password, refuses reuse, and clears the forced-change flag")
+        void changeOwnPassword() {
+            User user = userRepository.saveAndFlush(userWithPassword("Sementara#2025", true));
+
+            assertThatThrownBy(() -> passwordChangeService.changeOwnPassword(user.getUsername(), "salah", STRONG, STRONG))
+                .isInstanceOf(PasswordChangeException.class)
+                .hasMessage("Password saat ini salah");
+            assertThatThrownBy(() -> passwordChangeService.changeOwnPassword(
+                    user.getUsername(), "Sementara#2025", "Sementara#2025", "Sementara#2025"))
+                .isInstanceOf(PasswordChangeException.class)
+                .hasMessage("Password baru harus berbeda dari password saat ini");
+            assertThat(userRepository.findById(user.getId()).orElseThrow().getPasswordChangeRequired()).isTrue();
+
+            var changedAt = passwordChangeService.changeOwnPassword(user.getUsername(), "Sementara#2025", STRONG, STRONG);
+
+            User updated = userRepository.findById(user.getId()).orElseThrow();
+            assertThat(passwordEncoder.matches(STRONG, updated.getPassword())).isTrue();
+            assertThat(updated.getPasswordChangeRequired()).isFalse();
+            assertThat(updated.getCredentialsChangedAt()).isEqualTo(changedAt);
+        }
+
+        private User userWithPassword(String raw, boolean changeRequired) {
+            User user = buildTestUser();
+            user.setPassword(passwordEncoder.encode(raw));
+            user.setPasswordChangeRequired(changeRequired);
+            user.setRoles(Set.of(Role.STAFF), "testadmin");
+            return user;
         }
     }
 

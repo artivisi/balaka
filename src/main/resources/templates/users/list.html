@@ -90,6 +90,9 @@
                                   class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-700">Aktif</span>
                             <span th:unless="${user.active}"
                                   class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-500">Nonaktif</span>
+                            <span th:if="${user.passwordChangeRequired}"
+                                  th:id="|badge-password-change-required-${user.username}|"
+                                  class="ml-1 px-2 py-1 text-xs rounded-full bg-amber-100 text-amber-800">Wajib ganti password</span>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm">
                             <a th:href="@{/users/{id}(id=${user.id})}"

@@ -129,7 +129,8 @@ class ServiceUserManagementTest extends PlaywrightTestBase {
                 "admin", AuditEventType.USER_CREATED, before))
                 .anyMatch(l -> l.getDetails().equals("Created user: " + username + " with roles: [STAFF]"));
 
-        assertThat(landingPageAfterLogin(username, PASSWORD)).endsWith("/dashboard");
+        assertThat(created.getPasswordChangeRequired()).as("administrator-chosen password").isTrue();
+        assertThat(landingPageAfterLogin(username, PASSWORD)).endsWith("/account/password");
     }
 
     @Test
@@ -263,7 +264,8 @@ class ServiceUserManagementTest extends PlaywrightTestBase {
         assertThat(passwordEncoder.matches(NEW_PASSWORD, userRepository.findById(user.getId()).orElseThrow().getPassword()))
                 .isTrue();
         assertThat(landingPageAfterLogin(user.getUsername(), PASSWORD)).endsWith("/login?error");
-        assertThat(landingPageAfterLogin(user.getUsername(), NEW_PASSWORD)).endsWith("/dashboard");
+        assertThat(userRepository.findById(user.getId()).orElseThrow().getPasswordChangeRequired()).isTrue();
+        assertThat(landingPageAfterLogin(user.getUsername(), NEW_PASSWORD)).endsWith("/account/password");
     }
 
     @Test
