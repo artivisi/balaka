@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title th:text="|Verifikasi Dua Langkah - ${theme.footerText}|\">Verifikasi Dua Langkah</title>
+    <title th:text="|Verifikasi Dua Langkah - ${theme.footerText}|">Verifikasi Dua Langkah</title>
     <link rel="icon" type="image/svg+xml" th:href="@{/favicon.svg}">
     <link rel="stylesheet" th:href="@{/css/app.css}">
     <link rel="stylesheet" th:href="@{${theme.themeCssPath}}">
@@ -60,10 +60,12 @@
             </details>
         </div>
 
-        <p class="text-center text-sm text-gray-500 mt-6">
+        <div class="text-center text-sm text-gray-500 mt-6">
             Masuk sebagai <span th:text="${username}">user</span>.
-            <a th:href="@{/logout}" class="text-primary-600 hover:underline">Keluar</a>
-        </p>
+            <form th:action="@{/logout}" method="post" class="inline">
+                <button type="submit" data-testid="mfa-logout" class="text-primary-600 hover:underline">Keluar</button>
+            </form>
+        </div>
     </div>
 </body>
 </html>
