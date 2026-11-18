@@ -37,9 +37,7 @@ public class CompanyBankAccountService {
 
     @Transactional
     public CompanyBankAccount create(CompanyBankAccount bankAccount) {
-        if (bankAccountRepository.existsByAccountNumber(bankAccount.getAccountNumber())) {
-            throw new IllegalArgumentException("Account number already exists: " + bankAccount.getAccountNumber());
-        }
+        rejectDuplicateAccountNumber(bankAccount.getAccountNumber(), null);
 
         // If this is the first account or marked as default, handle default flag
         if (Boolean.TRUE.equals(bankAccount.getIsDefault())) {
@@ -54,11 +52,7 @@ public class CompanyBankAccountService {
     public CompanyBankAccount update(UUID id, CompanyBankAccount updatedAccount) {
         CompanyBankAccount existing = findById(id);
 
-        // Check if account number is being changed and already exists
-        if (!existing.getAccountNumber().equals(updatedAccount.getAccountNumber()) &&
-                bankAccountRepository.existsByAccountNumber(updatedAccount.getAccountNumber())) {
-            throw new IllegalArgumentException("Account number already exists: " + updatedAccount.getAccountNumber());
-        }
+        rejectDuplicateAccountNumber(updatedAccount.getAccountNumber(), id);
 
         // Handle default flag
         if (Boolean.TRUE.equals(updatedAccount.getIsDefault()) && !Boolean.TRUE.equals(existing.getIsDefault())) {
@@ -104,6 +98,23 @@ public class CompanyBankAccountService {
     public void delete(UUID id) {
         CompanyBankAccount account = findById(id);
         bankAccountRepository.delete(account);
+    }
+
+    /**
+     * account_number is stored through EncryptedStringConverter with a random IV, so an equality query
+     * encrypts the parameter differently and never matches a stored row. Compare decrypted values instead.
+     */
+    private void rejectDuplicateAccountNumber(String accountNumber, UUID excludeId) {
+        String normalized = normalizeAccountNumber(accountNumber);
+        for (CompanyBankAccount other : bankAccountRepository.findAll()) {
+            if (!other.getId().equals(excludeId) && normalizeAccountNumber(other.getAccountNumber()).equals(normalized)) {
+                throw new IllegalArgumentException("Account number already exists: " + accountNumber);
+            }
+        }
+    }
+
+    private static String normalizeAccountNumber(String accountNumber) {
+        return accountNumber.replaceAll("[\\s.\\-]", "");
     }
 
     private void clearDefaultFlag() {

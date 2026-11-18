@@ -21,8 +21,6 @@ public interface EmployeeRepository extends JpaRepository<Employee, UUID> {
 
     boolean existsByEmployeeId(String employeeId);
 
-    boolean existsByNpwp(String npwp);
-
     List<Employee> findByActiveTrue();
 
     List<Employee> findByEmploymentStatus(EmploymentStatus status);
@@ -56,8 +54,6 @@ public interface EmployeeRepository extends JpaRepository<Employee, UUID> {
     @Query("SELECT COUNT(e) FROM Employee e WHERE e.active = true AND e.employmentStatus = 'ACTIVE'")
     long countActiveEmployees();
 
-    @Query("SELECT e FROM Employee e WHERE e.npwp = :npwp AND e.id != :excludeId")
-    Optional<Employee> findByNpwpExcludingId(@Param("npwp") String npwp, @Param("excludeId") UUID excludeId);
 
     Optional<Employee> findByUser(User user);
 
