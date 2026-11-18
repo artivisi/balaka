@@ -44,6 +44,15 @@ Perhatikan bagian:
 
 ## Metode Deployment
 
+> **Sejak guard startup aktif, jalur deploy harus memakai playbook Ansible.**
+> `deploy.yml` menulis ulang unit systemd dari `roles/app/templates/app.service.j2`
+> (termasuk `--spring.profiles.active=production`) lalu `daemon-reload`, dan
+> menjalankan migrasi dalam profile `bootstrap` sebelum menukar admin bawaan.
+> Skrip yang hanya me-restart service (`deploy-remote-build.sh`, `deploy.sh`)
+> memakai unit lama; kalau unit itu belum membawa profile `production`, aplikasi
+> sekarang **menolak start** (guard aktif untuk semua profile kecuali `dev`,
+> `test`, `functional`, `bootstrap`). Jadi restart manual saja tidak cukup.
+
 ### Metode 1: `deploy-remote-build.sh` (Rekomendasi)
 
 Build di server, tanpa upload JAR. Lebih cepat untuk koneksi internet lambat:

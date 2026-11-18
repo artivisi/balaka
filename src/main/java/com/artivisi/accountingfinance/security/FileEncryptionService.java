@@ -45,7 +45,7 @@ public class FileEncryptionService {
     private boolean encryptionEnabled = false;
     private final SecureRandom secureRandom = new SecureRandom();
 
-    @Value("${app.encryption.key:}")
+    @Value("${app.encryption.key}")
     private String encryptionKeyBase64;
 
     @PostConstruct
