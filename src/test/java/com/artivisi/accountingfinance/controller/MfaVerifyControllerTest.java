@@ -5,18 +5,22 @@ import com.artivisi.accountingfinance.entity.User;
 import com.artivisi.accountingfinance.enums.Role;
 import com.artivisi.accountingfinance.repository.UserRepository;
 import com.artivisi.accountingfinance.security.MfaAttemptService;
+import com.artivisi.accountingfinance.security.CspNonceFilter;
 import com.artivisi.accountingfinance.security.MfaService;
 import com.artivisi.accountingfinance.security.TotpService;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.test.context.support.WithUserDetails;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +32,7 @@ import static org.springframework.security.test.web.servlet.setup.SecurityMockMv
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
@@ -38,7 +43,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Import(TestcontainersConfiguration.class)
 @ActiveProfiles("test")
+// The shared test profile turns MFA off so other suites are not blocked; these tests exercise it.
+@TestPropertySource(properties = "app.mfa.enabled=true")
 @Transactional
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @DisplayName("MfaVerifyController Integration Tests")
 class MfaVerifyControllerTest {
 
@@ -63,25 +71,40 @@ class MfaVerifyControllerTest {
     private MockMvc mockMvc;
 
     private User adminUser;
+    private User staffUser;
+
+    /**
+     * Seeded once per class: @WithUserDetails resolves the principal before @BeforeEach
+     * runs, so a user created per test method is never there when it is needed.
+     */
+    @BeforeAll
+    void seedUsers() {
+        adminUser = createEnrolledUser("mfa-verify-admin", Role.ADMIN);
+        staffUser = createEnrolledUser("mfa-verify-staff", Role.STAFF);
+        staffUser.setMfaEnabled(false);
+        staffUser.setMfaSecret(null);
+        staffUser = userRepository.save(staffUser);
+    }
 
     @BeforeEach
     void setUp() {
+        adminUser = userRepository.findByUsername("mfa-verify-admin").orElseThrow();
+        staffUser = userRepository.findByUsername("mfa-verify-staff").orElseThrow();
         mockMvc = MockMvcBuilders
                 .webAppContextSetup(webApplicationContext)
+                // The servlet container registers CspNonceFilter ahead of Spring Security,
+                // and the layout refuses to render a nonce-less script tag.
+                .addFilters(webApplicationContext.getBean(CspNonceFilter.class))
                 .apply(springSecurity())
                 .build();
         mfaAttemptService.clear();
-
-        // Create test user with MFA enabled
-        adminUser = createEnrolledUser(Role.ADMIN);
     }
 
-    private User createEnrolledUser(Role role) {
-        String suffix = java.util.UUID.randomUUID().toString().substring(0, 8);
-        User user = new User();
-        user.setUsername("mfa-verify-" + suffix);
-        user.setFullName("MFA Verify " + suffix);
-        user.setEmail("mfa-verify-" + suffix + "@example.test");
+    private User createEnrolledUser(String username, Role role) {
+        User user = userRepository.findByUsername(username).orElseGet(User::new);
+        user.setUsername(username);
+        user.setFullName("MFA Verify " + role.name());
+        user.setEmail(username + "@example.test");
         user.setPassword(passwordEncoder.encode("Rahasia123!"));
         user.setActive(true);
         user.addRole(role, "test");
@@ -98,18 +121,21 @@ class MfaVerifyControllerTest {
     class VerificationFormTests {
 
         @Test
-        @DisplayName("Should redirect to dashboard when user not authenticated")
-        void shouldRedirectWhenNotAuthenticated() throws Exception {
+        @DisplayName("Should reject the request when the user is not authenticated")
+        void shouldRejectWhenNotAuthenticated() throws Exception {
+            // The security chain answers 401 before the controller runs, which is what
+            // production does for every page that is not the login form.
             mockMvc.perform(get("/mfa-verify"))
-                    .andExpect(status().is3xxRedirection());
+                    .andExpect(status().isUnauthorized());
         }
 
         @Test
         @DisplayName("Should redirect to dashboard when MFA not required for user")
-        @WithUserDetails("mfa-verify-admin")
+        @WithUserDetails("mfa-verify-staff")
         void shouldRedirectWhenMfaNotRequired() throws Exception {
-            mockMvc.perform(get("/mfa-verify").with(user(adminUser.getUsername())))
-                    .andExpect(status().is3xxRedirection());
+            mockMvc.perform(get("/mfa-verify").with(user(staffUser.getUsername())))
+                    .andExpect(status().is3xxRedirection())
+                    .andExpect(redirectedUrl("/dashboard"));
         }
 
         @Test
@@ -129,11 +155,11 @@ class MfaVerifyControllerTest {
 
         @Test
         @DisplayName("Should reject when not authenticated")
-        void shouldRejectWhenNotAuthenticated() throws Exception {
+        void shouldRejectPostWhenNotAuthenticated() throws Exception {
             mockMvc.perform(post("/mfa-verify")
                             .param("code", "123456")
                             .with(csrf()))
-                    .andExpect(status().is3xxRedirection());
+                    .andExpect(status().isUnauthorized());
         }
 
         @Test
