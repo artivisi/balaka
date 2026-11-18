@@ -74,9 +74,20 @@ class PiiEncryptionProductionGuardTest {
 
     @Test
     void allowsBlankKeyInDevelopmentProfiles() {
-        for (String profile : new String[]{"dev", "test", "functional", "bootstrap"}) {
+        for (String profile : new String[]{"dev", "test", "functional"}) {
             assertDoesNotThrow(() -> guard.validate(environment("", profile)), profile);
         }
+    }
+
+    @Test
+    void enforcesTheKeyInBootstrapUnlessTheRunExitsAfterMigrating() {
+        // The profile name alone no longer buys an exemption: a bootstrap that is
+        // not the one-shot migration run would otherwise serve without a key.
+        assertThrows(IllegalStateException.class, () -> guard.validate(environment("", "bootstrap")));
+
+        MockEnvironment exitingRun = environment("", "bootstrap");
+        exitingRun.setProperty("app.bootstrap.exit-after-migrate", "true");
+        assertDoesNotThrow(() -> guard.validate(exitingRun));
     }
 
     @Test

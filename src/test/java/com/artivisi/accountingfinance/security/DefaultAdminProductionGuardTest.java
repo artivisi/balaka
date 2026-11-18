@@ -129,10 +129,20 @@ class DefaultAdminProductionGuardTest {
 
     @Test
     void skipsCheckForExplicitDevelopmentProfiles() {
-        assertDoesNotThrow(() -> guard(environment("bootstrap")).validate());
         assertDoesNotThrow(() -> guard(environment("test")).validate());
 
         verify(userRepository, never()).findByUsername("admin");
         verify(userRepository, never()).count();
+    }
+
+    @Test
+    void runsTheCheckInBootstrapUnlessTheRunExitsAfterMigrating() {
+        // A bootstrap that is not the one-shot migration run serves requests, so it
+        // must pass the same checks as a deployment.
+        assertThrows(IllegalStateException.class, () -> guard(environment("bootstrap")).validate());
+
+        MockEnvironment exitingRun = environment("bootstrap");
+        exitingRun.setProperty("app.bootstrap.exit-after-migrate", "true");
+        assertDoesNotThrow(() -> guard(exitingRun).validate());
     }
 }
