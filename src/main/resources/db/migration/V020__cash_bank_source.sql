@@ -1,4 +1,4 @@
--- V019: Provenance for the explicit cash/bank flag (FAS-87)
+-- V020: Provenance for the explicit cash/bank flag (FAS-87)
 --
 -- FAS-77 introduced chart_of_accounts.is_cash_bank. That flag is authoritative,
 -- but runtime maintenance needs to know WHY an account is flagged so an unlink
@@ -8,7 +8,7 @@
 --
 --   EXPLICIT  - set by the Finance Controller through the chart-of-accounts form
 --   BANK_LINK - set automatically when a company bank account points at the GL account
---   MIGRATED  - backfilled by V018 or imported from a legacy/canonical seed
+--   MIGRATED  - backfilled by V019 or imported from a legacy/canonical seed
 
 ALTER TABLE chart_of_accounts
     ADD COLUMN cash_bank_source VARCHAR(20);

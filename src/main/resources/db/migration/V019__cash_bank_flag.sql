@@ -1,4 +1,4 @@
--- V018: Explicit cash/bank account universe (FAS-77)
+-- V019: Explicit cash/bank account universe (FAS-77)
 --
 -- Cash reporting must never infer cash from an account-code prefix. The previous
 -- selector (account_code LIKE '1.1.0%') also matched receivables, prepaid expenses
