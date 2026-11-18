@@ -134,6 +134,24 @@
                             </label>
                         </div>
 
+                        <!-- Cash / Bank -->
+                        <div class="flex items-start justify-between p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                            <div>
+                                <p class="text-sm font-medium text-gray-700">Akun Kas / Bank</p>
+                                <p class="text-xs text-gray-600">
+                                    Tandai hanya akun ASSET leaf (tanpa akun anak) yang benar-benar menampung kas atau saldo bank.
+                                    Akun piutang, asuransi/sewa dibayar dimuka dan PPN masukan tidak boleh ditandai.
+                                </p>
+                            </div>
+                            <label class="flex items-center ml-4">
+                                <input type="checkbox" id="isCashBank" th:field="*{isCashBank}"
+                                       data-testid="is-cash-bank"
+                                       class="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500">
+                                <span class="ml-2 text-sm font-medium text-gray-700">Kas/Bank</span>
+                            </label>
+                        </div>
+                        <p th:if="${#fields.hasErrors('isCashBank')}" class="mt-1 text-sm text-red-600" th:errors="*{isCashBank}">Error</p>
+
                         <!-- Permanent Account -->
                         <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                             <div>
