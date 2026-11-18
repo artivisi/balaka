@@ -69,11 +69,16 @@ paths = [
     '''deploy/ansible/.*\.j2$''',        # Ansible Jinja2 templates (use variables)
     '''src/test/.*''',                   # Test files
     '''.*Test\.java$''',                 # Test classes
-    '''.*\.md$''',                       # Documentation
+    '''\.md$''',                         # Documentation
     '''target/.*''',                     # Build output
     '''node_modules/.*''',               # Node modules
     '''\.mvn/.*''',                      # Maven wrapper
     '''src/main/resources/templates/.*\.html$''',  # Thymeleaf templates (placeholder text, not real data)
+    '''src/main/resources/application-dev\.properties$''',  # Dev profile with throwaway key
+    '''src/main/resources/application-test\.properties$''',  # Test profile with throwaway key
+    '''src/main/resources/application-functional\.properties$''',  # Functional test profile
+    '''src/test/resources/application-test\.properties$''',  # Test resources
+    '''src/test/resources/application-functional\.properties$''',  # Functional test resources
 ]
 
 regexes = [
