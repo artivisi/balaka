@@ -128,6 +128,10 @@ class QuickTransactionTest extends PlaywrightTestBase {
         assertThat(page.locator("#quick-amount")).hasValue("7500000");
         page.getByTestId("quick-description").fill(description);
         page.locator("#quick-date").fill("2108-02-10");
+        // CI once saved the template name instead of the typed description while keeping the typed amount
+        // (2026-11-18). Pin what the form holds at submit, so a recurrence shows which side lost the value.
+        assertThat(page.getByTestId("quick-description")).hasValue(description);
+        assertThat(page.locator("#quick-amount")).hasValue("7500000");
         modal.submit();
 
         page.waitForURL(Pattern.compile(".*/transactions/[0-9a-f-]{36}$"));
@@ -150,7 +154,7 @@ class QuickTransactionTest extends PlaywrightTestBase {
                 + " window.__quickFormSettled = false;"
                 + " document.addEventListener('htmx:afterSettle', () => { window.__quickFormSettled = true; }, { once: true }); }");
         page.getByTestId("template-frequent-" + fixed.getId()).click();
-        waitForQuickForm();
+        waitForQuickFormVisible();
 
         page.locator("#quick-amount-display").pressSequentially("7500000");
         assertThat(page.locator("#quick-amount")).hasValue("7500000");
@@ -240,9 +244,16 @@ class QuickTransactionTest extends PlaywrightTestBase {
     }
 
     /** The form is swapped in by HTMX; Alpine has bound it once the hidden amount reads "0". */
-    private void waitForQuickForm() {
+    /** The form is shown; htmx may still be settling it. */
+    private void waitForQuickFormVisible() {
         assertThat(page.getByTestId("quick-transaction-form")).isVisible();
         assertThat(page.locator("#quick-amount")).hasValue("0");
+    }
+
+    private void waitForQuickForm() {
+        waitForQuickFormVisible();
+        // Type only after htmx has finished every request, swap and settle on the page.
+        page.waitForFunction("() => !document.querySelector('.htmx-request, .htmx-swapping, .htmx-settling, .htmx-added')");
     }
 
     private UUID templateOf(UUID transactionId) {
