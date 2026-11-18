@@ -115,6 +115,16 @@ app.theme.dir=/opt/{{ app_name }}/themes
 app.demo-mode={{ app_demo_mode | lower }}
 {% endif %}
 
+# Second factor (TOTP, PR #60). The application default requires it for ADMIN and OWNER. Demo instances
+# set app_mfa_enabled: false, since their role accounts share a published password and the first visitor
+# would bind the authenticator. Only emitted when set.
+{% if app_mfa_enabled is defined %}
+app.mfa.enabled={{ app_mfa_enabled | lower }}
+{% endif %}
+{% if app_mfa_required_roles is defined %}
+app.mfa.required-roles={{ app_mfa_required_roles }}
+{% endif %}
+
 # Actuator endpoints for monitoring
 management.endpoints.web.exposure.include=health,info,metrics,prometheus
 management.endpoint.health.show-details=when-authorized

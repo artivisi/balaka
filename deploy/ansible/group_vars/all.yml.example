@@ -187,3 +187,8 @@ backup_notification_enabled: false
 # smtp_auth: true
 # smtp_username: "account@example.com"
 # smtp_password: "app-password"
+
+# Second factor (TOTP). The application requires it for ADMIN and OWNER unless overridden here.
+# Demo instances turn it off: their role accounts share a published password.
+# app_mfa_enabled: false
+# app_mfa_required_roles: "ADMIN,OWNER"

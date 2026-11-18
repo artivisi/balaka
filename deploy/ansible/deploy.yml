@@ -111,30 +111,38 @@
         login_password: "{{ db_password }}"
         query: "DELETE FROM users WHERE id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'"
 
-    - name: Create configured admin user
+    # Creates the configured administrator only when the username does not exist yet. The password in
+    # group_vars works once: the account must change it at the first login (password_change_required,
+    # issue #61). An existing account is left alone, so a password the administrator changed in the
+    # application, or reset by email, is never reverted by a deploy.
+    - name: Create configured admin user if missing
       community.postgresql.postgresql_query:
         db: "{{ db_name }}"
         login_host: localhost
         login_user: "{{ db_user }}"
         login_password: "{{ db_password }}"
         query: |
-          INSERT INTO users (id, username, password, full_name, email, active, created_at, updated_at)
-          VALUES (
-              gen_random_uuid(),
-              %(username)s,
-              %(password)s,
-              %(full_name)s,
-              %(email)s,
-              TRUE,
-              NOW(),
-              NOW()
+          WITH created AS (
+              INSERT INTO users (id, username, password, full_name, email, active,
+                                 password_change_required, credentials_changed_at, created_at, updated_at)
+              VALUES (
+                  gen_random_uuid(),
+                  %(username)s,
+                  %(password)s,
+                  %(full_name)s,
+                  %(email)s,
+                  TRUE,
+                  TRUE,
+                  NOW(),
+                  NOW(),
+                  NOW()
+              )
+              ON CONFLICT (username) DO NOTHING
+              RETURNING id
           )
-          ON CONFLICT (username) DO UPDATE SET
-              password = EXCLUDED.password,
-              full_name = EXCLUDED.full_name,
-              email = EXCLUDED.email,
-              updated_at = NOW()
-          RETURNING id
+          SELECT id FROM created
+          UNION ALL
+          SELECT id FROM users WHERE username = %(username)s AND NOT EXISTS (SELECT 1 FROM created)
         named_args:
           username: "{{ admin_username }}"
           password: "{{ admin_password_bcrypt }}"
