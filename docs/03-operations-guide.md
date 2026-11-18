@@ -101,9 +101,15 @@ ansible-playbook -i inventory.ini site.yml
 Run `deploy.yml` to:
 - Build JAR locally (`./mvnw clean package -DskipTests`)
 - Upload to server
-- Configure admin user
-- Restart service
-- Run health check
+- Apply Flyway migrations in a one-shot bootstrap run without the `production` profile
+- Remove the V001 seeded `admin` account and create the configured admin
+- Start the `production` service and run the login health check
+
+The production profile refuses to start while the seeded `admin`/`admin` account
+or an empty user table without an explicitly enabled setup wizard is present.
+The playbook therefore performs the admin swap *before* starting production;
+`app_setup_enabled` defaults to `false` so `/setup` is not an anonymous
+first-admin claim path.
 
 ```bash
 ansible-playbook -i inventory.ini deploy.yml
@@ -475,6 +481,13 @@ ps aux | grep java
 sudo netstat -tlnp | grep 10000
 tail -100 /var/log/aplikasi-akunting/app.log
 ```
+
+If the log says `Default admin/admin credentials are present in the production
+profile` or `No users exist in the production profile`, the database was not
+bootstrapped before startup. Re-run `deploy.yml` (it applies migrations and
+creates the configured admin first), or create the initial administrator
+manually. Do not enable `app_setup_enabled` on a publicly reachable instance
+unless an operator is ready to complete the wizard immediately.
 
 ### Flyway Migration Checksum Mismatch
 

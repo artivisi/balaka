@@ -80,6 +80,14 @@ google.cloud.vision.credentials-path=/opt/{{ app_name }}/gcp-credentials.json
 app.encryption.key={{ document_encryption_key }}
 {% endif %}
 
+# First-run setup wizard. Production deployments create the first admin through
+# the deployment bootstrap, so the anonymous /setup claim path stays disabled
+# unless an operator deliberately enables it.
+app.setup.enabled={{ app_setup_enabled | default(false) | lower }}
+
+# Remember Me (hash-based, 7 days)
+app.remember-me.key={{ app_remember_me_key }}
+
 # Payroll configuration
 {% if app_payroll_template_id is defined %}
 app.payroll.template-id={{ app_payroll_template_id }}
