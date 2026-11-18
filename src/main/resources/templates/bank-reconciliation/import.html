@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
       th:replace="~{layouts/main :: layout('Import Mutasi Bank', ~{::#page-title}, ~{::section}, ~{})}"
       lang="id">
 <head>
@@ -17,7 +18,26 @@
             <p class="text-sm text-red-600" data-testid="flash-error" th:text="${errorMessage}">Error</p>
         </div>
 
-        <div class="bg-white rounded-lg shadow p-6">
+        <!-- No company bank account: the import needs one, so show only what to do first -->
+        <div th:if="${#lists.isEmpty(bankAccounts)}" data-testid="no-bank-account"
+             class="p-6 bg-amber-50 border border-amber-200 rounded-lg">
+            <h2 class="text-base font-semibold text-amber-900">Rekening bank belum diatur</h2>
+            <p class="mt-2 text-sm text-amber-800">
+                Mutasi bank diimpor ke rekening bank perusahaan yang terhubung ke akun bank di bagan akun.
+                Tambahkan rekening bank terlebih dahulu.
+            </p>
+            <a sec:authorize="hasAuthority('SETTINGS_EDIT')" th:href="@{/settings/bank-accounts/new}"
+               data-testid="link-add-bank-account"
+               class="inline-block mt-4 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+                Tambah Rekening Bank
+            </a>
+            <p sec:authorize="!hasAuthority('SETTINGS_EDIT')" data-testid="ask-admin-bank-account"
+               class="mt-4 text-sm text-amber-800">
+                Minta administrator menambahkan rekening bank di Pengaturan &rarr; Rekening Bank.
+            </p>
+        </div>
+
+        <div th:unless="${#lists.isEmpty(bankAccounts)}" class="bg-white rounded-lg shadow p-6">
             <form th:action="@{/bank-reconciliation/import}" method="post" enctype="multipart/form-data" class="space-y-6">
 
                 <!-- Bank Account -->

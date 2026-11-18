@@ -10,6 +10,8 @@ import com.artivisi.accountingfinance.entity.JournalTemplate;
 import com.artivisi.accountingfinance.entity.JournalTemplateLine;
 import com.artivisi.accountingfinance.entity.ReconciliationItem;
 import com.artivisi.accountingfinance.entity.Transaction;
+import com.artivisi.accountingfinance.entity.User;
+import com.artivisi.accountingfinance.enums.Role;
 import com.artivisi.accountingfinance.enums.BankStatementParserType;
 import com.artivisi.accountingfinance.enums.MatchType;
 import com.artivisi.accountingfinance.enums.ReconciliationStatus;
@@ -21,6 +23,7 @@ import com.artivisi.accountingfinance.repository.BankStatementRepository;
 import com.artivisi.accountingfinance.repository.ChartOfAccountRepository;
 import com.artivisi.accountingfinance.repository.JournalTemplateRepository;
 import com.artivisi.accountingfinance.repository.ReconciliationItemRepository;
+import com.artivisi.accountingfinance.repository.UserRepository;
 import com.artivisi.accountingfinance.service.ChartOfAccountService;
 import com.artivisi.accountingfinance.service.CompanyBankAccountService;
 import com.artivisi.accountingfinance.service.TransactionService;
@@ -34,6 +37,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -76,6 +80,22 @@ class BankReconciliationTest extends PlaywrightTestBase {
     @Autowired private BankStatementItemRepository statementItemRepository;
     @Autowired private BankReconciliationRepository reconciliationRepository;
     @Autowired private ReconciliationItemRepository reconciliationItemRepository;
+    @Autowired private UserRepository userRepository;
+    @Autowired private PasswordEncoder passwordEncoder;
+
+    private static final String USER_PASSWORD = "Akuntan#Rahasia2045";
+
+    private User createUser(Role role) {
+        String id = UUID.randomUUID().toString().replace("-", "").substring(0, 10);
+        User user = new User();
+        user.setUsername("bankrecon-" + role.name().toLowerCase() + "-" + id);
+        user.setPassword(passwordEncoder.encode(USER_PASSWORD));
+        user.setFullName("Pengguna " + id);
+        user.setEmail("bankrecon-" + id + "@example.com");
+        user.setActive(true);
+        user.setRoles(java.util.Set.of(role), "system");
+        return userRepository.save(user);
+    }
 
     private record Bank(String name, UUID id, UUID glAccountId) {}
 
@@ -221,6 +241,43 @@ class BankReconciliationTest extends PlaywrightTestBase {
     }
 
     // ==================== Statement Import ====================
+
+    @Test
+    @DisplayName("Without an active company bank account the import page shows only what to set up first")
+    void importPageWithoutBankAccount() {
+        List<CompanyBankAccount> active = bankAccountService.findActive();
+        UUID defaultId = active.stream().filter(a -> Boolean.TRUE.equals(a.getIsDefault()))
+                .map(CompanyBankAccount::getId).findFirst().orElse(null);
+        User accountant = createUser(Role.ACCOUNTANT);
+        try {
+            active.forEach(a -> bankAccountService.deactivate(a.getId()));
+
+            loginAsAdmin();
+            navigateTo("/bank-reconciliation/import");
+            waitForPageLoad();
+            assertThat(page.locator("#page-title")).hasText("Import Mutasi Bank");
+            assertThat(page.getByTestId("no-bank-account")).containsText("Rekening bank belum diatur");
+            assertThat(page.getByTestId("link-add-bank-account")).hasAttribute("href", "/settings/bank-accounts/new");
+            assertThat(page.locator("#bankAccountId")).hasCount(0);
+            assertThat(page.locator("form[action='/bank-reconciliation/import']")).hasCount(0);
+            page.getByTestId("link-add-bank-account").click();
+            waitForPageLoad();
+            assertThat(page).hasURL(baseUrl() + "/settings/bank-accounts/new");
+
+            page.context().clearCookies();
+            login(accountant.getUsername(), USER_PASSWORD);
+            navigateTo("/bank-reconciliation/import");
+            waitForPageLoad();
+            assertThat(page.getByTestId("no-bank-account")).isVisible();
+            assertThat(page.getByTestId("link-add-bank-account")).hasCount(0);
+            assertThat(page.getByTestId("ask-admin-bank-account")).containsText("Minta administrator");
+        } finally {
+            active.forEach(a -> bankAccountService.activate(a.getId()));
+            if (defaultId != null) {
+                bankAccountService.setAsDefault(defaultId);
+            }
+        }
+    }
 
     @Test
     @DisplayName("Importing a BCA CSV stores every line with its amounts and shows them on the statement detail and list")
