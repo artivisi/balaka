@@ -480,20 +480,75 @@ class DataExportImportTest {
     class ImportCompanyBankAccountsTests {
 
         @Test
-        @DisplayName("Should import company bank accounts")
+        @DisplayName("Imports bank accounts with the GL account they post to; an empty code means no link")
         @Transactional
         void shouldImportCompanyBankAccounts() throws IOException {
-            String csv = "bank_name,account_number,account_name,bank_branch,is_default,active\n"
-                    + "BCA,1234567890,PT Test Company,KCU Jakarta,true,true\n"
-                    + "Mandiri,0987654321,PT Test Company,KCP Bandung,false,true\n";
+            String csv = "bank_name,account_number,account_name,bank_branch,is_default,active,gl_account_code\n"
+                    + "BCA,1234567890,PT Test Company,KCU Jakarta,true,true,1.1.02\n"
+                    + "Mandiri,0987654321,PT Test Company,KCP Bandung,false,true,\n";
 
             byte[] zipData = buildZipWithFiles("13_company_bank_accounts.csv", csv);
             DataImportService.ImportResult result = dataImportService.importAllData(zipData);
 
             assertThat(result.totalRecords()).isEqualTo(2);
+            CompanyBankAccount bca = bankAccount("1234567890");
+            assertThat(bca.getGlAccount()).isNotNull();
+            assertThat(bca.getGlAccount().getAccountCode()).isEqualTo("1.1.02");
+            assertThat(bca.getIsDefault()).isTrue();
+            assertThat(bankAccount("0987654321").getGlAccount()).isNull();
+        }
 
-            List<CompanyBankAccount> accounts = companyBankAccountRepository.findAll();
-            assertThat(accounts).hasSizeGreaterThanOrEqualTo(2);
+        @Test
+        @DisplayName("An export made before the GL column existed imports without a GL link")
+        @Transactional
+        void shouldImportSixColumnExport() throws IOException {
+            String csv = "bank_name,account_number,account_name,bank_branch,is_default,active\n"
+                    + "BNI,5550001112,PT Test Company,KC Depok,false,true\n";
+
+            dataImportService.importAllData(buildZipWithFiles("13_company_bank_accounts.csv", csv));
+
+            assertThat(bankAccount("5550001112").getGlAccount()).isNull();
+        }
+
+        @Test
+        @DisplayName("An unknown GL account code fails the import and names the bank account")
+        @Transactional
+        void shouldRejectUnknownGlAccountCode() {
+            String csv = "bank_name,account_number,account_name,bank_branch,is_default,active,gl_account_code\n"
+                    + "BSI,7770001112,PT Test Company,KC Bogor,false,true,9.9.99\n";
+            byte[] zip = buildZip(csv);
+
+            assertThatThrownBy(() -> dataImportService.importAllData(zip))
+                    .hasMessageContaining("Bank account BSI (PT Test Company): GL account 9.9.99 not found in chart of accounts");
+        }
+
+        @Test
+        @DisplayName("Export writes the GL account code, so export then import keeps the link")
+        @Transactional
+        void exportCarriesGlAccountCode() throws IOException {
+            String csv = "bank_name,account_number,account_name,bank_branch,is_default,active,gl_account_code\n"
+                    + "BCA,4440001112,PT Round Trip,KCU Jakarta,false,true,1.1.02\n";
+            dataImportService.importAllData(buildZipWithFiles("13_company_bank_accounts.csv", csv));
+
+            String exported = extractFileFromZip(dataExportService.exportAllData(), "13_company_bank_accounts.csv");
+            assertThat(exported.lines().findFirst().orElseThrow())
+                    .isEqualTo("bank_name,account_number,account_name,bank_branch,is_default,active,gl_account_code");
+            assertThat(exported.lines()).contains("BCA,4440001112,PT Round Trip,KCU Jakarta,false,true,1.1.02");
+        }
+
+        private byte[] buildZip(String csv) {
+            try {
+                return buildZipWithFiles("13_company_bank_accounts.csv", csv);
+            } catch (IOException e) {
+                throw new IllegalStateException(e);
+            }
+        }
+
+        private CompanyBankAccount bankAccount(String accountNumber) {
+            return companyBankAccountRepository.findAll().stream()
+                    .filter(a -> accountNumber.equals(a.getAccountNumber()))
+                    .findFirst()
+                    .orElseThrow(() -> new AssertionError("bank account " + accountNumber + " not imported"));
         }
     }
 

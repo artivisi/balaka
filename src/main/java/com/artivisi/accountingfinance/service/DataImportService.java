@@ -1179,6 +1179,17 @@ public class DataImportService {
             ba.setBankBranch(getField(row, 3));
             ba.setIsDefault(parseBoolean(getField(row, 4)));
             ba.setActive(parseBoolean(getField(row, 5)));
+            // Seventh column, added with 2026.11: the GL account the bank account posts to. Empty, or absent in
+            // an older export, means the account has no GL link (as it was exported); an unknown code fails.
+            String glCode = getFieldOrNull(row, 6);
+            if (glCode != null) {
+                ChartOfAccount gl = accountMap.get(glCode);
+                if (gl == null) {
+                    throw new IllegalArgumentException("Bank account " + ba.getBankName() + " (" + ba.getAccountName()
+                            + "): GL account " + glCode + " not found in chart of accounts");
+                }
+                ba.setGlAccount(gl);
+            }
 
             bankAccountRepository.save(ba);
         }

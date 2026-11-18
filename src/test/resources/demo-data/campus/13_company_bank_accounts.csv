@@ -1,0 +1,3 @@
+bank_name,account_number,account_name,bank_branch,is_default,active,gl_account_code
+BCA,1234567890,STMIK Merdeka Digital,KCU Jakarta,true,true,1.1.02
+Mandiri,1230004567890,STMIK Merdeka Digital,KC Jakarta,false,true,1.1.03

@@ -532,7 +532,8 @@ public class DataExportService {
     // ============================================
     private String exportCompanyBankAccounts() {
         StringBuilder csv = new StringBuilder();
-        csv.append("bank_name,account_number,account_name,bank_branch,is_default,active\n");
+        // gl_account_code: the chart-of-accounts account the bank account posts to; bank reconciliation needs it.
+        csv.append("bank_name,account_number,account_name,bank_branch,is_default,active,gl_account_code\n");
 
         List<CompanyBankAccount> accounts = bankAccountRepository.findAll(Sort.by("bankName", "accountNumber"));
         for (CompanyBankAccount ba : accounts) {
@@ -541,7 +542,8 @@ public class DataExportService {
             csv.append(escapeCsv(ba.getAccountName())).append(",");
             csv.append(escapeCsv(ba.getBankBranch())).append(",");
             csv.append(ba.getIsDefault()).append(",");
-            csv.append(ba.getActive()).append("\n");
+            csv.append(ba.getActive()).append(",");
+            csv.append(ba.getGlAccount() == null ? "" : escapeCsv(ba.getGlAccount().getAccountCode())).append("\n");
         }
         return csv.toString();
     }

@@ -1,1 +1,1 @@
-bank_name,account_number,account_name,branch,is_primary,active
+bank_name,account_number,account_name,bank_branch,is_default,active,gl_account_code
