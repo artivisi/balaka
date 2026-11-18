@@ -52,9 +52,41 @@ Edit `clients/<client>/group_vars/all.yml` untuk mengisi:
 - Database credentials
 - Domain name
 - Admin user credentials
-- Encryption key
+- **Encryption keys (WAJIB, lihat di bawah)**
 - Telegram bot token (opsional)
 - Theme settings
+
+## Kunci Enkripsi Wajib (Production Profile)
+
+Ada satu kunci yang **wajib** diisi di `group_vars/all.yml` sebelum boot
+pertama. Jangan menyimpan nilai aslinya di repository, inventory, atau
+dokumentasi; `group_vars/all.yml` sudah masuk `.gitignore`.
+
+| Variabel | Aturan | Cara membuat |
+|----------|--------|--------------|
+| `document_encryption_key` | Tidak kosong, Base64 32 byte (AES-256) | `openssl rand -base64 32` |
+
+Contoh:
+
+```yaml
+# group_vars/all.yml (JANGAN commit nilai asli)
+document_encryption_key: "hasil openssl rand -base64 32"
+```
+
+`site.yml` dan `deploy.yml` memeriksa variabel ini di `pre_tasks`, sebelum
+instalasi paket, migrasi, upload file, atau restart service. Jika hilang atau
+tidak valid, playbook berhenti lebih awal dengan pesan yang menyebut nama
+variabel dan perintah pembuatannya. Pemeriksaan ini melengkapi guard aplikasi
+(`PiiEncryptionProductionGuard`) yang tetap fail-closed saat startup; tidak ada
+bypass.
+
+### Konsekuensi rotasi kunci
+
+- **`document_encryption_key`** — kunci ini mengenkripsi field PII dan dokumen
+  yang diunggah. Jika dirotasi, data yang sudah terenkripsi tidak dapat dibaca
+  lagi kecuali dilakukan migrasi re-enkripsi terlebih dahulu. Jika kunci
+  hilang, data tersebut tidak dapat dipulihkan. Simpan salinan kunci terpisah
+  dari backup database.
 
 ## Proses Deployment
 

@@ -24,6 +24,13 @@
         msg: "admin_password_plain is not set or uses default value"
       when: admin_password_plain is not defined or admin_password_plain == 'CHANGE_THIS_ADMIN_PASSWORD'
 
+    - name: Validate production secrets before any installation step (security)
+      ansible.builtin.import_tasks:
+        file: "{{ playbook_dir }}/tasks/validate-production-secrets.yml"
+      tags:
+        - always
+        - preflight
+
     - name: Generate bcrypt hash for admin password
       ansible.builtin.set_fact:
         admin_password_bcrypt: "{{ admin_password_plain | password_hash('bcrypt', rounds=10) }}"
@@ -36,13 +43,6 @@
     - backup
 
   post_tasks:
-    - name: Read backup encryption key
-      ansible.builtin.slurp:
-        src: "/opt/{{ app_name }}/.backup-key"
-      register: backup_key_content
-      when: backup_b2_enabled | default(false) or backup_gdrive_enabled | default(false)
-      ignore_errors: true
-
     - name: Display deployment summary
       ansible.builtin.debug:
         msg:
@@ -50,7 +50,9 @@
           - "=== DEPLOYMENT COMPLETE ==="
           - ""
           - "Application URL: https://{{ app_domain }}"
-          - "Admin Login:     {{ admin_username }} / {{ admin_password_plain }}"
+          - "Admin Login:     {{ admin_username }} / <set in group_vars/all.yml>"
+          - "Admin Password:  use the admin_password_plain value you set in group_vars/all.yml;"
+          - "                 it is not a generated value and is intentionally not printed to logs."
           - ""
           - "SERVICES:"
           - "  Application:   systemctl status {{ app_name }}"
@@ -91,14 +93,17 @@
           - "[ ] Configure monitoring/alerts (optional)"
           - ""
 
-    - name: Display encryption key warning (LAST - stays visible on screen)
+    - name: Display backup encryption key handling warning (LAST - stays visible on screen)
       ansible.builtin.debug:
         msg:
           - ""
           - "!!! CRITICAL: SYSADMIN ACTION REQUIRED !!!"
           - ""
-          - "BACKUP ENCRYPTION KEY (save this immediately!):"
-          - "{{ backup_key_content.content | b64decode | trim }}"
+          - "BACKUP ENCRYPTION KEY:"
+          - "The key is stored only in /opt/{{ app_name }}/.backup-key (mode 0600)."
+          - "It is intentionally NOT printed here because Ansible output is logged."
+          - "Retrieve it once over an authenticated SSH session:"
+          - "  sudo cat /opt/{{ app_name }}/.backup-key"
           - ""
           - "WARNING: WITHOUT THIS KEY, ENCRYPTED BACKUPS CANNOT BE RESTORED!"
           - ""
@@ -108,9 +113,7 @@
           - "[ ] Encrypted USB drive (separate location)"
           - ""
           - "After saving the key, verify you can decrypt a backup:"
-          - "  gpg --decrypt --passphrase-file <(echo \"KEY\") backup.gpg"
+          - "  gpg --batch --yes --decrypt --passphrase-file /opt/{{ app_name }}/.backup-key backup.tar.gz.gpg > backup.tar.gz"
           - ""
       when:
         - backup_b2_enabled | default(false) or backup_gdrive_enabled | default(false)
-        - backup_key_content is defined
-        - backup_key_content.content is defined
