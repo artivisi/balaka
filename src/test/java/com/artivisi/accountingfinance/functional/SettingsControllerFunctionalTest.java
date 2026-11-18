@@ -553,7 +553,7 @@ class SettingsControllerFunctionalTest extends PlaywrightTestBase {
             assertEquals("Bank Otorisasi " + number, stored.getBankName());
             assertFalse(stored.isActive());
             assertFalse(stored.isDefaultAccount());
-            assertFalse(bankAccountRepository.existsByAccountNumber(number + "X"));
+            assertFalse(bankAccountRepository.findAll().stream().anyMatch(a -> a.getAccountNumber().equals(number + "X")));
             assertEquals(apiClientsBefore, apiClientRepository.count());
         } finally {
             bankAccountService.delete(accountId);

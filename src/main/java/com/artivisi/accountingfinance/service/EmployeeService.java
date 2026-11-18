@@ -139,13 +139,15 @@ public class EmployeeService {
             throw new IllegalArgumentException("NPWP hanya boleh berisi angka");
         }
 
-        // Check for duplicate NPWP
-        if (excludeId != null) {
-            employeeRepository.findByNpwpExcludingId(npwp, excludeId).ifPresent(e -> {
-                throw new IllegalArgumentException("NPWP sudah digunakan oleh karyawan lain: " + e.getName());
-            });
-        } else if (employeeRepository.existsByNpwp(npwp)) {
-            throw new IllegalArgumentException("NPWP sudah digunakan oleh karyawan lain");
+        // Duplicate check in Java: npwp is stored through EncryptedStringConverter with a random IV,
+        // so an equality query encrypts the parameter differently and never matches a stored row.
+        for (Employee other : employeeRepository.findAll()) {
+            if (other.getId().equals(excludeId) || other.getNpwp() == null) {
+                continue;
+            }
+            if (other.getNpwp().replaceAll("[.\\-]", "").equals(cleanedNpwp)) {
+                throw new IllegalArgumentException("NPWP sudah digunakan oleh karyawan lain: " + other.getName());
+            }
         }
     }
 }

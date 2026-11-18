@@ -124,7 +124,7 @@ class ServiceSettingsComprehensiveTest extends PlaywrightTestBase {
         assertThat(page.locator("#accountNumber")).hasValue(number);
         assertThat(page.locator("#accountName")).hasValue("PT Tanpa Bank");
         assertThat(page.locator("#glAccount")).hasValue(bca.getId().toString());
-        assertFalse(bankAccountRepository.existsByAccountNumber(number));
+        assertFalse(bankAccountRepository.findAll().stream().anyMatch(a -> a.getAccountNumber().equals(number)));
     }
 
     @Test
@@ -448,7 +448,10 @@ class ServiceSettingsComprehensiveTest extends PlaywrightTestBase {
     }
 
     private CompanyBankAccount stored(String accountNumber) {
-        return bankAccountRepository.findByAccountNumber(accountNumber)
+        // account_number is encrypted with a random IV: match decrypted values, not a query parameter
+        return bankAccountRepository.findAll().stream()
+                .filter(a -> a.getAccountNumber().equals(accountNumber))
+                .findFirst()
                 .orElseThrow(() -> new AssertionError("Bank account " + accountNumber + " not persisted"));
     }
 

@@ -15,7 +15,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
@@ -27,11 +29,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Integration tests for EmployeeService.
- * Tests actual database queries and business logic.
+ * Tests actual database queries and business logic. Runs with an encryption key, as production does:
+ * npwp and nik_ktp are stored encrypted, which is what the duplicate checks have to work against.
  */
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
 @ActiveProfiles("test")
+@TestPropertySource(properties = "app.encryption.key=Kea3OzaaPR89QOebS1b427C8xxRoztOft8rlSEL3W7k=")
 @Transactional
 @DisplayName("EmployeeService Integration Tests")
 class EmployeeServiceTest {
@@ -41,6 +45,9 @@ class EmployeeServiceTest {
 
     @Autowired
     private EmployeeRepository employeeRepository;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     @Nested
     @DisplayName("Find Operations")
@@ -279,6 +286,27 @@ class EmployeeServiceTest {
             assertThatThrownBy(() -> employeeService.create(second))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("NPWP sudah digunakan");
+        }
+
+        @Test
+        @DisplayName("create should throw for a duplicate NPWP stored encrypted and written in another format")
+        void createShouldThrowForDuplicateNpwpInAnotherFormat() {
+            Employee first = buildTestEmployee();
+            first.setNpwp("33.333.333.3-333.333");
+            Employee saved = employeeService.create(first);
+            employeeRepository.flush();
+
+            String stored = jdbcTemplate.queryForObject(
+                    "SELECT npwp FROM employees WHERE id = ?", String.class, saved.getId());
+            assertThat(stored).startsWith("ENC:").doesNotContain("333333");
+
+            Employee second = buildTestEmployee();
+            second.setNpwp("333333333333333");
+
+            assertThatThrownBy(() -> employeeService.create(second))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("NPWP sudah digunakan")
+                .hasMessageContaining(first.getName());
         }
 
         @Test
