@@ -49,7 +49,8 @@ public class PasswordChangeService {
      * @return the instant the credentials changed; the caller stores it on its own session so that
      *         session stays valid while every other one is invalidated
      */
-    @Transactional
+    // A refusal throws before anything changes; committing keeps its audit row.
+    @Transactional(noRollbackFor = PasswordChangeException.class)
     public LocalDateTime changeOwnPassword(String username, String currentPassword,
                                            String newPassword, String confirmPassword) {
         User user = userRepository.findByUsername(username)

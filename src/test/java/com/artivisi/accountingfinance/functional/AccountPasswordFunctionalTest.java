@@ -85,6 +85,8 @@ class AccountPasswordFunctionalTest extends PlaywrightTestBase {
             assertThat(submitLogin(otherPage, user.getUsername(), PASSWORD)).endsWith("/dashboard");
 
             assertThat(submitLogin(page, user.getUsername(), PASSWORD)).endsWith("/dashboard");
+            // EMPLOYEE has no dashboard permission; its pages are under /self-service.
+            navigateTo(role == Role.EMPLOYEE ? "/self-service/payslips" : "/dashboard");
             page.locator("#nav-account-password").click();
             waitForPageLoad();
             assertThat(page).hasURL(baseUrl() + "/account/password");

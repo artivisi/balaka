@@ -141,7 +141,8 @@ public class PasswordResetService {
      * @throws PasswordResetUnavailableException when reset is not configured
      * @throws PasswordResetRateLimitedException when this client IP exceeded its quota
      */
-    @Transactional
+    // Refusals throw before anything changes; committing keeps their audit rows.
+    @Transactional(noRollbackFor = PasswordResetRateLimitedException.class)
     public void requestReset(String email, String clientIp) {
         requireEnabled();
         if (!admit(requestsByIp, clientIp == null ? "unknown" : clientIp, properties.getMaxRequestsPerIp())) {
@@ -198,7 +199,7 @@ public class PasswordResetService {
      * @throws PasswordResetTokenException when the token is unknown, used, superseded or expired
      * @throws PasswordChangeException when the new password is refused; the token stays usable
      */
-    @Transactional
+    @Transactional(noRollbackFor = {PasswordResetTokenException.class, PasswordChangeException.class})
     public String completeReset(String rawToken, String newPassword, String confirmPassword) {
         requireEnabled();
         LocalDateTime now = now();

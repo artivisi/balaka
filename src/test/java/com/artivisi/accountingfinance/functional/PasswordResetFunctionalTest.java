@@ -180,6 +180,7 @@ class PasswordResetFunctionalTest extends PlaywrightTestBase {
         User user = createUser(true);
         String path = requestAndReadLink(user);
         String rawToken = path.substring(path.indexOf('=') + 1);
+        LocalDateTime before = LocalDateTime.now().minusSeconds(1);
 
         navigateTo(path);
         page.locator("#newPassword").fill(NEW_PASSWORD);
@@ -201,6 +202,10 @@ class PasswordResetFunctionalTest extends PlaywrightTestBase {
         assertThat(resubmitted.status()).isEqualTo(400);
         assertThat(resubmitted.text()).contains("sudah dipakai");
         assertThat(reload(user).getPassword()).isEqualTo(encoded);
+        assertThat(auditLogRepository.findByUsernameAndEventTypeAndTimestampAfter(
+                user.getUsername(), AuditEventType.PASSWORD_RESET_COMPLETED, before))
+                .anyMatch(l -> !Boolean.TRUE.equals(l.getSuccess())
+                        && l.getDetails().equals("Refused for user: " + user.getUsername() + " (link used)"));
     }
 
     @Test
