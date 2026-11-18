@@ -122,6 +122,13 @@ public class MfaController {
             model.addAttribute("recoveryCodes", recoveryCodes);
             model.addAttribute(ATTR_SUCCESS, "MFA berhasil diaktifkan. Simpan kode pemulihan di tempat aman.");
             return VIEW_MFA;
+        } catch (IllegalStateException e) {
+            // Already enrolled: a second session raced this one through setup. The setup page is
+            // no longer the right answer, so drop the stale pending secret and send the user back
+            // to the management page where the message belongs.
+            session.removeAttribute(PENDING_SECRET);
+            redirectAttributes.addFlashAttribute(ATTR_ERROR, e.getMessage());
+            return REDIRECT_MFA;
         } catch (IllegalArgumentException e) {
             model.addAttribute(ATTR_MFA_ENABLED, false);
             model.addAttribute("secret", pendingSecret);
