@@ -67,14 +67,16 @@ public class MfaService {
 
     private final boolean enabled;
     private final Set<Role> requiredRoles;
+    private final String encryptionKey;
 
     public MfaService(TotpService totpService,
                       MfaAttemptService attemptService,
                       UserRepository userRepository,
                       UserMfaRecoveryCodeRepository recoveryCodeRepository,
                       SecurityAuditService securityAuditService,
-                      @Value("${app.mfa.enabled:true}") boolean enabled,
-                      @Value("${app.mfa.required-roles:ADMIN,OWNER}") String requiredRoles) {
+                      @Value("${app.mfa.enabled}") boolean enabled,
+                      @Value("${app.mfa.required-roles}") String requiredRoles,
+                      @Value("${app.encryption.key}") String encryptionKey) {
         this.totpService = totpService;
         this.attemptService = attemptService;
         this.userRepository = userRepository;
@@ -82,6 +84,7 @@ public class MfaService {
         this.securityAuditService = securityAuditService;
         this.enabled = enabled;
         this.requiredRoles = parseRoles(requiredRoles);
+        this.encryptionKey = encryptionKey;
     }
 
     public boolean isEnabled() {
@@ -118,18 +121,20 @@ public class MfaService {
      */
     public String startEnrollment(User user) {
         requireEnabled();
-        if (Boolean.TRUE.equals(user.getMfaEnabled())) {
-            throw new IllegalStateException("MFA is already enabled for this user");
-        }
+        requireEncryptionKey();
+        refuseWhenAlreadyEnrolled(user);
         return totpService.generateSecret();
     }
 
     /**
-     * Step 2: confirm the pending secret with a code and return the recovery
-     * codes in plaintext, the only time they are readable.
+     * Step 2: confirm the pending secret with a code and return the recovery codes
+     * in plaintext, the only time they are readable.
      */
     public List<String> completeEnrollment(User user, String pendingSecret, String code, String actor) {
         requireEnabled();
+        requireEncryptionKey();
+        refuseWhenAlreadyEnrolled(user);
+
         long step = totpService.matchingStep(pendingSecret, code);
         if (step < 0) {
             securityAuditService.log(AuditEventType.MFA_ENABLE_FAILED,
@@ -150,8 +155,12 @@ public class MfaService {
 
     /**
      * Verify a TOTP code for an authenticated user. A code is accepted at most
-     * once: its time step is persisted and any step at or before it is refused,
-     * so a code captured from the screen cannot be replayed.
+     * once: its time step is persisted and any step at or before it is refused, so
+     * a code captured from the screen cannot be replayed.
+     *
+     * <p>The attempt is reserved before the code is looked at, so concurrent
+     * submissions cannot all pass the limit check between the increment and the
+     * decision.
      */
     public VerifyOutcome verify(User user, String code) {
         if (!enabled) {
@@ -160,7 +169,8 @@ public class MfaService {
         if (user == null || !Boolean.TRUE.equals(user.getMfaEnabled()) || user.getMfaSecret() == null) {
             return VerifyOutcome.NOT_ENROLLED;
         }
-        if (attemptService.isBlocked(user.getUsername())) {
+        if (!attemptService.registerAttempt(user.getUsername())) {
+            auditLocked(user);
             return VerifyOutcome.LOCKED;
         }
 
@@ -183,14 +193,15 @@ public class MfaService {
     }
 
     /**
-     * Consume a recovery code. Each code works once; the row keeps the hash and
-     * the moment it was used, never the code itself.
+     * Consume a recovery code. Each code works once; the row keeps the hash and the
+     * moment it was used, never the code itself.
      */
     public boolean verifyRecoveryCode(User user, String code) {
         if (!enabled || user == null || code == null || code.isBlank()) {
             return false;
         }
-        if (attemptService.isBlocked(user.getUsername())) {
+        if (!attemptService.registerAttempt(user.getUsername())) {
+            auditLocked(user);
             return false;
         }
 
@@ -202,8 +213,12 @@ public class MfaService {
         }
 
         UserMfaRecoveryCode recoveryCode = match.get();
-        recoveryCode.setUsedAt(LocalDateTime.now(APP_ZONE));
-        recoveryCodeRepository.save(recoveryCode);
+        int consumed = recoveryCodeRepository.markUsedIfUnused(recoveryCode.getId(), LocalDateTime.now(APP_ZONE));
+        if (consumed == 0) {
+            recordFailure(user, "recovery code already consumed");
+            return false;
+        }
+
         attemptService.succeeded(user.getUsername());
         securityAuditService.log(AuditEventType.MFA_RECOVERY_USED,
                 "MFA recovery code used by " + user.getUsername()
@@ -256,14 +271,14 @@ public class MfaService {
     }
 
     private void recordFailure(User user, String reason) {
-        attemptService.failed(user.getUsername());
-        if (attemptService.isBlocked(user.getUsername())) {
-            securityAuditService.log(AuditEventType.MFA_LOCKED,
-                    "MFA verification locked for user " + user.getUsername() + " after repeated " + reason);
-        } else {
-            securityAuditService.log(AuditEventType.MFA_VERIFY_FAILED,
-                    "MFA verification failed for " + user.getUsername() + ": " + reason);
-        }
+        securityAuditService.log(AuditEventType.MFA_VERIFY_FAILED,
+                "MFA verification failed for " + user.getUsername() + ": " + reason);
+    }
+
+    private void auditLocked(User user) {
+        securityAuditService.log(AuditEventType.MFA_LOCKED,
+                "MFA verification refused for user " + user.getUsername()
+                        + ": attempt limit reached (" + attemptService.windowMinutes() + " minute window)");
     }
 
     private List<String> replaceRecoveryCodes(User user) {
@@ -301,9 +316,29 @@ public class MfaService {
         }
     }
 
+    private void refuseWhenAlreadyEnrolled(User user) {
+        if (Boolean.TRUE.equals(user.getMfaEnabled())) {
+            throw new IllegalStateException(
+                    "MFA sudah aktif untuk pengguna ini. Nonaktifkan dulu (dengan kode OTP) "
+                            + "atau minta administrator mereset sebelum mendaftarkan authenticator baru.");
+        }
+    }
+
     private void requireEnabled() {
         if (!enabled) {
             throw new IllegalStateException("MFA is disabled on this deployment");
+        }
+    }
+
+    /**
+     * Without a key, EncryptedStringConverter stores plaintext, so an enrol attempt
+     * would leave the shared secret readable in the database.
+     */
+    private void requireEncryptionKey() {
+        if (encryptionKey == null || encryptionKey.isBlank()) {
+            throw new IllegalStateException(
+                    "app.encryption.key (APP_ENCRYPTION_KEY) is required before MFA can be enabled: "
+                            + "the TOTP secret is stored encrypted.");
         }
     }
 
@@ -314,6 +349,10 @@ public class MfaService {
                 .collect(Collectors.joining(", "));
     }
 
+    /**
+     * A misspelled role must stop the deployment: with a warning it would silently
+     * drop a mandatory second factor for the role the operator meant to protect.
+     */
     private static Set<Role> parseRoles(String configured) {
         if (configured == null || configured.isBlank()) {
             return EnumSet.noneOf(Role.class);
@@ -325,8 +364,11 @@ public class MfaService {
                 .forEach(name -> {
                     try {
                         roles.add(Role.valueOf(name.toUpperCase(Locale.ROOT)));
-                    } catch (IllegalArgumentException _) {
-                        log.warn("Ignoring unknown role '{}' in app.mfa.required-roles", name);
+                    } catch (IllegalArgumentException e) {
+                        throw new IllegalStateException(
+                                "Unknown role '" + name + "' in app.mfa.required-roles. Known roles: "
+                                        + Arrays.stream(Role.values()).map(Enum::name).collect(Collectors.joining(", ")),
+                                e);
                     }
                 });
         return roles;

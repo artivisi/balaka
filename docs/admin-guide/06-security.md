@@ -75,8 +75,8 @@ Aktivasi bersifat opsional per pengguna, tetapi peran yang tercantum di
 
 | Property | Default | Keterangan |
 |----------|---------|------------|
-| `app.mfa.enabled` | `true` (`APP_MFA_ENABLED`) | Saklar seluruh fitur; `false` untuk suite uji fungsional |
-| `app.mfa.required-roles` | `ADMIN,OWNER` (`APP_MFA_REQUIRED_ROLES`) | Peran yang wajib MFA |
+| `app.mfa.enabled` | `true` | Saklar seluruh fitur; `false` untuk suite uji fungsional |
+| `app.mfa.required-roles` | `ADMIN,OWNER` | Peran yang wajib MFA; nama peran yang salah menggagalkan startup |
 | `app.mfa.max-attempts` | `5` | Percobaan `/mfa-verify` sebelum dikunci |
 | `app.mfa.attempt-window-seconds` | `900` | Jendela hitung percobaan |
 
@@ -84,10 +84,15 @@ Detail implementasi:
 
 - Algoritma HMAC-SHA1, 6 digit, periode 30 detik, toleransi satu langkah untuk
   selisih jam. Google Authenticator dan aplikasi lain kompatibel.
+- Nilai di atas bisa dioverride deployment lewat
+  `--app.mfa.required-roles=ADMIN,OWNER,ACCOUNTANT` atau
+  `SPRING_APPLICATION_JSON`; tidak ada nilai cadangan di kode.
 - Rahasia dibuat di server saat halaman setup dibuka dan disimpan di sesi sampai
   kode konfirmasi diterima; parameter `secret` dari form tidak pernah dipakai.
   Rahasia disimpan terenkripsi memakai `EncryptedStringConverter` (AES-256-GCM
-  dengan `APP_ENCRYPTION_KEY`).
+  dengan `APP_ENCRYPTION_KEY`); tanpa kunci itu aktivasi MFA ditolak.
+- Pengguna yang sudah aktif tidak bisa mendaftarkan ulang authenticator dari sesi
+  lain: harus menonaktifkan dengan kode OTP atau minta administrator mereset.
 - Setiap kode hanya diterima sekali: langkah waktu terakhir disimpan dan kode
   pada langkah yang sama atau sebelumnya ditolak.
 - Sepuluh kode pemulihan dibuat saat aktivasi dan saat regenerasi; hanya hash

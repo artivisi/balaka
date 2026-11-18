@@ -85,6 +85,11 @@ public class MfaVerifyController {
             return VIEW_VERIFY;
         }
 
+        // New session id for the elevated state: the pre-MFA id stays in the
+        // browser history and any log it was written to.
+        if (request.getSession(false) != null) {
+            request.changeSessionId();
+        }
         HttpSession session = request.getSession(true);
         session.setAttribute(MfaEnforcementFilter.VERIFIED_USER_SESSION_ATTRIBUTE, user.getUsername());
         return DASHBOARD_REDIRECT;

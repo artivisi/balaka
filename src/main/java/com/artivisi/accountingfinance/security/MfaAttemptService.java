@@ -11,6 +11,10 @@ import java.util.concurrent.ConcurrentHashMap;
  * Counts failed TOTP submissions per username. Without a limit the 6-digit code
  * is a million-value secret that a script can grind through inside the 30 second
  * window the code stays valid.
+ *
+ * <p>{@link #registerAttempt(String)} increments and decides in one atomic step:
+ * checking with {@link #isBlocked(String)} and only then recording the failure
+ * lets every concurrent request pass the check before any count is written.
  */
 @Service
 public class MfaAttemptService {
@@ -20,10 +24,25 @@ public class MfaAttemptService {
     private final Map<String, Attempts> attempts = new ConcurrentHashMap<>();
 
     public MfaAttemptService(
-            @Value("${app.mfa.max-attempts:5}") int maxAttempts,
-            @Value("${app.mfa.attempt-window-seconds:900}") long windowSeconds) {
+            @Value("${app.mfa.max-attempts}") int maxAttempts,
+            @Value("${app.mfa.attempt-window-seconds}") long windowSeconds) {
         this.maxAttempts = maxAttempts;
         this.windowSeconds = windowSeconds;
+    }
+
+    /**
+     * Reserve one attempt for this user.
+     *
+     * @return true when the attempt is within the limit, false when the account is
+     *         over it and the request must be refused without checking a code
+     */
+    public boolean registerAttempt(String username) {
+        Instant now = Instant.now();
+        Attempts updated = attempts.compute(username, (key, existing) ->
+                existing == null || isExpired(existing, now)
+                        ? new Attempts(now, 1)
+                        : new Attempts(existing.windowStart, existing.count + 1));
+        return updated.count <= maxAttempts;
     }
 
     public boolean isBlocked(String username) {
@@ -31,21 +50,11 @@ public class MfaAttemptService {
         if (entry == null) {
             return false;
         }
-        if (entry.windowStart.plusSeconds(windowSeconds).isBefore(Instant.now())) {
+        if (isExpired(entry, Instant.now())) {
             attempts.remove(username);
             return false;
         }
         return entry.count >= maxAttempts;
-    }
-
-    public void failed(String username) {
-        Instant now = Instant.now();
-        attempts.compute(username, (key, entry) -> {
-            if (entry == null || entry.windowStart.plusSeconds(windowSeconds).isBefore(now)) {
-                return new Attempts(now, 1);
-            }
-            return new Attempts(entry.windowStart, entry.count + 1);
-        });
     }
 
     public void succeeded(String username) {
@@ -54,7 +63,7 @@ public class MfaAttemptService {
 
     public int remainingAttempts(String username) {
         Attempts entry = attempts.get(username);
-        if (entry == null || entry.windowStart.plusSeconds(windowSeconds).isBefore(Instant.now())) {
+        if (entry == null || isExpired(entry, Instant.now())) {
             return maxAttempts;
         }
         return Math.max(0, maxAttempts - entry.count);
@@ -66,6 +75,10 @@ public class MfaAttemptService {
 
     public void clear() {
         attempts.clear();
+    }
+
+    private boolean isExpired(Attempts entry, Instant now) {
+        return entry.windowStart.plusSeconds(windowSeconds).isBefore(now);
     }
 
     private record Attempts(Instant windowStart, int count) {

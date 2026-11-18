@@ -112,7 +112,11 @@ public class MfaController {
         try {
             List<String> recoveryCodes = mfaService.completeEnrollment(user, pendingSecret, code, user.getUsername());
             session.removeAttribute(PENDING_SECRET);
-            session.setAttribute(MfaEnforcementFilter.VERIFIED_USER_SESSION_ATTRIBUTE, user.getUsername());
+            if (request.getSession(false) != null) {
+                request.changeSessionId();
+            }
+            request.getSession(true).setAttribute(
+                    MfaEnforcementFilter.VERIFIED_USER_SESSION_ATTRIBUTE, user.getUsername());
 
             model.addAttribute(ATTR_MFA_ENABLED, true);
             model.addAttribute("recoveryCodes", recoveryCodes);
