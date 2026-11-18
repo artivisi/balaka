@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/main :: layout('Keamanan: Verifikasi Dua Langkah', ~{::#page-title}, ~{::section}, ~{})}"
+      lang="id">
+<head>
+    <title>Verifikasi Dua Langkah</title>
+</head>
+<body>
+    <h1 id="page-title">Verifikasi Dua Langkah (TOTP)</h1>
+
+    <section class="space-y-6">
+        <div th:if="${successMessage}" class="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg"
+             data-testid="mfa-success">
+            <span th:text="${successMessage}">Berhasil</span>
+        </div>
+        <div th:if="${errorMessage}" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg"
+             data-testid="mfa-error">
+            <span th:text="${errorMessage}">Error</span>
+        </div>
+
+        <div th:unless="${mfaAvailable}" class="bg-amber-50 border border-amber-200 text-amber-900 px-4 py-3 rounded-lg">
+            Verifikasi dua langkah dinonaktifkan pada instalasi ini.
+        </div>
+
+        <div th:if="${mfaRequired}" class="bg-blue-50 border border-blue-200 text-blue-900 px-4 py-3 rounded-lg"
+             data-testid="mfa-required-notice">
+            Peran Anda mewajibkan verifikasi dua langkah. Aktifkan sebelum melanjutkan.
+        </div>
+
+        <!-- Recovery codes, shown once right after enrolment or regeneration -->
+        <div th:if="${recoveryCodes}" class="bg-white rounded-lg shadow p-6" data-testid="mfa-recovery-codes">
+            <h2 class="text-lg font-semibold text-gray-900 mb-2">Kode pemulihan</h2>
+            <p class="text-sm text-gray-600 mb-4">
+                Simpan kode ini di tempat aman dan di luar server. Setiap kode hanya bisa dipakai sekali,
+                dan kode ini tidak akan ditampilkan lagi.
+            </p>
+            <ul class="grid grid-cols-2 gap-2 font-mono text-sm">
+                <li th:each="code : ${recoveryCodes}" th:text="${code}">XXXX-XXXX-XXXX-XXXX</li>
+            </ul>
+        </div>
+
+        <!-- Status: enabled -->
+        <div th:if="${mfaEnabled}" class="bg-white rounded-lg shadow p-6 space-y-4">
+            <div class="flex items-center gap-2">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    Aktif
+                </span>
+                <span class="text-gray-700">Authenticator sudah terdaftar untuk <span th:text="${username}">user</span>.</span>
+            </div>
+            <p class="text-sm text-gray-600">
+                Kode pemulihan yang belum dipakai:
+                <span th:text="${remainingRecoveryCodes}" data-testid="mfa-remaining-recovery">0</span>
+            </p>
+
+            <form method="post" th:action="@{/settings/mfa/recovery-codes}" class="flex flex-wrap items-end gap-2">
+                <div>
+                    <label for="regen-code" class="block text-sm font-medium text-gray-700 mb-1">
+                        Buat kode pemulihan baru
+                    </label>
+                    <input type="text" id="regen-code" name="code" inputmode="numeric" maxlength="6"
+                           placeholder="Kode 6 digit" data-testid="mfa-regenerate-code"
+                           class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                </div>
+                <button type="submit" class="bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded-lg text-sm">
+                    Buat ulang
+                </button>
+            </form>
+
+            <form th:unless="${mfaRequired}" method="post" th:action="@{/settings/mfa/disable}"
+                  class="flex flex-wrap items-end gap-2 border-t border-gray-200 pt-4">
+                <div>
+                    <label for="disable-code" class="block text-sm font-medium text-gray-700 mb-1">
+                        Nonaktifkan MFA
+                    </label>
+                    <input type="text" id="disable-code" name="code" inputmode="numeric" maxlength="6"
+                           placeholder="Kode 6 digit" data-testid="mfa-disable-code"
+                           class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                </div>
+                <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm">
+                    Nonaktifkan
+                </button>
+            </form>
+            <p th:if="${mfaRequired}" class="text-sm text-gray-600 border-t border-gray-200 pt-4">
+                Peran Anda mewajibkan MFA, jadi tidak bisa dinonaktifkan sendiri. Hubungi administrator
+                bila authenticator hilang.
+            </p>
+        </div>
+
+        <!-- Status: not enabled, show enrolment -->
+        <div th:if="${mfaAvailable and !mfaEnabled}" class="bg-white rounded-lg shadow p-6 space-y-4">
+            <h2 class="text-lg font-semibold text-gray-900">Aktifkan verifikasi dua langkah</h2>
+            <ol class="list-decimal list-inside text-sm text-gray-700 space-y-1">
+                <li>Buka aplikasi authenticator (Google Authenticator, Aegis, 1Password).</li>
+                <li>Tambahkan akun dengan memasukkan kunci di bawah secara manual.</li>
+                <li>Masukkan kode 6 digit yang muncul untuk mengonfirmasi.</li>
+            </ol>
+
+            <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <p class="text-xs uppercase tracking-wide text-gray-500 mb-1">Kunci (Base32)</p>
+                <p class="font-mono text-base break-all" th:text="${secret}" data-testid="mfa-secret">SECRET</p>
+                <p class="mt-2 text-xs text-gray-500">
+                    SHA1, <span th:text="${digits}">6</span> digit,
+                    <span th:text="${period}">30</span> detik.
+                </p>
+            </div>
+
+            <details class="text-sm text-gray-600">
+                <summary class="cursor-pointer">URI otpauth</summary>
+                <p class="mt-2 font-mono text-xs break-all" th:text="${otpAuthUri}">otpauth://...</p>
+            </details>
+
+            <form method="post" th:action="@{/settings/mfa/enable}" class="flex flex-wrap items-end gap-2">
+                <div>
+                    <label for="enable-code" class="block text-sm font-medium text-gray-700 mb-1">
+                        Kode dari aplikasi
+                    </label>
+                    <input type="text" id="enable-code" name="code" inputmode="numeric" maxlength="6"
+                           required placeholder="Kode 6 digit" data-testid="mfa-enable-code"
+                           class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                </div>
+                <button type="submit" data-testid="mfa-enable-submit"
+                        class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm">
+                    Aktifkan
+                </button>
+            </form>
+        </div>
+    </section>
+</body>
+</html>

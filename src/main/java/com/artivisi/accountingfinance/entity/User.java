@@ -1,6 +1,7 @@
 package com.artivisi.accountingfinance.entity;
 
 import com.artivisi.accountingfinance.enums.Role;
+import com.artivisi.accountingfinance.security.EncryptedStringConverter;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -41,6 +42,22 @@ public class User extends BaseEntity {
 
     @Column(name = "active", nullable = false)
     private Boolean active = true;
+
+    /**
+     * TOTP shared secret, encrypted at rest by {@link EncryptedStringConverter}.
+     */
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(name = "mfa_secret", length = 512)
+    private String mfaSecret;
+
+    @Column(name = "mfa_enabled", nullable = false)
+    private Boolean mfaEnabled = false;
+
+    /**
+     * RFC 6238 step of the last accepted code; a code at or before it is refused.
+     */
+    @Column(name = "mfa_last_used_step")
+    private Long mfaLastUsedStep;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private Set<UserRole> userRoles = new HashSet<>();
