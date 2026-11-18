@@ -22,8 +22,7 @@ ExecStart=/usr/bin/java \
     -Djava.security.egd=file:/dev/urandom \
     -Dfile.encoding=UTF-8 \
     -Duser.timezone=Asia/Jakarta \
-    -jar /opt/{{ app_name }}/{{ app_name }}.jar \
-    --spring.config.location=/opt/{{ app_name }}/application.properties
+    -jar /opt/{{ app_name }}/{{ app_name }}.jar
 
 # Security: Prevent core dumps that may contain sensitive data
 LimitCORE=0

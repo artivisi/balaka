@@ -111,8 +111,7 @@ ExecStart=/usr/bin/java \
   -XX:MetaspaceSize=96m \
   -XX:MaxMetaspaceSize=128m \
   -Xlog:gc*:file=/var/log/aplikasi-akunting-client-a/gc.log:time,tags:filecount=3,filesize=10m \
-  -jar /opt/aplikasi-akunting-client-a/aplikasi-akunting.jar \
-  --spring.config.location=file:/opt/aplikasi-akunting-client-a/application.properties
+  -jar /opt/aplikasi-akunting-client-a/aplikasi-akunting.jar
 
 Restart=on-failure
 RestartSec=10
