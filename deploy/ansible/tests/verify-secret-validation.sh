@@ -32,9 +32,11 @@ if ! command -v "${PLAYBOOK}" >/dev/null 2>&1; then
   exit 2
 fi
 
-cat > "${WORK_DIR}/inventory.ini" <<'EOF'
+# The interpreter differs by image (slim images only ship /usr/local/bin/python3).
+PYTHON_INTERPRETER="$(command -v python3 || echo /usr/bin/python3)"
+cat > "${WORK_DIR}/inventory.ini" <<EOF
 [accounting]
-localhost ansible_connection=local ansible_become=false ansible_python_interpreter=/usr/bin/python3
+localhost ansible_connection=local ansible_become=false ansible_python_interpreter=${PYTHON_INTERPRETER}
 EOF
 
 if command -v openssl >/dev/null 2>&1; then
@@ -50,6 +52,11 @@ cat > "${WORK_DIR}/empty.yml" <<'EOF'
 EOF
 
 cat > "${WORK_DIR}/valid.yml" <<EOF
+document_encryption_key: "${ENC_KEY}"
+app_setup_enabled: false
+EOF
+
+cat > "${WORK_DIR}/valid-key-missing-setup.yml" <<EOF
 document_encryption_key: "${ENC_KEY}"
 EOF
 
@@ -120,6 +127,11 @@ rc=$(run_playbook deploy.yml "${WORK_DIR}/valid.yml" deploy-valid)
 [ "${rc}" -eq 0 ] && expect_success deploy-valid \
   || { fail "deploy-valid: playbook failed"; sed 's/^/    /' "${WORK_DIR}/deploy-valid.log" | tail -30; }
 
+# A valid key but no app_setup_enabled must also fail, with an actionable message.
+rc=$(run_playbook site.yml "${WORK_DIR}/valid-key-missing-setup.yml" site-missing-setup)
+[ "${rc}" -ne 0 ] && expect_failure site-missing-setup "app_setup_enabled is not set" \
+  || fail "site-missing-setup: playbook unexpectedly succeeded"
+
 # Render the real env.conf template with a valid key and prove the variable is
 # exported. This is the no-live-host substitute for reaching application startup.
 cat > "${WORK_DIR}/render-env.yml" <<EOF
@@ -131,6 +143,7 @@ cat > "${WORK_DIR}/render-env.yml" <<EOF
   vars:
     app_name: accounting-finance
     document_encryption_key: "${ENC_KEY}"
+    app_setup_enabled: false
   tasks:
     - name: Render env.conf
       ansible.builtin.template:

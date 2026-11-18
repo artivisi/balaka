@@ -33,7 +33,7 @@ SSL mode `require` memastikan koneksi database terenkripsi. Tidak ada fallback k
 
 | Property | Environment Variable | Keterangan |
 |----------|---------------------|------------|
-| `app.encryption.key` | `APP_ENCRYPTION_KEY` | Kunci enkripsi AES-256-GCM untuk field PII dan dokumen (wajib di production) |
+| `app.encryption.key` | `APP_ENCRYPTION_KEY` | Kunci enkripsi AES-256-GCM untuk field PII dan dokumen. Tidak ada nilai default: aplikasi menolak start tanpa key yang valid |
 
 Generate key:
 
@@ -42,8 +42,11 @@ openssl rand -base64 32
 ```
 
 `site.yml` dan `deploy.yml` menolak berjalan jika `document_encryption_key`
-kosong/tidak valid, dan guard aplikasi menolak startup di profile `production`
-bila nilainya tidak memenuhi aturan.
+kosong/tidak valid. Aplikasi sendiri memeriksa key sebelum application context
+dibuat, jadi instance tanpa key yang layak tidak pernah membuka port. Guard aktif
+untuk semua profile kecuali profile pengembangan eksplisit (`dev`, `test`,
+`functional`, `bootstrap`): lupa mengirim `--spring.profiles.active` tidak
+mematikan pemeriksaan.
 
 **Kritis:** Simpan key ini di tempat aman. Jika `APP_ENCRYPTION_KEY` hilang,
 data PII yang terenkripsi tidak bisa didekripsi. Rotasi
@@ -74,6 +77,17 @@ Google Workspace SMTP relay (pengirim seperti `noreply@domain` tidak perlu mailb
 Akun Gmail dengan App Password: host `smtp.gmail.com`, port `587`, `APP_SMTP_AUTH=true`, username alamat akun, password berupa App Password (akun harus memakai 2-Step Verification). Alamat pengirim harus akun itu sendiri atau alias yang sudah diverifikasi.
 
 Ansible: isi `password_reset_enabled`, `password_reset_from`, `smtp_host`, `smtp_port`, `smtp_auth`, dan untuk `smtp_auth: true` juga `smtp_username`, `smtp_password` di `group_vars`; base URL diambil dari `app_domain`.
+
+## Setup Awal (First-Run)
+
+| Property | Environment Variable | Keterangan |
+|----------|---------------------|------------|
+| `app.setup.enabled` | `APP_SETUP_ENABLED` | Mengaktifkan wizard `/setup`. Tidak ada default: setiap profile menyebutkannya eksplisit |
+
+Deployment Ansible membuat administrator pertama sendiri, jadi nilai ini
+`false` di production dan `/setup` tidak punya route sama sekali (404). Aktifkan
+hanya untuk instance baru yang tidak publik, misalnya dengan
+`--spring.profiles.active=dev` di mesin pengembang.
 
 ## Telegram Bot
 
