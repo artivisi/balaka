@@ -6,6 +6,7 @@ import com.artivisi.accountingfinance.enums.AuditEventType;
 import com.artivisi.accountingfinance.enums.Role;
 import com.artivisi.accountingfinance.security.PasswordValidator;
 import com.artivisi.accountingfinance.security.Permission;
+import com.artivisi.accountingfinance.security.MfaService;
 import com.artivisi.accountingfinance.service.DeviceAuthService;
 import com.artivisi.accountingfinance.service.SecurityAuditService;
 import com.artivisi.accountingfinance.service.UserService;
@@ -59,6 +60,7 @@ public class UserController {
     private final PasswordValidator passwordValidator;
     private final SecurityAuditService securityAuditService;
     private final DeviceAuthService deviceAuthService;
+    private final MfaService mfaService;
 
     @Getter
     @Setter
@@ -298,6 +300,25 @@ public class UserController {
                 "User " + user.getUsername() + AUDIT_ID_SUFFIX + id + ") status changed from " +
                         fromStatus + " to " + toStatus);
         redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "Status pengguna berhasil diubah");
+        return REDIRECT_USERS_PREFIX + id;
+    }
+
+    @PostMapping("/{id}/mfa-reset")
+    @PreAuthorize("hasAuthority('" + Permission.USER_EDIT + "')")
+    public String resetMfa(@PathVariable UUID id,
+                           Authentication authentication,
+                           RedirectAttributes redirectAttributes) {
+        User user = userService.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException(USER_NOT_FOUND + id));
+
+        if (!Boolean.TRUE.equals(user.getMfaEnabled())) {
+            redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE, "MFA belum aktif untuk pengguna ini");
+            return REDIRECT_USERS_PREFIX + id;
+        }
+
+        mfaService.adminReset(user, authentication.getName());
+        redirectAttributes.addFlashAttribute(ATTR_SUCCESS_MESSAGE,
+                "MFA pengguna direset. Pengguna harus mendaftarkan authenticator baru saat login berikutnya.");
         return REDIRECT_USERS_PREFIX + id;
     }
 
