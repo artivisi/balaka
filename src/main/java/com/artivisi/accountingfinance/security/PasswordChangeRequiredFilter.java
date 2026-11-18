@@ -78,6 +78,14 @@ public class PasswordChangeRequiredFilter extends OncePerRequestFilter {
             response.getWriter().write(API_REJECTION);
             return;
         }
+        if (request.getHeader("HX-Request") != null) {
+            // An htmx request must not follow a redirect to the change page: the layout's
+            // hx-trigger="load" (quick transaction list) would swap that page, with its own load
+            // trigger, into itself and request again without end. htmx does not swap a 4xx.
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            response.setHeader("X-Password-Change-Required", "true");
+            return;
+        }
         response.sendRedirect(request.getContextPath() + CHANGE_PATH);
     }
 

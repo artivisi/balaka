@@ -178,6 +178,10 @@ class AccountPasswordFunctionalTest extends PlaywrightTestBase {
                 userPage.waitForLoadState(LoadState.NETWORKIDLE);
                 assertThat(userPage).hasURL(baseUrl() + "/account/password");
             }
+            APIResponse htmx = userPage.request().get(baseUrl() + "/transactions/quick/templates",
+                    RequestOptions.create().setHeader("HX-Request", "true").setMaxRedirects(0));
+            assertThat(htmx.status()).as("htmx requests are refused, not redirected into the page").isEqualTo(403);
+            assertThat(htmx.headers()).containsEntry("x-password-change-required", "true");
             APIResponse sessionApi = userPage.request().get(baseUrl() + "/api/templates");
             assertThat(sessionApi.status()).isEqualTo(403);
             assertThat(sessionApi.text()).contains("\"error\":\"password_change_required\"");
