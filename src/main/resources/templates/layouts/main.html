@@ -44,6 +44,7 @@
     <!-- IMPORTANT: alpine-components.js must load BEFORE alpine-csp.js so the alpine:init
          listener is attached before Alpine fires it and processes the DOM -->
     <script defer th:src="@{/js/alpine-persist-3.15.12.min.js}"></script>
+    <script defer th:src="@{/js/submit-once.js}"></script>
     <script defer th:src="@{/js/alpine-components.js}"></script>
     <script defer th:src="@{/js/alpine-csp-3.15.12.min.js}"></script>
     <style th:attr="nonce=${cspNonce}">

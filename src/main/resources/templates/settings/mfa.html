@@ -52,7 +52,7 @@
                 <span th:text="${remainingRecoveryCodes}" data-testid="mfa-remaining-recovery">0</span>
             </p>
 
-            <form method="post" th:action="@{/settings/mfa/recovery-codes}" class="flex flex-wrap items-end gap-2">
+            <form method="post" th:action="@{/settings/mfa/recovery-codes}" data-submit-once class="flex flex-wrap items-end gap-2">
                 <div>
                     <label for="regen-code" class="block text-sm font-medium text-gray-700 mb-1">
                         Buat kode pemulihan baru
@@ -66,7 +66,7 @@
                 </button>
             </form>
 
-            <form th:unless="${mfaRequired}" method="post" th:action="@{/settings/mfa/disable}"
+            <form th:unless="${mfaRequired}" method="post" th:action="@{/settings/mfa/disable}" data-submit-once
                   class="flex flex-wrap items-end gap-2 border-t border-gray-200 pt-4">
                 <div>
                     <label for="disable-code" class="block text-sm font-medium text-gray-700 mb-1">
@@ -112,7 +112,7 @@
                 <p class="mt-2 font-mono text-xs break-all" th:text="${otpAuthUri}">otpauth://...</p>
             </details>
 
-            <form method="post" th:action="@{/settings/mfa/enable}" class="flex flex-wrap items-end gap-2">
+            <form method="post" th:action="@{/settings/mfa/enable}" data-submit-once class="flex flex-wrap items-end gap-2">
                 <div>
                     <label for="enable-code" class="block text-sm font-medium text-gray-700 mb-1">
                         Kode dari aplikasi

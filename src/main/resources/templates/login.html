@@ -49,6 +49,9 @@
             <div th:if="${param.expired}" id="message-expired" class="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
                 Sesi diakhiri karena password akun ini diubah. Silakan masuk kembali.
             </div>
+            <div th:if="${param.ended}" id="message-ended" class="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+                Sesi sudah berakhir sebelum formulir terkirim. Silakan masuk kembali.
+            </div>
 
             <!-- Login Form -->
             <form th:action="@{/login}" method="post" class="space-y-6">

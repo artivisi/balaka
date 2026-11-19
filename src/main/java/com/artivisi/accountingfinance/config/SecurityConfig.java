@@ -13,6 +13,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.web.access.AccessDeniedHandlerImpl;
 import org.springframework.security.authentication.LockedException;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -37,6 +38,8 @@ import org.springframework.security.web.servlet.util.matcher.PathPatternRequestM
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
+
+    private static final AccessDeniedHandlerImpl WEB_ACCESS_DENIED = new AccessDeniedHandlerImpl();
 
     @Value("${transaction.api.require-auth:true}")
     private boolean requireApiAuth;
@@ -126,6 +129,21 @@ public class SecurityConfig {
                                 : "{\"error\":\"forbidden\",\"message\":\"Access denied\"}");
                     },
                     request -> request.getRequestURI().startsWith("/api/")
+                )
+                // A handler registered for one matcher alone becomes the handler of every request, so
+                // web requests need their own. An anonymous one is typically a form posted with the
+                // CSRF token of a session that no longer exists (a second submit after the first one
+                // rotated the session id, or a timed-out page): send it to sign in again.
+                .defaultAccessDeniedHandlerFor(
+                    (request, response, accessDeniedException) -> {
+                        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+                        if (auth == null || auth instanceof AnonymousAuthenticationToken) {
+                            response.sendRedirect(request.getContextPath() + "/login?ended");
+                        } else {
+                            WEB_ACCESS_DENIED.handle(request, response, accessDeniedException);
+                        }
+                    },
+                    request -> !request.getRequestURI().startsWith("/api/")
                 )
             )
             // Security headers configuration

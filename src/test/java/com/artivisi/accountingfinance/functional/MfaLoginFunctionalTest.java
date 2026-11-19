@@ -183,7 +183,24 @@ class MfaLoginFunctionalTest extends PlaywrightTestBase {
         String secret = page.locator("[data-testid='mfa-secret']").textContent().trim();
         long step = System.currentTimeMillis() / 1000 / totpService.getStepSeconds();
         page.locator("[data-testid='mfa-enable-code']").fill(totpService.generateCode(secret, step));
+        // Enter and then the button: the second submit must be cancelled. A listener added after
+        // submit-once.js records whether each submit arrives cancelled and holds the page in place.
+        Object prevented = page.evaluate("""
+                () => {
+                    const form = document.querySelector("[data-testid='mfa-enable-code']").form;
+                    const seen = [];
+                    const probe = e => { seen.push(e.defaultPrevented); e.preventDefault(); };
+                    document.addEventListener('submit', probe);
+                    form.requestSubmit();
+                    form.requestSubmit();
+                    document.removeEventListener('submit', probe);
+                    delete form.dataset.submitted;
+                    form.querySelectorAll('button').forEach(b => b.disabled = false);
+                    return seen;
+                }""");
+        assertEquals(List.of(false, true), prevented, "second submit was not cancelled");
         page.locator("[data-testid='mfa-enable-submit']").click();
+        page.waitForURL("**/settings/mfa/enable");
         waitForPageLoad();
         assertThat(page.locator("[data-testid='mfa-recovery-codes']")).isVisible();
         assertTrue(userRepository.findByUsername(admin.getUsername()).orElseThrow().getMfaEnabled());

@@ -307,6 +307,27 @@ class SecurityRegressionTest extends PlaywrightTestBase {
             assertEquals(302, accepted.status(), accepted.text());
             assertTrue(accountRepository.findByAccountCode(code).isPresent());
         }
+
+        @Test
+        @DisplayName("A form posted without a session goes to the sign-in page; an API call gets JSON 401")
+        void postWithoutSessionIsSentToSignIn() {
+            APIRequestContext anonymous = playwright.request().newContext();
+            try {
+                // A stale token, as in a second submit after the first one rotated the session id.
+                APIResponse web = anonymous.post(baseUrl() + "/settings/mfa/enable", RequestOptions.create()
+                        .setForm(FormData.create().set("code", "123456").set("_csrf", "stale"))
+                        .setMaxRedirects(0));
+                assertEquals(302, web.status(), web.text());
+                assertTrue(web.headers().get("location").endsWith("/login?ended"), web.headers().get("location"));
+
+                APIResponse api = anonymous.post(baseUrl() + "/api/transactions", RequestOptions.create()
+                        .setHeader("Content-Type", "application/json").setData("{}").setMaxRedirects(0));
+                assertEquals(401, api.status(), api.text());
+                assertTrue(api.text().contains("\"error\":\"unauthorized\""), api.text());
+            } finally {
+                anonymous.dispose();
+            }
+        }
     }
 
     @Nested
