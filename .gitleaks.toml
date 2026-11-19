@@ -86,6 +86,8 @@ regexes = [
     '''(?i)\$\{.*\}''',                  # Environment variable placeholders
     '''(?i)@Value\("''',                 # Spring @Value annotations
     '''(?i)secrets\.(GITHUB_TOKEN|NVD_API_KEY)''',  # GitHub secrets references
+    '''(?i)DEFAULT_ADMIN_PASSWORD''',    # Legitimate constant for seeded admin comparison
+    '''(?i)SEEDED_ADMIN_ID''',           # Legitimate constant for seeded admin UUID
 ]
 
 commits = [
