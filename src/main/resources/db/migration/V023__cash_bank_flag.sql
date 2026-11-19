@@ -1,4 +1,4 @@
--- V018: explicit cash/bank flag and its provenance
+-- V023: explicit cash/bank flag and its provenance
 --
 -- Cash reporting must never infer cash from an account-code prefix at read time.
 -- The selector this replaces (active, non-header ASSET, account_code LIKE '1.1.0%')

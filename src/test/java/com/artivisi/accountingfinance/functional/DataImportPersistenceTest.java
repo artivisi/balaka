@@ -150,7 +150,8 @@ class DataImportPersistenceTest extends PlaywrightTestBase {
         assertThat(accountRepository.findByAccountCode("1.1.02")).isPresent();
 
         Path zip = zip("wrong-columns.zip", Map.of(
-                "02_chart_of_accounts.csv", "wrong_column1,wrong_column2\nval1,val2\n"));
+                // Twelve columns, so the row passes the is_cash_bank column check and fails on the account type.
+                "02_chart_of_accounts.csv", "c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12\nval1,val2,,,,,,,,,,false\n"));
 
         submitImport(zip, true);
 

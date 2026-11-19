@@ -1223,17 +1223,6 @@ public class DataImportService {
                 ba.setGlAccount(gl);
             }
 
-            // column 6 = gl_account_code (optional)
-            String glAccountCode = getField(row, 6);
-            if (!glAccountCode.isEmpty()) {
-                ChartOfAccount glAccount = accountMap.get(glAccountCode);
-                if (glAccount == null) {
-                    throw new IllegalArgumentException("company_bank_accounts row " + getField(row, 1)
-                            + ": GL account " + glAccountCode + " not found in chart of accounts");
-                }
-                ba.setGlAccount(glAccount);
-            }
-
             CompanyBankAccount saved = bankAccountRepository.save(ba);
             chartOfAccountService.applyBankLink(saved.getGlAccount());
         }

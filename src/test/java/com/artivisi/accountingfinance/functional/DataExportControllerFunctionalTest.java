@@ -123,11 +123,14 @@ class DataExportControllerFunctionalTest extends PlaywrightTestBase {
         List<String> accounts = zip.get("02_chart_of_accounts.csv").lines().toList();
         assertThat(accounts.getFirst())
                 .isEqualTo("account_code,account_name,account_type,parent_code,normal_balance,active,created_at,"
-                        + "fiscal_treatment,service_expense,close_check_role,self_test_role");
+                        + "fiscal_treatment,service_expense,close_check_role,self_test_role,is_cash_bank");
         assertThat(accounts).hasSize((int) accountRepository.count() + 1);
+        // 1.1.01 Kas is a cash account: the last column carries the flag.
+        assertThat(account.getIsCashBank()).isTrue();
         assertThat(accounts).anyMatch(l -> l.startsWith(SEEDED_ACCOUNT_CODE + "," + account.getAccountName() + ","
                 + account.getAccountType() + "," + SEEDED_ACCOUNT_PARENT + ","
-                + account.getNormalBalance() + ",true,"));
+                + account.getNormalBalance() + ",true,") && l.endsWith(",true"));
+        assertThat(accounts).anyMatch(l -> l.startsWith("4.") && l.endsWith(",false"));
 
         assertThat(zip.get("07_clients.csv").lines())
                 .anyMatch(l -> l.startsWith("EXP-" + marker + ",\"Klien, \"\"Ekspor\"\" " + marker + "\",,ekspor-"

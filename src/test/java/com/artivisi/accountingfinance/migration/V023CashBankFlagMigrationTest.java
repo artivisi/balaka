@@ -12,13 +12,13 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * V018 on a database built before the explicit flag existed. The migration must keep
+ * V023 on a database built before the explicit flag existed. The migration must keep
  * every account the old selector counted as cash, otherwise existing installations
  * lose cash from the dashboard, the cash flow statement and SPT 8A.I.1 the moment
  * they upgrade.
  */
-@DisplayName("V018 cash/bank flag migration")
-class V018CashBankFlagMigrationTest {
+@DisplayName("V023 cash/bank flag migration")
+class V023CashBankFlagMigrationTest {
 
     @Test
     @DisplayName("Backfill keeps the old selector: active non-header 1.1.0x assets and bank-linked accounts")
@@ -27,7 +27,7 @@ class V018CashBankFlagMigrationTest {
             postgres.start();
             DriverManagerDataSource dataSource = dataSource(postgres);
             JdbcTemplate jdbc = new JdbcTemplate(dataSource);
-            flyway(dataSource, "17").migrate();
+            flyway(dataSource, "22").migrate();
 
             jdbc.update(insert(), UUID.randomUUID(), "1.1", "Aset Lancar", "ASSET", "DEBIT", 2, true, true);
             jdbc.update(insert(), UUID.randomUUID(), "1.1.01", "Kas", "ASSET", "DEBIT", 2, false, true);
@@ -43,7 +43,7 @@ class V018CashBankFlagMigrationTest {
                     INSERT INTO company_bank_accounts (id, bank_name, account_number, account_name, id_account)
                     VALUES (?, 'Bank Mandiri', '1234567890', 'PT Contoh', ?)""", UUID.randomUUID(), linkedId);
 
-            flyway(dataSource, "18").migrate();
+            flyway(dataSource, "23").migrate();
 
             // Every account the old prefix rule counted as cash is still cash.
             assertThat(flag(jdbc, "1.1.01")).isTrue();
@@ -80,7 +80,7 @@ class V018CashBankFlagMigrationTest {
             DriverManagerDataSource dataSource = dataSource(postgres);
             JdbcTemplate jdbc = new JdbcTemplate(dataSource);
 
-            flyway(dataSource, "18").migrate();
+            flyway(dataSource, "23").migrate();
 
             assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM chart_of_accounts WHERE is_cash_bank", Integer.class)).isZero();
         }
