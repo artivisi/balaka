@@ -19,7 +19,7 @@
 
         <!-- Header -->
         <div class="flex items-center justify-between flex-wrap gap-4">
-            <div class="flex items-center gap-4 flex-wrap">
+            <div id="product-filters" class="flex items-center gap-4 flex-wrap">
                 <!-- Search -->
                 <div class="relative">
                     <label for="search-input" class="sr-only">Cari produk</label>
@@ -32,6 +32,7 @@
                            hx-get="/products"
                            hx-trigger="keyup changed delay:300ms"
                            hx-target="#product-table"
+                           hx-sync="#product-filters:replace"
                            hx-swap="outerHTML"
                            hx-include="[name='categoryId'], [name='active']">
                     <svg class="absolute left-3 top-2.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -47,6 +48,7 @@
                         hx-get="/products"
                         hx-trigger="change"
                         hx-target="#product-table"
+                        hx-sync="#product-filters:replace"
                         hx-swap="outerHTML"
                         hx-include="[name='search'], [name='active']">
                     <option value="" th:selected="${categoryId == null}">Semua Kategori</option>
@@ -64,6 +66,7 @@
                         hx-get="/products"
                         hx-trigger="change"
                         hx-target="#product-table"
+                        hx-sync="#product-filters:replace"
                         hx-swap="outerHTML"
                         hx-include="[name='search'], [name='categoryId']">
                     <option value="" th:selected="${active == null}">Semua Status</option>
