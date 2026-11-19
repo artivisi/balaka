@@ -4,6 +4,7 @@ import com.artivisi.accountingfinance.entity.User;
 import com.artivisi.accountingfinance.repository.UserRepository;
 import com.artivisi.accountingfinance.security.MfaEnforcementFilter;
 import com.artivisi.accountingfinance.security.MfaService;
+import com.artivisi.accountingfinance.security.QrCodeService;
 import com.artivisi.accountingfinance.security.TotpService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
@@ -45,11 +46,14 @@ public class MfaController {
     private final MfaService mfaService;
     private final TotpService totpService;
     private final UserRepository userRepository;
+    private final QrCodeService qrCodeService;
 
-    public MfaController(MfaService mfaService, TotpService totpService, UserRepository userRepository) {
+    public MfaController(MfaService mfaService, TotpService totpService, UserRepository userRepository,
+                         QrCodeService qrCodeService) {
         this.mfaService = mfaService;
         this.totpService = totpService;
         this.userRepository = userRepository;
+        this.qrCodeService = qrCodeService;
     }
 
     @GetMapping
@@ -80,8 +84,7 @@ public class MfaController {
             secret = mfaService.startEnrollment(user);
             session.setAttribute(PENDING_SECRET, secret);
         }
-        model.addAttribute("secret", secret);
-        model.addAttribute("otpAuthUri", totpService.getOtpAuthUri(secret, user.getUsername(), "Balaka"));
+        addEnrollment(model, secret, user);
         model.addAttribute("digits", totpService.getDigits());
         model.addAttribute("period", totpService.getStepSeconds());
         return VIEW_MFA;
@@ -131,8 +134,7 @@ public class MfaController {
             return REDIRECT_MFA;
         } catch (IllegalArgumentException e) {
             model.addAttribute(ATTR_MFA_ENABLED, false);
-            model.addAttribute("secret", pendingSecret);
-            model.addAttribute("otpAuthUri", totpService.getOtpAuthUri(pendingSecret, user.getUsername(), "Balaka"));
+            addEnrollment(model, pendingSecret, user);
             model.addAttribute("digits", totpService.getDigits());
             model.addAttribute("period", totpService.getStepSeconds());
             model.addAttribute(ATTR_ERROR, e.getMessage());
@@ -196,5 +198,12 @@ public class MfaController {
             return null;
         }
         return userRepository.findByUsername(auth.getName()).orElse(null);
+    }
+
+    private void addEnrollment(Model model, String secret, User user) {
+        String uri = totpService.getOtpAuthUri(secret, user.getUsername(), "Balaka");
+        model.addAttribute("secret", secret);
+        model.addAttribute("otpAuthUri", uri);
+        model.addAttribute("otpAuthQr", qrCodeService.svgDataUri(uri));
     }
 }

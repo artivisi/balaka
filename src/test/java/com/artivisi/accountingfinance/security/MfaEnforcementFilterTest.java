@@ -104,8 +104,8 @@ class MfaEnforcementFilterTest {
     }
 
     @Test
-    @DisplayName("an HTMX request is redirected with HX-Redirect instead of a 302")
-    void htmxRequestGetsRedirectHeader() throws Exception {
+    @DisplayName("an HTMX request is refused with 403, not redirected, so a fragment loaded on page load cannot loop")
+    void htmxRequestIsRefused() throws Exception {
         when(mfaService.isEnabled()).thenReturn(true);
         when(mfaService.mustVerify(user)).thenReturn(true);
 
@@ -114,8 +114,25 @@ class MfaEnforcementFilterTest {
         MockHttpServletResponse response = new MockHttpServletResponse();
         filter.doFilter(request, response, new MockFilterChain());
 
-        assertThat(response.getStatus()).isEqualTo(200);
-        assertThat(response.getHeader(MfaEnforcementFilter.HX_REDIRECT_HEADER)).isEqualTo("/mfa-verify");
+        assertThat(response.getStatus()).isEqualTo(403);
+        assertThat(response.getHeader(MfaEnforcementFilter.MFA_REQUIRED_HEADER)).isEqualTo("verify");
+        assertThat(response.getHeader("HX-Redirect")).isNull();
+        assertThat(response.getRedirectedUrl()).isNull();
+    }
+
+    @Test
+    @DisplayName("an HTMX request of a session that must enrol is refused with 403")
+    void htmxRequestIsRefusedBeforeEnrollment() throws Exception {
+        when(mfaService.isEnabled()).thenReturn(true);
+        when(mfaService.mustEnroll(user)).thenReturn(true);
+
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/transactions/quick/templates");
+        request.addHeader(MfaEnforcementFilter.HX_REQUEST_HEADER, "true");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        filter.doFilter(request, response, new MockFilterChain());
+
+        assertThat(response.getStatus()).isEqualTo(403);
+        assertThat(response.getHeader(MfaEnforcementFilter.MFA_REQUIRED_HEADER)).isEqualTo("enroll");
         assertThat(response.getRedirectedUrl()).isNull();
     }
 

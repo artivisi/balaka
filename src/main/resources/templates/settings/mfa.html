@@ -91,9 +91,12 @@
             <h2 class="text-lg font-semibold text-gray-900">Aktifkan verifikasi dua langkah</h2>
             <ol class="list-decimal list-inside text-sm text-gray-700 space-y-1">
                 <li>Buka aplikasi authenticator (Google Authenticator, Aegis, 1Password).</li>
-                <li>Tambahkan akun dengan memasukkan kunci di bawah secara manual.</li>
+                <li>Pindai kode QR di bawah. Bila tidak bisa memindai, masukkan kuncinya secara manual.</li>
                 <li>Masukkan kode 6 digit yang muncul untuk mengonfirmasi.</li>
             </ol>
+
+            <img th:src="${otpAuthQr}" alt="Kode QR untuk aplikasi authenticator" data-testid="mfa-qr"
+                 class="w-48 h-48 border border-gray-200 rounded-lg">
 
             <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
                 <p class="text-xs uppercase tracking-wide text-gray-500 mb-1">Kunci (Base32)</p>

@@ -41,7 +41,8 @@ public class MfaEnforcementFilter extends OncePerRequestFilter {
     public static final String VERIFIED_USER_SESSION_ATTRIBUTE = "MFA_VERIFIED_USER";
 
     static final String HX_REQUEST_HEADER = "HX-Request";
-    static final String HX_REDIRECT_HEADER = "HX-Redirect";
+    /** Set on the 403 an htmx request gets while the factor is pending: "verify" or "enroll". */
+    static final String MFA_REQUIRED_HEADER = "X-Mfa-Required";
 
     private static final List<String> ALWAYS_ALLOWED_PREFIXES = List.of(
             "/css/", "/js/", "/img/", "/themes/", "/webjars/", "/favicon", "/api/", "/actuator/");
@@ -88,12 +89,12 @@ public class MfaEnforcementFilter extends OncePerRequestFilter {
         }
 
         if (mfaService.mustVerify(user) && !isVerifiedSession(request, user)) {
-            redirect(request, response, "/mfa-verify");
+            redirect(request, response, "/mfa-verify", "verify");
             return;
         }
 
         if (mfaService.mustEnroll(user)) {
-            redirect(request, response, "/settings/mfa?required=true");
+            redirect(request, response, "/settings/mfa?required=true", "enroll");
             return;
         }
 
@@ -104,15 +105,19 @@ public class MfaEnforcementFilter extends OncePerRequestFilter {
      * An HTMX request follows a 302 by swapping the redirect target's body into the
      * current fragment; HX-Redirect makes the browser navigate instead.
      */
-    private void redirect(HttpServletRequest request, HttpServletResponse response, String target)
-            throws IOException {
-        String location = request.getContextPath() + target;
+    /**
+     * An htmx request is refused rather than redirected: the layout loads fragments with
+     * hx-trigger="load", and a redirect (or HX-Redirect) to the pending page would load that page,
+     * fire the same request again and reload without end.
+     */
+    private void redirect(HttpServletRequest request, HttpServletResponse response, String target,
+                          String pending) throws IOException {
         if (request.getHeader(HX_REQUEST_HEADER) != null) {
-            response.setHeader(HX_REDIRECT_HEADER, location);
-            response.setStatus(HttpServletResponse.SC_OK);
-        } else {
-            response.sendRedirect(location);
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            response.setHeader(MFA_REQUIRED_HEADER, pending);
+            return;
         }
+        response.sendRedirect(request.getContextPath() + target);
     }
 
     private boolean isVerifiedSession(HttpServletRequest request, User user) {

@@ -9,6 +9,7 @@ import com.artivisi.accountingfinance.security.MfaService;
 import com.artivisi.accountingfinance.security.TotpService;
 import com.artivisi.accountingfinance.ui.PlaywrightTestBase;
 import com.microsoft.playwright.APIResponse;
+import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.options.RequestOptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -148,9 +149,15 @@ class MfaLoginFunctionalTest extends PlaywrightTestBase {
     }
 
     @Test
-    @DisplayName("a role that requires MFA without enrolment is sent to the setup page")
+    @DisplayName("a role that requires MFA without enrolment is sent to the setup page, which stays put and enrols from its QR code")
     void requiredRoleWithoutEnrolmentIsSentToSetup() {
         User admin = mfaUser(Role.ADMIN);
+        List<String> navigations = new java.util.concurrent.CopyOnWriteArrayList<>();
+        page.onFrameNavigated(frame -> {
+            if (frame == page.mainFrame()) {
+                navigations.add(frame.url());
+            }
+        });
 
         navigateTo("/login");
         waitForPageLoad();
@@ -162,6 +169,24 @@ class MfaLoginFunctionalTest extends PlaywrightTestBase {
                 new com.microsoft.playwright.Page.WaitForURLOptions().setTimeout(30000));
         assertThat(page.locator("[data-testid='mfa-required-notice']")).isVisible();
         assertThat(page.locator("[data-testid='mfa-secret']")).isVisible();
+
+        // The layout loads fragments with hx-trigger="load"; refused with 403, they must not reload the page.
+        int settled = navigations.size();
+        page.waitForTimeout(3000);
+        assertEquals(settled, navigations.size(), "setup page reloaded: " + navigations);
+
+        Locator qr = page.locator("[data-testid='mfa-qr']");
+        assertTrue(qr.getAttribute("src").startsWith("data:image/svg+xml;base64,"));
+        assertTrue(((Number) qr.evaluate("img => img.complete ? img.naturalWidth : 0")).intValue() > 0,
+                "QR image did not render");
+
+        String secret = page.locator("[data-testid='mfa-secret']").textContent().trim();
+        long step = System.currentTimeMillis() / 1000 / totpService.getStepSeconds();
+        page.locator("[data-testid='mfa-enable-code']").fill(totpService.generateCode(secret, step));
+        page.locator("[data-testid='mfa-enable-submit']").click();
+        waitForPageLoad();
+        assertThat(page.locator("[data-testid='mfa-recovery-codes']")).isVisible();
+        assertTrue(userRepository.findByUsername(admin.getUsername()).orElseThrow().getMfaEnabled());
     }
 
     private void loginExpectingSecondFactor(String username) {
