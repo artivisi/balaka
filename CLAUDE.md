@@ -213,7 +213,7 @@ Frontend assets (Tailwind, Alpine) are built automatically during Maven `generat
 
 ## Current Release
 
-**2026.08-RELEASE** tagged. See `docs/releases/2026.08-RELEASE.md` for release notes.
+**2026.11-RELEASE** tagged (c8da6957, deployed to artivisi 2026-11-19, schema V023). See `docs/releases/2026.11-RELEASE.md` for release notes.
 
 ## Current Focus
 
