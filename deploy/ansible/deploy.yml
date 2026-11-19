@@ -108,6 +108,9 @@
       # One-shot non-production run: applies Flyway migrations, validates JPA, then
       # exits without serving requests. This lets the admin swap below happen before
       # the production profile (and DefaultAdminProductionGuard) starts.
+      # It runs in /opt/{{ app_name }}, where Spring Boot loads ./application.properties
+      # over the packaged file; --spring.config.location would replace the packaged
+      # defaults and the run would fail on the first missing placeholder.
       ansible.builtin.shell:
         cmd: |
           set -e
@@ -122,7 +125,6 @@
             -Duser.timezone=Asia/Jakarta \
             -Dfile.encoding=UTF-8 \
             -jar /opt/{{ app_name }}/{{ app_name }}.jar \
-            --spring.config.location=/opt/{{ app_name }}/application.properties \
             --spring.profiles.active=bootstrap \
             --app.bootstrap.exit-after-migrate=true \
             --server.address=127.0.0.1 \
