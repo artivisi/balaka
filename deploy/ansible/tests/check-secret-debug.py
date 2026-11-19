@@ -84,7 +84,6 @@ SECRET_SUFFIXES = (
     "_application_key",
     "_private_key",
     "_encryption_key",
-    "_remember_me_key",
     "_credentials",
 )
 

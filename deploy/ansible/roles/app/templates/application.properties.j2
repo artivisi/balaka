@@ -84,9 +84,6 @@ app.encryption.key={{ document_encryption_key }}
 # unless an operator deliberately enables it.
 app.setup.enabled={{ app_setup_enabled | lower }}
 
-# Remember Me (hash-based, 7 days)
-app.remember-me.key={{ app_remember_me_key }}
-
 # Payroll configuration
 {% if app_payroll_template_id is defined %}
 app.payroll.template-id={{ app_payroll_template_id }}
