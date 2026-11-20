@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -42,6 +43,7 @@ class PayrollReconciliationApiTest extends PlaywrightTestBase {
 
     private static final int FULL_YEAR = 2013;
     private static final String WARNING_PERIOD = "2011-01";
+    private static final AtomicInteger CLIENT_SEQ = new AtomicInteger();
 
     @Autowired private ChartOfAccountRepository accountRepository;
     @Autowired private EmployeeRepository employeeRepository;
@@ -53,7 +55,11 @@ class PayrollReconciliationApiTest extends PlaywrightTestBase {
 
     @BeforeEach
     void setUp() throws Exception {
-        api = playwright.request().newContext(new APIRequest.NewContextOptions().setBaseURL(baseUrl()));
+        // RateLimitFilter allows 100 /api requests per minute per client IP (first X-Forwarded-For entry). fullYear
+        // alone sends ~70 and the class runs in well under a minute, so each test is its own client (TEST-NET-2).
+        api = playwright.request().newContext(new APIRequest.NewContextOptions()
+                .setBaseURL(baseUrl())
+                .setExtraHTTPHeaders(Map.of("X-Forwarded-For", "198.51.100." + CLIENT_SEQ.incrementAndGet())));
         token = deviceToken();
     }
 
