@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Indonesian accounting application for small businesses. Spring Boot 4.0 + Thymeleaf + PostgreSQL. Licensed under Apache License 2.0.
+Indonesian accounting application for small businesses. Spring Boot 4.1 + Thymeleaf + PostgreSQL. Licensed under Apache License 2.0.
 
 ## Current Status
 
@@ -55,7 +55,9 @@ Indonesian accounting application for small businesses. Spring Boot 4.0 + Thymel
 - **Tax Audit Workspace (issue #51):** ✅ Complete (`/tax-audit` year view with trace to ledger line and links to invoice/faktur/bupot/contract/bank line/filing; append-only inquiry cases with disclosure ZIP export; archive ZIP+manifest import with PostgreSQL full-text search; evidence required at posting from `company_config.evidence_required_from`; V016)
 - **TOTP MFA (PR #60):** ✅ Complete (RFC 6238 second factor, required for ADMIN/OWNER by `app.mfa.required-roles`, recovery codes, admin reset, `MfaEnforcementFilter`, V021)
 - **User credentials (issue #61):** ✅ Complete (`/account/password` for every role, `password_change_required` forced change after an administrator sets a password with web redirect and API 403, sessions ended via `credentials_changed_at` + `StaleSessionFilter`, device tokens revoked on every change, email reset with hashed single-use tokens via `spring-boot-starter-mail` (off by default, `app.password-reset.*`), V022)
-- **Test Suite Audit 2026-09:** 🔄 In progress (~80 classes rewritten to verify real behavior; web + API authorization hardening; V006/V007). Status, resume checklist, deploy checklist, release-notes draft and open decisions: `docs/test-suite-audit-2026-09.md`. Test rules + reserved test years: `docs/developer-guide/extending/05-testing.md`
+- **Test Suite Audit 2026-09:** ✅ Complete (~80 classes rewritten to verify real behavior; web + API authorization hardening; V006/V007), released in 2026.11-RELEASE. Open-decisions backlog: `docs/test-suite-audit-2026-09.md`. Test rules + reserved test years: `docs/developer-guide/extending/05-testing.md`
+- **Production guards (PR #55):** ✅ Complete (startup fails under the `production` profile without an encryption key, with the seeded admin, or with an empty users table and setup disabled; `deploy.yml` migrates in bootstrap mode and rolls back to the previous release on a failed step)
+- **Access cleanup 2026-11-20:** ✅ Complete (OpenAPI spec and Swagger UI require a Bearer token or login; EMPLOYEE lands on `/self-service/payslips` with a Layanan Mandiri menu; client/vendor search require `CLIENT_VIEW`/`VENDOR_VIEW`)
 - See `docs/06-implementation-plan.md` for full plan
 
 ## Key Files
@@ -75,8 +77,8 @@ Indonesian accounting application for small businesses. Spring Boot 4.0 + Thymel
 | Services | `src/main/java/.../service/` |
 | Controllers | `src/main/java/.../controller/` |
 | Templates | `src/main/resources/templates/` |
-| Migrations (Production) | `src/main/resources/db/migration/` (V001-V013) |
-| Test Migrations (Integration) | `src/test/resources/db/test/integration/` (V900-V916) |
+| Migrations (Production) | `src/main/resources/db/migration/` (V001-V018, V021-V023) |
+| Test Migrations (Integration) | `src/test/resources/db/test/integration/` (V800, V900-V917) |
 | Industry Seed Packs | `industry-seed/{it-service,online-seller,coffee-shop,campus}/` (loaded via DataImportService) |
 | API Reference (developer) | `docs/developer-guide/api/*.md` |
 | Functional Tests | `src/test/java/.../functional/` |
@@ -89,7 +91,7 @@ Indonesian accounting application for small businesses. Spring Boot 4.0 + Thymel
 2. **No fallback/default values:** Throw errors instead of silently handling missing data
 3. **Technical language:** No marketing speak, strictly technical documentation
 4. **Test-driven:** Write functional tests for new features
-5. **Migration strategy:** V001-V004 are applied on production; do not edit them. New schema goes in a new migration (V005 onwards). Editing an applied file fails Flyway checksum validation everywhere it already ran.
+5. **Migration strategy:** every migration up to V023 is applied on production; do not edit them. New schema goes in a new migration (V024 onwards). Editing an applied file fails Flyway checksum validation everywhere it already ran.
 6. **Code quality:** Maintain SpotBugs 0-issue status. Any new exclusions in `spotbugs-exclude.xml` must have comprehensive justifications with mitigation details
 
 ## Running the App
@@ -132,52 +134,44 @@ nohup ./run-tests.sh > /dev/null 2>&1 &   # background; logs land in logs/
 
 ## Container Runtime
 
-Testcontainers needs a Docker-API endpoint. Linux/CI uses Docker Engine. This macOS dev
-machine uses **Apple Container** with **socktainer** providing the Docker API, as docker
-context `socktainer`.
-
-**Engine-level knowledge lives in `~/workspace/apple-container-notes`** — install, known
-bugs and their removal triggers, sleep damage, wired-memory accumulation, the
-kickstart-after-upgrade rule, and the upstream issue tracker. It is shared with the other
-projects on this machine; read it before debugging anything that looks like a runtime
-fault. What follows is only what is specific to this suite.
+Testcontainers needs a Docker-API endpoint. Linux/CI uses Docker Engine. Since 2026-11-15 this
+macOS dev machine uses **OrbStack** (docker context `orbstack`; `/var/run/docker.sock` links to
+`~/.orbstack/run/docker.sock`). Start it with `orb start`. Apple Container + socktainer, used
+before that date, is no longer installed; `~/workspace/apple-container-notes` describes that
+engine only.
 
 **Use `./run-tests.sh`, not a bare `./mvnw test`.** It holds off sleep with `caffeinate`,
 writes logs to `logs/` (which `mvn clean` cannot delete mid-run), samples memory and
 engine health every 30s, and captures forensics if the engine wedges, containers collapse,
 or the host suspends.
 
-**Pre-pull images first** with `./pull-test-images.sh` — socktainer's pull stream breaks
-docker-java, so the first test needing an uncached image fails. See the shared notes §2.1
-for the removal trigger.
+**Pre-pulling** with `./pull-test-images.sh` was required for socktainer (its pull stream
+broke docker-java). On OrbStack it only warms the image cache.
 
 **Container resources are capped** by `ContainerResourceDefaults` (registered via
 `META-INF/services`): 512 MB / 2 CPUs by default, 2 GB for ZAP, 256 MB for Ryuk and the
-sshd helper. Without an explicit limit socktainer sizes every container at 1 GiB / 4 CPUs
-regardless of Apple Container's own config. The reservation is a ceiling rather than a
-pre-wired allocation, so this bounds worst-case over-commit rather than steady-state use.
+sshd helper. The limits were introduced for socktainer, which sized every container at
+1 GiB / 4 CPUs; they stay as a ceiling on worst-case over-commit.
 
 **Ryuk is disabled for this suite** (`TESTCONTAINERS_RYUK_DISABLED=true` in
 `run-tests.sh`, which reaps containers itself on exit). It twice destroyed a live session
-mid-run, after which every remaining test failed with `Connection to localhost:<port>
-refused`. Note whitelist-alert-manager reports Ryuk working fine on the same engine — the
-evidence and the four failed reproduction attempts are recorded in the shared notes §5.1.
-**Do not re-test those.**
+mid-run on Apple Container, after which every remaining test failed with `Connection to
+localhost:<port> refused`. Not re-tested on OrbStack; keep it disabled.
 
 **Never let the machine sleep during a run.** `caffeinate` cannot stop clamshell sleep, so
 leave the lid open and stay on AC. A run interrupted by sleep produces `TimeoutError`
 failures indistinguishable from real ones; `run-tests.sh` flags it, and
-`pmset -g log | grep -E "Sleep|Wake"` confirms it. Shared notes §4.1.
+`pmset -g log | grep -E "Sleep|Wake"` confirms it.
 
 ## Database
 
 - PostgreSQL via Testcontainers (tests)
-- Production migrations: V001-V018, V021-V023 (V001 security, V002 core schema, V003 feature schema, V004 seed data, V005 tax filing register, V006 API scope columns widened + new scopes for existing device tokens, V007 journal_entries.line_order, V008 fiscal treatment + benefit-in-kind — V006-V008 not yet deployed, V009 withholding, V010 sales tax chain, V011 payroll bonus/THR, V012 fixed-asset register, V013 evidence completeness, V014 period close checks, V015 tax self-test, V016 tax audit workspace, V017 Coretax tax object code remap, V018 company_bank_accounts.account_number widened for encryption, V021 TOTP MFA (#60), V022 user credentials: forced change flag, credentials_changed_at, case-insensitive unique email, password_reset_tokens; V023 `chart_of_accounts.is_cash_bank` + `cash_bank_source` (#56); V019-V020 unused, the next migration is V024)
+- Production migrations: V001-V018, V021-V023 (V001 security, V002 core schema, V003 feature schema, V004 seed data, V005 tax filing register, V006 API scope columns widened + new scopes for existing device tokens, V007 journal_entries.line_order, V008 fiscal treatment + benefit-in-kind, V009 withholding, V010 sales tax chain, V011 payroll bonus/THR, V012 fixed-asset register, V013 evidence completeness, V014 period close checks, V015 tax self-test, V016 tax audit workspace, V017 Coretax tax object code remap, V018 company_bank_accounts.account_number widened for encryption, V021 TOTP MFA (#60), V022 user credentials: forced change flag, credentials_changed_at, case-insensitive unique email, password_reset_tokens; V023 `chart_of_accounts.is_cash_bank` + `cash_bank_source` (#56); V019-V020 unused, the next migration is V024)
 - **Migration caveat:** Modifying already-applied migrations requires manual schema fix on production + checksum update in `flyway_schema_history`. See `docs/03-operations-guide.md` Troubleshooting section.
 - Test data:
   - Functional tests: NO migrations - all data loaded via `@TestConfiguration` initializers from industry-seed/ packs
-  - Integration tests: V900-V916 (preloaded data for unit/service/security tests)
-- Industry seed packs: `industry-seed/{it-service,online-seller,coffee-shop}/seed-data/` (COA, templates, products, BOMs, etc.)
+  - Integration tests: V800, V900-V917 (preloaded data for unit/service/security tests)
+- Industry seed packs: `industry-seed/{it-service,online-seller,coffee-shop,campus}/seed-data/` (COA, templates, products, BOMs, etc.)
 
 ## Architecture
 
@@ -217,6 +211,6 @@ Frontend assets (Tailwind, Alpine) are built automatically during Maven `generat
 
 ## Current Focus
 
-Phases 0-20 complete. Finishing the 2026-09 test-suite audit — see `docs/test-suite-audit-2026-09.md` (Resume Checklist).
+Phases 0-20 and the 2026-09 test-suite audit are complete. Remaining known defects and pending decisions: Open Decisions in `docs/test-suite-audit-2026-09.md`.
 
 See `docs/06-implementation-plan.md` for full plan

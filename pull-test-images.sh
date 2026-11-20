@@ -2,16 +2,9 @@
 #
 # Pre-pull every container image the test suite starts.
 #
-# Required on the macOS dev machine (Apple Container + socktainer): docker-java
-# cannot parse socktainer's pull-progress stream and aborts the test with
-#   DockerClientException: Could not pull image: Image digest: sha256:...
-# even though the image downloads fine. Pulling via the CLI first avoids it.
-#
-# Upstream: https://github.com/socktainer/socktainer/issues/359 — fixed on main by
-# PR #365 (2026-08-16) but not in a release yet (latest v1.2.1, 2026-08-01).
-# Delete this script once an installed release carries the fix.
-#
-# Harmless (and still useful, as a warm cache) on Docker Engine / Linux / CI.
+# Was required with Apple Container + socktainer (until 2026-11-15): docker-java could not
+# parse socktainer's pull-progress stream (socktainer/socktainer#359). On OrbStack, Docker
+# Engine and CI it only warms the image cache.
 #
 # Keep RYUK/SSHD in sync with the Testcontainers version in pom.xml — they are
 # started by Testcontainers itself, not by our test code.
@@ -26,15 +19,14 @@ IMAGES=(
 )
 
 if ! command -v docker &> /dev/null; then
-    echo "ERROR: docker CLI not found. Install Docker Engine, or on macOS:" >&2
-    echo "  brew install container socktainer" >&2
+    echo "ERROR: docker CLI not found. Install Docker Engine, or OrbStack on macOS." >&2
     exit 1
 fi
 
 if ! docker info &> /dev/null; then
     echo "ERROR: no reachable Docker API endpoint." >&2
     echo "Current context: $(docker context show 2>/dev/null || echo unknown)" >&2
-    echo "On macOS start both: 'container system start' and the socktainer LaunchAgent." >&2
+    echo "On macOS: 'orb start' (OrbStack)." >&2
     exit 1
 fi
 

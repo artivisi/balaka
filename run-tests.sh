@@ -79,8 +79,7 @@ fi
 if ! docker info >/dev/null 2>&1; then
     echo "ERROR: no reachable Docker API endpoint." >&2
     echo "Context: $(docker context show 2>/dev/null || echo unknown)" >&2
-    echo "On macOS: 'container system start', then kickstart socktainer:" >&2
-    echo "  launchctl kickstart -k gui/\$(id -u)/com.socktainer.local" >&2
+    echo "On macOS: 'orb start' (OrbStack)." >&2
     exit 1
 fi
 

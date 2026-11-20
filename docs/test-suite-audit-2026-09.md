@@ -2,63 +2,17 @@
 
 Started 2026-09-25 from a CI failure (`ServiceDocumentTest`) that exposed tests asserting nothing. Scope grew to the entire suite: ~80 test classes rewritten to verify the feature they name, plus the application bugs those tests exposed. Test-writing rules and the reserved-year table now live in `docs/developer-guide/extending/05-testing.md`.
 
-## Status (2026-09-27)
+## Status: complete
 
-- `origin/main` = `182c32c8` (83 commits pushed). CI on it failed 2/3224: `QuickTransactionTest.shouldCreateTransactionViaQuickForm`, `JournalEntryApiTest.fullLifecycle`.
-- Local, **not pushed** (fix both CI failures + one found by the full local run):
-  - `cb9c6700` fix(journal): explicit per-transaction `line_order` (migration **V007**)
-  - `4ca846b7` fix(ui): stop re-creating Alpine components on `htmx:afterSettle`
-  - `9c4c8c94` fix(ui): drop stale account-picker search responses; demo loader fails loudly
-- Verified on local HEAD: CoffeeShopVerificationTest, OnlineSellerVerificationTest, 189-test UI batch, 1417 service integration tests, journal/transaction classes.
-- **Not yet verified**: `DemoVerificationTest` (it-service) and `CampusVerificationTest` — last attempt invalid (host on battery, slept; run killed for macOS update).
+- All audit commits are on `main`. Released in **2026.11-RELEASE** (tag on `c8da6957`), deployed to artivisi on 2026-11-19 together with V006-V023.
+- The release-notes draft that was kept here is published in `docs/releases/2026.11-RELEASE.md` (Security, API changes, accounting/tax fixes, data/backups).
+- Deploy checklist at that deploy: V006 + V007 applied; posting accounts configured in company settings (Akun Posting).
+- **Not applied (checked 2026-11-20):** the nginx `X-Forwarded-For` overwrite. `/etc/nginx/snippets/proxy-params.conf` on artivisi and on the demo VPS still has `$proxy_add_x_forwarded_for`. `deploy.yml` does not touch nginx; the `nginx` role in `site.yml` installs the snippet.
+- The test-run procedure here referred to Apple Container + socktainer. This machine now runs Testcontainers on OrbStack; see CLAUDE.md (Container Runtime) and `run-tests.sh`.
 
-## Resume Checklist
+## Open Decisions
 
-1. Start the container runtime: `container system start`, then `launchctl kickstart -k gui/$(id -u)/com.socktainer.local`; `./pull-test-images.sh`. AC power, lid open.
-2. `./run-tests.sh -Dtest='DemoVerificationTest,CampusVerificationTest' -DexcludedGroups=` (~20 min).
-3. Full suite: `./run-tests.sh` (~2h15m). Any `TimeoutError` → check `events.log` for sleep before investigating.
-4. Push, cancel superseded CI runs, watch CI.
-5. Before deploying to artivisi: see Deploy Checklist.
-
-## Deploy Checklist (artivisi)
-
-- **Migrations V006 + V007** not yet applied in production. Back up first.
-  - V006: widens `device_tokens.scopes` / `api_clients.scopes`, adds new scopes to existing device tokens.
-  - V007: adds `journal_entries.line_order` (backfilled from journal number order), `UNIQUE (id_transaction, line_order)`.
-- **Receivable/payable accounts must be configured** in company settings, otherwise dashboard KPI widget shows a configuration notice and `/api/analysis/snapshot|receivables|payables` return 500 `CONFIGURATION_ERROR`.
-- **API clients (client_credentials)** need the new write scopes granted explicitly (Pengaturan → API Klien) if they use payroll, fiscal adjustment, template, bank reconciliation or draft endpoints.
-- **nginx**: `proxy-params.conf.j2` now overwrites `X-Forwarded-For` — apply via Ansible.
-- **Seed packs already imported** (coffee-shop, online-seller): inventory templates were imported without lines (`is_system=true` skipped lines). Fix manually if production used those packs.
-
-## Release Notes Draft (next release)
-
-Security:
-- Web write endpoints require their write permission (previously many needed only `*_VIEW`; AUDITOR/STAFF could create invoices, approve drafts, close fiscal periods, post payroll). BOM, production, milestone, payment term, document and data export controllers had no permission check at all.
-- API tokens act with at most the permissions of their user's current roles; tokens of deactivated users return 401. New scopes: `payroll:write`, `tax-export:write`, `templates:read`/`templates:write`, `bank-recon:read`/`bank-recon:write`; `drafts:*` now enforced; `POST /api/transactions` requires `transactions:post`. Existing device tokens receive the new scopes automatically; **API clients do not** (grant under Pengaturan → API Klien). Browser sessions can no longer call `/api/**`; session requests to `/*/api/**` require the CSRF header. New permissions `ANALYSIS_REPORT_CREATE`, `ANALYSIS_REPORT_DELETE`.
-- Tax detail update/delete (web and API) verify the detail belongs to the transaction in the URL.
-- CSP nonce leaked into redirect URLs; stale-nonce fallback removed; nginx `X-Forwarded-For` overwrite (rate-limit key spoofing).
-- Uploads over 1MB failed with 500 (multipart limit now 10MB/11MB, 413 on oversize).
-
-API changes:
-- Error responses carry the documented `error` code and service message (409 → `CONFLICT`; new `INVALID_REQUEST`, `CONFIGURATION_ERROR`).
-- Bank reconciliation statement: `bookOnlyTotal` replaced by `bookOnlyDebitTotal` / `bookOnlyCreditTotal`.
-- `/api/tax-export/rekonsiliasi-fiskal` adds `lossCompensation`, `pkpAfterLoss`.
-- Analysis receivables/payables use the configured company accounts (were hard-coded 1.1.04 / 2.1.01).
-
-Accounting / tax fixes:
-- PPh Badan computed on PKP after fiscal loss compensation (L1, SPT checklist, rekonsiliasi fiskal, Coretax); fiscal loss no longer counted as compensable in or before its origin year.
-- Bank reconciliation: book-only items split by debit/credit (were all added to the bank balance).
-- Declining-balance depreciation rounding; depreciation report excluded pending/skipped entries.
-- Journal line order is explicit and deterministic (V007).
-
-Data / backups:
-- Journal export (`20_journal_entries.csv`) has a trailing `line_order` column; exports made before this release no longer import.
-- Company config export includes posting accounts; import rejects unknown account codes.
-- Seed packs configure receivable/payable/PPN accounts.
-
-UI fixes (selection): date inputs rendered empty on edit forms (milestone, payment term, project, employee, asset, inventory); edit forms posted to another record after a rejected code change (client, project, vendor, bill, employee, BOM, product); default dates used the UTC date (wrong 00:00–07:00 WIB); account picker could select a stale result; Alpine components re-created after every HTMX swap; flash messages missing on many pages; multi-statement Alpine handlers ignored by the CSP build; `.75`-style number rendering.
-
-## Open Decisions (not changed)
+The backlog below was recorded on 2026-09-27 and is kept as the list of known defects and decisions not yet taken. Items marked resolved were confirmed in the code; the others have not been re-verified since that date.
 
 Systemic:
 - **Hard-coded template UUIDs** do not exist after seed import (IDs regenerated): invoice "Tandai Lunas" (`e0000000-…-010`) → 404; payroll posting (`-014`) falls back to lookup by name (violates no-fallback); asset disposal (`-017`) fixed by #49 (templates resolved by name, in all four packs). Needs a template-resolution design (per pack), plus disposal proceeds account UI and gain/loss accounts.
@@ -92,7 +46,7 @@ Seed / demo data:
 Security / config:
 - App-level login rate limit never applies (filter order); nginx limits `/login` in production. Reordering enforces 10/min per IP (shared office IPs) — decide.
 - `/documents/api/{id}` serializes `storagePath`.
-- `/clients/search`, `/vendors/search` only require authentication (EMPLOYEE can list names).
+- ~~`/clients/search`, `/vendors/search` only require authentication (EMPLOYEE can list names).~~ resolved 2026-11-20: they require `CLIENT_VIEW` / `VENDOR_VIEW` like the rest of their controllers.
 - Confirm permission choices: fiscal adjustments → `FISCAL_PERIOD_MANAGE`; deletes/cancels without own permission → `*_EDIT`; data export → `DATA_IMPORT`; payroll cancel → `PAYROLL_CANCEL` (ACCOUNTANT lacks it); BOM writes → `PRODUCT_*`, production → `INVENTORY_ADJUST`; company logo GET open to any authenticated user.
 
 UX / smaller:
