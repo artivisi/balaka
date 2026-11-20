@@ -7,7 +7,7 @@ Started 2026-09-25 from a CI failure (`ServiceDocumentTest`) that exposed tests 
 - All audit commits are on `main`. Released in **2026.11-RELEASE** (tag on `c8da6957`), deployed to artivisi on 2026-11-19 together with V006-V023.
 - The release-notes draft that was kept here is published in `docs/releases/2026.11-RELEASE.md` (Security, API changes, accounting/tax fixes, data/backups).
 - Deploy checklist at that deploy: V006 + V007 applied; posting accounts configured in company settings (Akun Posting).
-- **Not applied (checked 2026-11-20):** the nginx `X-Forwarded-For` overwrite. `/etc/nginx/snippets/proxy-params.conf` on artivisi and on the demo VPS still has `$proxy_add_x_forwarded_for`. `deploy.yml` does not touch nginx; the `nginx` role in `site.yml` installs the snippet.
+- **Applied late (2026-11-20):** the nginx `X-Forwarded-For` overwrite. Until then `/etc/nginx/snippets/proxy-params.conf` on artivisi and on the demo VPS still had `$proxy_add_x_forwarded_for`, because `deploy.yml` does not touch nginx. The line was changed by hand to match the `nginx` role template (backup `proxy-params.conf.bak-20261120`); a `site.yml` run writes the same content.
 - The test-run procedure here referred to Apple Container + socktainer. This machine now runs Testcontainers on OrbStack; see CLAUDE.md (Container Runtime) and `run-tests.sh`.
 
 ## Open Decisions
