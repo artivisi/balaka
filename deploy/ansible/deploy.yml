@@ -53,176 +53,229 @@
         msg: "No jar file found in target directory"
       when: jar_files.files | length == 0
 
-    - name: Stop application
-      ansible.builtin.systemd:
-        name: "{{ app_name }}"
-        state: stopped
-      ignore_errors: yes
-
-    - name: Upload Google Cloud credentials (if enabled and file exists locally)
-      ansible.builtin.copy:
-        src: "{{ google_cloud_credentials_file }}"
-        dest: "/opt/{{ app_name }}/gcp-credentials.json"
-        owner: "{{ app_user }}"
-        group: "{{ app_user }}"
-        mode: "0600"
-      when:
-        - google_cloud_vision_enabled | default(false)
-        - google_cloud_credentials_file is defined
-        - google_cloud_credentials_file | length > 0
-
-    - name: Update application configuration
-      ansible.builtin.template:
-        src: "{{ playbook_dir }}/roles/app/templates/application.properties.j2"
-        dest: "/opt/{{ app_name }}/application.properties"
-        owner: "{{ app_user }}"
-        group: "{{ app_user }}"
-        mode: "0600"
-
-    - name: Copy jar to server
-      ansible.builtin.copy:
-        src: "{{ jar_files.files[0].path }}"
-        dest: "/opt/{{ app_name }}/{{ app_name }}.jar"
-        owner: "{{ app_user }}"
-        group: "{{ app_user }}"
-        mode: "0644"
-
-    - name: Install systemd unit with the production profile
-      # An existing server may still run an older unit without
-      # --spring.profiles.active=production, which would silently skip every startup
-      # guard. Rendering the unit here keeps deploy.yml and site.yml in step.
-      ansible.builtin.template:
-        src: "{{ playbook_dir }}/roles/app/templates/app.service.j2"
-        dest: "/etc/systemd/system/{{ app_name }}.service"
-        owner: root
-        group: root
-        mode: "0644"
-      register: app_service_unit
-
-    - name: Reload systemd when the unit changed
-      ansible.builtin.systemd:
-        daemon_reload: true
-      when: app_service_unit.changed
-
-    - name: Apply database migrations in bootstrap mode (production guard not active)
-      # One-shot non-production run: applies Flyway migrations, validates JPA, then
-      # exits without serving requests. This lets the admin swap below happen before
-      # the production profile (and DefaultAdminProductionGuard) starts.
-      # It runs in /opt/{{ app_name }}, where Spring Boot loads ./application.properties
-      # over the packaged file; --spring.config.location would replace the packaged
-      # defaults and the run would fail on the first missing placeholder.
+    - name: Keep the running release for rollback
+      # The block below replaces the jar, the configuration and the unit. If any step in it
+      # fails, the rescue puts these copies back and starts the previous release, so a failed
+      # deploy does not leave the application stopped.
       ansible.builtin.shell:
         cmd: |
           set -e
-          set -a
-          if [ -f /opt/{{ app_name }}/env.conf ]; then . /opt/{{ app_name }}/env.conf; fi
-          set +a
-          # Same JVM settings as the unit, plus a hard timeout: a migration that hangs
-          # must fail the playbook instead of blocking the deploy indefinitely.
-          exec timeout 600 /usr/bin/java \
-            -Xms{{ java_heap_min }} \
-            -Xmx{{ java_heap_max }} \
-            -Duser.timezone=Asia/Jakarta \
-            -Dfile.encoding=UTF-8 \
-            -jar /opt/{{ app_name }}/{{ app_name }}.jar \
-            --spring.profiles.active=bootstrap \
-            --app.bootstrap.exit-after-migrate=true \
-            --server.address=127.0.0.1 \
-            --server.port=0
+          for f in /opt/{{ app_name }}/{{ app_name }}.jar \
+                   /opt/{{ app_name }}/application.properties \
+                   /etc/systemd/system/{{ app_name }}.service; do
+            if [ -f "$f" ]; then cp -p "$f" "$f.previous"; else rm -f "$f.previous"; fi
+          done
         executable: /bin/bash
-      args:
-        chdir: "/opt/{{ app_name }}"
-      become: yes
-      become_user: "{{ app_user }}"
-      register: bootstrap_migration
       changed_when: false
-      failed_when: bootstrap_migration.rc != 0
 
-    - name: Delete default admin user roles
-      community.postgresql.postgresql_query:
-        db: "{{ db_name }}"
-        login_host: localhost
-        login_user: "{{ db_user }}"
-        login_password: "{{ db_password }}"
-        query: "DELETE FROM user_roles WHERE id_user = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'"
+    - name: Replace the release and start it
+      block:
+        - name: Stop application
+          ansible.builtin.systemd:
+            name: "{{ app_name }}"
+            state: stopped
+          ignore_errors: yes
 
-    - name: Delete default admin user
-      community.postgresql.postgresql_query:
-        db: "{{ db_name }}"
-        login_host: localhost
-        login_user: "{{ db_user }}"
-        login_password: "{{ db_password }}"
-        query: "DELETE FROM users WHERE id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'"
+        - name: Upload Google Cloud credentials (if enabled and file exists locally)
+          ansible.builtin.copy:
+            src: "{{ google_cloud_credentials_file }}"
+            dest: "/opt/{{ app_name }}/gcp-credentials.json"
+            owner: "{{ app_user }}"
+            group: "{{ app_user }}"
+            mode: "0600"
+          when:
+            - google_cloud_vision_enabled | default(false)
+            - google_cloud_credentials_file is defined
+            - google_cloud_credentials_file | length > 0
 
-    # Creates the configured administrator only when the username does not exist yet. The password in
-    # group_vars works once: the account must change it at the first login (password_change_required,
-    # issue #61). An existing account is left alone, so a password the administrator changed in the
-    # application, or reset by email, is never reverted by a deploy.
-    - name: Create configured admin user if missing
-      community.postgresql.postgresql_query:
-        db: "{{ db_name }}"
-        login_host: localhost
-        login_user: "{{ db_user }}"
-        login_password: "{{ db_password }}"
-        query: |
-          WITH created AS (
-              INSERT INTO users (id, username, password, full_name, email, active,
-                                 password_change_required, credentials_changed_at, created_at, updated_at)
+        - name: Update application configuration
+          ansible.builtin.template:
+            src: "{{ playbook_dir }}/roles/app/templates/application.properties.j2"
+            dest: "/opt/{{ app_name }}/application.properties"
+            owner: "{{ app_user }}"
+            group: "{{ app_user }}"
+            mode: "0600"
+
+        - name: Copy jar to server
+          ansible.builtin.copy:
+            src: "{{ jar_files.files[0].path }}"
+            dest: "/opt/{{ app_name }}/{{ app_name }}.jar"
+            owner: "{{ app_user }}"
+            group: "{{ app_user }}"
+            mode: "0644"
+
+        - name: Install systemd unit with the production profile
+          # An existing server may still run an older unit without
+          # --spring.profiles.active=production, which would silently skip every startup
+          # guard. Rendering the unit here keeps deploy.yml and site.yml in step.
+          ansible.builtin.template:
+            src: "{{ playbook_dir }}/roles/app/templates/app.service.j2"
+            dest: "/etc/systemd/system/{{ app_name }}.service"
+            owner: root
+            group: root
+            mode: "0644"
+          register: app_service_unit
+
+        - name: Reload systemd when the unit changed
+          ansible.builtin.systemd:
+            daemon_reload: true
+          when: app_service_unit.changed
+
+        - name: Apply database migrations in bootstrap mode (production guard not active)
+          # One-shot non-production run: applies Flyway migrations, validates JPA, then
+          # exits without serving requests. This lets the admin swap below happen before
+          # the production profile (and DefaultAdminProductionGuard) starts.
+          # It runs in /opt/{{ app_name }}, where Spring Boot loads ./application.properties
+          # over the packaged file; --spring.config.location would replace the packaged
+          # defaults and the run would fail on the first missing placeholder.
+          ansible.builtin.shell:
+            cmd: |
+              set -e
+              set -a
+              if [ -f /opt/{{ app_name }}/env.conf ]; then . /opt/{{ app_name }}/env.conf; fi
+              set +a
+              # Same JVM settings as the unit, plus a hard timeout: a migration that hangs
+              # must fail the playbook instead of blocking the deploy indefinitely.
+              exec timeout 600 /usr/bin/java \
+                -Xms{{ java_heap_min }} \
+                -Xmx{{ java_heap_max }} \
+                -Duser.timezone=Asia/Jakarta \
+                -Dfile.encoding=UTF-8 \
+                -jar /opt/{{ app_name }}/{{ app_name }}.jar \
+                --spring.profiles.active=bootstrap \
+                --app.bootstrap.exit-after-migrate=true \
+                --server.address=127.0.0.1 \
+                --server.port=0
+            executable: /bin/bash
+          args:
+            chdir: "/opt/{{ app_name }}"
+          become: yes
+          become_user: "{{ app_user }}"
+          register: bootstrap_migration
+          changed_when: false
+          failed_when: bootstrap_migration.rc != 0
+
+        - name: Delete default admin user roles
+          community.postgresql.postgresql_query:
+            db: "{{ db_name }}"
+            login_host: localhost
+            login_user: "{{ db_user }}"
+            login_password: "{{ db_password }}"
+            query: "DELETE FROM user_roles WHERE id_user = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'"
+
+        - name: Delete default admin user
+          community.postgresql.postgresql_query:
+            db: "{{ db_name }}"
+            login_host: localhost
+            login_user: "{{ db_user }}"
+            login_password: "{{ db_password }}"
+            query: "DELETE FROM users WHERE id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'"
+
+        # Creates the configured administrator only when the username does not exist yet. The password in
+        # group_vars works once: the account must change it at the first login (password_change_required,
+        # issue #61). An existing account is left alone, so a password the administrator changed in the
+        # application, or reset by email, is never reverted by a deploy.
+        - name: Create configured admin user if missing
+          community.postgresql.postgresql_query:
+            db: "{{ db_name }}"
+            login_host: localhost
+            login_user: "{{ db_user }}"
+            login_password: "{{ db_password }}"
+            query: |
+              WITH created AS (
+                  INSERT INTO users (id, username, password, full_name, email, active,
+                                     password_change_required, credentials_changed_at, created_at, updated_at)
+                  VALUES (
+                      gen_random_uuid(),
+                      %(username)s,
+                      %(password)s,
+                      %(full_name)s,
+                      %(email)s,
+                      TRUE,
+                      TRUE,
+                      NOW(),
+                      NOW(),
+                      NOW()
+                  )
+                  ON CONFLICT (username) DO NOTHING
+                  RETURNING id
+              )
+              SELECT id FROM created
+              UNION ALL
+              SELECT id FROM users WHERE username = %(username)s AND NOT EXISTS (SELECT 1 FROM created)
+            named_args:
+              username: "{{ admin_username }}"
+              password: "{{ admin_password_bcrypt }}"
+              full_name: "{{ admin_full_name | default('System Administrator') }}"
+              email: "{{ admin_email | default('admin@localhost') }}"
+          register: admin_user_result
+
+        - name: Assign ADMIN role to configured admin user
+          community.postgresql.postgresql_query:
+            db: "{{ db_name }}"
+            login_host: localhost
+            login_user: "{{ db_user }}"
+            login_password: "{{ db_password }}"
+            query: |
+              INSERT INTO user_roles (id, id_user, role, created_at, created_by)
               VALUES (
                   gen_random_uuid(),
-                  %(username)s,
-                  %(password)s,
-                  %(full_name)s,
-                  %(email)s,
-                  TRUE,
-                  TRUE,
+                  %(user_id)s,
+                  'ADMIN',
                   NOW(),
-                  NOW(),
-                  NOW()
+                  'ansible'
               )
-              ON CONFLICT (username) DO NOTHING
-              RETURNING id
-          )
-          SELECT id FROM created
-          UNION ALL
-          SELECT id FROM users WHERE username = %(username)s AND NOT EXISTS (SELECT 1 FROM created)
-        named_args:
-          username: "{{ admin_username }}"
-          password: "{{ admin_password_bcrypt }}"
-          full_name: "{{ admin_full_name | default('System Administrator') }}"
-          email: "{{ admin_email | default('admin@localhost') }}"
-      register: admin_user_result
+              ON CONFLICT DO NOTHING
+            named_args:
+              user_id: "{{ admin_user_result.query_result[0].id }}"
 
-    - name: Assign ADMIN role to configured admin user
-      community.postgresql.postgresql_query:
-        db: "{{ db_name }}"
-        login_host: localhost
-        login_user: "{{ db_user }}"
-        login_password: "{{ db_password }}"
-        query: |
-          INSERT INTO user_roles (id, id_user, role, created_at, created_by)
-          VALUES (
-              gen_random_uuid(),
-              %(user_id)s,
-              'ADMIN',
-              NOW(),
-              'ansible'
-          )
-          ON CONFLICT DO NOTHING
-        named_args:
-          user_id: "{{ admin_user_result.query_result[0].id }}"
+        - name: Start application
+          ansible.builtin.systemd:
+            name: "{{ app_name }}"
+            state: started
+            enabled: yes
 
-    - name: Start application
-      ansible.builtin.systemd:
-        name: "{{ app_name }}"
-        state: started
-        enabled: yes
+        - name: Wait for application to start
+          ansible.builtin.uri:
+            url: "http://localhost:{{ app_port }}/login"
+            status_code: 200
+          register: result
+          until: result.status == 200
+          retries: 30
+          delay: 5
+      rescue:
+        - name: Restore the previous release
+          ansible.builtin.shell:
+            cmd: |
+              set -e
+              for f in /opt/{{ app_name }}/{{ app_name }}.jar \
+                       /opt/{{ app_name }}/application.properties \
+                       /etc/systemd/system/{{ app_name }}.service; do
+                if [ -f "$f.previous" ]; then cp -p "$f.previous" "$f"; fi
+              done
+            executable: /bin/bash
 
-    - name: Wait for application to start
-      ansible.builtin.uri:
-        url: "http://localhost:{{ app_port }}/login"
-        status_code: 200
-      register: result
-      until: result.status == 200
-      retries: 30
-      delay: 5
+        - name: Restart the previous release
+          ansible.builtin.systemd:
+            name: "{{ app_name }}"
+            state: restarted
+            daemon_reload: true
+
+        - name: Wait for the previous release to start
+          # Flyway runs each migration in its own transaction, so a failed migration leaves the
+          # schema at the previous version. If migrations succeeded and a later step failed, the
+          # schema is newer than the restored jar and this wait may time out.
+          ansible.builtin.uri:
+            url: "http://localhost:{{ app_port }}/login"
+            status_code: 200
+          register: rollback_result
+          until: rollback_result.status == 200
+          retries: 30
+          delay: 5
+          ignore_errors: true
+
+        - name: Fail the deploy
+          ansible.builtin.fail:
+            msg: >-
+              Deploy failed at '{{ ansible_failed_task.name }}': {{ ansible_failed_result.msg | default('see the task output above') }}.
+              Previous release restored and {{ 'serving /login' if (rollback_result.status | default(0)) == 200 else 'NOT responding on /login: check journalctl -u ' ~ app_name }}.
