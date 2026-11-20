@@ -56,6 +56,7 @@ public class SelfServiceController {
     public String listPayslips(
             @RequestParam(required = false) Integer year,
             Model model) {
+        model.addAttribute(ViewConstants.ATTR_CURRENT_PAGE, "self-service-payslips");
 
         Optional<Employee> employeeOpt = getCurrentEmployee();
         if (employeeOpt.isEmpty()) {
@@ -111,6 +112,7 @@ public class SelfServiceController {
     public String listBuktiPotong(
             @RequestParam(required = false) Integer year,
             Model model) {
+        model.addAttribute(ViewConstants.ATTR_CURRENT_PAGE, "self-service-bukti-potong");
 
         Optional<Employee> employeeOpt = getCurrentEmployee();
         if (employeeOpt.isEmpty()) {
@@ -163,6 +165,7 @@ public class SelfServiceController {
     @GetMapping("/profile")
     @PreAuthorize("hasAuthority('" + Permission.OWN_PROFILE_VIEW + "')")
     public String viewProfile(Model model) {
+        model.addAttribute(ViewConstants.ATTR_CURRENT_PAGE, "self-service-profile");
         Optional<Employee> employeeOpt = getCurrentEmployee();
         if (employeeOpt.isEmpty()) {
             model.addAttribute(ATTR_NO_EMPLOYEE, true);
@@ -176,6 +179,7 @@ public class SelfServiceController {
     @GetMapping("/profile/edit")
     @PreAuthorize("hasAuthority('" + Permission.OWN_PROFILE_EDIT + "')")
     public String editProfileForm(Model model) {
+        model.addAttribute(ViewConstants.ATTR_CURRENT_PAGE, "self-service-profile");
         Optional<Employee> employeeOpt = getCurrentEmployee();
         if (employeeOpt.isEmpty()) {
             return REDIRECT_PROFILE;

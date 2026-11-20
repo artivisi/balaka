@@ -153,7 +153,7 @@ curl -s https://balaka.example.com/api/analysis/trial-balance?asOfDate=2025-12-3
 
 ## Full API Reference
 
-Browse the interactive API documentation at `/swagger-ui.html` on your Balaka instance. All endpoints under `/api/**` are documented with request/response schemas and examples.
+Browse the interactive API documentation at `/swagger-ui.html` on your Balaka instance (log in to the application first; anonymous visitors are sent to the login page). All endpoints under `/api/**` are documented with request/response schemas and examples.
 
 ---
 

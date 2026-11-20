@@ -32,7 +32,7 @@ class ErrorPageTest extends PlaywrightTestBase {
 
         String pageContent = page.content();
         assertThat(pageContent).contains("404");
-        assertThat(pageContent).contains("Kembali ke Dashboard");
+        assertThat(pageContent).contains("Kembali ke Beranda");
 
         log.info("404 error page rendered correctly");
     }
@@ -59,7 +59,7 @@ class ErrorPageTest extends PlaywrightTestBase {
         String pageContent = page.content();
         assertThat(pageContent).contains("403");
         assertThat(pageContent).contains("Akses Ditolak");
-        assertThat(pageContent).contains("Kembali ke Dashboard");
+        assertThat(pageContent).contains("Kembali ke Beranda");
 
         log.info("403 error page rendered correctly");
     }

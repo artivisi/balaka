@@ -27,11 +27,6 @@ public class DashboardController {
     private final DashboardService dashboardService;
     private final PasswordResetService passwordResetService;
 
-    @GetMapping("/")
-    public String home() {
-        return "redirect:/dashboard";
-    }
-
     @GetMapping("/dashboard")
     public String dashboard(Model model) {
         model.addAttribute(ATTR_CURRENT_PAGE, PAGE_DASHBOARD);

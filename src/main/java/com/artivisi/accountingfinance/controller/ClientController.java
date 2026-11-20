@@ -57,11 +57,11 @@ public class ClientController {
     /**
      * Typeahead search for client pickers. Returns at most 10 active clients
      * matching q (by code or name). Used by every form that picks a client so
-     * the picker never grows past a usable size.
+     * the picker never grows past a usable size. Requires CLIENT_VIEW like the
+     * rest of this controller (every role except EMPLOYEE has it).
      */
     @GetMapping("/search")
     @org.springframework.web.bind.annotation.ResponseBody
-    @org.springframework.security.access.prepost.PreAuthorize("isAuthenticated()")
     public List<java.util.Map<String, Object>> search(
             @RequestParam(value = "q", required = false) String q) {
         Page<Client> page = clientService.findByFilters(

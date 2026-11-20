@@ -1,7 +1,9 @@
 package com.artivisi.accountingfinance.functional;
 
 import com.artivisi.accountingfinance.functional.service.ServiceTestDataInitializer;
+import com.artivisi.accountingfinance.repository.UserRepository;
 import com.artivisi.accountingfinance.security.ApiScope;
+import com.artivisi.accountingfinance.service.DeviceAuthService;
 import com.artivisi.accountingfinance.ui.PlaywrightTestBase;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -9,24 +11,29 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import com.microsoft.playwright.APIRequest;
 import com.microsoft.playwright.APIRequestContext;
 import com.microsoft.playwright.APIResponse;
+import com.microsoft.playwright.options.RequestOptions;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
 
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Functional tests for the OpenAPI spec (springdoc-openapi).
- * Verifies /v3/api-docs is publicly accessible and contains expected structure.
+ * Verifies /v3/api-docs and Swagger UI require authentication (Bearer token or web login) and that the
+ * spec contains the expected structure.
  */
 @Slf4j
 @DisplayName("OpenAPI Spec - Functional Tests")
@@ -36,14 +43,21 @@ class OpenApiTest extends PlaywrightTestBase {
     private static final String API_DOCS_URL = "/v3/api-docs";
     private static final String SWAGGER_UI_URL = "/swagger-ui/index.html";
 
+    @Autowired private UserRepository userRepository;
+    @Autowired private DeviceAuthService deviceAuthService;
+
     private APIRequestContext apiContext;
     private ObjectMapper objectMapper;
 
+    /** Every spec request below carries a device token of the seeded admin, as an API client would. */
     @BeforeEach
     void setUp() {
         objectMapper = new ObjectMapper();
+        String token = deviceAuthService.createAccessToken(
+                userRepository.findByUsername("admin").orElseThrow(), "openapi-" + UUID.randomUUID(), "Laptop").getTokenHash();
         apiContext = playwright.request().newContext(new APIRequest.NewContextOptions()
-                .setBaseURL(baseUrl()));
+                .setBaseURL(baseUrl())
+                .setExtraHTTPHeaders(Map.of("Authorization", "Bearer " + token)));
     }
 
     @AfterEach
@@ -54,8 +68,26 @@ class OpenApiTest extends PlaywrightTestBase {
     }
 
     @Test
-    @DisplayName("GET /v3/api-docs is public and describes Balaka API with bearer authentication")
-    void testPublicSpecHeader() throws Exception {
+    @DisplayName("GET /v3/api-docs without a token or session is refused with 401")
+    void testSpecRequiresAuthentication() {
+        APIRequestContext anonymous = playwright.request().newContext(new APIRequest.NewContextOptions()
+                .setBaseURL(baseUrl()));
+        try {
+            APIResponse response = anonymous.get(API_DOCS_URL, RequestOptions.create().setMaxRedirects(0));
+            assertThat(response.status()).isEqualTo(401);
+            assertThat(response.text()).doesNotContain("Balaka API");
+
+            APIResponse invalid = anonymous.get(API_DOCS_URL, RequestOptions.create().setMaxRedirects(0)
+                    .setHeader("Authorization", "Bearer " + "0".repeat(64)));
+            assertThat(invalid.status()).isEqualTo(401);
+        } finally {
+            anonymous.dispose();
+        }
+    }
+
+    @Test
+    @DisplayName("GET /v3/api-docs with a Bearer token describes Balaka API with bearer authentication")
+    void testSpecHeader() throws Exception {
         APIResponse response = apiContext.get(API_DOCS_URL);
 
         assertThat(response.status()).isEqualTo(200);
@@ -244,8 +276,17 @@ class OpenApiTest extends PlaywrightTestBase {
     }
 
     @Test
-    @DisplayName("Swagger UI renders the Balaka API spec with its operations")
+    @DisplayName("Swagger UI sends an anonymous visitor to the login page")
+    void testSwaggerUiRequiresLogin() {
+        navigateTo(SWAGGER_UI_URL);
+
+        assertThat(page).hasURL(baseUrl() + "/login");
+    }
+
+    @Test
+    @DisplayName("Swagger UI renders the Balaka API spec with its operations after login")
     void testSwaggerUiRendersSpec() {
+        loginAsAdmin();
         navigateTo(SWAGGER_UI_URL);
 
         assertThat(page.locator(".swagger-ui .info .title")).containsText("Balaka API");

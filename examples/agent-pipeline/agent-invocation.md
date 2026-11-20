@@ -4,7 +4,7 @@ This document describes how an autonomous agent runtime — Claude Code, Cowork,
 
 ## 1. Authentication
 
-Balaka implements the OAuth 2.0 Device Authorisation Grant ([RFC 8628](https://datatracker.ietf.org/doc/html/rfc8628)) for headless clients that cannot host a browser. The flow is the same one a TV app or a CLI tool would use. The relevant endpoints are on `DeviceAuthApiController` at `/api/device/*` and are documented in the live OpenAPI specification at `/v3/api-docs` (or browsable via Swagger UI at `/swagger-ui.html`).
+Balaka implements the OAuth 2.0 Device Authorisation Grant ([RFC 8628](https://datatracker.ietf.org/doc/html/rfc8628)) for headless clients that cannot host a browser. The flow is the same one a TV app or a CLI tool would use. The relevant endpoints are on `DeviceAuthApiController` at `/api/device/*` and are documented in the live OpenAPI specification at `/v3/api-docs` (or browsable via Swagger UI at `/swagger-ui.html`). The specification itself requires a token or a logged-in session, so a new client follows the sequence below first.
 
 The sequence:
 

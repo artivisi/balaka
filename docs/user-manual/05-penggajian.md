@@ -485,7 +485,9 @@ Dr. Hutang PPh 21           xxx
 
 ### Fitur Self-Service
 
-Karyawan dengan role EMPLOYEE dapat mengakses:
+Menu **Layanan Mandiri** berisi Slip Gaji Saya, Bukti Potong PPh 21, dan Profil Saya. Menu ini ada untuk semua role. User dengan role EMPLOYEE hanya melihat menu ini dan menu Pengaturan (Verifikasi Dua Langkah), tanpa menu akuntansi. Setelah login, user EMPLOYEE langsung masuk ke **Slip Gaji Saya**; role lain masuk ke Dashboard.
+
+Halaman yang tersedia:
 
 **Slip Gaji:**
 
@@ -503,7 +505,7 @@ Karyawan dengan role EMPLOYEE dapat mengakses:
 
 1. Buat user untuk karyawan dengan role EMPLOYEE
 2. Link user ke data karyawan
-3. Karyawan login dengan kredensialnya
+3. Karyawan login dengan kredensialnya dan langsung masuk ke halaman Slip Gaji Saya
 
 ---
 

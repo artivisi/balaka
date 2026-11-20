@@ -63,7 +63,7 @@ public class AccountController {
         }
         redirectAttributes.addFlashAttribute("successMessage",
                 "Password berhasil diubah. Sesi lain dan token perangkat akun ini telah diakhiri.");
-        return forced ? "redirect:/dashboard" : "redirect:/account/password";
+        return forced ? "redirect:/" : "redirect:/account/password";
     }
 
     private boolean isForced(Authentication authentication) {

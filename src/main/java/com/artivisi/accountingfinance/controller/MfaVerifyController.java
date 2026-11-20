@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 @Controller
 public class MfaVerifyController {
 
-    private static final String DASHBOARD_REDIRECT = "redirect:/dashboard";
+    private static final String HOME_REDIRECT = "redirect:/";
     private static final String VIEW_VERIFY = "mfa-verify";
     private static final String ATTR_ERROR = "errorMessage";
     private static final String ATTR_USERNAME = "username";
@@ -42,10 +42,10 @@ public class MfaVerifyController {
     public String form(HttpServletRequest request, Model model) {
         User user = currentUser();
         if (user == null || !mfaService.mustVerify(user)) {
-            return DASHBOARD_REDIRECT;
+            return HOME_REDIRECT;
         }
         if (isVerified(request, user)) {
-            return DASHBOARD_REDIRECT;
+            return HOME_REDIRECT;
         }
         model.addAttribute(ATTR_USERNAME, user.getUsername());
         return VIEW_VERIFY;
@@ -58,7 +58,7 @@ public class MfaVerifyController {
                          Model model) {
         User user = currentUser();
         if (user == null || !mfaService.mustVerify(user)) {
-            return DASHBOARD_REDIRECT;
+            return HOME_REDIRECT;
         }
 
         model.addAttribute(ATTR_USERNAME, user.getUsername());
@@ -92,7 +92,7 @@ public class MfaVerifyController {
         }
         HttpSession session = request.getSession(true);
         session.setAttribute(MfaEnforcementFilter.VERIFIED_USER_SESSION_ATTRIBUTE, user.getUsername());
-        return DASHBOARD_REDIRECT;
+        return HOME_REDIRECT;
     }
 
     private String messageFor(MfaService.VerifyOutcome outcome) {

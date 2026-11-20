@@ -54,17 +54,18 @@ Aplikasi ini dirancang untuk dioperasikan sepenuhnya oleh AI assistant (Claude C
 
 ## API Discovery via OpenAPI Spec
 
-Sebelum mulai berinteraksi dengan API, AI assistant membaca **OpenAPI spec** yang mendeskripsikan seluruh kemampuan API. Spec ini di-generate otomatis oleh springdoc-openapi dan tersedia tanpa autentikasi.
+Setelah mendapat token, AI assistant membaca **OpenAPI spec** yang mendeskripsikan seluruh kemampuan API. Spec ini di-generate otomatis oleh springdoc-openapi dan hanya tersedia untuk klien yang terautentikasi.
 
 ### Endpoint
 
 ```bash
 GET /v3/api-docs
-# Tidak perlu Authorization header
+Authorization: Bearer <token>
 # Returns OpenAPI 3.x JSON spec
+# Tanpa token atau sesi login: 401
 ```
 
-Swagger UI juga tersedia di `/swagger-ui.html` untuk eksplorasi interaktif.
+Swagger UI tersedia di `/swagger-ui.html` untuk eksplorasi interaktif, setelah login ke aplikasi. Pengunjung yang belum login diarahkan ke halaman login.
 
 ### Isi OpenAPI Spec
 
@@ -82,20 +83,20 @@ Swagger UI juga tersedia di `/swagger-ui.html` untuk eksplorasi interaktif.
 ### Cara AI Menggunakan OpenAPI Spec
 
 ```
-1. AI membaca OpenAPI spec (GET /v3/api-docs)
+1. AI mendapat token lewat Device Flow (POST /api/device/code, lalu POST /api/device/token)
    |
-2. AI memahami:
+2. AI membaca OpenAPI spec (GET /v3/api-docs dengan Bearer token)
+   |
+3. AI memahami:
    - Endpoint apa saja yang tersedia (dari paths)
    - Field apa yang wajib/opsional per endpoint (dari schemas)
    - Scope apa yang diperlukan (dari x-authentication)
    - Alur kerja (workflow) yang benar (dari x-workflows)
    |
-3. AI mengikuti alur autentikasi dari x-authentication
-   |
 4. AI memanggil endpoint sesuai x-workflows
 ```
 
-> **Langkah pertama integrasi**: Selalu `GET /v3/api-docs` untuk mengetahui endpoint, schema, dan workflow yang tersedia. Metadata AI ada di `x-` extensions.
+> **Langkah pertama integrasi**: dapatkan token lewat Device Flow, lalu `GET /v3/api-docs` untuk mengetahui endpoint, schema, dan workflow yang tersedia. Metadata AI ada di `x-` extensions.
 
 ---
 
@@ -274,8 +275,12 @@ Setelah deploy, AI memverifikasi:
 # Health check
 curl -s https://balaka.example.com/actuator/health
 
-# OpenAPI spec tersedia
-curl -s https://balaka.example.com/v3/api-docs | head -c 200
+# OpenAPI spec tertutup untuk klien anonim
+curl -s -o /dev/null -w "%{http_code}" https://balaka.example.com/v3/api-docs
+# → 401
+
+# OpenAPI spec tersedia dengan token
+curl -s -H "Authorization: Bearer $TOKEN" https://balaka.example.com/v3/api-docs | head -c 200
 
 # Login page accessible
 curl -s -o /dev/null -w "%{http_code}" https://balaka.example.com/login
@@ -1485,12 +1490,12 @@ Setiap user dapat melihat dan mencabut device token miliknya di halaman **Perang
 
 ## API Reference
 
-### Discovery (public, tanpa autentikasi)
+### Discovery (Bearer token atau sesi login)
 
 | Method | Endpoint | Deskripsi |
 |--------|----------|-----------|
-| GET | `/v3/api-docs` | OpenAPI spec -- seluruh endpoint, schema, x- extensions |
-| GET | `/swagger-ui.html` | Swagger UI -- eksplorasi API interaktif |
+| GET | `/v3/api-docs` | OpenAPI spec -- seluruh endpoint, schema, x- extensions (tanpa token: 401) |
+| GET | `/swagger-ui.html` | Swagger UI -- eksplorasi API interaktif (perlu login) |
 
 ### Autentikasi (public)
 
@@ -1685,8 +1690,6 @@ Lihat [Sales Tax Chain API](../developer-guide/api/11-sales-tax-chain.md). Bukti
 ### Authentication
 
 Endpoint yang **tidak** memerlukan autentikasi:
-- `GET /v3/api-docs`
-- `GET /swagger-ui.html`
 - `POST /api/device/code`
 - `POST /api/device/token`
 

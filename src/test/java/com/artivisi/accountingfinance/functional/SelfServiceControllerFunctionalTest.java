@@ -32,6 +32,7 @@ import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -67,6 +68,47 @@ class SelfServiceControllerFunctionalTest extends PlaywrightTestBase {
         context.setExtraHTTPHeaders(Map.of("X-Forwarded-For", "10.66." + RANDOM.nextInt(256) + "." + RANDOM.nextInt(256)));
         self = createLinkedEmployee();
         colleague = createLinkedEmployee();
+    }
+
+    // ==================== LANDING AND MENU ====================
+
+    @Test
+    @DisplayName("Should land an employee on own payslips with only the self-service and account menus")
+    void shouldLandEmployeeOnSelfService() {
+        loginAs(self);
+
+        assertThat(page).hasURL(baseUrl() + "/self-service/payslips");
+        assertThat(page.locator("#page-title")).hasText("Slip Gaji Saya");
+        assertThat(page.locator("#nav-self-payslips")).hasClass(Pattern.compile("bg-primary-600"));
+        assertThat(page.locator("#nav-self-bukti-potong")).isVisible();
+        assertThat(page.locator("#nav-self-profile")).isVisible();
+        assertThat(page.locator("#nav-group-pengaturan")).isVisible();
+        assertThat(page.locator("#nav-mfa")).hasCount(1);
+        for (String group : new String[] {"akuntansi", "laporan", "proyek", "pembelian", "inventori", "payroll", "master"}) {
+            assertThat(page.locator("#nav-group-" + group).count()).as(group).isZero();
+        }
+        assertThat(page.locator("#nav-dashboard")).hasCount(0);
+
+        navigateTo("/");
+        assertThat(page).hasURL(baseUrl() + "/self-service/payslips");
+
+        page.locator("#nav-self-profile").click();
+        waitForPageLoad();
+        assertThat(page).hasURL(baseUrl() + "/self-service/profile");
+        assertThat(page.locator("main")).containsText(self.getName());
+    }
+
+    @Test
+    @DisplayName("Should keep the dashboard as landing page for a role with dashboard access, with self-service in the menu")
+    void shouldLandAdminOnDashboard() {
+        loginAsAdmin();
+
+        assertThat(page).hasURL(baseUrl() + "/dashboard");
+        navigateTo("/");
+        assertThat(page).hasURL(baseUrl() + "/dashboard");
+        assertThat(page.locator("#nav-group-akuntansi")).isVisible();
+        assertThat(page.locator("#nav-group-self-service")).isVisible();
+        assertThat(page.locator("#nav-self-payslips")).hasAttribute("href", "/self-service/payslips");
     }
 
     // ==================== PROFILE ====================
@@ -295,12 +337,14 @@ class SelfServiceControllerFunctionalTest extends PlaywrightTestBase {
     }
 
     @Test
-    @DisplayName("Should deny an employee access to the employee administration pages")
+    @DisplayName("Should deny an employee the employee administration pages and the client/vendor pickers")
     void shouldDenyEmployeeAdministration() {
         loginAs(self);
 
         for (String path : new String[] {"/employees", "/employees/" + colleague.getEmployeeId(),
-                "/employees/" + self.getEmployeeId() + "/edit", "/payroll"}) {
+                "/employees/" + self.getEmployeeId() + "/edit", "/payroll",
+                // client and vendor pickers: names of counterparties are accounting data
+                "/clients/search?q=", "/vendors/search?q="}) {
             Response response = page.navigate(baseUrl() + path);
             assertThat(response.status()).as(path).isEqualTo(403);
             assertThat(page.locator("main, body").first()).not().containsText(colleague.getName());

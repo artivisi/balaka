@@ -14,7 +14,7 @@ The practical argument for why this matters: the bookkeeping bottleneck for Indo
 
 **Agents post through the same REST API any third-party integration would use, never through direct database access.** This is the one non-negotiable rule of the pipeline. Every guarantee the ledger offers — double-entry balance enforcement, template-based journal derivation, fiscal-period locking, audit logging of who posted what and when — is implemented in the application layer, above the database, and can only be enforced if posting passes through it. An agent that bypasses the API would produce transactions that are indistinguishable from valid ones on the wire but have not been subjected to those checks. The rule exists specifically to make that class of bug impossible by construction.
 
-Balaka ships nineteen dedicated REST API controllers, generated with springdoc-openapi. The OpenAPI specification is served at runtime at `/v3/api-docs` (JSON) and browsable via Swagger UI at `/swagger-ui.html`. The controllers relevant to the agent pipeline are:
+Balaka ships nineteen dedicated REST API controllers, generated with springdoc-openapi. The OpenAPI specification is served at runtime at `/v3/api-docs` (JSON, requires a Bearer token or a logged-in session) and browsable via Swagger UI at `/swagger-ui.html` after login. The controllers relevant to the agent pipeline are:
 
 | Controller | What it does |
 |---|---|

@@ -82,11 +82,11 @@ class AccountPasswordFunctionalTest extends PlaywrightTestBase {
         BrowserContext other = newClientContext();
         Page otherPage = other.newPage();
         try {
-            assertThat(submitLogin(otherPage, user.getUsername(), PASSWORD)).endsWith("/dashboard");
+            // EMPLOYEE has no dashboard permission; it lands on its own payslips.
+            String landing = role == Role.EMPLOYEE ? "/self-service/payslips" : "/dashboard";
+            assertThat(submitLogin(otherPage, user.getUsername(), PASSWORD)).endsWith(landing);
 
-            assertThat(submitLogin(page, user.getUsername(), PASSWORD)).endsWith("/dashboard");
-            // EMPLOYEE has no dashboard permission; its pages are under /self-service.
-            navigateTo(role == Role.EMPLOYEE ? "/self-service/payslips" : "/dashboard");
+            assertThat(submitLogin(page, user.getUsername(), PASSWORD)).endsWith(landing);
             page.locator("#nav-account-password").click();
             waitForPageLoad();
             assertThat(page).hasURL(baseUrl() + "/account/password");
@@ -113,17 +113,17 @@ class AccountPasswordFunctionalTest extends PlaywrightTestBase {
             assertThat(passwordEncoder.matches(NEW_PASSWORD, updated.getPassword())).isTrue();
             assertThat(updated.getCredentialsChangedAt()).isAfter(before);
 
-            navigateTo("/dashboard");
-            assertThat(page).hasURL(baseUrl() + "/dashboard");
+            navigateTo(landing);
+            assertThat(page).hasURL(baseUrl() + landing);
 
-            otherPage.navigate(baseUrl() + "/dashboard");
+            otherPage.navigate(baseUrl() + landing);
             otherPage.waitForLoadState(LoadState.NETWORKIDLE);
             assertThat(otherPage).hasURL(baseUrl() + "/login?expired");
             assertThat(otherPage.locator("#message-expired")).containsText("password akun ini diubah");
 
             assertThat(apiStatus(token)).as("device token revoked").isEqualTo(401);
             assertThat(landingAfterLogin(user.getUsername(), PASSWORD)).endsWith("/login?error");
-            assertThat(landingAfterLogin(user.getUsername(), NEW_PASSWORD)).endsWith("/dashboard");
+            assertThat(landingAfterLogin(user.getUsername(), NEW_PASSWORD)).endsWith(landing);
 
             assertThat(auditLogRepository.findByUsernameAndEventTypeAndTimestampAfter(
                     user.getUsername(), AuditEventType.PASSWORD_CHANGED, before))

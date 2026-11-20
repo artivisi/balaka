@@ -199,7 +199,7 @@ authenticated by the token only, and an invalid token returns 401 even if a sess
 | `bank-recon:write` | Parser configs (`BANK_RECONCILIATION_CONFIG`), statement import (`BANK_RECONCILIATION_IMPORT`), matching / create transaction (`BANK_RECONCILIATION_MATCH`), complete (`BANK_RECONCILIATION_COMPLETE`) | any `BANK_RECONCILIATION_*` write permission |
 
 The same list, with the granting permissions, is published in the OpenAPI spec under
-`x-authentication.scopes` (`GET /v3/api-docs`).
+`x-authentication.scopes` (`GET /v3/api-docs`, which requires a Bearer token or a logged-in session).
 
 A 403 response means the token lacks the scope or the user's role lacks the permission.
 

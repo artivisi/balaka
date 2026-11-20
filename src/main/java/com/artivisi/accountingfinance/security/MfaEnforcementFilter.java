@@ -44,8 +44,9 @@ public class MfaEnforcementFilter extends OncePerRequestFilter {
     /** Set on the 403 an htmx request gets while the factor is pending: "verify" or "enroll". */
     static final String MFA_REQUIRED_HEADER = "X-Mfa-Required";
 
+    // /v3/api-docs is read with a Bearer token like /api/, and BearerTokenAuthenticationFilter handles both.
     private static final List<String> ALWAYS_ALLOWED_PREFIXES = List.of(
-            "/css/", "/js/", "/img/", "/themes/", "/webjars/", "/favicon", "/api/", "/actuator/");
+            "/css/", "/js/", "/img/", "/themes/", "/webjars/", "/favicon", "/api/", "/v3/api-docs", "/actuator/");
 
     private static final List<String> ALWAYS_ALLOWED_PATHS = List.of(
             "/login", "/logout", "/error", "/mfa-verify", "/settings/mfa", "/settings/mfa/enable",

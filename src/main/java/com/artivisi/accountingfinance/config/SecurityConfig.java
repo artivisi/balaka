@@ -69,8 +69,6 @@ public class SecurityConfig {
                     .requestMatchers("/forgot-password", "/reset-password").permitAll()
                     .requestMatchers("/setup", "/setup/**").permitAll()
                     .requestMatchers("/api/telegram/webhook").permitAll()
-                    // OpenAPI spec and Swagger UI (unauthenticated)
-                    .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                     // Device flow endpoints (unauthenticated)
                     .requestMatchers("/api/device/**").permitAll()
                     // OAuth2 client_credentials token endpoint (authenticates via client secret)
@@ -119,7 +117,10 @@ public class SecurityConfig {
                         response.setContentType("application/json");
                         response.getWriter().write("{\"error\":\"unauthorized\",\"message\":\"Authentication required\"}");
                     },
+                    // The OpenAPI spec is read by API clients with a Bearer token, or by Swagger UI
+                    // with the session; Swagger UI itself redirects to /login.
                     request -> request.getRequestURI().startsWith("/api/")
+                            || request.getRequestURI().startsWith("/v3/api-docs")
                 )
                 // CsrfFilter runs before any /api request is authenticated: a POST without a Bearer
                 // token and without a session is unauthenticated (401), not forbidden.
@@ -196,11 +197,12 @@ public class SecurityConfig {
 
     /**
      * Records on the session when it was authenticated; StaleSessionFilter compares it with the user's
-     * credentials_changed_at. Otherwise the default: back to the saved request, or /dashboard.
+     * credentials_changed_at. Otherwise the default: back to the saved request, or / (HomeController picks
+     * the dashboard or the self-service pages by role).
      */
     private static AuthenticationSuccessHandler loginSuccessHandler() {
         SavedRequestAwareAuthenticationSuccessHandler delegate = new SavedRequestAwareAuthenticationSuccessHandler();
-        delegate.setDefaultTargetUrl("/dashboard");
+        delegate.setDefaultTargetUrl("/");
         return (request, response, authentication) -> {
             request.getSession().setAttribute(PasswordChangeService.SESSION_AUTHENTICATED_AT,
                     java.time.LocalDateTime.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS));

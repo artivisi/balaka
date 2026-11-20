@@ -67,11 +67,11 @@ Scope hanya berlaku selama role user pemilik token memiliki permission di kolom 
 
 ## OpenAPI Spec (API Discovery)
 
-AI assistant membaca OpenAPI spec sebelum berinteraksi dengan API.
+AI assistant membaca OpenAPI spec setelah mendapat token (Device Flow), sebelum memanggil endpoint lain.
 
-**URL:** `GET /v3/api-docs` (tanpa autentikasi)
+**URL:** `GET /v3/api-docs` dengan header `Authorization: Bearer <token>`, atau dengan sesi login di browser. Tanpa keduanya: 401.
 
-**Swagger UI:** `/swagger-ui.html`
+**Swagger UI:** `/swagger-ui.html`, hanya untuk pengguna yang sudah login (pengunjung anonim diarahkan ke `/login`).
 
 OpenAPI spec berisi:
 - `paths` -- Seluruh endpoint API

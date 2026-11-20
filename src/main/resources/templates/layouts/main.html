@@ -97,8 +97,34 @@
                         Dashboard
                     </a>
 
+                    <!-- Layanan Mandiri: own payslips, bukti potong and profile (the only menu of an EMPLOYEE) -->
+                    <details sec:authorize="hasAnyAuthority('OWN_PAYSLIP_VIEW', 'OWN_PROFILE_VIEW')" class="space-y-1" th:open="${currentPage != null and currentPage.startsWith('self-service')}">
+                        <summary id="nav-group-self-service" class="flex items-center justify-between w-full px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">
+                            <span class="flex items-center">
+                                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                </svg>
+                                Layanan Mandiri
+                            </span>
+                            <svg class="w-4 h-4 chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </summary>
+                        <div class="pl-4 space-y-1">
+                            <a sec:authorize="hasAuthority('OWN_PAYSLIP_VIEW')" id="nav-self-payslips" th:href="@{/self-service/payslips}"
+                               th:classappend="${#strings.equals(currentPage, 'self-service-payslips')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
+                               class="flex items-center px-3 py-2 rounded-lg transition-colors">Slip Gaji Saya</a>
+                            <a sec:authorize="hasAuthority('OWN_PAYSLIP_VIEW')" id="nav-self-bukti-potong" th:href="@{/self-service/bukti-potong}"
+                               th:classappend="${#strings.equals(currentPage, 'self-service-bukti-potong')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
+                               class="flex items-center px-3 py-2 rounded-lg transition-colors">Bukti Potong PPh 21</a>
+                            <a sec:authorize="hasAuthority('OWN_PROFILE_VIEW')" id="nav-self-profile" th:href="@{/self-service/profile}"
+                               th:classappend="${#strings.equals(currentPage, 'self-service-profile')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
+                               class="flex items-center px-3 py-2 rounded-lg transition-colors">Profil Saya</a>
+                        </div>
+                    </details>
+
                     <!-- Akuntansi Group -->
-                    <details class="space-y-1" open>
+                    <details sec:authorize="hasAnyAuthority('AMORTIZATION_VIEW', 'ASSET_VIEW', 'BANK_RECONCILIATION_VIEW', 'DRAFT_VIEW', 'EVIDENCE_VIEW', 'JOURNAL_VIEW', 'RECURRING_VIEW', 'TRANSACTION_VIEW')" class="space-y-1" open>
                         <summary id="nav-group-akuntansi" class="flex items-center justify-between w-full px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">
                             <span class="flex items-center">
                                 <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -147,7 +173,7 @@
                     </details>
 
                     <!-- Laporan Group -->
-                    <details class="space-y-1">
+                    <details sec:authorize="hasAnyAuthority('ALERT_VIEW', 'ANALYSIS_REPORT_VIEW', 'REPORT_EXPORT', 'REPORT_VIEW', 'TAX_EXPORT', 'TAX_REPORT_VIEW')" class="space-y-1">
                         <summary id="nav-group-laporan" class="flex items-center justify-between w-full px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">
                             <span class="flex items-center">
                                 <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -193,7 +219,7 @@
                     </details>
 
                     <!-- Proyek Group -->
-                    <details class="space-y-1">
+                    <details sec:authorize="hasAnyAuthority('CLIENT_VIEW', 'INVOICE_VIEW', 'PROJECT_VIEW')" class="space-y-1">
                         <summary id="nav-group-proyek" class="flex items-center justify-between w-full px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">
                             <span class="flex items-center">
                                 <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -219,7 +245,7 @@
                     </details>
 
                     <!-- Pembelian Group -->
-                    <details class="space-y-1">
+                    <details sec:authorize="hasAnyAuthority('BILL_VIEW', 'TAX_AUDIT_VIEW', 'TAX_REPORT_VIEW', 'VENDOR_VIEW')" class="space-y-1">
                         <summary id="nav-group-pembelian" class="flex items-center justify-between w-full px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">
                             <span class="flex items-center">
                                 <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -257,7 +283,7 @@
                     </details>
 
                     <!-- Inventori Group -->
-                    <details class="space-y-1">
+                    <details sec:authorize="hasAnyAuthority('INVENTORY_VIEW', 'PRODUCT_VIEW')" class="space-y-1">
                         <summary id="nav-group-inventori" class="flex items-center justify-between w-full px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">
                             <span class="flex items-center">
                                 <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -292,7 +318,7 @@
                     </details>
 
                     <!-- Payroll Group -->
-                    <details class="space-y-1">
+                    <details sec:authorize="hasAnyAuthority('EMPLOYEE_VIEW', 'PAYROLL_VIEW')" class="space-y-1">
                         <summary id="nav-group-payroll" class="flex items-center justify-between w-full px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">
                             <span class="flex items-center">
                                 <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -313,14 +339,11 @@
                                class="flex items-center px-3 py-2 rounded-lg transition-colors">Penggajian</a>
                             <a sec:authorize="hasAuthority('PAYROLL_VIEW')" id="nav-payroll-reconciliation" th:href="@{/payroll/reconciliation}"
                                class="flex items-center px-3 py-2 rounded-lg transition-colors hover:bg-primary-600">Rekonsiliasi Gaji</a>
-                            <a sec:authorize="hasAuthority('EMPLOYEE_SELF_SERVICE')" id="nav-employee-portal" th:href="@{/employee-portal}"
-                               th:classappend="${#strings.equals(currentPage, 'employee-portal')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
-                               class="flex items-center px-3 py-2 rounded-lg transition-colors">Portal Karyawan</a>
                         </div>
                     </details>
 
                     <!-- Master Data Group -->
-                    <details class="space-y-1">
+                    <details sec:authorize="hasAnyAuthority('ACCOUNT_VIEW', 'EVIDENCE_VIEW', 'FISCAL_PERIOD_VIEW', 'TAG_VIEW', 'TEMPLATE_VIEW')" class="space-y-1">
                         <summary id="nav-group-master" class="flex items-center justify-between w-full px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">
                             <span class="flex items-center">
                                 <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -461,8 +484,34 @@
                         Dashboard
                     </a>
 
+                    <!-- Layanan Mandiri: own payslips, bukti potong and profile (the only menu of an EMPLOYEE) -->
+                    <details sec:authorize="hasAnyAuthority('OWN_PAYSLIP_VIEW', 'OWN_PROFILE_VIEW')" class="space-y-1" th:open="${currentPage != null and currentPage.startsWith('self-service')}">
+                        <summary class="flex items-center justify-between w-full px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">
+                            <span class="flex items-center">
+                                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                </svg>
+                                Layanan Mandiri
+                            </span>
+                            <svg class="w-4 h-4 chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </summary>
+                        <div class="pl-4 space-y-1">
+                            <a sec:authorize="hasAuthority('OWN_PAYSLIP_VIEW')" id="nav-self-payslips-mobile" th:href="@{/self-service/payslips}"
+                               th:classappend="${#strings.equals(currentPage, 'self-service-payslips')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
+                               class="flex items-center px-3 py-2 rounded-lg transition-colors">Slip Gaji Saya</a>
+                            <a sec:authorize="hasAuthority('OWN_PAYSLIP_VIEW')" id="nav-self-bukti-potong-mobile" th:href="@{/self-service/bukti-potong}"
+                               th:classappend="${#strings.equals(currentPage, 'self-service-bukti-potong')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
+                               class="flex items-center px-3 py-2 rounded-lg transition-colors">Bukti Potong PPh 21</a>
+                            <a sec:authorize="hasAuthority('OWN_PROFILE_VIEW')" id="nav-self-profile-mobile" th:href="@{/self-service/profile}"
+                               th:classappend="${#strings.equals(currentPage, 'self-service-profile')} ? 'bg-primary-600' : 'hover:bg-primary-600'"
+                               class="flex items-center px-3 py-2 rounded-lg transition-colors">Profil Saya</a>
+                        </div>
+                    </details>
+
                     <!-- Mobile Akuntansi -->
-                    <details class="space-y-1" open>
+                    <details sec:authorize="hasAnyAuthority('AMORTIZATION_VIEW', 'ASSET_VIEW', 'BANK_RECONCILIATION_VIEW', 'DRAFT_VIEW', 'EVIDENCE_VIEW', 'JOURNAL_VIEW', 'RECURRING_VIEW', 'TRANSACTION_VIEW')" class="space-y-1" open>
                         <summary class="flex items-center justify-between w-full px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">
                             <span class="flex items-center">
                                 <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -503,7 +552,7 @@
                     </details>
 
                     <!-- Mobile Laporan -->
-                    <details class="space-y-1">
+                    <details sec:authorize="hasAnyAuthority('ALERT_VIEW', 'ANALYSIS_REPORT_VIEW', 'REPORT_EXPORT', 'REPORT_VIEW', 'TAX_EXPORT', 'TAX_REPORT_VIEW')" class="space-y-1">
                         <summary class="flex items-center justify-between w-full px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">
                             <span class="flex items-center">
                                 <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -540,7 +589,7 @@
                     </details>
 
                     <!-- Mobile Proyek -->
-                    <details class="space-y-1">
+                    <details sec:authorize="hasAnyAuthority('CLIENT_VIEW', 'INVOICE_VIEW', 'PROJECT_VIEW')" class="space-y-1">
                         <summary class="flex items-center justify-between w-full px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">
                             <span class="flex items-center">
                                 <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -563,7 +612,7 @@
                     </details>
 
                     <!-- Mobile Pembelian -->
-                    <details class="space-y-1">
+                    <details sec:authorize="hasAnyAuthority('BILL_VIEW', 'TAX_AUDIT_VIEW', 'TAX_REPORT_VIEW', 'VENDOR_VIEW')" class="space-y-1">
                         <summary class="flex items-center justify-between w-full px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">
                             <span class="flex items-center">
                                 <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -594,7 +643,7 @@
                     </details>
 
                     <!-- Mobile Inventori -->
-                    <details class="space-y-1">
+                    <details sec:authorize="hasAnyAuthority('INVENTORY_VIEW', 'PRODUCT_VIEW')" class="space-y-1">
                         <summary class="flex items-center justify-between w-full px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">
                             <span class="flex items-center">
                                 <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -623,7 +672,7 @@
                     </details>
 
                     <!-- Mobile Payroll -->
-                    <details class="space-y-1">
+                    <details sec:authorize="hasAnyAuthority('EMPLOYEE_VIEW', 'PAYROLL_VIEW')" class="space-y-1">
                         <summary class="flex items-center justify-between w-full px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">
                             <span class="flex items-center">
                                 <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -642,13 +691,11 @@
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Penggajian</a>
                             <a sec:authorize="hasAuthority('PAYROLL_VIEW')" th:href="@{/payroll/reconciliation}"
                                class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Rekonsiliasi Gaji</a>
-                            <a sec:authorize="hasAuthority('EMPLOYEE_SELF_SERVICE')" th:href="@{/employee-portal}"
-                               class="flex items-center px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">Portal Karyawan</a>
                         </div>
                     </details>
 
                     <!-- Mobile Master Data -->
-                    <details class="space-y-1">
+                    <details sec:authorize="hasAnyAuthority('ACCOUNT_VIEW', 'EVIDENCE_VIEW', 'FISCAL_PERIOD_VIEW', 'TAG_VIEW', 'TEMPLATE_VIEW')" class="space-y-1">
                         <summary class="flex items-center justify-between w-full px-3 py-2 rounded-lg hover:bg-primary-600 transition-colors">
                             <span class="flex items-center">
                                 <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

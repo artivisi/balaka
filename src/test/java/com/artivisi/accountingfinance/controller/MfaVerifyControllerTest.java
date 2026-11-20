@@ -130,12 +130,12 @@ class MfaVerifyControllerTest {
         }
 
         @Test
-        @DisplayName("Should redirect to dashboard when MFA not required for user")
+        @DisplayName("Should redirect to the landing page when MFA not required for user")
         @WithUserDetails("mfa-verify-staff")
         void shouldRedirectWhenMfaNotRequired() throws Exception {
             mockMvc.perform(get("/mfa-verify").with(user(staffUser.getUsername())))
                     .andExpect(status().is3xxRedirection())
-                    .andExpect(redirectedUrl("/dashboard"));
+                    .andExpect(redirectedUrl("/"));
         }
 
         @Test
