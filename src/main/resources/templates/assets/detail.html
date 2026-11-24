@@ -252,6 +252,7 @@
                     <p th:if="${asset.photoDocument == null}" id="asset-photo-empty" class="text-sm text-gray-500 mb-4">Belum ada foto</p>
                     <div sec:authorize="hasAuthority('ASSET_EDIT')" th:if="${!asset.disposed}" class="space-y-2">
                         <form id="form-photo" th:action="@{/assets/{id}/photo(id=${asset.id})}" method="post" enctype="multipart/form-data" class="space-y-2">
+                            <label for="photo-file" class="sr-only">File foto (JPEG atau PNG)</label>
                             <input type="file" id="photo-file" name="file" accept="image/jpeg,image/png" required class="block w-full text-sm">
                             <button id="btn-photo-upload" type="submit" class="px-3 py-1.5 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">Unggah Foto</button>
                         </form>

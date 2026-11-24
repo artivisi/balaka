@@ -17,15 +17,19 @@
         </div>
         <form th:action="@{/tax-audit/archive}" method="get" id="archive-search"
               class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 grid grid-cols-1 md:grid-cols-5 gap-2 text-sm">
-            <input type="text" name="q" th:value="${q}" placeholder="Cari nomor, lawan transaksi, isi teks" data-testid="archive-query"
+            <label for="archive-q" class="sr-only">Kata kunci</label>
+            <input id="archive-q" type="text" name="q" th:value="${q}" placeholder="Cari nomor, lawan transaksi, isi teks" data-testid="archive-query"
                    class="md:col-span-2 px-3 py-2 border border-gray-300 rounded-lg">
-            <input type="number" name="year" th:value="${year}" placeholder="Tahun" data-testid="archive-year" class="px-3 py-2 border border-gray-300 rounded-lg">
-            <select name="type" data-testid="archive-type" class="px-3 py-2 border border-gray-300 rounded-lg">
+            <label for="archive-year" class="sr-only">Tahun</label>
+            <input id="archive-year" type="number" name="year" th:value="${year}" placeholder="Tahun" data-testid="archive-year" class="px-3 py-2 border border-gray-300 rounded-lg">
+            <label for="archive-type" class="sr-only">Jenis dokumen</label>
+            <select id="archive-type" name="type" data-testid="archive-type" class="px-3 py-2 border border-gray-300 rounded-lg">
                 <option value="">-- Semua jenis --</option>
                 <option th:each="t : ${types}" th:value="${t.name()}" th:text="${t.indonesianName}" th:selected="${t == type}">Faktur</option>
             </select>
             <div class="flex gap-2">
-                <select name="source" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                <label for="archive-source" class="sr-only">Sumber</label>
+                <select id="archive-source" name="source" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
                     <option value="">-- Semua sumber --</option>
                     <option th:each="s : ${sources}" th:value="${s.name()}" th:text="${s.indonesianName}" th:selected="${s == source}">Bank</option>
                 </select>

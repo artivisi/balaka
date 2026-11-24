@@ -18,6 +18,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
@@ -35,6 +36,7 @@ public class TemplateExecutionEngine {
      */
     @Transactional
     public ExecutionResult execute(JournalTemplate template, ExecutionContext context) {
+        Objects.requireNonNull(template, "Template is required");
         List<String> validationErrors = validate(template, context);
         if (!validationErrors.isEmpty()) {
             throw new IllegalArgumentException("Template validation failed: " + String.join(", ", validationErrors));
@@ -68,6 +70,7 @@ public class TemplateExecutionEngine {
      * Preview template execution without saving.
      */
     public PreviewResult preview(JournalTemplate template, ExecutionContext context) {
+        Objects.requireNonNull(template, "Template is required");
         List<String> validationErrors = validate(template, context);
         if (!validationErrors.isEmpty()) {
             return new PreviewResult(false, validationErrors, List.of(), BigDecimal.ZERO, BigDecimal.ZERO);

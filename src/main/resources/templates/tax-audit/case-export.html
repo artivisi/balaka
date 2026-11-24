@@ -15,11 +15,14 @@
 
         <form th:action="@{/tax-audit/cases/{id}/export(id=${c.id})}" method="get" id="candidate-search"
               class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 grid grid-cols-1 md:grid-cols-4 gap-2 text-sm">
-            <input type="text" name="transactions" th:value="${transactions}" placeholder="Nomor transaksi, pisahkan dengan koma" data-testid="candidate-transactions"
+            <label for="candidate-transactions" class="sr-only">Nomor transaksi</label>
+            <input id="candidate-transactions" type="text" name="transactions" th:value="${transactions}" placeholder="Nomor transaksi, pisahkan dengan koma" data-testid="candidate-transactions"
                    class="md:col-span-2 px-3 py-2 border border-gray-300 rounded-lg">
-            <input type="text" name="q" th:value="${q}" placeholder="Cari di arsip" data-testid="candidate-query" class="px-3 py-2 border border-gray-300 rounded-lg">
+            <label for="candidate-query" class="sr-only">Cari di arsip</label>
+            <input id="candidate-query" type="text" name="q" th:value="${q}" placeholder="Cari di arsip" data-testid="candidate-query" class="px-3 py-2 border border-gray-300 rounded-lg">
             <div class="flex gap-2">
-                <input type="number" name="archiveYear" th:value="${archiveYear}" placeholder="Tahun arsip" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                <label for="candidate-archive-year" class="sr-only">Tahun arsip</label>
+                <input id="candidate-archive-year" type="number" name="archiveYear" th:value="${archiveYear}" placeholder="Tahun arsip" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
                 <button type="submit" data-testid="btn-find-candidates" class="px-3 py-2 text-white bg-primary-600 rounded-lg hover:bg-primary-700">Cari</button>
             </div>
         </form>
@@ -37,7 +40,7 @@
                 </thead>
                 <tbody>
                 <tr th:each="cand : ${candidates}" class="border-b border-gray-100" data-testid="candidate" th:attr="data-filename=${cand.filename()}">
-                    <td class="py-1 pr-2"><input type="checkbox" name="documentIds" th:value="${cand.documentId()}" data-testid="candidate-select"></td>
+                    <td class="py-1 pr-2"><label for="candidate-select" th:for="|select-${cand.documentId()}|" class="sr-only" th:text="|Pilih ${cand.filename()}|">Pilih file</label><input id="candidate-select" th:id="|select-${cand.documentId()}|" type="checkbox" name="documentIds" th:value="${cand.documentId()}" data-testid="candidate-select"></td>
                     <td class="py-1 pr-2" th:text="${cand.filename()}">file.pdf</td>
                     <td class="py-1 pr-2 text-xs" th:text="${cand.kind()}">Kontrak</td>
                     <td class="py-1 pr-2 text-xs" th:text="${cand.transactionNumber() != null} ? |${cand.origin()} ${cand.transactionNumber()}| : ${cand.origin()}">asal</td>
@@ -45,7 +48,8 @@
                         <span th:each="d : ${cand.earlierDisclosures()}" class="block" th:text="|${d.inquiryCase.title} ${d.disclosedOn}|"></span>
                     </td>
                     <td class="py-1">
-                        <select th:name="|item_${cand.documentId()}|" data-testid="candidate-item" class="px-2 py-1 border border-gray-300 rounded">
+                        <label for="candidate-item" th:for="|item-${cand.documentId()}|" class="sr-only" th:text="|Permintaan untuk ${cand.filename()}|">Menjawab permintaan</label>
+                        <select id="candidate-item" th:id="|item-${cand.documentId()}|" th:name="|item_${cand.documentId()}|" data-testid="candidate-item" class="px-2 py-1 border border-gray-300 rounded">
                             <option value="">-- Pilih --</option>
                             <option th:each="i : ${view.items()}" th:value="${i.id}" th:text="|${i.itemNo}. ${i.description}|">1</option>
                         </select>
@@ -58,7 +62,8 @@
                     <label for="disclosedOn" class="block text-gray-700 mb-1">Tanggal diserahkan</label>
                     <input type="date" id="disclosedOn" name="disclosedOn" required th:value="${today}" class="px-3 py-2 border border-gray-300 rounded-lg">
                 </div>
-                <input type="text" name="note" placeholder="Catatan penyerahan (opsional)" data-testid="disclosure-note" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg">
+                <label for="disclosure-note" class="sr-only">Catatan penyerahan</label>
+                <input id="disclosure-note" type="text" name="note" placeholder="Catatan penyerahan (opsional)" data-testid="disclosure-note" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg">
                 <button type="submit" id="btn-record-disclosure" class="px-4 py-2 font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">Catat Penyerahan</button>
             </div>
         </form>

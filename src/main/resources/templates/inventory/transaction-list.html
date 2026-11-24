@@ -81,7 +81,7 @@
                 <a th:href="@{/inventory/stock}" class="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">
                     Stok Barang
                 </a>
-                <div class="relative" x-data="toggleState" @click.outside="close"
+                <div class="relative" x-data="toggleState" @click.outside="close" @keydown.escape="close"
                      sec:authorize="hasAnyAuthority('INVENTORY_PURCHASE', 'INVENTORY_SALE', 'INVENTORY_ADJUST')">
                     <button id="btn-new-transaction" type="button" @click="toggle" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

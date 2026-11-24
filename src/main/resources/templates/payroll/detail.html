@@ -70,7 +70,7 @@
 
                 <!-- Export Dropdown -->
                 <div th:if="${payrollRun.isCalculated() or payrollRun.isApproved() or payrollRun.isPosted()}"
-                     class="relative" x-data="toggleState" @click.outside="close">
+                     class="relative" x-data="toggleState" @click.outside="close" @keydown.escape="close">
                     <button @click="toggle" type="button" id="btn-export"
                             class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center">
                         <span>Export</span>

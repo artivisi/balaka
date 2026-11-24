@@ -18,6 +18,7 @@
         <div class="bg-white rounded-lg shadow p-4 overflow-x-auto">
             <h2 class="text-sm font-semibold text-gray-900 mb-3">Rekonsiliasi Pendapatan ke DPP SPT Masa PPN</h2>
             <table class="min-w-full text-sm" id="table-recon">
+                <thead><tr><th class="pb-2 pr-4 text-left text-xs font-medium text-gray-500">Uraian</th><th class="pb-2 text-right text-xs font-medium text-gray-500">Jumlah (Rp)</th></tr></thead>
                 <tbody>
                 <tr class="font-medium">
                     <td class="py-2 pr-4">Pendapatan terposting pada masa ini</td>
@@ -53,6 +54,7 @@
         <div class="bg-white rounded-lg shadow p-4 overflow-x-auto">
             <h2 class="text-sm font-semibold text-gray-900 mb-3">Efek PPN dan PPh 23</h2>
             <table class="min-w-full text-sm" id="table-effects">
+                <thead><tr><th class="pb-2 pr-4 text-left text-xs font-medium text-gray-500">Uraian</th><th class="pb-2 text-right text-xs font-medium text-gray-500">Jumlah (Rp)</th></tr></thead>
                 <tbody>
                 <tr><td class="py-2 pr-4">DPP SPT Masa PPN</td><td class="py-2 text-right" th:text="${#numbers.formatDecimal(recon.sptDpp(), 1, 'POINT', 0, 'COMMA')}">0</td></tr>
                 <tr class="border-t"><td class="py-2 pr-4">PPN per faktur</td><td class="py-2 text-right" id="effect-ppn" th:text="${#numbers.formatDecimal(recon.taxEffects().ppnPerFaktur(), 1, 'POINT', 0, 'COMMA')}">0</td></tr>

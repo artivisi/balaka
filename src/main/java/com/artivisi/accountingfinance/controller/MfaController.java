@@ -171,7 +171,6 @@ public class MfaController {
 
     @PostMapping("/disable")
     public String disable(@RequestParam("code") String code,
-                          Model model,
                           RedirectAttributes redirectAttributes) {
         User user = currentUser();
         if (user == null) {

@@ -52,8 +52,11 @@
                 </form>
             </div>
             <table class="min-w-full divide-y divide-gray-200 text-sm">
+                <thead class="bg-gray-50">
+                    <tr><th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Nomor invoice</th><th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tanggal</th><th class="px-4 py-2"><span class="sr-only">Aksi</span></th></tr>
+                </thead>
                 <tbody class="divide-y divide-gray-200">
-                    <tr th:if="${#lists.isEmpty(invoices)}"><td class="px-4 py-6 text-center text-gray-500">Belum ada invoice yang tertaut</td></tr>
+                    <tr th:if="${#lists.isEmpty(invoices)}"><td colspan="3" class="px-4 py-6 text-center text-gray-500">Belum ada invoice yang tertaut</td></tr>
                     <tr th:each="i : ${invoices}" data-testid="linked-invoice" th:data-number="${i.invoiceNumber}">
                         <td class="px-4 py-3"><a class="text-primary-600 hover:underline" th:href="@{/invoices/{id}(id=${i.id})}" th:text="${i.invoiceNumber}">INV</a></td>
                         <td class="px-4 py-3" th:text="${#temporals.format(i.invoiceDate, 'dd/MM/yyyy')}">01/01/2026</td>
@@ -76,8 +79,11 @@
                 </form>
             </div>
             <table class="min-w-full divide-y divide-gray-200 text-sm">
+                <thead class="bg-gray-50">
+                    <tr><th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Nomor transaksi</th><th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Keterangan</th><th class="px-4 py-2"><span class="sr-only">Aksi</span></th></tr>
+                </thead>
                 <tbody class="divide-y divide-gray-200">
-                    <tr th:if="${#lists.isEmpty(transactions)}"><td class="px-4 py-6 text-center text-gray-500">Belum ada transaksi yang tertaut</td></tr>
+                    <tr th:if="${#lists.isEmpty(transactions)}"><td colspan="3" class="px-4 py-6 text-center text-gray-500">Belum ada transaksi yang tertaut</td></tr>
                     <tr th:each="t : ${transactions}" data-testid="linked-transaction" th:data-number="${t.transactionNumber}">
                         <td class="px-4 py-3"><a class="text-primary-600 hover:underline" th:href="@{/transactions/{id}(id=${t.id})}" th:text="${t.transactionNumber}">TRX</a></td>
                         <td class="px-4 py-3" th:text="${t.description}">Keterangan</td>
